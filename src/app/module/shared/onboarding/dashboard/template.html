@@ -1,0 +1,397 @@
+<!-- file: ./src/app/module/shared/onboarding/dashboard/template.html -->
+
+<div class="tw:flex tw:flex-col tw:gap-4 tw:mx-2!">
+    
+    <div class="tw:flex tw:items-start tw:gap-3">
+        <div class="tw:flex-1 tw:min-w-0 tw:md:max-w-1/2 tw:lg:max-w-1/3 tw:xl:max-w-1/4">
+            <mat-form-field
+                appearance="outline"
+                subscriptSizing="dynamic"
+                class="tw:w-full"
+            >
+                <mat-label>Quick Search</mat-label>
+                <mat-icon matPrefix class="material-symbols-rounded">search</mat-icon>
+                <input matInput placeholder="Quick Search" (keyup)="setSearchQuery($event)" #searchinput />
+
+                @if (searchinput.value) {
+                <button
+                    mat-icon-button
+                    matSuffix
+                    type="button"
+                    aria-label="Clear search"
+                    (click)="clearSearchQuery(searchinput)"
+                    class="tw:mx-2"
+                >
+                    <mat-icon class="material-symbols-rounded">close</mat-icon>
+                </button>
+                }
+            </mat-form-field>
+        </div>
+
+        <div class="tw:ms-auto tw:flex tw:items-center tw:gap-2 tw:shrink-0">
+            <div>
+                <button
+                    mat-mini-fab
+                    [matMenuTriggerFor]="fabMenu"
+                    aria-label="Open quick actions"
+                    matTooltip=""
+                    matTooltipPosition="above"
+                    class="tw:rounded-full! tw:text-primary!"
+                >
+                    <mat-icon class="material-symbols-rounded">more_vert</mat-icon>
+                </button>
+
+                <mat-menu #fabMenu="matMenu" xPosition="before" yPosition="above">
+                    <button mat-menu-item>
+                        <mat-icon class="material-symbols-rounded">add</mat-icon>
+                        <span>Add</span>
+                    </button>
+
+                    <button mat-menu-item>
+                        <mat-icon class="material-symbols-rounded">edit</mat-icon>
+                        <span>Edit</span>
+                    </button>
+
+                    <button mat-menu-item>
+                        <mat-icon class="material-symbols-rounded">delete</mat-icon>
+                        <span>Delete</span>
+                    </button>
+                </mat-menu>
+            </div>
+
+            <button
+                mat-mini-fab
+                type="button"
+                aria-label="Open search filter sidebar"
+                matTooltip=""
+                matTooltipPosition="above"
+                (click)="onSearchButtonClick($event)"
+                (keydown.enter)="onSearchButtonClick($event)"
+                (keydown.space)="onSearchButtonClick($event)"
+                class="tw:rounded-full! tw:text-primary!"
+            >
+                <mat-icon class="material-symbols-rounded tw:text-primary">filter_alt</mat-icon>
+            </button>
+        </div>
+    </div>
+    <mat-card>
+        <mat-card-content class="tw:p-1! tw:overflow-auto">
+        <!-- data table [http://localhost:4200/app/customers] [theme/adminuiux/src/app/pages/app/projects/projects-grid.component.ts] -->
+        <table
+            mat-table
+            [dataSource]="dataSource"
+            class="tw:w-full tw:bg-transparent!"
+            cdkDropList
+            cdkDropListOrientation="horizontal"
+            (cdkDropListDropped)="drop($event)"
+        >
+            <ng-container matColumnDef="select">
+                <th mat-header-cell *matHeaderCellDef>
+                    <mat-checkbox
+                        (change)="toggleAllRows()"
+                        [checked]="isAllRowsSelected()"
+                        [indeterminate]="isPartiallySelected()"
+                        [aria-label]="'Select all rows'"
+                    ></mat-checkbox>
+                </th>
+                <td mat-cell *matCellDef="let row">
+                    <mat-checkbox
+                        (click)="$event.stopPropagation()"
+                        (change)="toggleRowSelection(row)"
+                        [checked]="selectedRows.isSelected(row)"
+                        [aria-label]="'Select row'"
+                    ></mat-checkbox>
+                </td>
+                <td mat-footer-cell *matFooterCellDef>
+                    <div>
+                        <button
+                            mat-icon-button
+                            [matMenuTriggerFor]="recordActionsMenu"
+                            aria-label="Actions"
+                            (click)="$event.stopPropagation()"
+                            matTooltip="Bulk Actions"
+                            matTooltipPosition="above"
+                        >
+                            <mat-icon class="material-symbols-rounded">dynamic_feed</mat-icon>
+                        </button>
+
+                        <mat-menu #recordActionsMenu="matMenu" yPosition="above" xPosition="after">
+                            <button mat-menu-item>
+                                <mat-icon class="material-symbols-rounded">edit_circle_outline</mat-icon>
+                                <span>Edit</span>
+                            </button>
+
+                            <button mat-menu-item>
+                                <mat-icon class="material-symbols-rounded">archive</mat-icon>
+                                <span>Import</span>
+                            </button>
+                            <button mat-menu-item>
+                                <mat-icon class="material-symbols-rounded">unarchive</mat-icon>
+                                <span>Export</span>
+                            </button>
+                        </mat-menu>
+                    </div>
+                </td>
+            </ng-container>
+
+            <ng-container matColumnDef="customerName">
+                <th mat-header-cell cdkDrag *matHeaderCellDef class="tw:cursor-grab tw:active:cursor-grabbing">
+                    Customer Info
+                </th>
+                <td mat-cell *matCellDef="let element" class="py-2 hoverview">
+                    <h4 class="">{{ element.customerName }} <mat-icon class="material-symbols-rounded text-sm text-theme" click="">edit</mat-icon></h4>
+                    <p class=""><small>{{ element.city }}, {{ element.country }}</small></p>
+                </td>
+                <td mat-footer-cell *matFooterCellDef></td>
+            </ng-container>
+
+            <ng-container matColumnDef="contactInfo">
+                <th mat-header-cell cdkDrag *matHeaderCellDef class="tw:cursor-grab tw:active:cursor-grabbing">
+                    Contact
+                </th>
+                <td mat-cell *matCellDef="let element">
+                    <p class="">{{ element.email }}</p>
+                    <p class="">{{ element.phone }}</p>
+                </td>
+                <td mat-footer-cell *matFooterCellDef></td>
+            </ng-container>
+
+            <ng-container matColumnDef="lastVisited">
+                <th mat-header-cell cdkDrag *matHeaderCellDef class="tw:cursor-grab tw:active:cursor-grabbing">
+                    Last Visited
+                </th>
+                <td mat-cell *matCellDef="let element">
+                    <p class="">{{ element.lastVisitedDate }}</p>
+                    <p class="">{{ element.lastVisitedTime }}</p>
+                </td>
+                <td mat-footer-cell *matFooterCellDef></td>
+            </ng-container>
+
+            <ng-container matColumnDef="totalPurchase">
+                <th mat-header-cell cdkDrag *matHeaderCellDef mat-sort-header class="tw:cursor-grab tw:active:cursor-grabbing">
+                    Total Purchase
+                </th>
+                <td mat-cell *matCellDef="let element">
+                    <h4 class="">$ {{ element.totalPurchaseLifetime | number : "1.2-2" }}</h4>
+                    <p class="">This Month: $ {{ element.totalPurchaseThisMonth | number : "1.2-2" }}</p>
+                </td>
+                <td mat-footer-cell *matFooterCellDef></td>
+            </ng-container>
+
+            <ng-container matColumnDef="status">
+                <th mat-header-cell cdkDrag *matHeaderCellDef class="tw:cursor-grab tw:active:cursor-grabbing">
+                    Status
+                </th>
+                <td mat-cell *matCellDef="let element">
+                    <span
+                    class="tw:inline-flex tw:me-1 tw:items-center tw:justify-center tw:rounded-full tw:bg-blue-100 tw:px-3 tw:py-1 tw:text-sm tw:font-medium tw:text-blue-700"
+                    matTooltip="Active"
+                    >
+                    {{ element.activeOrders }}
+                    </span>
+
+                    <span
+                    class="tw:inline-flex tw:me-1 tw:items-center tw:justify-center tw:rounded-full tw:bg-green-100 tw:px-3 tw:py-1 tw:text-sm tw:font-medium tw:text-green-700"
+                    matTooltip="Completed"
+                    >
+                    {{ element.completedOrders }}
+                    </span>
+
+                    <span
+                    class="tw:inline-flex tw:items-center tw:justify-center tw:rounded-full tw:bg-red-100 tw:px-3 tw:py-1 tw:text-sm tw:font-medium tw:text-red-700"
+                    matTooltip="Cancelled"
+                    >
+                    {{ element.cancelledOrders }}
+                    </span>
+                </td>
+                <td mat-footer-cell *matFooterCellDef></td>
+            </ng-container>
+
+            <ng-container matColumnDef="actions">
+                <th mat-header-cell cdkDrag *matHeaderCellDef class="tw:cursor-grab tw:active:cursor-grabbing">
+                    Actions
+                </th>
+                <td mat-cell *matCellDef="let element">
+                    <button mat-icon-button [matMenuTriggerFor]="menu" aria-label="Actions menu">
+                        <mat-icon class="material-symbols-rounded">more_vert</mat-icon>
+                    </button>
+                    <mat-menu #menu="matMenu" xPosition="before">
+                        <button mat-menu-item click="">
+                            <mat-icon class="material-symbols-rounded">edit</mat-icon>
+                            <span>Edit</span>
+                        </button>
+                        <button mat-menu-item click="">
+                            <mat-icon class="material-symbols-rounded">block</mat-icon>
+                            <span>Ban</span>
+                        </button>
+                        <button mat-menu-item click="">
+                            <mat-icon class="material-symbols-rounded">delete</mat-icon>
+                            <span>Delete</span>
+                        </button>
+                    </mat-menu>
+                </td>
+                <td mat-footer-cell *matFooterCellDef></td>
+            </ng-container>
+            
+            <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+            <tr mat-row *matRowDef="let row; columns: displayedColumns"></tr>
+            <tr mat-footer-row *matFooterRowDef="displayedColumns"></tr>
+            <tr class="mat-row" *matNoDataRow>
+                <td class="mat-cell" [attr.colspan]="displayedColumns.length">No data matching the filter</td>
+            </tr>
+        </table>
+        </mat-card-content>
+    </mat-card>
+    <mat-card>
+        <mat-card-actions class="tw:p-1! tw:justify-center">
+            <app-pagination
+                [totalRecords]="pagination.totalItems"
+                [pageIndex]="pagination.pageIndex"
+                [pageSize]="pagination.pageSize"
+                [pageSizeOptions]="pagination.pageSizeOptions"
+                [showFirstLastButtons]="true"
+                [showJumpToPage]="true"
+                (pageChange)="onPageChange($event)"
+                >
+            </app-pagination>
+        </mat-card-actions>
+    </mat-card>
+</div>
+
+<mat-drawer
+        #searchDrawer
+        mode="over"
+        position="end"
+        class="tw:fixed! tw:z-20! tw:p-4"
+        style="--mat-sidenav-container-elevation-shadow:0px 5px 15px rgba(0, 0, 0, 0.15);z-index:12"
+    >
+        <div class="tw:flex tw:items-center tw:justify-between tw:mb-4">
+            <h3 class="tw:m-0">Search Filters</h3>
+            <button mat-icon-button type="button" aria-label="Close search sidebar" (click)="closeSearchDrawer()">
+                <mat-icon class="material-symbols-rounded">close</mat-icon>
+            </button>
+        </div>
+
+        <div class="tw:flex tw:flex-wrap">
+            <h3 class="tw:m-0">
+                <mat-icon class="material-symbols-rounded tw:align-middle tw:text-primary">
+                filter_list
+                </mat-icon>
+                View Options
+            </h3>
+
+            <!-- displayed columns [theme/adminuiux/src/app/components/employee-select/employee-select.component.ts] -->
+            <mat-form-field class="w-100" appearance="outline">
+                <mat-select
+                    multiple
+                    placeholder="Select ({{ displayedColumns.length }}/{{ availableColumns.length }})"
+                    [value]="getDisplayedColumnSelectionValue()"
+                    (selectionChange)="onDisplayedColumnsChange($event.value)"
+                >
+                    <mat-select-trigger>
+                        @if (displayedColumns.length > 0) {
+                        <span>{{ getSelectedColumnLabels() }}</span>
+                        }
+                    </mat-select-trigger>
+                    <mat-option [value]="allColumnsValue" class="mat-option-all">
+                        <div class="flex items-center space-x-3 p-1 font-extrabold text-indigo-600 bg-indigo-50 rounded-md">
+                            <span>{{ isAllColumnsSelected() ? "Deselect" : "All" }}</span>
+                            <span class="small text-secondary">({{ displayedColumns.length }}/{{ availableColumns.length }})</span>
+                        </div>
+                    </mat-option>
+                    <mat-divider></mat-divider>
+                    @for (column of availableColumns; track column.key) {
+                    <mat-option [value]="column.key" style="min-height: 54px;">
+                        <div class="row gx-2 align-items-center">
+                            <div class="col maxwidth-dynamic" style="--mw-dynamic:calc(100% - 30px - 0.5rem)">
+                                <p class="tw:mb-0">{{ column.label }}</p>
+                                <p class="small tw:text-secondary tw:truncate">{{ column.description }}</p>
+                            </div>
+                        </div>
+                    </mat-option>
+                    }
+                </mat-select>
+                <mat-icon matPrefix class="material-symbols-rounded">view_column</mat-icon>
+            </mat-form-field>
+
+            <!-- sorting fields [theme/adminuiux/src/app/pages/app/projects/projects-cards.component.ts] -->
+            <div class="tw:w-full md:tw:w-1/2 lg:tw:w-1/3 xl:tw:w-1/4 tw:my-3">
+                <mat-form-field appearance="outline" class="tw:w-full">
+                    <mat-select
+                        id="sort-column"
+                        ngModel=""
+                        ngModelChange=""
+                        class="sort-select"
+                    >
+                        <mat-option value="name">Project Name</mat-option>
+                        <mat-option value="manager">Manager</mat-option>
+                        <mat-option value="dueDate">Due Date</mat-option>
+                        <mat-option value="progress">Progress</mat-option>
+                    </mat-select>
+                    <mat-icon matPrefix class="material-symbols-rounded">sort</mat-icon>
+                </mat-form-field>
+            </div>
+            <div class="tw:order-3 tw:w-full tw:px-3 tw:mb-3">
+                <mat-button-toggle-group>
+                <mat-button-toggle value="day">ASC</mat-button-toggle>
+                <mat-button-toggle value="week">DESC</mat-button-toggle>
+                </mat-button-toggle-group>
+            </div>
+        </div>
+
+        <h3 class="tw:m-0">
+                <mat-icon class="material-symbols-rounded tw:align-middle tw:text-primary">
+                filter_alt
+                </mat-icon>
+                Search
+            </h3>
+
+        <form class="tw:flex tw:flex-col tw:gap-4">
+            <mat-form-field appearance="outline" class="tw:w-full">
+                <mat-label>Customer Name</mat-label>
+                <input matInput placeholder="Type customer name" />
+            </mat-form-field>
+
+            <mat-form-field appearance="outline" class="tw:w-full">
+                <mat-label>City</mat-label>
+                <input matInput placeholder="Type city" />
+            </mat-form-field>
+
+            <mat-form-field appearance="outline" class="tw:w-full">
+                <mat-label>Status</mat-label>
+                <mat-select>
+                    <mat-option value="active">Active orders</mat-option>
+                    <mat-option value="completed">Completed orders</mat-option>
+                    <mat-option value="cancelled">Cancelled orders</mat-option>
+                </mat-select>
+            </mat-form-field>
+
+            <div class="tw:flex tw:justify-end tw:gap-2">
+                <button mat-stroked-button type="button" (click)="closeSearchDrawer()">Cancel</button>
+                <button mat-flat-button color="primary" type="submit">Apply</button>
+            </div>
+        </form>
+    </mat-drawer>
+
+<ng-template cdkPortal [privateAreaLayout]="PrivateAreaLayoutSlotEnum.SLOT_START_SIDE_BAR_EXTENSION">
+    <img
+    src="assets/space.webp"
+    alt="side-banner"
+    class="tw:h-full tw:w-full tw:object-cover"
+    />
+</ng-template>
+<ng-template cdkPortal [privateAreaLayout]="PrivateAreaLayoutSlotEnum.SLOT_MAIN_HEADER_TOOLBAR_EXTENSION">
+</ng-template>
+<ng-template cdkPortal [privateAreaLayout]="PrivateAreaLayoutSlotEnum.SLOT_MAIN_FOOTER_TOOLBAR_EXTENSION">
+    <mat-tab label="Filter">
+        <div>
+            hd jf gdjg jhsdg jsd gjhfgdsj gsj
+        </div>
+    </mat-tab>
+</ng-template>
+<ng-template cdkPortal [privateAreaLayout]="PrivateAreaLayoutSlotEnum.SLOT_END_SIDE_BAR_TAB_LABEL">
+</ng-template>
+<ng-template cdkPortal [privateAreaLayout]="PrivateAreaLayoutSlotEnum.SLOT_END_SIDE_BAR_TAB_BODY">
+</ng-template>
+<ng-template cdkPortal [privateAreaLayout]="PrivateAreaLayoutSlotEnum.SLOT_END_SIDE_BAR_FOOTER">
+</ng-template>

@@ -1,0 +1,207 @@
+// file: ./src/theme/active/_color.scss
+// material theming
+@use '@angular/material' as mat;
+@use './variable' as *;
+
+// ███ LIGHT - DARK █████████████████████████████████████████████████
+// theme colors, we are adding our part only so do not include full _theme.scss file 
+// @use './theme/adminuiux/src/_theme.scss';
+// Themes
+body[data-bfw-theme-mode='light'] {
+    color-scheme: light;
+
+    .bfw-light {
+        display: none;
+    }
+
+    .bfw-dark {
+        display: inline-block;
+    }
+}
+
+body[data-bfw-theme-mode='dark'] {
+    color-scheme: dark;
+
+    .bfw-light {
+        display: block;
+    }
+
+    .bfw-dark {
+        display: none;
+    }
+}
+
+// ███ THEME COLOR ██████████████████████████████████████████████████
+//custom theme, we are adding our part only so do not include full _custom-theme.scss file 
+// @use './theme/adminuiux/src/_custom-theme.scss';
+body[data-bfw-theme='default'] {
+  // material design 3 color system
+  --mat-sys-primary: light-dark(#2D50E3, #5873dd);
+  --mat-sys-on-primary: light-dark(#ffffff, #000000);
+  --mat-sys-primary-container: light-dark(#DBEEFF, #25305f);
+  --mat-sys-on-primary-container: light-dark(#001C4D, #C3E1FF);
+  --mat-sys-inverse-primary: light-dark(#80BFFF, #0066CC);
+  --mat-sys-secondary: light-dark(#575E71, #C7C5D8);
+  --mat-sys-on-secondary: light-dark(#ffffff, #2D3244);
+  --mat-sys-secondary-container: light-dark(#DFE2EB, #404659);
+  --mat-sys-on-secondary-container: light-dark(#141B2C, #DFE2EB);
+  --mat-sys-tertiary: light-dark(#7452A1, #E3C0FF);
+  --mat-sys-on-tertiary: light-dark(#ffffff, #43276F);
+  --mat-sys-tertiary-container: light-dark(#EADDFF, #5B3A88);
+  --mat-sys-on-tertiary-container: light-dark(#2A0054, #EADDFF);
+  --mat-sys-background: light-dark(#F7F9FF, #191C20);
+  --mat-sys-on-background: light-dark(#1A1C20, #E0E2E6);
+  --mat-sys-surface: light-dark(#F7F9FF, #191C20);
+  --mat-sys-on-surface: light-dark(#1A1C20, #E0E2E6);
+  --mat-sys-surface-variant: light-dark(#DFE2EB, #43474E);
+  --mat-sys-on-surface-variant: light-dark(#43474E, #C3C6CE);
+  --mat-sys-outline: light-dark(#73777F, #8D9199);
+  --mat-sys-inverse-surface: light-dark(#2E3135, #E0E2E6);
+  --mat-sys-inverse-on-surface: light-dark(#E0E2E6, #2E3135);
+  --mat-sys-error: light-dark(#ba1a1a, #ffb4ab);
+  --mat-sys-on-error: light-dark(#ffffff, #690005);
+  --mat-sys-error-container: light-dark(#ffdad6, #93000a);
+  --mat-sys-on-error-container: light-dark(#93000a, #ffdad6);
+  --mat-sys-surface-dim: light-dark(#D8DAE0, #111418);
+  --mat-sys-surface-bright: light-dark(#F7F9FF, #33363B);
+  --mat-sys-surface-container-lowest: light-dark(#ffffff, #0D0F13);
+  --mat-sys-surface-container-low: light-dark(#F1F4FA, #1D2024);
+  --mat-sys-surface-container: light-dark(#ECEEF4, #212529);
+  --mat-sys-surface-container-high: light-dark(#E7E8EE, #2C3034);
+  --mat-sys-surface-container-highest: light-dark(#E1E2E8, #373A3E);
+  --mat-sys-surface-tint: light-dark(#0066CC, #80BFFF);
+  --mat-sys-outline-variant: light-dark(#C3C6CF, #43474E);
+  --mat-sys-scrim: light-dark(#000000, #000000);
+  --mat-sys-shadow: light-dark(#000000, #000000);
+  --mat-sys-primary-fixed: light-dark(#0088FF, #0088FF);
+  --mat-sys-primary-fixed-dim: light-dark(#7dd7ff, #7dd7ff);
+  --mat-sys-on-primary-fixed: light-dark(#001C4D, #001C4D);
+  --mat-sys-on-primary-fixed-variant: light-dark(#004D9D, #004D9D);
+  --mat-sys-secondary-fixed: light-dark(#DFE2EB, #DFE2EB);
+  --mat-sys-secondary-fixed-dim: light-dark(#C7C5D8, #C7C5D8);
+  --mat-sys-on-secondary-fixed: light-dark(#141B2C, #141B2C);
+  --mat-sys-on-secondary-fixed-variant: light-dark(#404659, #404659);
+  --mat-sys-tertiary-fixed: light-dark(#EADDFF, #EADDFF);
+  --mat-sys-tertiary-fixed-dim: light-dark(#E3C0FF, #E3C0FF);
+  --mat-sys-on-tertiary-fixed: light-dark(#2A0054, #2A0054);
+  --mat-sys-on-tertiary-fixed-variant: light-dark(#5B3A88, #5B3A88);
+  --mat-sys-neutral-variant20: #313125;
+
+  // bfw color system
+  /*linear-gradient(25deg, var(--mat-sys-primary) 0%, var(--mat-sys-primary-fixed-dim) 20%, var(--mat-template-background) 100%);*/
+  --bfw-body-gradient: linear-gradient(
+      25deg,
+      color-mix(in srgb, var(--mat-sys-primary) 18%, var(--mat-template-background)) 0%,
+      color-mix(in srgb, var(--mat-sys-primary-fixed-dim) 14%, var(--mat-template-background)) 35%,
+      var(--mat-template-background) 100%
+  );
+  --bfw-element-gradient: linear-gradient(
+      -135deg, 
+      rgba(255, 238, 81, 0.1) 0%, 
+      rgba(255, 238, 81, 0) 35%, 
+      rgba(79, 163, 253, 0) 65%, 
+      rgba(136, 221, 255, 0.15) 100%
+  );
+  --bfw-white-gradient: linear-gradient(
+      to bottom, 
+      rgba(255, 255, 255, 0.1) 0%, 
+      var(--mat-sys-primary-container) 100%
+  );
+  --bfw-link-gradient: linear-gradient(
+      45deg, 
+      var(--mat-sys-primary-fixed-dim) 0%, 
+      var(--mat-sys-primary) 100%
+  );
+  --bfw-navbar-gradient: linear-gradient(
+      25deg,
+      var(--mat-sys-primary) 0%,
+      var(--mat-sys-primary-fixed-dim) 20%,
+      var(--mat-template-background) 100%
+  );
+}
+
+// ███ GENERAL ████████████████████████████████████████████████████
+
+html {
+  color-scheme: light dark;
+  @include mat.theme(( 
+    //color: (primary: mat.$azure-palette, tertiary: mat.$blue-palette, ),
+    typography: Roboto,
+    density: 0,
+  ));
+
+  // mat-card
+  --mat-sys-level2: 0 1px 2px rgba(0, 0, 0, 0.05), 0 3px 5px rgba(0, 0, 0, 0.05);
+  --mat-card-elevated-container-color: light-dark(#ffffff, #222222);
+  --mat-card-outlined-container-color: light-dark(#ffffff, #222222);
+  --mat-card-elevated-container-shape: var(--mat-sys-corner-small);
+  --mat-card-outlined-container-shape: var(--mat-sys-corner-small);
+  --mat-card-elevated-container-elevation: var(--mat-sys-level2);
+  --mat-card-subtitle-text-color: var(--mat-sys-outline);
+  --mat-card-subtitle-text-weight: normal;
+  
+  // menu
+  --mat-toolbar-title-text-size: 1rem;
+  --mat-menu-container-color: light-dark(#ffffff, #333333);
+  
+  // datepicker
+  --mat-datepicker-calendar-container-background-color: light-dark(#ffffff, #333333);
+  --mat-select-panel-background-color: light-dark(#ffffff, #333333);
+  
+  // table
+  --mat-table-row-item-outline-color: light-dark(#dddddd, #444444);
+  --mat-table-row-item-label-text-line-height: 22px;
+  --mat-table-row-item-label-text-size: 15px;
+  
+  // inner sidebar
+  --sidebar-width: 290px;
+  --inner-sidebar-width: 290px;
+  
+  //label
+  --mat-checkbox-label-text-size: var(--mat-sys-body-large-size);
+  
+  // divider 
+  --mat-divider-color: light-dark(#dddddd, #444444);
+  
+  // shape dropdown
+  --mat-menu-container-shape: 10px;
+  --mat-menu-container-elevation-shadow: 0 3px 8px rgba(0, 0, 0, 0.15), 0 10px 15px rgba(0, 0, 0, 0.02);
+  
+  // field
+  --mat-form-field-filled-container-color: light-dark(#f3f3f3, #444444);
+  
+  // header background
+  --mat-header-background-color: light-dark(#ffffff, #444444);
+  
+  // template background 
+  --mat-template-background: light-dark(#ffffff, #000000)
+}
+
+body {
+  position: relative;
+  color: var(--mat-sys-on-surface);
+  background-color: var(--mat-template-background);
+  font-family: var(--mat-sys-display-medium-font);
+  isolation: isolate;
+  margin: 0;
+  min-height: 100vh;
+  min-height: 100dvh;
+  
+  &::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    pointer-events: none;
+    background-image: var(--bfw-body-gradient);
+    background-repeat: no-repeat;
+    background-size: cover;
+    background-position: center top;
+  }
+
+  &.bfw-field-rounded {
+    --mat-chip-container-shape-radius: 28px;
+    --mat-form-field-outlined-container-shape: 28px;
+    --mat-button-toggle-shape: var(--mat-sys-corner-extra-large);
+  }
+}

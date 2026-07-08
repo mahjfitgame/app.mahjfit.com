@@ -1,0 +1,1 @@
+DROP INDEX `in_sync_queue_operation`;

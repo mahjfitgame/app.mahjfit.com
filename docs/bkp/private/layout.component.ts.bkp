@@ -1,0 +1,375 @@
+// ./src/app/area/private/layout.component.ts
+import { BreakpointObserver, Breakpoints } from "@angular/cdk/layout";
+import { AsyncPipe, CommonModule } from "@angular/common";
+import { Component, computed, CUSTOM_ELEMENTS_SCHEMA, DOCUMENT, ElementRef, EventEmitter, inject, Inject, Input, OnDestroy, OnInit, Output, Renderer2, signal, viewChild, ViewChild, WritableSignal } from "@angular/core";
+import { MatButtonModule } from "@angular/material/button";
+import { MatCardModule } from "@angular/material/card";
+import { MatIconModule } from "@angular/material/icon";
+import { MatListModule, MatNavList } from "@angular/material/list";
+import { MatSidenav, MatSidenavModule } from "@angular/material/sidenav";
+import { MatMenuModule } from "@angular/material/menu";
+import { MatBadgeModule } from "@angular/material/badge";
+import { MatToolbarModule } from "@angular/material/toolbar";
+import { RouterModule, RouterOutlet } from "@angular/router";
+import { take, map, Observable, shareReplay, Subject, takeUntil } from "rxjs";
+import { MatAccordion, MatExpansionModule } from "@angular/material/expansion";
+import { MatTabsModule } from "@angular/material/tabs";
+import { Router, RouterLink } from "@angular/router";
+import { MatButtonToggleModule } from "@angular/material/button-toggle";
+import { MatSelect, MatSelectModule } from "@angular/material/select";
+import { MatStepperModule } from "@angular/material/stepper";
+import { MatFormFieldModule } from "@angular/material/form-field";
+import { MatChipEditedEvent, MatChipInputEvent, MatChipsModule } from "@angular/material/chips";
+import { MatInputModule } from "@angular/material/input";
+
+
+type SidenavView = "theme" | "settings" | null;
+
+// default theme classes
+const themes = [
+    { name: "Red", class: "theme-red" },
+    { name: "Green", class: "theme-green" },
+    { name: "Blue", class: "theme-blue" },
+    { name: "Yellow", class: "theme-yellow" },
+    { name: "Cyan", class: "theme-cyan" },
+    { name: "Magenta", class: "theme-magenta" },
+    { name: "Orange", class: "theme-orange" },
+    { name: "Chartreuse", class: "theme-chartreuse" },
+    { name: "Teal", class: "theme-spring-green" },
+    { name: "Azure", class: "theme-azure" },
+    { name: "Violet", class: "theme-violet" },
+    { name: "Rose", class: "theme-rose" },
+    { name: "Custom", class: "theme-custom" },
+];
+
+interface NavItem {
+    name: string;
+    route?: string;
+    icon: string;
+    children?: NavItem[];
+}
+
+@Component({
+  selector: 'app-private-area-layout',
+  standalone: true,
+  templateUrl: './layout.template.html',
+  styleUrl: './layout.style.scss',
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  imports: [
+   //AsyncPipe, 
+    RouterOutlet,
+    RouterModule,
+    CommonModule, 
+    MatSidenavModule, 
+    MatToolbarModule, 
+    MatIconModule, 
+    MatButtonModule, 
+    MatNavList,
+    MatListModule, 
+    MatCardModule, 
+    MatExpansionModule, 
+    MatAccordion,
+    MatBadgeModule,
+    MatMenuModule,
+    MatTabsModule,
+
+    MatButtonToggleModule, 
+    MatSelectModule, 
+    MatStepperModule, 
+    MatFormFieldModule, 
+    MatChipsModule, 
+    MatInputModule, 
+    
+    
+    /*
+    AppHeaderComponent, 
+    AppSidebarComponent, 
+    AppFooterComponent, 
+    ThemeComponent, 
+    NotificationSidenavComponent
+    */
+  ],
+  providers: [
+    
+  ],
+  schemas: [CUSTOM_ELEMENTS_SCHEMA], 
+})
+export class PrivateAreaLayoutComponent implements OnInit, OnDestroy {
+    isMobile = false;
+    isDarkMode = false;
+    
+    private router = inject(Router); 
+    
+
+    readonly iconicSidebar = signal(true);
+    private el = inject(ElementRef);
+    private renderer = inject(Renderer2);
+    private breakpointObserver = inject(BreakpointObserver);
+    private document = inject(DOCUMENT);
+
+    private destroy$ = new Subject<void>();
+    private resizeObserver: ResizeObserver | null = null;
+    private footerMobileObserver: ResizeObserver | null = null;
+
+    @ViewChild("appheader", { read: ElementRef }) appHeader!: ElementRef<HTMLElement>;
+    @ViewChild("appfooter", { read: ElementRef }) appFooter!: ElementRef<HTMLElement>;
+    @ViewChild("appmain", { read: ElementRef }) appMain!: ElementRef<HTMLElement>;
+    
+    @Input() drawers!: MatSidenav;
+    @Output() openSettingsMenu = new EventEmitter<void>();
+
+    private notifications = signal([
+        { id: 1, type: "taskStatus", title: "Task Moved", text: "#021 moved to ready-to-test by Jia Doe.", icon: "assignment", timestamp: new Date(), read: false },
+        { id: 2, type: "request", title: "Leave request", text: "Leave request raised by by Liana Doe.", icon: "event", timestamp: new Date(), read: false },
+        { id: 3, type: "sale", title: "New Sale!", text: "Order #12345 has been placed.", icon: "attach_money", timestamp: new Date(), read: false },
+        { id: 4, type: "comment", title: "New Comment", text: "Someone commented on your latest post.", icon: "comment", timestamp: new Date(Date.now() - 60000), read: false },
+        { id: 5, type: "system", title: "System Update", text: "A new feature has been deployed.", icon: "system_update", timestamp: new Date(Date.now() - 120000), read: true },
+        { id: 6, type: "sale", title: "Sale Completed", text: "Order #12344 has been shipped.", icon: "shopping_bag", timestamp: new Date(Date.now() - 180000), read: true },
+        { id: 7, type: "system", title: "System Downtime", text: "Scheduled maintenance from 2-4 AM.", icon: "warning", timestamp: new Date(Date.now() - 240000), read: false },
+    ]);
+
+    allNotifications = this.notifications.asReadonly();
+    unreadNotifications = computed(() => this.notifications().filter((n) => !n.read));
+
+    systemNotifications = computed(() => this.notifications().filter((n) => n.type === "system"));
+    notice = true;
+    approvenotice = false;
+    sidenav = viewChild<MatSidenav>("sidenav");
+    isSearchActive = false;
+
+    currentView: WritableSignal<SidenavView> = signal(null);
+
+    isHandset$: Observable<boolean> = this.breakpointObserver.observe(Breakpoints.Handset).pipe(
+        map((result) => result.matches),
+        shareReplay(),
+    );
+
+     // language
+    languages = signal([
+        { name: "English", flag: "assets/img/english.png", code: "en" },
+        { name: "German", flag: "assets/img/german.png", code: "de" },
+        { name: "France", flag: "assets/img/france.png", code: "fr" },
+    ]);
+    selectedLanguage = signal(this.languages()[0]);
+
+    navItems: NavItem[] = [
+        { name: "Dashboard", route: "/dashboard", icon: "house" },
+        { name: "My Profile", route: "/account/my-profile", icon: "person" },
+        {
+            name: "Projects",
+            icon: "dashboard",
+            children: [
+                { name: "Projects", route: "/app/projects", icon: "assignment" },
+                { name: "Project Details", route: "/app/project-details", icon: "subject" },
+                { name: "All Task", route: "/app/all-tasks", icon: "checklist" },
+                { name: "Tasks Details", route: "/app/task-details", icon: "task" },
+                { name: "Task Kanban", route: "/app/kanban", icon: "view_kanban" },
+                { name: "Task Gantt Chart", route: "/app/gantt-chart", icon: "event" },
+                { name: "Time Tacking", route: "/app/time-tracking", icon: "alarm" },
+            ],
+        },
+        {
+            name: "E-commerce",
+            icon: "shopping_cart",
+            children: [
+                { name: "Customers", route: "/account/my-profile", icon: "group" },
+                { name: "Orders", route: "/app/orders", icon: "local_mall" },
+                { name: "Shop", route: "/app/ecommerce", icon: "storefront" },
+                { name: "Products", route: "/app/products", icon: "store" },
+                { name: "Product", route: "/app/product", icon: "sell" },
+                { name: "Cart", route: "/app/cart", icon: "shopping_cart" },
+                { name: "Checkout", route: "/app/checkout", icon: "local_mall" },
+                { name: "Add Product", route: "/app/add-product", icon: "add_box" },
+                { name: "Invoice", route: "/app/invoice", icon: "receipt" },
+            ],
+        },
+        {
+            name: "Account",
+            icon: "account_circle",
+            children: [
+                {
+                    name: "Profile",
+                    icon: "person",
+                    children: [
+                        { name: "Personal", route: "/app/profile", icon: "perm_identity" },
+                        { name: "Level 3 Menu ", route: "/app/dashboard", icon: "subdirectory_arrow_right" },
+                    ],
+                },
+                { name: "Subscription", route: "/app/subscription", icon: "workspace_premium" },
+                { name: "Plans", route: "/app/plans", icon: "star" },
+                { name: "Settings", route: "/app/settings", icon: "settings" },
+            ],
+        },
+        {
+            name: "Applications",
+            icon: "apps",
+            children: [
+                { name: "Explorer", route: "/app/explorer", icon: "folder_zip" },
+                { name: "Calendar", route: "/app/calendar", icon: "event" },
+                { name: "Chat", route: "/app/chat", icon: "chat" },
+            ],
+        },
+        {
+            name: "Front Website",
+            icon: "language",
+            children: [
+                { name: "Home", route: "../web/website", icon: "web" },
+                { name: "About Us", route: "../web/about-us", icon: "apartment" },
+                { name: "Case Study", route: "../web/case-study", icon: "border_all" },
+                { name: "Blog", route: "../web/blog", icon: "newspaper" },
+                { name: "Blog Details", route: "../web/blog-details", icon: "newspaper" },
+                { name: "Contact Us", route: "../web/contact-us", icon: "mail" },
+            ],
+        },
+        {
+            name: "Supportive",
+            icon: "extension",
+            children: [
+                { name: "Coming Soon", route: "../coming-soon", icon: "event" },
+                { name: "Page Not Found", route: "../**", icon: "bug_report" },
+            ],
+        },
+        { name: "Pages", route: "/app/pages", icon: "layers" },
+    ];
+
+    constructor() {}
+
+    closeSidenavIfHandset(): void {
+        this.isHandset$.pipe(take(1)).subscribe((isHandset) => {
+            if (isHandset) {
+                this.drawers.toggle();
+            }
+        });
+    }
+
+    ngOnInit(): void {
+        // mobile view detect to add is-mobile class on body
+        this.breakpointObserver
+            .observe([Breakpoints.HandsetPortrait, Breakpoints.HandsetLandscape])
+            .pipe(takeUntil(this.destroy$))
+            .subscribe((result) => {
+                // 'result.matches' is true if the current screen size matches one of the observed breakpoints
+                this.isMobile = result.matches;
+            });
+    }
+
+    ngAfterViewInit(): void {
+        // min height set resize using ResizeObserver
+        this.calculateMainHeight();
+        this.setupResizeObserver();
+        this.setupFooterMobileObserver();
+    }
+
+    private setupResizeObserver(): void {
+        // Use ResizeObserver for header and footer size changes
+        const headerElement = this.appHeader?.nativeElement;
+        const footerElement = this.appFooter?.nativeElement;
+
+        if (headerElement || footerElement) {
+            this.resizeObserver = new ResizeObserver(() => {
+                this.calculateMainHeight();
+            });
+            if (headerElement) this.resizeObserver.observe(headerElement);
+            if (footerElement) this.resizeObserver.observe(footerElement);
+        }
+    }
+
+    private setupFooterMobileObserver(): void {
+        // Use ResizeObserver for footer mobile element changes
+        const footerMobileElement = this.el.nativeElement.querySelector(".mobile-footer");
+
+        if (footerMobileElement) {
+            this.footerMobileObserver = new ResizeObserver(() => {
+                this.adjustPadding();
+            });
+            this.footerMobileObserver.observe(footerMobileElement);
+        }
+    }
+    // min height for main cotnent
+    calculateMainHeight(): void {
+        const headerH = this.appHeader?.nativeElement?.offsetHeight || 0;
+        const footerH = this.appFooter?.nativeElement?.offsetHeight || 0;
+        const mainEl = this.appMain?.nativeElement;
+        if (mainEl) {
+            const style = `--min-height: calc(100vh - (1rem + ${headerH + footerH}px)); margin-top: calc( ${headerH}px)`;
+            this.renderer.setAttribute(mainEl, "style", style);
+        }
+    }
+    // open sidebar
+    openSidenav(view: SidenavView) {
+        this.currentView.set(view);
+        const sidenav = this.sidenav();
+        if (sidenav) {
+            sidenav.open();
+        }
+    }
+
+    hideNotice(): void {
+        this.notice = false;
+    }
+    approvedNotice(): void {
+        this.notice = false;
+        this.approvenotice = true;
+        setTimeout(() => {
+            this.approvenotice = false;
+        }, 1500);
+    }
+
+    toggleSearch() {
+        this.isSearchActive = !this.isSearchActive;
+    }
+
+    toggleMode() {
+        this.isDarkMode = !this.isDarkMode;
+        this.applyMode();
+        localStorage.setItem("app-mode", String(this.isDarkMode));
+    }
+
+    private applyMode() {
+        if (this.isDarkMode) {
+            this.renderer.addClass(this.document.body, "dark-mode");
+            this.renderer.removeClass(this.document.body, "light-mode"); // Ensure only one class is active
+        } else {
+            this.renderer.addClass(this.document.body, "light-mode");
+            this.renderer.removeClass(this.document.body, "dark-mode");
+        }
+    }
+
+    logout() {
+        // Implement logout logic
+        this.router.navigate(["/auth/login"]);
+    }
+
+    onLanguageSelect(lang: any) {
+        this.selectedLanguage.set(lang);
+    }
+
+    // footer mobile bottom space
+    adjustPadding() {
+        const footerMobileElement = this.el.nativeElement.querySelector(".mobile-footer");
+        const themeButton = this.el.nativeElement.querySelector(".theme-button");
+
+        if (footerMobileElement) {
+            const footerMobileHeight = footerMobileElement.offsetHeight;
+            this.renderer.setStyle(this.document.body, "padding-bottom", `calc(${footerMobileHeight}px + env(safe-area-inset-bottom) + 1rem )`);
+            this.renderer.setStyle(themeButton, "padding-bottom", `calc(${footerMobileHeight}px + env(safe-area-inset-bottom) + 1rem )`);
+        } else {
+            this.renderer.setStyle(this.document.body, "padding-bottom", "0");
+            this.renderer.setStyle(themeButton, "padding-bottom", "0");
+        }
+    }
+
+    // responsive is mobile
+    ngOnDestroy(): void {
+        if (this.resizeObserver) {
+            this.resizeObserver.disconnect();
+            this.resizeObserver = null;
+        }
+        if (this.footerMobileObserver) {
+            this.footerMobileObserver.disconnect();
+            this.footerMobileObserver = null;
+        }
+        this.destroy$.next();
+        this.destroy$.complete();
+    }
+}

@@ -1,0 +1,556 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Texture Atlas Viewer</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; display: flex; height: 100vh; background: #1a1a1a; color: #fff; }
+        
+        /* Sidebar layout */
+        #sidebar { width: 300px; background: #262626; border-right: 1px solid #3d3d3d; display: flex; flex-direction: column; }
+        #sidebar h2 { padding: 15px; font-size: 16px; border-bottom: 1px solid #3d3d3d; background: #2e2e2e; }
+        #part-list { flex: 1; overflow-y: auto; list-style: none; }
+        #part-list li { padding: 10px 15px; font-size: 13px; cursor: pointer; border-bottom: 1px solid #333; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; transition: background 0.2s; }
+        #part-list li:hover { background: #3d3d3d; }
+        
+        /* Fixed Sidebar Active: Swapped Red out for a Clean High-Contrast White State */
+        #part-list li.active { background: #ffffff; color: #000000; font-weight: bold; }
+
+        /* Main canvas viewport */
+        #viewport { flex: 1; display: flex; align-items: center; justify-content: center; padding: 20px; overflow: auto; position: relative; }
+        canvas { background-image: linear-gradient(45deg, #333 25%, transparent 25%), linear-gradient(-45deg, #333 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #333 75%), linear-gradient(-45deg, transparent 75%, #333 75%); background-size: 20px 20px; background-position: 0 0, 0 10px, 10px -10px, -10px 0px; border: 2px solid #444; max-width: 100%; max-height: 100%; object-fit: contain; }
+    </style>
+</head>
+<body>
+
+    <div id="sidebar">
+        <h2>Atlas Parts (<span id="count">0</span>)</h2>
+        <ul id="part-list">
+            <!-- Dynamic parts list goes here -->
+        </ul>
+    </div>
+
+    <div id="viewport">
+        <canvas id="atlasCanvas"></canvas>
+    </div>
+
+    <script>
+        // 1. PASTE YOUR JSON DATA HERE
+        const atlasJson = {"frames": {
+
+"bam_1@2x.png":
+{
+	"frame": {"x":2,"y":2,"w":512,"h":512},
+	"rotated": false,
+	"trimmed": false,
+	"spriteSourceSize": {"x":0,"y":0,"w":512,"h":512},
+	"sourceSize": {"w":512,"h":512}
+},
+"bam_2@2x.png":
+{
+	"frame": {"x":516,"y":2,"w":513,"h":512},
+	"rotated": false,
+	"trimmed": false,
+	"spriteSourceSize": {"x":0,"y":0,"w":513,"h":512},
+	"sourceSize": {"w":513,"h":512}
+},
+"bam_3@2x.png":
+{
+	"frame": {"x":1031,"y":2,"w":513,"h":512},
+	"rotated": false,
+	"trimmed": false,
+	"spriteSourceSize": {"x":0,"y":0,"w":513,"h":512},
+	"sourceSize": {"w":513,"h":512}
+},
+"bam_4@2x.png":
+{
+	"frame": {"x":1546,"y":2,"w":513,"h":512},
+	"rotated": false,
+	"trimmed": false,
+	"spriteSourceSize": {"x":0,"y":0,"w":513,"h":512},
+	"sourceSize": {"w":513,"h":512}
+},
+"bam_5@2x.png":
+{
+	"frame": {"x":2061,"y":2,"w":513,"h":512},
+	"rotated": false,
+	"trimmed": false,
+	"spriteSourceSize": {"x":0,"y":0,"w":513,"h":512},
+	"sourceSize": {"w":513,"h":512}
+},
+"bam_6@2x.png":
+{
+	"frame": {"x":2576,"y":2,"w":513,"h":512},
+	"rotated": false,
+	"trimmed": false,
+	"spriteSourceSize": {"x":0,"y":0,"w":513,"h":512},
+	"sourceSize": {"w":513,"h":512}
+},
+"bam_7@2x.png":
+{
+	"frame": {"x":2,"y":516,"w":513,"h":512},
+	"rotated": false,
+	"trimmed": false,
+	"spriteSourceSize": {"x":0,"y":0,"w":513,"h":512},
+	"sourceSize": {"w":513,"h":512}
+},
+"bam_8@2x.png":
+{
+	"frame": {"x":517,"y":516,"w":513,"h":512},
+	"rotated": false,
+	"trimmed": false,
+	"spriteSourceSize": {"x":0,"y":0,"w":513,"h":512},
+	"sourceSize": {"w":513,"h":512}
+},
+"bam_9@2x.png":
+{
+	"frame": {"x":1032,"y":516,"w":513,"h":512},
+	"rotated": false,
+	"trimmed": false,
+	"spriteSourceSize": {"x":0,"y":0,"w":513,"h":512},
+	"sourceSize": {"w":513,"h":512}
+},
+"char_1@2x.png":
+{
+	"frame": {"x":1547,"y":516,"w":512,"h":513},
+	"rotated": false,
+	"trimmed": false,
+	"spriteSourceSize": {"x":0,"y":0,"w":512,"h":513},
+	"sourceSize": {"w":512,"h":513}
+},
+"char_2@2x.png":
+{
+	"frame": {"x":1030,"y":1031,"w":513,"h":513},
+	"rotated": false,
+	"trimmed": false,
+	"spriteSourceSize": {"x":0,"y":0,"w":513,"h":513},
+	"sourceSize": {"w":513,"h":513}
+},
+"char_3@2x.png":
+{
+	"frame": {"x":1545,"y":1031,"w":513,"h":513},
+	"rotated": false,
+	"trimmed": false,
+	"spriteSourceSize": {"x":0,"y":0,"w":513,"h":513},
+	"sourceSize": {"w":513,"h":513}
+},
+"char_4@2x.png":
+{
+	"frame": {"x":2060,"y":1031,"w":513,"h":513},
+	"rotated": false,
+	"trimmed": false,
+	"spriteSourceSize": {"x":0,"y":0,"w":513,"h":513},
+	"sourceSize": {"w":513,"h":513}
+},
+"char_5@2x.png":
+{
+	"frame": {"x":2575,"y":1031,"w":513,"h":513},
+	"rotated": false,
+	"trimmed": false,
+	"spriteSourceSize": {"x":0,"y":0,"w":513,"h":513},
+	"sourceSize": {"w":513,"h":513}
+},
+"char_6@2x.png":
+{
+	"frame": {"x":3090,"y":1031,"w":513,"h":513},
+	"rotated": false,
+	"trimmed": false,
+	"spriteSourceSize": {"x":0,"y":0,"w":513,"h":513},
+	"sourceSize": {"w":513,"h":513}
+},
+"char_7@2x.png":
+{
+	"frame": {"x":2,"y":1546,"w":513,"h":513},
+	"rotated": false,
+	"trimmed": false,
+	"spriteSourceSize": {"x":0,"y":0,"w":513,"h":513},
+	"sourceSize": {"w":513,"h":513}
+},
+"char_8@2x.png":
+{
+	"frame": {"x":517,"y":1546,"w":513,"h":513},
+	"rotated": false,
+	"trimmed": false,
+	"spriteSourceSize": {"x":0,"y":0,"w":513,"h":513},
+	"sourceSize": {"w":513,"h":513}
+},
+"char_9@2x.png":
+{
+	"frame": {"x":1032,"y":1546,"w":513,"h":513},
+	"rotated": false,
+	"trimmed": false,
+	"spriteSourceSize": {"x":0,"y":0,"w":513,"h":513},
+	"sourceSize": {"w":513,"h":513}
+},
+"dot_1@2x.png":
+{
+	"frame": {"x":2061,"y":516,"w":512,"h":513},
+	"rotated": false,
+	"trimmed": false,
+	"spriteSourceSize": {"x":0,"y":0,"w":512,"h":513},
+	"sourceSize": {"w":512,"h":513}
+},
+"dot_2@2x.png":
+{
+	"frame": {"x":1547,"y":1546,"w":513,"h":513},
+	"rotated": false,
+	"trimmed": false,
+	"spriteSourceSize": {"x":0,"y":0,"w":513,"h":513},
+	"sourceSize": {"w":513,"h":513}
+},
+"dot_3@2x.png":
+{
+	"frame": {"x":2062,"y":1546,"w":513,"h":513},
+	"rotated": false,
+	"trimmed": false,
+	"spriteSourceSize": {"x":0,"y":0,"w":513,"h":513},
+	"sourceSize": {"w":513,"h":513}
+},
+"dot_4@2x.png":
+{
+	"frame": {"x":2577,"y":1546,"w":513,"h":513},
+	"rotated": false,
+	"trimmed": false,
+	"spriteSourceSize": {"x":0,"y":0,"w":513,"h":513},
+	"sourceSize": {"w":513,"h":513}
+},
+"dot_5@2x.png":
+{
+	"frame": {"x":2,"y":2061,"w":513,"h":513},
+	"rotated": false,
+	"trimmed": false,
+	"spriteSourceSize": {"x":0,"y":0,"w":513,"h":513},
+	"sourceSize": {"w":513,"h":513}
+},
+"dot_6@2x.png":
+{
+	"frame": {"x":517,"y":2061,"w":513,"h":513},
+	"rotated": false,
+	"trimmed": false,
+	"spriteSourceSize": {"x":0,"y":0,"w":513,"h":513},
+	"sourceSize": {"w":513,"h":513}
+},
+"dot_7@2x.png":
+{
+	"frame": {"x":1032,"y":2061,"w":513,"h":513},
+	"rotated": false,
+	"trimmed": false,
+	"spriteSourceSize": {"x":0,"y":0,"w":513,"h":513},
+	"sourceSize": {"w":513,"h":513}
+},
+"dot_8@2x.png":
+{
+	"frame": {"x":1547,"y":2061,"w":513,"h":513},
+	"rotated": false,
+	"trimmed": false,
+	"spriteSourceSize": {"x":0,"y":0,"w":513,"h":513},
+	"sourceSize": {"w":513,"h":513}
+},
+"dot_9@2x.png":
+{
+	"frame": {"x":2062,"y":2061,"w":513,"h":513},
+	"rotated": false,
+	"trimmed": false,
+	"spriteSourceSize": {"x":0,"y":0,"w":513,"h":513},
+	"sourceSize": {"w":513,"h":513}
+},
+"dragon_green@2x.png":
+{
+	"frame": {"x":2575,"y":516,"w":513,"h":512},
+	"rotated": false,
+	"trimmed": false,
+	"spriteSourceSize": {"x":0,"y":0,"w":513,"h":512},
+	"sourceSize": {"w":513,"h":512}
+},
+"dragon_red@2x.png":
+{
+	"frame": {"x":2577,"y":2061,"w":513,"h":513},
+	"rotated": false,
+	"trimmed": false,
+	"spriteSourceSize": {"x":0,"y":0,"w":513,"h":513},
+	"sourceSize": {"w":513,"h":513}
+},
+"dragon_white@2x.png":
+{
+	"frame": {"x":2,"y":2576,"w":513,"h":513},
+	"rotated": false,
+	"trimmed": false,
+	"spriteSourceSize": {"x":0,"y":0,"w":513,"h":513},
+	"sourceSize": {"w":513,"h":513}
+},
+"flower_1@2x.png":
+{
+	"frame": {"x":3090,"y":516,"w":512,"h":513},
+	"rotated": false,
+	"trimmed": false,
+	"spriteSourceSize": {"x":0,"y":0,"w":512,"h":513},
+	"sourceSize": {"w":512,"h":513}
+},
+"flower_2@2x.png":
+{
+	"frame": {"x":517,"y":2576,"w":513,"h":513},
+	"rotated": false,
+	"trimmed": false,
+	"spriteSourceSize": {"x":0,"y":0,"w":513,"h":513},
+	"sourceSize": {"w":513,"h":513}
+},
+"flower_3@2x.png":
+{
+	"frame": {"x":1032,"y":2576,"w":513,"h":513},
+	"rotated": false,
+	"trimmed": false,
+	"spriteSourceSize": {"x":0,"y":0,"w":513,"h":513},
+	"sourceSize": {"w":513,"h":513}
+},
+"flower_4@2x.png":
+{
+	"frame": {"x":1547,"y":2576,"w":513,"h":513},
+	"rotated": false,
+	"trimmed": false,
+	"spriteSourceSize": {"x":0,"y":0,"w":513,"h":513},
+	"sourceSize": {"w":513,"h":513}
+},
+"flower_5@2x.png":
+{
+	"frame": {"x":2062,"y":2576,"w":513,"h":513},
+	"rotated": false,
+	"trimmed": false,
+	"spriteSourceSize": {"x":0,"y":0,"w":513,"h":513},
+	"sourceSize": {"w":513,"h":513}
+},
+"flower_6@2x.png":
+{
+	"frame": {"x":2577,"y":2576,"w":513,"h":513},
+	"rotated": false,
+	"trimmed": false,
+	"spriteSourceSize": {"x":0,"y":0,"w":513,"h":513},
+	"sourceSize": {"w":513,"h":513}
+},
+"flower_7@2x.png":
+{
+	"frame": {"x":2,"y":3091,"w":513,"h":513},
+	"rotated": false,
+	"trimmed": false,
+	"spriteSourceSize": {"x":0,"y":0,"w":513,"h":513},
+	"sourceSize": {"w":513,"h":513}
+},
+"flower_8@2x.png":
+{
+	"frame": {"x":517,"y":3091,"w":513,"h":513},
+	"rotated": false,
+	"trimmed": false,
+	"spriteSourceSize": {"x":0,"y":0,"w":513,"h":513},
+	"sourceSize": {"w":513,"h":513}
+},
+"joker_1@2x.png":
+{
+	"frame": {"x":2,"y":1031,"w":512,"h":513},
+	"rotated": false,
+	"trimmed": false,
+	"spriteSourceSize": {"x":0,"y":0,"w":512,"h":513},
+	"sourceSize": {"w":512,"h":513}
+},
+"joker_2@2x.png":
+{
+	"frame": {"x":1032,"y":3091,"w":513,"h":513},
+	"rotated": false,
+	"trimmed": false,
+	"spriteSourceSize": {"x":0,"y":0,"w":513,"h":513},
+	"sourceSize": {"w":513,"h":513}
+},
+"joker_3@2x.png":
+{
+	"frame": {"x":1547,"y":3091,"w":513,"h":513},
+	"rotated": false,
+	"trimmed": false,
+	"spriteSourceSize": {"x":0,"y":0,"w":513,"h":513},
+	"sourceSize": {"w":513,"h":513}
+},
+"joker_4@2x.png":
+{
+	"frame": {"x":2062,"y":3091,"w":513,"h":513},
+	"rotated": false,
+	"trimmed": false,
+	"spriteSourceSize": {"x":0,"y":0,"w":513,"h":513},
+	"sourceSize": {"w":513,"h":513}
+},
+"joker_5@2x.png":
+{
+	"frame": {"x":2577,"y":3091,"w":513,"h":513},
+	"rotated": false,
+	"trimmed": false,
+	"spriteSourceSize": {"x":0,"y":0,"w":513,"h":513},
+	"sourceSize": {"w":513,"h":513}
+},
+"joker_6@2x.png":
+{
+	"frame": {"x":2,"y":3606,"w":513,"h":513},
+	"rotated": false,
+	"trimmed": false,
+	"spriteSourceSize": {"x":0,"y":0,"w":513,"h":513},
+	"sourceSize": {"w":513,"h":513}
+},
+"joker_7@2x.png":
+{
+	"frame": {"x":517,"y":3606,"w":513,"h":513},
+	"rotated": false,
+	"trimmed": false,
+	"spriteSourceSize": {"x":0,"y":0,"w":513,"h":513},
+	"sourceSize": {"w":513,"h":513}
+},
+"joker_8@2x.png":
+{
+	"frame": {"x":1032,"y":3606,"w":513,"h":513},
+	"rotated": false,
+	"trimmed": false,
+	"spriteSourceSize": {"x":0,"y":0,"w":513,"h":513},
+	"sourceSize": {"w":513,"h":513}
+},
+"wind_e@2x.png":
+{
+	"frame": {"x":516,"y":1031,"w":512,"h":513},
+	"rotated": false,
+	"trimmed": false,
+	"spriteSourceSize": {"x":0,"y":0,"w":512,"h":513},
+	"sourceSize": {"w":512,"h":513}
+},
+"wind_n@2x.png":
+{
+	"frame": {"x":1547,"y":3606,"w":513,"h":513},
+	"rotated": false,
+	"trimmed": false,
+	"spriteSourceSize": {"x":0,"y":0,"w":513,"h":513},
+	"sourceSize": {"w":513,"h":513}
+},
+"wind_s@2x.png":
+{
+	"frame": {"x":2062,"y":3606,"w":513,"h":513},
+	"rotated": false,
+	"trimmed": false,
+	"spriteSourceSize": {"x":0,"y":0,"w":513,"h":513},
+	"sourceSize": {"w":513,"h":513}
+},
+"wind_w@2x.png":
+{
+	"frame": {"x":2577,"y":3606,"w":513,"h":513},
+	"rotated": false,
+	"trimmed": false,
+	"spriteSourceSize": {"x":0,"y":0,"w":513,"h":513},
+	"sourceSize": {"w":513,"h":513}
+}},
+"meta": {
+	"app": "https://www.codeandweb.com/texturepacker",
+	"version": "1.0",
+	"image": "Tiles_2x.png",
+	"format": "RGBA8888",
+	"size": {"w":3605,"h":4121},
+	"scale": "1",
+	"smartupdate": "$TexturePacker:SmartUpdate:0be977a82e38f317b44eb11ecec41b4c:d80df8f1b2e2ccdbce03dbf3d44a2ecf:e0a22393490014835f0eb1c2bffda2e2$"
+}
+}
+        ;
+
+        // 2. PATH TO YOUR ATLAS IMAGE
+        const ATLAS_IMAGE_URL = 'assets/game/tiles/2x/Tiles_2x.png'; 
+
+        // DOM elements and Canvas setup
+        const canvas = document.getElementById('atlasCanvas');
+        const ctx = canvas.getContext('2d');
+        const partListElement = document.getElementById('part-list');
+        const countElement = document.getElementById('count');
+        
+        let img = new Image();
+        let activePartKey = null;
+
+        // Normalize different JSON structures down to a simple uniform key map
+        function parseJsonFrames(json) {
+            if (json.frames && !Array.isArray(json.frames)) return json.frames;
+            if (json.frames && Array.isArray(json.frames)) {
+                const map = {};
+                json.frames.forEach(f => map[f.filename] = f);
+                return map;
+            }
+            return json;
+        }
+
+        const frames = parseJsonFrames(atlasJson);
+
+        // Render function
+        function drawCanvas() {
+            // Clear and draw base texture image
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.drawImage(img, 0, 0);
+
+            // Draw bounding boxes for all unselected items (Semi-transparent white)
+            Object.keys(frames).forEach(key => {
+                const f = frames[key].frame || frames[key];
+                
+                // Draw a dark backing line first for visibility on white elements
+                ctx.strokeStyle = 'rgba(0, 0, 0, 0.5)';
+                ctx.lineWidth = 3;
+                ctx.strokeRect(f.x, f.y, f.w || f.width, f.h || f.height);
+
+                // Draw the clean thin white line on top
+                ctx.strokeStyle = 'rgba(255, 255, 255, 0.6)';
+                ctx.lineWidth = 1;
+                ctx.strokeRect(f.x, f.y, f.w || f.width, f.h || f.height);
+            });
+
+            // Highlight the currently selected item vividly in SOLID WHITE with a black shadow
+            if (activePartKey && frames[activePartKey]) {
+                const active = frames[activePartKey].frame || frames[activePartKey];
+                const ax = active.x;
+                const ay = active.y;
+                const aw = active.w || active.width;
+                const ah = active.h || active.height;
+
+                // Translucent white fill overlay (illuminates the slice area)
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.15)';
+                ctx.fillRect(ax, ay, aw, ah);
+
+                // STEP 1: Outer thick black stroke border shadow (visible against pure white sprites)
+                ctx.strokeStyle = '#000000';
+                ctx.lineWidth = 6;
+                ctx.strokeRect(ax, ay, aw, ah);
+
+                // STEP 2: Inner solid crisp white border core (visible against pure black grids)
+                ctx.strokeStyle = '#ffffff';
+                ctx.lineWidth = 3;
+                ctx.strokeRect(ax, ay, aw, ah);
+            }
+        }
+
+        // Initialize UI list panel
+        function initUI() {
+            const keys = Object.keys(frames);
+            countElement.textContent = keys.length;
+
+            keys.forEach(key => {
+                const li = document.createElement('li');
+                li.textContent = key;
+                li.addEventListener('click', () => {
+                    // Update active classes
+                    document.querySelectorAll('#part-list li').forEach(el => el.classList.remove('active'));
+                    li.classList.add('active');
+                    
+                    // Track selection and refresh frame render
+                    activePartKey = key;
+                    drawCanvas();
+                });
+                partListElement.appendChild(li);
+            });
+        }
+
+        // Load asset workflow
+        img.onload = function() {
+            canvas.width = img.width;
+            canvas.height = img.height;
+            initUI();
+            drawCanvas();
+        };
+        img.src = ATLAS_IMAGE_URL;
+    </script>
+</body>
+</html>

@@ -1,0 +1,60 @@
+<!-- file: ./src/app/base/notify-banner/template.html -->
+ <div class="tw:flex tw:flex-col tw:gap-2 tw:w-full tw:mb-2">
+    @for (alert of service.state.alert(); track alert.id) {
+    <div class="tw:flex tw:items-center tw:gap-2 tw:justify-between tw:text-slate-100 tw:px-2 tw:py-0.5 tw:rounded-lg tw:border tw:shadow-xs tw:transition-all tw:duration-300"
+         role="alert"
+         [ngClass]="{
+            'tw:bg-emerald-800/95 tw:border-emerald-400/30': alert.type === service.NotifyBannerTypeEnum.SUCCESS,
+            'tw:bg-rose-800/95 tw:border-rose-400/30': alert.type === service.NotifyBannerTypeEnum.ERROR,
+            'tw:bg-amber-700/95 tw:border-amber-300/35': alert.type === service.NotifyBannerTypeEnum.WARNING,
+            'tw:bg-slate-900/90 tw:border-sky-400/25': alert.type === service.NotifyBannerTypeEnum.INFO
+        }"
+    >
+        <div class="tw:flex tw:items-start tw:gap-2">
+            <mat-icon
+                class="
+                    material-symbols-rounded
+                    tw:text-slate-100!
+                    tw:text-[18px]!
+                    tw:h-5!
+                    tw:w-5!
+                    tw:min-w-5!
+                    tw:leading-5!
+                    tw:flex!
+                    tw:items-center!
+                    tw:justify-center!
+                    tw:overflow-hidden!
+                    tw:shrink-0
+                "
+            >
+            @if (alert.type === service.NotifyBannerTypeEnum.SUCCESS) {
+                task_alt
+            } @else if (alert.type === service.NotifyBannerTypeEnum.ERROR) {
+                dangerous
+            } @else if (alert.type === service.NotifyBannerTypeEnum.WARNING) {
+                warning
+            } @else {
+                info
+            }
+            </mat-icon>
+            <span class="tw:text-sm">{{ alert.message }}</span>
+        </div>
+        <div class="tw:flex tw:items-start!">
+            <button (click)="service.state.removeAlert(alert.id)" 
+                matButton="text"
+                type="button" 
+                aria-label="Close notification banner"
+                class="
+                    tw:min-w-0! tw:p-3! tw:text-slate-100!
+                    tw:[&&_.mat-mdc-button-persistent-ripple::before]:bg-transparent!
+                    tw:[&&_.mat-ripple-element]:bg-current!
+                    tw:[&&_.mat-mdc-button-persistent-ripple::before]:opacity-10!
+                    tw:[&&_.mat-ripple-element]:opacity-20!
+                    "
+            >
+                <mat-icon class="material-symbols-rounded tw:m-0!">close</mat-icon>
+            </button>
+        </div>
+    </div>
+    }
+</div>

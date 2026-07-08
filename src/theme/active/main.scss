@@ -1,0 +1,84 @@
+// file: ./src/theme/active/main.scss
+/*
+This file is added by N. Parmar to keep the theme default behaviour
+
+Added this additional file to use theme in entire app so, if you update theme you need to modify this file
+The major change is instead of theme's default bootstrap grid we are using tailwind css
+And this is the main reason why we created this file
+ 
+Current theme in use
+Local path: src/theme/adminuiux
+Origin Demo Url: https://www.adminuiux.com/adminuiux/saasuiux/angular/auth/landing 
+If we switch the theme we need to change this file and other included files
+
+We have removed some dependent css from origin theme as we might not use in app
+@import 'assets/css/bootstrap-grid.css';
+@import "jsvectormap/dist/jsvectormap.min.css";
+ 
+Theme's default used files are as below
+./theme/adminuiux/src/_custom-theme.scss
+./theme/adminuiux/src/_theme.scss
+./theme/adminuiux/src/template-style.scss
+
+This is important that this file also has cusom developed css
+not only relying on theme's default styling
+all code here is written in mixed way as per required order, so be careful while modifying or adding new code
+ 
+Angular material is already included in _style.scss
+ 
+We also use tailwind css in which is imported separately as per tailwindcss documentation
+check: src/tailwind.css
+check: angular.json -> projects.bfw-angular-pwa.architect.build.options.styles
+
+UNDERSTAND THE IMPORT ORDER AND DO NOT CHANGE WITHOUT KNOWLEDGE
+*/
+
+/*
+There are some namingconvention followed by the app for better maintainability and readability.
+It is important to follow the same convention while adding new code or modifying existing code
+
+[bfw] is the main prefix and its stands for "business framework"
+
+Tailwind framework utilities → tw:*
+Your app/system utilities → bfw-*
+Your app CSS variables → --bfw-*
+Your data attributes/hooks → data-bfw-*
+Your component/layout objects → .bfw-*
+*/
+
+// ███ TAILWIND CSS ███████████████████████████████████████████████
+// loading from [angular.json]
+
+// ███ ACTIVE THEME ███████████████████████████████████████████████
+// global variables
+@use '_variable.scss';
+
+// app color palette: includes third-party theme styling
+@use '_color.scss';
+
+// app typography: includes third-party theme styling
+@use '_font.scss';
+
+// ███ THIRD PARTY DEPENDENCY █████████████████████████████████████
+// it is very important where to load third party theme styling and where to load custom developed css
+// app them styling: includes third-party theme styling
+// in this app we have below third party theme we duplicated due to some unwated dependency, basically its same
+//@use '../../../theme/adminuiux/src/template-style.scss';
+@use '_thirdparty.scss';
+
+// ███ ACTIVE THEME ███████████████████████████████████████████████
+// app safe area: custom developed not provided by used theme
+@use '_safe-area.scss';
+
+// utility based styling
+@use '_utility.scss';
+
+// component based styling
+@use '_component.scss';
+
+// layout styling
+@use '_layout.scss';
+
+// ███ THIRD PARTY OVERRIDE ███████████████████████████████████████
+// it is important to load override after all the styling because it is require variables and dependencies for overriding styling
+@use '_thirdparty_override.scss';

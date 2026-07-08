@@ -1,0 +1,18 @@
+<!-- file: ./src/app/base/crud/default/pagination/template.html -->
+@if(service.state.totalRecords() > 0) {
+<mat-card>
+    <mat-card-actions class="tw:p-1! tw:justify-center">
+        <app-pagination
+            [totalRecords]="service.state.totalRecords()"
+            [pageIndex]="service.state.getCurrentPageValue()"
+            [pageSize]="service.state.getRowsPerPageValue()"
+            [pageSizeOptions]="service.state.getRowsPerPageOption()"
+            [showFirstLastButtons]="true"
+            [showJumpToPage]="true"
+            [disabled]="service.gpbs.processing"
+            (pageChange)="onPageChange($event)"
+            >
+        </app-pagination>
+    </mat-card-actions>
+</mat-card>
+}

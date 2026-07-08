@@ -1,0 +1,9 @@
+# All pckages installed using --legacy-peer-deps
+# Required future action to replace or upgrade when new version arrive
+# For --legacy-peer-deps update in package.json > overrides section
+
+# Also upddate:  
+# ~ npm update @angular/build @angular/cli vitest
+
+"@danielmoncada/angular-datetime-picker": "^21.0.0",
+"ngx-toastr": "^20.0.5",

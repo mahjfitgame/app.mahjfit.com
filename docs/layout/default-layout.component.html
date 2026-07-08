@@ -1,0 +1,129 @@
+<div class="tw:flex tw:min-h-dvh tw:flex-col">
+  <mat-sidenav-container class="tw:min-h-dvh">
+
+    <!-- START SIDEBAR -->
+    <mat-sidenav
+      #StartSideBar
+      position="start"
+      mode="side"
+      role="navigation"
+      class="tw:bg-amber-100!"
+    >
+      <header>
+        <div class="tw:safe-area-pt tw:safe-area-px tw:relative tw:z-10">
+          <button matIconButton (click)="StartSideBar.toggle()">
+            <mat-icon>close</mat-icon>
+          </button>
+        </div>
+      </header>
+
+      <aside class="tw:flex-1 tw:safe-area-pl">
+        <ng-template
+          [cdkPortalOutlet]="layoutSlots.startSidebar() ?? defaultStartSidebar"
+        ></ng-template>
+      </aside>
+
+      <footer>
+        <div class="tw:safe-area-px tw:safe-area-pb tw:relative tw:z-10">
+          <ng-template
+            [cdkPortalOutlet]="layoutSlots.startSidebarFooter() ?? defaultStartSidebarFooter"
+          ></ng-template>
+        </div>
+      </footer>
+    </mat-sidenav>
+
+    <!-- MAIN CONTENT -->
+    <mat-sidenav-content>
+      <header>
+        <div class="tw:safe-area-pt tw:safe-area-px tw:relative tw:z-10">
+          <ng-template
+            [cdkPortalOutlet]="layoutSlots.mainHeader() ?? defaultMainHeader"
+          ></ng-template>
+        </div>
+      </header>
+
+      <main class="tw:flex-1 tw:safe-area-px">
+        <router-outlet></router-outlet>
+
+        <!-- optional global actions -->
+        <button matIconButton (click)="StartSideBar.toggle()">
+          <mat-icon>menu</mat-icon>
+        </button>
+
+        <button matIconButton (click)="EndSideBar.toggle()">
+          <mat-icon>menu</mat-icon>
+        </button>
+
+        <a matIconButton href="/">
+          <mat-icon>home</mat-icon>
+        </a>
+      </main>
+
+      <footer>
+        <div class="tw:safe-area-pb tw:safe-area-px tw:relative tw:z-10">
+          <ng-template
+            [cdkPortalOutlet]="layoutSlots.mainFooter() ?? defaultMainFooter"
+          ></ng-template>
+        </div>
+      </footer>
+    </mat-sidenav-content>
+
+    <!-- END SIDEBAR -->
+    <mat-sidenav
+      #EndSideBar
+      position="end"
+      mode="over"
+      role="region"
+    >
+      <header>
+        <div class="tw:safe-area-pt tw:safe-area-px tw:relative tw:z-10">
+          <button matIconButton (click)="EndSideBar.toggle()">
+            <mat-icon>close</mat-icon>
+          </button>
+        </div>
+      </header>
+
+      <aside class="tw:flex-1 tw:safe-area-pr">
+        <ng-template
+          [cdkPortalOutlet]="layoutSlots.endSidebar() ?? defaultEndSidebar"
+        ></ng-template>
+      </aside>
+
+      <footer>
+        <div class="tw:safe-area-px tw:safe-area-pb tw:relative tw:z-10">
+          <ng-template
+            [cdkPortalOutlet]="layoutSlots.endSidebarFooter() ?? defaultEndSidebarFooter"
+          ></ng-template>
+        </div>
+      </footer>
+    </mat-sidenav>
+
+    <!-- DEFAULT FALLBACKS -->
+    <ng-template cdkPortal #defaultMainHeader="cdkPortal">
+      <div class="tw:flex tw:items-center tw:justify-between">
+        <span>Global Brand</span>
+      </div>
+    </ng-template>
+
+    <ng-template cdkPortal #defaultMainFooter="cdkPortal">
+      <span>Global Footer</span>
+    </ng-template>
+
+    <ng-template cdkPortal #defaultStartSidebar="cdkPortal">
+      <div>Default Start Sidebar</div>
+    </ng-template>
+
+    <ng-template cdkPortal #defaultStartSidebarFooter="cdkPortal">
+      <div>Default Start Sidebar Footer</div>
+    </ng-template>
+
+    <ng-template cdkPortal #defaultEndSidebar="cdkPortal">
+      <div>Default End Sidebar</div>
+    </ng-template>
+
+    <ng-template cdkPortal #defaultEndSidebarFooter="cdkPortal">
+      <div>Default End Sidebar Footer</div>
+    </ng-template>
+
+  </mat-sidenav-container>
+</div>

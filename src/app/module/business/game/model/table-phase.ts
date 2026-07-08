@@ -1,0 +1,1 @@
+export type TablePhase = "playing" | "passing";

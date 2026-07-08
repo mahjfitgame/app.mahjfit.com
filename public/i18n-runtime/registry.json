@@ -1,0 +1,89 @@
+{
+  "generated_at": "2026-07-06T12:23:39.207Z",
+  "items": [
+    {
+      "key": "global",
+      "source": "src/lang/i18n",
+      "path": "/i18n-runtime/src/lang",
+      "langs": [
+        "ar",
+        "en",
+        "es",
+        "fr",
+        "gu",
+        "hi"
+      ],
+      "global": true
+    },
+    {
+      "key": "app.base.crud",
+      "source": "src/app/base/crud/i18n",
+      "path": "/i18n-runtime/app/base/crud",
+      "langs": [
+        "ar",
+        "en",
+        "es",
+        "fr",
+        "gu",
+        "hi"
+      ],
+      "global": false
+    },
+    {
+      "key": "app.base.internationalization",
+      "source": "src/app/base/internationalization/i18n",
+      "path": "/i18n-runtime/app/base/internationalization",
+      "langs": [
+        "ar",
+        "en",
+        "es",
+        "fr",
+        "gu",
+        "hi"
+      ],
+      "global": false
+    },
+    {
+      "key": "app.module.shared.geo.country",
+      "source": "src/app/module/shared/geo/country/i18n",
+      "path": "/i18n-runtime/app/module/shared/geo/country",
+      "langs": [
+        "ar",
+        "en",
+        "es",
+        "fr",
+        "gu",
+        "hi"
+      ],
+      "global": false
+    },
+    {
+      "key": "app.module.shared.onboarding.my-profile",
+      "source": "src/app/module/shared/onboarding/my-profile/i18n",
+      "path": "/i18n-runtime/app/module/shared/onboarding/my-profile",
+      "langs": [
+        "ar",
+        "en",
+        "es",
+        "fr",
+        "gu",
+        "hi"
+      ],
+      "global": false
+    },
+    {
+      "key": "app.module.shared.onboarding.signin",
+      "source": "src/app/module/shared/onboarding/signin/i18n",
+      "path": "/i18n-runtime/app/module/shared/onboarding/signin",
+      "langs": [
+        "ar",
+        "en",
+        "es",
+        "fr",
+        "gu",
+        "hi"
+      ],
+      "global": false
+    }
+  ]
+}

@@ -1,0 +1,139 @@
+// file: ./src/theme/active/_variable.scss
+
+/**
+ * Breakpoints
+ * Keep these aligned with Angular + Tailwind
+ */
+/* if you change breakpoint also change in: src/tailwind.css */
+$bfw-breakpoint-min-sm: 37.5rem;   // 600px
+$bfw-breakpoint-min-md: 60rem;     // 960px
+$bfw-breakpoint-min-lg: 80rem;     // 1280px
+$bfw-breakpoint-min-xl: 105rem;    // 1680px
+$bfw-breakpoint-min-xxl: 140rem;   // 2240px
+/*
+IMPORTANT NOTE:
+we have defined breakpoints variables in [src/tailwind.css] as it also reset in taiwind so check there
+*/
+* {
+    scrollbar-width: thin;
+}
+
+:root {
+   interpolate-size: allow-keywords;
+   
+  // as we need to rest in tailwind, we have defined in tailwind.css file, check there [src/tailwind.css]
+  --bfw-breakpoint-min-sm: #{$bfw-breakpoint-min-sm};
+  --bfw-breakpoint-min-md: #{$bfw-breakpoint-min-md};
+  --bfw-breakpoint-min-lg: #{$bfw-breakpoint-min-lg};
+  --bfw-breakpoint-min-xl: #{$bfw-breakpoint-min-xl};
+  --bfw-breakpoint-min-xxl: #{$bfw-breakpoint-min-xxl};
+
+  --mat-form-field-container-height: 44px;
+  --mat-form-field-container-vertical-padding: 10px;
+  --mat-snack-bar-container-shape: 0.375rem;
+}
+
+/* ---------- Up ---------- */
+
+@mixin bfw-sm-and-up {
+  @media screen and (min-width: #{$bfw-breakpoint-min-sm}) {
+    @content;
+  }
+}
+
+@mixin bfw-md-and-up {
+  @media screen and (min-width: #{$bfw-breakpoint-min-md}) {
+    @content;
+  }
+}
+
+@mixin bfw-lg-and-up {
+  @media screen and (min-width: #{$bfw-breakpoint-min-lg}) {
+    @content;
+  }
+}
+
+@mixin bfw-xl-and-up {
+  @media screen and (min-width: #{$bfw-breakpoint-min-xl}) {
+    @content;
+  }
+}
+
+@mixin bfw-xxl-and-up {
+  @media screen and (min-width: #{$bfw-breakpoint-min-xxl}) {
+    @content;
+  }
+}
+
+/* ---------- Down ---------- */
+/* derived from the next min breakpoint */
+
+@mixin bfw-xs-and-down {
+  @media screen and (max-width: calc(#{$bfw-breakpoint-min-sm} - 0.02px)) {
+    @content;
+  }
+}
+
+@mixin bfw-sm-and-down {
+  @media screen and (max-width: calc(#{$bfw-breakpoint-min-md} - 0.02px)) {
+    @content;
+  }
+}
+
+@mixin bfw-md-and-down {
+  @media screen and (max-width: calc(#{$bfw-breakpoint-min-lg} - 0.02px)) {
+    @content;
+  }
+}
+
+@mixin bfw-lg-and-down {
+  @media screen and (max-width: calc(#{$bfw-breakpoint-min-xl} - 0.02px)) {
+    @content;
+  }
+}
+
+@mixin bfw-xl-and-down {
+  @media screen and (max-width: calc(#{$bfw-breakpoint-min-xxl} - 0.02px)) {
+    @content;
+  }
+}
+
+/* xxl-and-down = everything, so usually useless */
+
+/* ---------- Only ---------- */
+
+@mixin bfw-xs-only {
+  @include bfw-xs-and-down {
+    @content;
+  }
+}
+
+@mixin bfw-sm-only {
+  @media screen and (min-width: #{$bfw-breakpoint-min-sm}) and (max-width: calc(#{$bfw-breakpoint-min-md} - 0.02px)) {
+    @content;
+  }
+}
+
+@mixin bfw-md-only {
+  @media screen and (min-width: #{$bfw-breakpoint-min-md}) and (max-width: calc(#{$bfw-breakpoint-min-lg} - 0.02px)) {
+    @content;
+  }
+}
+
+@mixin bfw-lg-only {
+  @media screen and (min-width: #{$bfw-breakpoint-min-lg}) and (max-width: calc(#{$bfw-breakpoint-min-xl} - 0.02px)) {
+    @content;
+  }
+}
+
+@mixin bfw-xl-only {
+  @media screen and (min-width: #{$bfw-breakpoint-min-xl}) and (max-width: calc(#{$bfw-breakpoint-min-xxl} - 0.02px)) {
+    @content;
+  }
+}
+
+@mixin bfw-xxl-only {
+  @include bfw-xxl-and-up {
+    @content;
+  }
+}

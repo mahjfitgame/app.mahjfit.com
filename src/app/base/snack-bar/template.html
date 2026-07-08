@@ -1,0 +1,36 @@
+<div 
+    class="tw:flex tw:items-start tw:justify-between tw:gap-2 tw:min-w-75 tw:pe-2! tw:rounded-lg tw:text-slate-100 tw:shadow-md!"
+    [ngClass]="{
+        'tw:bg-emerald-800/95': data.type === SnackBarTypeEnum.SUCCESS,
+        'tw:bg-rose-800/95': data.type === SnackBarTypeEnum.ERROR,
+        'tw:bg-slate-900/90 tw:border tw:border-sky-900/30': data.type === SnackBarTypeEnum.INFO
+    }"
+>
+    <!-- Message Label -->
+    <span matSnackBarLabel class="tw:text-sm tw:font-medium tw:flex-1 tw:flex tw:items-start tw:gap-1">
+        <mat-icon class="material-symbols-rounded tw:text-slate-100! tw:text-sm! tw:h-5! tw:w-5!">
+        @if(data.type === SnackBarTypeEnum.SUCCESS) {
+            task_alt
+        } @else if(data.type === SnackBarTypeEnum.ERROR) {
+            warning
+        } @else if(data.type === SnackBarTypeEnum.INFO) {
+            info
+        }
+        </mat-icon>
+        {{ data.message }}
+    </span>
+    <span matSnackBarActions class="tw:flex! tw:items-start! tw:mt-1">
+        <button 
+            mat-button
+            matSnackBarAction 
+            (click)="snackBarRef.dismissWithAction()"
+            class="tw:min-w-0!" 
+        >
+            @if (data.action) {
+                {{ data.action }}
+            } @else {
+                <mat-icon class="material-symbols-rounded tw:m-0! tw:text-slate-100!">close</mat-icon>
+            }
+        </button>
+    </span>
+</div>

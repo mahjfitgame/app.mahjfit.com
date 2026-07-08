@@ -1,0 +1,46 @@
+<div class="bfw-pagination-container">
+  <div class="bfw-pagination-inline">
+    <mat-paginator
+      [length]="totalRecords()"
+      [pageIndex]="currentMatPageIndex"
+      [pageSize]="currentPageSize"
+      [pageSizeOptions]="pageSizeOptions()"
+      [showFirstLastButtons]="showFirstLastButtons()"
+      [hidePageSize]="hidePageSize()"
+      [disabled]="disabled()"
+      (page)="onPaginatorChange($event)">
+    </mat-paginator>
+
+    @if (showJumpToPage()) {
+      <div class="bfw-jump-container">
+        <mat-form-field
+          appearance="outline"
+          subscriptSizing="dynamic"
+          floatLabel="always"
+          class="bfw-jump-field">
+          <mat-label>Page</mat-label>
+          <input
+            matInput
+            type="number"
+            min="1"
+            [max]="totalPages"
+            [(ngModel)]="jumpPageNumber"
+            [disabled]="disabled()"
+            (keyup.enter)="goToPage()"
+          />
+        </mat-form-field>
+
+        <span class="bfw-page-count tw:dark:text-white/50">of {{ totalPages }}</span>
+
+        <button
+          mat-stroked-button
+          color="primary"
+          type="button"
+          [disabled]="disabled()"
+          (click)="goToPage()">
+          Go
+        </button>
+      </div>
+    }
+  </div>
+</div>

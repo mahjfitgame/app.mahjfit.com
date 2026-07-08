@@ -1,0 +1,12 @@
+Create a 2D, turn-based Mahjong Classic game for 4 players where each turn the local player draws, forms melds (meld/exposed tile area) from their rack, discards a tile to the next player, and—when the rules allow—can claim a discarded tile to form CHOW (sequence), PUNG (triplet), or KONG. The board includes clear visuals for the background table, four seat positions, local player rack, opponent racks, tile sprites/wall tiles, discard area, meld/exposed tile area, current turn highlight, and claim visual indication. Gameplay is playable and winnable by enabling standard tile selection/drag-drop and legal meld/move validation, with smooth tile movement and discard/claim animations and responsive board scaling.
+
+
+Highlights
+Implement the core turn flow for Mahjong Classic: draw → select/organize rack → form CHOW/PUNG/KONG melds → discard to the right/next player → resolve possible claims (CHOW/PUNG/KONG) with clear claim priority/indication.
+Build the interactive tile UX exactly as listed: tap/click to select, drag/drop for placement into meld/exposed area and into sorting order, plus tile movement and discard animations.
+Create clear board state visuals: current turn highlight, discard area updates, meld/exposed tiles ownership/placement, and a visible claim indicator when opponents can claim the last discard.
+Support responsive board scaling so the entire table+racks remain usable across different screen sizes while keeping drag/drop and turn highlights readable.
+
+Set up 2D
+Platform: Desktop and Mobile both
+Players: Multiplayer ()

@@ -1,0 +1,79 @@
+{
+  "GL": {
+    "LANGUAGE": "Language",
+    "ENGLISH": "English",
+    "HINDI": "Hindi",
+    "GUJARATI": "Gujarati",
+    "SPANISH": "Spanish",
+    "FRENCH": "French",
+    "ARABIC": "Arabic",
+
+    "COMMON": {
+      "SAVE": "Save",
+      "RESET": "Reset",
+      "CANCEL": "Cancel",
+      "NEXT": "Next",
+      "BACK": "Back",
+      "CONTINUE": "Continue",
+      "PREVIOUS": "Previous",
+      "LOADING": "Loading...",
+      "NO_RECORDS": "No record found",
+      "STEP": "Step"
+    },
+    "DEBUG": {
+      "DEBUG_INFO": "Debug Info"
+    },
+    "ACTION": {
+      "CREATE": "Add",
+      "UPDATE": "Update",
+      "SEARCH": "Search",
+      "TRASH": "Trash",
+      "DELETE": "Delete",
+      "RESTORE": "Restore"
+    },
+    "NUMBER": {
+      "0": "0",
+      "1": "1",
+      "2": "2",
+      "3": "3",
+      "4": "4", 
+      "5": "5",
+      "6": "6",
+      "7": "7",
+      "8": "8",
+      "9": "9"
+    },
+    "VALIDATION": {
+      "REQUIRED": "{{field}} is required.",
+      "MIN_LENGTH": "{{field}} must be at least {{min_length}} characters.",
+      "MAX_LENGTH": "{{field}} cannot exceed {{max_length}} characters.",
+      "MIN": "The minimum allowed value for {{field}} is {{min}}.",
+      "MAX": "The maximum allowed value for {{field}} is {{max}}.",
+      "PATTERN": "The format of {{field}} is invalid.",
+      "EMAIL": "Please enter a valid email address.",
+      "DATE": "Please enter a valid date.",
+      "TIME": "Please enter a valid time.",
+      "DATETIME": "Please enter a valid date and time.",
+      "URL": "Please enter a valid URL.",
+      "MATCH_FIELD": "{{field}} must match {{expected}}.",
+      "COLOR": "Please select a valid color.",
+      "DIGIT": "{{field}} must be a whole number.",
+      "DECIMAL": "{{field}} must be a valid number or decimal.",
+      "TEXT": "Please enter valid text.",
+      "EXTENSION": "Invalid file format. Allowed types: {{allowed}}.",
+      "OPTION_RANGE": "The selected value for {{field}} is out of range.",
+      "FN": "The value provided for {{field}} is invalid."
+    },
+    "MODULE": {
+      "ONBOARDING": {
+        "SIGNUP": "Sign Up",
+        "SIGNIN": "Sign In",
+        "SIGNOUT": "Sign Out",
+        "FORGOT_PASSWORD": "Forgot Password",
+        "MY_ACCOUNT": "My Account",
+        "MY_PROFILE": "My Profile",
+        "DASHBOARD": "Dashboard"
+      }
+    }
+  }
+}

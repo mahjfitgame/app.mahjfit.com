@@ -1,0 +1,1163 @@
+
+I do not want my own backend/frontend team to manually build and maintain all low-level APNs/FCM delivery behavior when vendors already provide that through SDKs, APIs, dashboards, retries, analytics, segmentation, and provider-specific handling.
+Manage notification business logic from your side.
+Use middle providers for delivery/platform complexity.
+Support multiple providers through your own abstraction.
+
+But Firebase is more like a push transport provider, while OneSignal/Braze/Airship are more like notification engagement platforms.
+
+
+
+
+Create a clean, 2D flat, minimalist mobile game UI layout for an American Mahjong app named "Mahjfit". 
+
+The visual style must be entirely 2D flat vector art, inspired by contemporary millennial and Gen-Z lifestyle branding with a smooth matte aesthetic. No 3D bevels, no realistic textures, and no complex realistic drop-shadows.
+
+Color Scheme: Use a soft, modern pastel palette. The main background table is a flat, matte sage-green or light sand color. The UI elements and card sections are clean cream white with thin, crisp dark-charcoal outlines.
+
+Interface Layout Architecture (Vertical Smartphone Screen View):
+1. Top Section: A clean, flat header containing a simple back arrow, level title in an elegant editorial serif font, and a round, soft-coral colored pause button. 
+2. Center Section (Opponent Displays): Three clean, minimalist rows showing the opponent's exposed tile sets. The tiles are flat 2D rectangular cards with simplified, single-color line art vector illustrations for the suits (bambs, dots, cracks).
+3. Active Card Section: A clean, collapsible horizontal panel designed as a flat container with rounded corners (border-radius: 16px). It clearly lists winning line combinations using a highly readable sans-serif font, highlighting matching sets in a soft pastel yellow accent fill.
+4. Player Rack (Bottom Section): A prominent flat container holding the player's 13-tile hand. Tiles are displayed as simple face-up flat rectangles with thin borders. Clean Arabic numerals and letters are placed crisply in the top-left corners of the tiles for clear legibility.
+5. Absolute Bottom Footer: A floating action row containing large, flat, pill-shaped buttons with solid pastel color fills for "MAHJONG!", "PUNG", and "PASS".
+
+The entire screen must feature high contrast, generous whitespace, clean line weights, and perfect 2D vector alignment optimized for a Figma UI kit design.
+=============================
+Removed from the end of the file of Downloads > project_map (1).txt
+Started new thread : 3-Mahjong Game Setup
+Recommended future multiplayer flow:
+1. Player puts tiles into pass waiting area.
+2. PASS submits tileIds to Angular/server.
+3. Server waits for all players.
+4. Phaser plays all-player pass exchange animation.
+5. Server sends authoritative new rack.
+6. Angular/Phaser applies rack:set.
+7. Next pass round or play phase.
+
+
+#############################
+#############################
+#############################
+2 July to 8 July
+1]
+Worked on pass tile animations and set up the drag and double click to prepare the pass tiles.
+2]
+Worked to load sounds file with the Phaser and generated voice for game play actions and all tile.
+3]
+Load the all tiles sound files with Phaser and impelemented functionality to play tiles sound when discard.
+4]
+Analysis payment gateway.
+
+
+
+
+
+Okay now, I want to implement the wall at the hud where we show the remain tile counts, so there we add one small white box which indicates the tiles.
+
+Need one button to pick tile so PASS button will replace with PICK button, when user click the new tile get to the user rack, tile get from the wall so when user click need animation that tile come to the rack, Animation should be different as per seat, is bottom seat pick the tile, as our wall is on top the tile animated from wall to rack so animation like top to bottom ans similar to 
+#############################
+1]
+As per previous meeting update we are working on new point [10]
+and we have started with Phaser + Angular integration for Game Play area without design.
+ 
+2]
+We have started with Phaser without design with below points
+Setup configuration,
+Event loop using actions, 
+Rendering process using canvas creation,
+Loading assets,
+Player integration, 
+Animations
+UI Device wide game play area
+ 
+3]
+All above poinnts will be extended when we will start with real design.
+Potential points we are going to continue during coming week.
+Audio
+Data Manager
+For rendering context we might switch from Canvas to WebGL (developer will decide)
+If we switch to WebGL then we might integreate FX Pipeline system with built-in effects.
+WebSocket integration using API
+ 
+4]
+Just to let you know.
+Phaser has it's own eco system kind of library and we need to work as per its regulations.
+So, we have to align our content accordingly such as assets, html, css etc.
+ 
+5]
+For now we discovered that,
+we have to adjust assets as needed but that will be after we start design integration. 
+In atlas we have to change JSON right now.
+ 
+6]
+Provided ad related insignts during last week and hope that was helpful to you.
+We still need to do technical analysis for Ad integration, we will do it when we will come to that point.
+I still have to provide details for  [paymemnt gateway + degital products] thats in coming week.
+ 
+I would like to bring the point related with hosting server also.
+ 
+So, basicly 3 things you guys should start working on.
+1. Ad related decisions
+2. Paymemnt gateway + Degital products
+3. Hosting server
+ 
+ 
+7]
+In case of advertisement we have to perform 2 integration seperately
+For web 
+For mobile
+ 
+Google AdSense is designed for website, blog, and forum publishers, 
+while Google AdMob is built specifically for mobile app.
+We have to use both simultaneously as we have a web and app ecosystem unless we drop the one of them. 
+8]
+I have also provided details for Google Ad Manager, so you guys aware about that.
+That is something next stage.
+ 
+9]
+Authentication process if design is not there
+
+10]
+Vibration when we will click on tile.
+Haptic gesture.
+ 
+11]
+Provide consfiguration of Hosting and our techncial need.
+ 
+12]
+Whats will be the user eperience with Payment process and we need to take decision for payment gateway because for mobiel app we have app polict for in-app purchase we need to take decision on that and i need to provide some detials to Spencer.
+#############################
+1]
+Started integration in Phaser.
+2]
+We have to adjust assets as needed but that will be after we start design integration. 
+In atlas we have to change it right now.
+3]
+Completed analysis of Ads. Technical analysis is pending.
+At this moment discovered that mobile and web both different.
+4]
+API Webspcket and Phaser event alignment just started Yesterday. 
+5]
+Integrated basic tile animation, full feature clearity will come after design.
+6]
+
+DOC
+https://docs.google.com/document/d/1oYDHHtSRrNoc3l_Q9TO8nIqfG_R74WKqlV-ji82F3CA/edit?usp=sharing
+
+#############################
+in tiles atlas have to remove the spacing between tile.
+I have attached the reference image, please check it and do required adjustment.
+
+Thank you!
+
+CHECK TC: 2026-07-02
+
+Today, I worked on to set the animation while pass the tiles, and start work on implementation of pass tile logic.
+
+I will keep you posted on work progress.
+Thank you!
+
+
+
+Today, I worked on to smooth the tiles animation while pass and re-rack and also analysed the Phaser with WebGL. 
+
+I will keep you posted on work progress.
+Thank you!
+
+
+
+Today, I worked on playing basic sounds during gameplay using Phaser. I also generated sound files for other gameplay actions and tile interactions. Next, I will work on playing tile sounds during gameplay.
+
+I will keep you posted on work progress.
+Thank you!
+
+
+
+Today, I worked on to play the sound of dicard tile such as "4 Bam", "Joker", "3 Dot" etc... with Phaser. Also worked on safe area for mobile and tablate devices.
+
+I will keep you posted on work progress.
+Thank you!
+
+
+Today, I worked on setting up the animation for the PICK tile from the wall. I also checked the Stripe payment gateway charges and reviewed the available package options.
+
+I will keep you posted on work progress.
+Thank you!
+
+#############################
+
+
+
+
+
+
+
+
+Given the amount of refinement you've already done and your goal of a polished, enterprise-quality game, I recommend one structural refactor rather than continuing to adjust percentages.
+
+Specifically, I'd replace the current percentage-based layout with a constraint-based layout engine:
+
+Define fixed (or clamped) heights for:
+Top exposure
+HUD
+PASS
+Instruction
+Bottom exposure
+Keep the side exposures tied to the full table height.
+Allocate all remaining vertical space to the discard area.
+Continue deriving all values from ResponsiveMetrics so the fixed heights still scale proportionally across desktop, tablet, and mobile.
+
+This is the same type of approach used in professional UI layout systems and will make it much easier to achieve—and maintain—the pixel-perfect look you're targeting without every adjustment causing another part of the layout to regress.
+
+
+
+
+Today, I have done some reassetment of the game play area. And now working on to communicate phaser and angular services and set up pass the tiles.
+
+I will keep you posted on work progress.
+Thank you!
+
+
+
+Today, I have set up rack configurarion and tiles animation with the phaser and continue work on it to do the reassetment of the game play area.
+
+I will keep you posted on work progress.
+Thank you!
+
+
+Today, I set up the rack configuration and tile animations in Phaser, and I continued working on the gameplay area to reassessment it.
+
+I will keep you updated on the progress.
+
+Thank you!
+
+
+
+
+
+
+#################################
+
+
+Completed work in Client Side wrapped, utility modules set up in frontend side and also configured firebase push notification.
+
+
+I completed the work on below as we discussed in previoud meetting. 
+
+state management
+native platform feature access service (some part)
+breakpoint service
+browser coss tab sync
+environment and confi management
+logging/debugging implementation entire app
+cookie module
+local-storage utility
+session-storage utility
+dom observer service
+some basic encryptions
+url sync
+helper/utility functions
+etc.. kind of code development
+
+configured firebase push notification
+Review capacitor advance feature packges
+
+Design 
+https://www.figma.com/make/7uoJfxL7GpKeZRDSzd9kyL/Mahjong-Game-UI-Layout?t=Unzw1P8dpw4OUD9Y-20&fullscreen=1
+
+
+I have attached the code zip for your reference.
+
+
+
+#############################################
+#############################################
+#############################################
+
+
+Advertisement Basic Details
+
+Provided advertisement details is based on the 
+Google AdMob platform. (For mobile app)
+Google AdSense or Google Ad Manager (For web)
+
+Advertisement Platforms
+Mobile Apps
+All of the below ad formats can be managed using Google AdMob.
+
+Web Version
+To display similar ads on the web version, we need to use Google AdSense or Google Ad Manager.
+1] 
+Choose Google AdSense if:
+You want a hands-off approach: 
+Just place ad units on your Mahjong website, and Google will automatically manage ad serving, optimization, and payments.
+
+You are an individual developer or a small team:
+AdSense is ideal if you don't have a dedicated sales team to secure advertisers or an ad operations team to manage campaigns.
+
+Unified Ecosystem: 
+AdSense links effortlessly to Google Analytics, making it easy to track your web revenue alongside your AdMob mobile revenue.
+
+2] Choose Google Ad Manager if:
+You have direct sponsors: 
+For example, if an American Mahjong association or a custom Mahjong tile manufacturer wants to pay you $500/month to put their banner exclusively on your web scoreboard.
+
+You use multiple Web Ad Networks: 
+If you want to use Google alongside competing web networks (like AppLovin or Media.net) and want them to automatically bid against each other for the highest price per impression
+
+
+So above is the details, I suggest at initial stage we will first implement Google AdSense for Web. You can also search on internet to get the more details.
+
+If we choose a different advertising platform in the future, the implementation and ad strategy may change accordingly.
+And we have to do similar R&D for advertisement structure so also have to work with API modification that is a technical part.
+
+---
+
+Advertisement Types
+The following ad types can be implemented in the game:
+
+1] Interstitial Ads
+Rewarded Interstitial Ads
+Static Interstitial Ads
+Video Interstitial Ads
+
+2] Banner Ads
+Standard Banner Ads
+Adaptive Banner Ads
+
+3] 
+Rewarded Video Ads
+
+
+---
+Ad Placement and Trigger Actions
+1] 
+Main Lobby Screen
+
+Ad Format:
+Standard Banner Ads
+Adaptive Banner Ads
+
+Placement:
+Fixed at the top or bottom of the screen.
+
+Trigger:
+The banner loads automatically when the app opens and remains visible while the player navigates the lobby.
+
+2] 
+Before the Game Starts
+
+Ad Format:
+Rewarded Interstitial Ads
+Static Interstitial Ads
+Video Interstitial Ads
+
+Placement:
+Displayed after the player clicks "Find Match" or "Start Game", before the game board loads.
+
+Trigger:
+When the player clicks "Start New Game" or "Join Game", a full-screen ad is shown.
+The player can close the ad after 5 seconds and continue to the game loading screen.
+
+
+3] 
+During Gameplay
+
+Ad Format:
+Small Banner Ads
+
+Placement:
+Displayed beside the player's tile rack without affecting gameplay.
+
+
+4] 
+Rewarded Video Ads
+
+Trigger 1 – Low Points
+When a player clicks "Play Game" and has fewer than 30 points, a pop-up appears:
+"You don't have enough points to start a game. Watch a short video to earn 10 points, or upgrade to Premium for unlimited play."
+
+Trigger 2 – Watch Video
+The player clicks "Watch Now".
+A rewarded video ad (15–30 seconds) is played.
+The video cannot be skipped.
+
+Trigger 3 – Reward
+After the video finishes, the player closes the ad.
+A confirmation message appears: "+10 Points Added!"
+The player's point balance is updated immediately.
+
+5] 
+Game Over / Scoreboard Screen
+Ad Format:
+Interstitial Ads
+Rewarded Interstitial Ads
+
+Placement:
+Displayed when the player clicks "Next Round" or "Return to Lobby".
+
+Trigger:
+After clicking "Next" or "Play Next Game", a full-screen ad is shown.
+Once the ad is closed, the player returns to the main menu or the next game.
+
+
+---
+Explanation of Each Advertisement Type
+
+1] 
+Transition-Based Ads (Full Screen)
+Static Interstitial Ads
+- A full-screen image advertisement that covers the entire game screen.
+- Usually displayed between game screens or during transitions.
+
+Video Interstitial Ads
+- A full-screen video advertisement that plays automatically during transition points.
+
+
+2] 
+Display & Banner Ads
+
+Standard Banner Ads
+- A small rectangular advertisement displayed at the top or bottom of the screen.
+- It remains visible while the player uses the app.
+- The ad refreshes automatically every 30–60 seconds without interrupting gameplay.
+
+Adaptive Banner Ads
+- A responsive version of the standard banner.
+- It automatically adjusts its size based on the player's screen dimensions for better visibility.
+
+
+3] 
+Reward-Based Ads
+
+Rewarded Video Ads
+- A full-screen video advertisement that the player chooses to watch.
+- After watching the complete video (15–30 seconds), the player receives an in-game reward, such as bonus points.
+
+Rewarded Interstitial Ads
+- A full-screen advertisement shown automatically during game transitions.
+- The player does not need to opt in to view the ad.
+- If the player watches the advertisement until the end instead of skipping it, they receive an additional in-game reward.
+
+
+Thank you.
+
+
+
+Hello Everyone,
+
+I provided my response in the ongoing "Tech Discussion" document.
+
+I have added new section "Section: Adverticement". Please review and give your feedback.
+
+https://docs.google.com/document/d/1oYDHHtSRrNoc3l_Q9TO8nIqfG_R74WKqlV-ji82F3CA/edit?usp=sharing
+
+Thank you.
+
+Today, I have started work to configure the Phaser and set up it in project and continue worked on it. 
+I will keep you posted on work progress.
+Thank you!
+
+******************************
+******************************
+******************************
+https://www.locofy.ai/builder/3FflP2PxzjkP6FlkrATw4Rgbk6c/agent?source=import_design&screen=25%3A2&source=import_design
+
+Prompt
+https://www.google.com/search?sourceid=chrome&ie=UTF-8&amc=1&cud=0&qsubts=1782467416745&source=chrome.crn.rb&mtid=kEw-arWhO4PUseMPmd-WqQU&ved=2ahUKEwjKldHJ0KSVAxU4TWwGHYTXCk4Qoo4PegYIAggBEAI&atvm=1&q=I+would+like+to+create+the+same+game+as+%22https%3A%2F%2Frealmahjongg.com%2F%22+for+Android%2C+iOS+mobile+app+and+web.+%0A%0ATechnology+%0AAngular+22+latest+version+%0ACapacitor+latest+version+%0ATailwind+CSS+latest+version+%0AMaterial+UI+latest+and+compatible+with+Angular+Version+%0APhaser%0A%0AFor+backend+API+Use+GraphQL+API%2C+backend+API+is+ready++and+working+fine.%0A%0A%0AThe+reality+of+emergent+how+much+credite+required+to+build+Fully+polished+Masjid+production+app+for+Web+%2B+Android+%2B+iOS+with+real+GraphQL+gameplay.&vsrid=CLmy6qWPntWzggEQARgBIhBFE0-2bXJkTKzjVJTWSL5nOIDvst7RpJUDSAFQBQ&lns_mode=cvst&mstk=AUtExfAbruHG9p_BHoQrX7pcyu_FESQIN1FBSm9F3OOH5qvN4xq6lpV3Du-YJLd3ZamrOwcgsg6GRKC-L0gnl6bJgxgygD6UWepvzpCWlGw5K6DIg0P7aAa1W-iXNfZN3KwuKrfvQmc5U6tGh2ByhcCTGn5ZRXkvxu9UkDr-_TW8cvkla8CbBs6sKUnCKZSqvzRhok1vIYuTfpkvbJP150HdC_AGWi1xb54yj_YZ22BJSSHoQJk1nGa12T2mw6S1XxZnLHsN_9QIRW8oBR_YCpHBv4FfS4DVf0FH2U6ZQDurhYMgX6T-fsji9Z9AKVQhQvwv7eOK9mfsAMl4Fv8hg1guGVs8DL6iBhkKDn8cFTCxZ-469DtmeYG38wa6O4nWAekghfDhh6IkwvwA0nnzNk90sQsZAFGoDxb0Kw&csuir=1&udm=50
+
+
+Phaser
+https://www.google.com/search?q=phaser+explain+the+features+and+functionality%2C+I+would+like+to+create+American+Mahjong+4+players+and+2+players+game+using+Angular+22+%2B+Capacitor+%2B+Tailwind+%2B+Material&gs_lcrp=EgZjaHJvbWUyBggAEEUYOdIBCjcwMDg4ajBqMTWoAgiwAgHxBVD0-xjlC16Q8QVQ9PsY5QtekA&sourceid=chrome&ie=UTF-8&udm=50&fbs=ABfTbFVyMZGZf1hfvX9uKjN_-G8cxpBkeIeqYwoCbfNVc4vKE96grTuFPBRY0pmGfUF9Jyg22UXWVTXr_K4O7baggKlov48NXS5kRplAMJjbPPm0X1tj-Dqa-5NBA3sq_8HvazZMijEo9CYkgra1Xbxxw-hbEqO0dWCLzPRfF5-pxRyAUKXKCJ6Jbct5JrDvSFDkCHtS90t36-fo3gVJRzKoFMFSr82llw&aep=10&ntc=1&mstk=AUtExfAHQ5ILFjfNI_IiEDFS_5F1GY8AtSLsAhsRfIR0sEYE0kDpiPwe_zVEwl8fULTbQLG7Rvb16md8vve_59ad6bU1O9bdfZVNkSLKqy-NodB1TmPCVKrIgoFJOjtjDzg1pFwhHLiSdduabdysTxgGz9mYFjHCCG0OA-NhCCHdZkzEZq3GnEoDd_8DGlZuZPUkNh2puJXm_UQfx69Ku1UdFDtoMcw5C4lM55kus4K0pDA1fGYmiSID_LExBmcOei3fts_qIqHAhcSCMXQQol9Y_-xcTR92TCj8bwbMyi_qxtVzEeecEDKlta4dmCMh0H_2qGUttfFY0YEb-w&aioh=3&csuir=1&cs=1&mtid=5S4-aqXxA-yYseMP-9Sf-QY
+******************************
+******************************
+******************************
+==============================================
+
+
+Below are the Ads type which we can implemnt with the game.
+1]
+Interstitial Ads:
+Rewarded Interstitial Ads
+Static Interstitial Ads
+Video Interstitial Ads
+
+2]
+Banner:
+Standard Banner Ads
+Adaptive Banner Ads
+
+3]
+Rewarded Video Ads
+
+
+Place and Action when add will appears
+
+1]
+Ad Format: Banner Ads or Adaptive Banners.
+Fixed Placement: Anchored permanently at the very bottom or very top of the screen.
+Trigger on Action: Loads automatically when the app opens and stays visible while the user navigates the lobby.
+
+2]
+Ad Format: Interstitial Ads (Full-screen).
+Rewarded Interstitial Ads
+Static Interstitial Ads
+Video Interstitial Ads
+
+Exact Placement: Triggers immediately after a player clicks "Find Match" or "Start Game", but before the game board is rendered.
+Trigger Action: The player clicks "Play", the full-screen ad appears, and the player can close it after 5 seconds to instantly enter the loading room.
+
+3]
+The Gameplay Screen (During the Game)
+
+Ad Format: Native Ads or Small Banner Ads.
+Placement: Place a small banner adjacent to the player's tile rack
+
+4]
+Ad Format: Rewarded Ads (Opt-in full-screen video).
+Trigger Action 1 (Out of Points Trigger): 
+A player clicks "Play Game" from the main menu. If their point balance is below 30, a pop-up appears: "You don't have enough points to start a game. Watch a short video to earn 10 points, or go Premium for unlimited play!"
+Trigger Action 2 (The Video Loop): 
+The player clicks "Watch Now". The AdMob Rewarded Video plays for 15–30 seconds. They cannot skip it.
+Trigger Action 3 (The Payout): 
+The ad finishes, a close button (X) appears, and a visual toast notification pops up: "+10 Points Added!" Their new balance updates instantly to 20 points.
+
+5]
+Game Over / Scoreboard Screen
+
+Ad Format: Interstitial Ads or Rewarded Interstitials
+Exact Placement: Triggers exactly when the player clicks "Next Round" or "Return to Lobby" from the scoreboard.
+Trigger Action: Player clicks "Next" or "Play Next Game" button, a full-screen ad plays, they close it, and they arrive back at the main menu.
+
+
+For Mobile Apps:
+All above are manage from the Google AdMob for mobile apps.
+
+For Web:
+To run these same ads on the web version, we need to use Google AdSense or Google Ad Manager alongside AdMob.
+
+For now the all suggested ads related things are manage through Google AdMob platform, if we change or choose different or other platform this planing will be changed as per the platform.
+
+
+Here is the direct explanation for each type of advertisement:
+1] 
+Transition-Based Ads (Full Screen)
+- Static Interstitial Ads: 
+A single, full-screen static image ad that covers the entire game interface. 
+
+- Video Interstitial Ads: 
+A full-screen, automatically playing video commercial.
+
+2] 
+Display & Banner Ads (Static Spaces)
+- Standard Banner Ads: 
+A small, rectangular graphic ad that stays permanently anchored in a fixed position, usually at the very top or absolute bottom of the screen. It refreshes automatically every 30–60 seconds without interrupting game layout or tile placement.
+
+- Adaptive Banner Ads: 
+An updated version of standard banners that automatically reads the player's screen size and scales the ad's height and width perfectly.
+
+3]
+Reward-Based Ads
+- Rewarded Video Ads: 
+A full-screen video ad that players voluntarily choose to watch. In exchange for watching the entire ad (15–30 seconds), the player receives an in-game reward.
+
+- Rewarded Interstitial Ads: 
+A full-screen ad that appears automatically at transition points, but offers an incentive. The player does not have to opt-in to see it, but they get a bonus reward if they choose to watch it until the end instead of skipping it immediately.
+
+
+Thank you.
+
+#########
+Configured firebase notification and configure web worker for web push notification and started work on Phaser.
+
+FOR CLIENT]
+Today, I have continued work on Phaser configuration and setup basic features of Phaser which we use with the game play.
+
+I will keep you posted on work progress.
+Thank you.
+
+
+Hello Everyone, 
+
+Could you please let me know when the design will be completed so I can schedule my tasks accordingly?
+
+Thank you!
+
+FOR CLIENT]
+Today, I have continued work on Phaser and setup the animation for the tiles and rack.
+
+I will keep you posted on work progress.
+Thank you.
+
+FOR CAROLYN]
+Thanks for sharing the Dropbox folder with the assets. I can access it now.
+
+One more thing, I checked all the folders and noticed that the _Icons and _Layered PSDs folders are currently empty. I also couldn't find the background images. I assume you'll add those assets later.
+
+Thank you.
+#############################################
+#############################################
+#############################################
+
+Worker (webbox) - Web push notification 
+Phaser
+Tailwind + Material for UI/UX
+theme/active
+overrite css in layout.scss
+
+[tech][Frontend development][D1] Phaser analysing as per the current design and set up basic structure
+
+
+Today, I have setup the web push notification in bacend side and in frontend configured google webbox for web push notification, actual implementation is remain.
+
+#############################################
+#############################################
+#############################################
+
+FOR CAROLYN]
+Can you please tell me which softewere are you using to create the design such as Photoshop, Adobe Illustrator, etc.., and which formate will you provide when you completed. PDF is okay for visualisation but to converting in HTML layout design I need editable design file.
+##############################################
+libs/notification
+  src/
+    notification.module.ts
+    notification.config.ts
+    notification.service.ts                             
+    notification.queue.ts
+    notification.worker.ts
+    notification-provider.interface.ts
+    notification-provider-router.ts
+
+    entities/
+      push-device.entity.ts
+      notification-event.entity.ts
+      notification-delivery.entity.ts
+      notification-preference.entity.ts
+
+    providers/
+      firebase.provider.ts
+      onesignal.provider.ts
+      braze.provider.ts
+      airship.provider.ts
+      azure.provider.ts
+      aws-sns.provider.ts
+      knock.provider.ts
+      novu.provider.ts
+      noop.provider.ts
+
+    dto/
+      push-device-register.input.ts
+      notification-create.input.ts
+      notification-inbox.input.ts
+
+
+
+
+Business modules:
+  GameModule
+  MarketingModule
+  UserModule
+
+They call:
+  NotificationService.createAndQueue()
+
+NotificationModule owns:
+  notification_event
+  notification_delivery
+  push_device
+  notification_preferences
+  inbox
+  queue
+  retry
+  audit
+  provider routing
+
+Provider adapters:
+  FirebaseProvider default
+  OneSignalProvider later
+  BrazeProvider later
+  AirshipProvider later
+  AzureProvider later
+  AwsSnsProvider later
+  KnockProvider later
+  NovuProvider later
+  NoopProvider for local/test
+
+Frontend adapters:
+  CapacitorPushAdapter default
+  OneSignalAdapter later
+  NoopAdapter for web/local/test
+
+Current routing:
+  MARKETING → firebase
+  GAME_TRANSACTIONAL → firebase
+  SYSTEM → firebase
+
+Future routing:
+  MARKETING → onesignal
+  GAME_TRANSACTIONAL → firebase
+  SYSTEM → firebase
+
+
+
+Capacitor’s push API exposes registration, registrationError, pushNotificationReceived, and pushNotificationActionPerformed listeners. register() triggers the registration event, but it does not request permission by itself, so permission must be requested first.
+
+After login, or after the user enables notifications in settings:
+await this.push.requestPermissionAndRegister();
+
+token must be unique
+
+
+###############################################
+Progress meeting: 24 JUNE 2026 5 PM PDT
+Google Meet - Online Video Calls, Meetings and Conferencing
+ 
+1]
+As per previous meeting update we have completed utility modules development for front end
+state management
+native platform feature access service (some part)
+breakpoint service
+browser coss tab sync
+environment and confi management
+logging/debugging implementation entire app
+cookie module
+local-storage utility
+session-storage utility
+dom observer service
+some basic encryptions
+url sync
+helper/utility functions
+etc.. kind of code development
+ 
+Emain has been set with those module code.
+ 
+2]
+So, out of below 9 points 1st point has been completed.
+1) Set up frontend with angular, capacitor, API sdk and utility.
+2) Convert Figma layout to HTML design 
+This is so important for further development.
+3) Setup static app and web demo for prototype
+Need to include basic home page features related to the join game and game play area.
+This task is kind of pulling future work at initial time. (As per discussion during meeting)
+4) Develop user FREE signup/signin/forgot password for game play
+(We have membership related things also that will be get done later on)
+5) Start game
+6) Setup game play area
+7) Integrate charleston
+8) Integreat Discard, Claim and Pick
+9) Player personalisation, connection/disconnection related functionality
+ 
+Adding 1 more point [10] as per backup plan to keep continue development
+10] Development apart from Game Play area such as third party service integration (this point will be executed as per requirement and need)
+ 
+3]
+Next turn is point [2) Convert Figma layout to HTML design 
+but as you guys are wokring on I have started with backup plan, point 10
+ 
+4]
+We have already started point 10 during last week.
+As a part of required features we have started to develop push notification.
+We configured firebase push notification for IOS and Android.
+We developed required code on backend and frontend implementation is pending, will be developed where needed.
+ 
+5]
+We discovered that push notification for web has seperate integration as per firebase documentation.
+This part is pending and we will see it we will consider for now or will do it later.
+ 
+6]
+From community forums and blog we found that firebase push notification might have some issue with marketinng activity, and its advided to have another service integration along with firebase.
+We have kept the provision for another notification service. 
+There are manyservices availbe but all have some purpose such as 
+Best for Marketing & Automation
+Best for Developers & Cloud Infrastructure
+Best for Inboxes & Multi-Channel Routing
+So, as per use case we will choose relevent another platform in future such as OneSignal or AWS etc.
+ 
+7]
+Now during this week we will continue with point [10] and decided few points
+1. Discover AdMob and Web for advertisements and see if we can perform initial integration. [brhavior of ad + platform of ad api]
+2. If we can perform integreation with purchase feature, we need to mknow payment gateway. [paymemnt gateway + degital products]
+3. If we can start with Phaser + Angular integration for Game Play area.
+Developer will check the possibility and will go for anyone or might find other point to start.
+But we have somethihng in queue for backup plan to continue development.
+ 
+8]
+Basically untill we start point [2] provided planning with [9] points will be on hold and we will continue with backup plan point [10]
+ 
+ 
+WHAT TO PROVIDE]
+- TYPE OF ADVERTISEMENTS as aper mobile, tablet and web
+- What are the fields for digital products so client can take decision about what kind of products they have
+ 
+END OF REPORT
+
+###############################################
+###############################################
+###############################################
+MEETING points
+1]
+Frontend project set up and configuration.
+2]
+Test build for mobile apps.
+3]
+Done some preparation to manage the Push Notification
+4]
+Completed client side API wrapper.
+
+
+Next start work on utility modules.
+
+
+Production andorid app we need to 
+as we collect the user data as User name, password, email etc... it neccosry to 
+Add a link that users can use to request that their account and associated data is deleted 
+
+Frontend we will go as below points
+1]
+Set up frontend with angular, capacitor, API sdk and utility. [approx 10-12 days]
+This part might get complete in 2 phases 5+7.
+2]
+Convert Figma layout to HTML design [minimum 10 days - depends on layout and as needed throughout development]
+This is so important for further development.
+3]
+Setup static app and web demo for prototype [6-7 days]
+Need to include basic home page features related to the join game and game play area.
+This task is kind of pulling future work at initial time. (As per discussion during meeting)
+4]
+Develop user FREE signup/signin/forgot password for game play [3-4 days]
+(We have membership related things also that will be get done later on)
+5]
+Start game [4-5 days]
+6]
+Setup game play area [minimum 5-7 days]
+7]
+Integrate charleston [approx 2-3 days]
+8]
+Integreat Discard, Claim and Pick [minimum 10 days]
+9]
+Player personalisation, connection/disconnection related functionality [minimum 7 days]
+
+At the end of point 9 we will be able to play the game in real time. In mobile, tablet and web. 
+After that we have to perform testing.
+
+This is up to the game play area development assumption, as we are starting the development the time might get fluctuate as per the situation, we still have things that need to develop once we finished all above 
+such as...
+Home page full
+User Dashboard (All user related functionalities)
+Score board
+Purchase/membership 
+Ads 
+Formal pages as needed 
+
+So all of those will be planned later on and cannot be estimated at this moment. 
+
+During the frontend we will arrange something that we will update the demo frequently so you guys can access it. How this will go will be as per development flow.
+This demo might have errors sometimes as we will just push from development without testing. 
+
+
+
+######################################################
+Progress meeting: 17 JUNE 2026 5 PM PDT
+https://meet.google.com/mrv-emik-dex
+ 
+1]
+As informed in previous meeting we started with front end development and we are about to finish point [1] from provided [9] points.
+In point [1] till the date we have completed below points.
+ 
+2]
+Angular + Capacitor setup - this provide bridge between our web app and platform native environemnt.
+This allow use to use device camera, microhopne, push notification, device orientation (landscape, portrait) kind of mnay features.
+The access to native api is established now whereever we need any feature access we will able to write a code.
+ 
+2]
+Just let you know for push notification, from server to client we will need to use Firebase.
+Firebase Cloud Messaging (FCM) is a free, cross-platform service that lets you reliably send messages and push notifications to Android, iOS, and web applications. It handles routing messages from a trusted server or the Firebase console to the user's device.
+https://firebase.google.com/docs/cloud-messaging
+ 
+3]
+Environment configuration .env setup to run project in debug, development and production mode.
+Used angular inbuilt env.ts feature and wrapped with config service class to process it for usage.
+ 
+4]
+Setup for building and running project on local in 3 different mode (ios, android, web).
+IOS and Android run can be done in simulator or direct device.
+Simulator run takes too much time to process 1 build, so we are running projetc directly in device which takes less time then simulator.
+ 
+5]
+We have experienced that working with 4 different devices mobile, tablet and web taking time so as informed before development time will fluctuate.
+For example: Recently we have developed environment configuration and we ran the project to check in our targated devices. We need to run the project for 5 devices.
+1 - For web
+2 - For apple iPhone
+3 - For apple tablet
+4 - For android phone
+5 - For android tablet
+ 
+Above 5 was for normal test and usecase.
+ 
+When its layout/UI we also need to check 2 orientation 
+landscape
+portrait
+orientation is applicable to mobile and tablet devices.
+ 
+As web has browser resize option, we also have to check with different breakpoint width to make sure design/layout to  not break. 
+There are total 5 break points as per screen width.
+small
+medium
+large
+extra large
+ 
+6]
+At this moment to speed up development we devcided to run mobile and web mode only and tablate will be checked with specific interval.
+ 
+7]
+In case of development speed up we also setup LAN hot reload for mobile and tablet device which can save time for multiple run but still we need to check and test the things.
+ 
+8]
+We also performed a trila for native build generation.
+Generated .apk and .ipa files for deployment for app and play store
+ 
+Deploy process is not tried at this moment.
+ 
+9]
+We have also completed client side API wrapper, you might have received full codebase zip of wrapper code which is seperat project.
+ 
+10]
+Next, today we will start work on utility modules explaiend in previous meeting.
+state management
+native platform feature access service (some part)
+breakpoint service
+browser coss tab sync
+environment and confi management
+logging/debugging implementation entire app
+cookie module
+local-storage utility
+session-storage utility
+dom observer service
+some basic encryptions
+url sync
+helper/utility functions
+etc.. kind of code development
+
+ 
+ 
+SO AT THE END] 
+We are about to finish point 
+1) Set up frontend with angular, capacitor, API sdk and utility. [approx 10-12 days]
+ 
+And we will going to start next point
+2) Convert Figma layout to HTML design [minimum 10 days - depends on layout and as needed throughout development]
+ 
+ 
+THE END]
+######################################################
+######################################################
+######################################################
+TODO:
+1]
+mj_user_device 
+Make udvc_device_token field unique, this is push_token.
+
+2]
+I think we need new table for notification 
+notification_event
+CREATE TABLE notification_event (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+
+  user_id bigint NOT NULL,
+
+  type text NOT NULL, -- GAME_INVITE | GAME_TURN | GAME_TIMEOUT_WARNING
+  title text NOT NULL,
+  body text NOT NULL,
+
+  data jsonb NOT NULL DEFAULT '{}',
+
+  priority text NOT NULL DEFAULT 'normal', -- low | normal | high
+  status text NOT NULL DEFAULT 'created',
+
+  created_at timestamptz NOT NULL DEFAULT now(),
+  read_at timestamptz NULL
+);
+
+3]
+
+
+
+NOTIFICATION Testing checklist
+1. Android foreground
+2. Android background
+3. Android killed app
+4. Android notification permission denied
+5. Android battery saver mode
+6. Android after reinstall
+7. Android after logout/login different user
+
+8. iOS foreground
+9. iOS background
+10. iOS killed app
+11. iOS notification permission denied
+12. iOS Focus mode
+13. iOS after reinstall
+14. iOS TestFlight build
+15. iOS production APNs environment
+
+16. Token invalid cleanup
+17. Multiple devices per user
+18. Same user logged in on Android + iOS
+19. Firebase temporary failure retry
+20. App opens from notification tap
+21. App opens normally and syncs missed notifications
+
+
+===============================
+POINT 1]
+1]
+App icons
+2]
+Chrom app icons
+3]
+Fav icon
+4]
+ios android build and publish.
+5]
+Understand current flow as explained.
+6]
+Set up autosync in Language based file.
+7]
+Update angular version to 22 latest
+also update all packahes - specially for capacitor
+
+===============================
+Code optimization as per the use cases and implement unit testing for important game play actions.
+
+Meeting minutes
+1]
+Implemented unit testing for required game play actions as below
+Create game
+Public start game
+Charleston
+Discard tile
+Pick tile
+Clam tile 
+
+2]
+Project setup with angular and capacitor
+Generate the app icons and app name
+Upgrade angular and capacitor version to latest and upgrade the dependencies as required
+Generate the app for mobile
+
+
+
+
+How would you like me to save and send over the audio files? Here are the options I have been given:
+
+
+PFA: IMG_2236
+PFA: IMG_2237
+
+
+Tile click	WAV	44.1kHz
+Tile discard	WAV	44.1kHz
+Button click	WAV	44.1kHz
+Claim / Pung / Kong / Mahjong	WAV	44.1kHz
+Timer warning	WAV	44.1kHz
+Win celebration sound	WAV or MP3	WAV if short, MP3 if long
+Background music	MP3	44.1kHz / 192kbps or 256kbps
+
+
+| Sound type                    | Recommended format | Setting                      |
+| ----------------------------- | -----------------: | ---------------------------- |
+| Tile click                    |                WAV | 44.1kHz                      |
+| Tile discard                  |                WAV | 44.1kHz                      |
+| Button click                  |                WAV | 44.1kHz                      |
+| Claim / Pung / Kong / Mahjong |                WAV | 44.1kHz                      |
+| Timer warning                 |                WAV | 44.1kHz                      |
+| Win celebration sound         |         WAV or MP3 | WAV if short, MP3 if long    |
+| Background music              |                MP3 | 44.1kHz / 192kbps or 256kbps |
+
+
+===============================
+[tech][Frontend development][D1] Make archieve for iOS as required ios 26.0 build for new releases as per tha apple turms
+
+
+Today, I completed the Firebase push notification configuration and also configured web push notifications. I tested the notifications by sending a test notification from the Firebase Console. Tomorrow, I will move on to the next task.
+
+I will keep you posted on work progress.
+Thank you!
+
+
+
+
+CAROLYN REPLY
+
+Here is a link to some flat screens for your review - https://www.dropbox.com/scl/fo/jxdstbldm27fgbytqhajz/AICyUYqZPCFvS7XoqDCiIUU?rlkey=1gco6833svrrv6jj6t3apg581&st=svmel6nw&dl=0.
+ 
+We wanted to share with you and get your feedback before continuing. Please note that the screens are still in progress, the dashboard ones specifically still need some updates that Spencer, Jen, and I discussed but I haven't finished yet. These are all desktop 1920 width.
+Start screen/landing page
+Start screen/landing page with benefits alt
+Start screen/landing page with expanded hamburger menu
+Member login
+Premium Signup
+Free Signup
+Free Signup alt
+Premium Dashboard + nav (still needs updates)
+Free Dashboard + nav (still needs updates)
+Gameboard with expanded icon menus
+Looking forward to discussing with you.
+Thank you, Carolyn
+
+
+REPLY]
+Hi, 
+
+I have checked the design and as you have just started not much things to anaysed. The game board is pretty clear and as you will upgrade it will become complete. 
+I would suggest defining the typography more clearly, including the font family, font styles, and brand colors. Additionally, if possible, try to give the design a more modern look, such as rounded corners, see my past project, it is not game but you can have some idea or creativity.
+https://ecophx.com/
+
+You can find creativity and ideas on dribble such as the below url.
+https://dribbble.com/tags/modern-website-design
+
+If possible then create a design layout for game start when we click on new game button a popup form will open, design that first so we can start with the development. 
+Also, please share the source images used in the homepage background design, such as the dragon, peacock, and any other artwork.
+
+Please provide logo, I need to use in app set up.
+
+So, over all going good. Let me know when you have new updates. 
+Let's move forward we will improve as we go.
+
+Thank you.
+
+
+
+
+
+
+
+
+CAROLYN REPLY
+
+Thank you, Raj. I'll review the links, definitely taking your feedback. 
+ 
+I'm not sure you have been to this Mahjfit Dropbox folder where I'm saving everything. There is a folder of svg and png logos, color palette, tiles, etc. You can see the other folders that will get populated shortly - screens, icons. 
+ 
+Let me know if you want me to join your Wednesday meeting this week to discuss anything, otherwise, I'll keep pushing through the week. Please know I'm available to connect with you whenever needed.
+ 
+Many thanks, Carolyn
+
+
+SPENCER REPLY
+
+@Carolyn, we’ll plan on having you join the weekly Dev call tomorrow (Wednesday) at 5pm PT. Raj will send a Gmeet just prior.
+ 
+@Raj, yes make sure you check out the dropbox, there is a specific folder for logos.
+ 
+Talk to everyone tomorrow!
+
+
+
+
+
+FOR CAROLYN], FOR CLIENT]
+Actually, I’m not able to access the other Dropbox folders. I only have access to the "_Screens" folder that you shared with me. I don’t have access to the other folders, so please grant me access to those as well.
+
+Check the attached screenshot of Dropbox folders.
+CHECK TC: 2026-06-24

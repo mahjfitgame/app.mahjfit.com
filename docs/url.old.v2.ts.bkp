@@ -1,0 +1,239 @@
+import { effect, inject, Injectable, signal } from "@angular/core";
+import { ActivatedRoute, Router } from "@angular/router";
+import { CrudStateRuntime } from "./state.r";
+import { CrudFieldNormalizeModeEnum, CrudListingAdditionalColumnsEnum, CrudListOperationFieldsEnum } from "./enum";
+import { CrudUtility } from "./utility";
+import { CrudFormFieldInfoType, CrudStateFormFieldObjType } from "./type";
+import { UrlService } from "@libs";
+import { CrudValidation } from "./validation";
+// https://chatgpt.com/codex/cloud/tasks/task_e_6a02b9b9c4648332b793127a421f1581
+type UrlParamValueType =
+    | string
+    | number
+    | boolean
+    | string[]
+    | number[]
+    | boolean[]
+    | null
+    | undefined;
+
+export type CrudUrlMatrixParamsType = Record<string, UrlParamValueType>;
+
+@Injectable()
+export class CrudUrl {
+    public readonly router = inject(Router);
+    public readonly aRoute = inject(ActivatedRoute);
+
+    public readonly state = inject(CrudStateRuntime);
+    public readonly utility = inject(CrudUtility);
+    public readonly validation = inject(CrudValidation);
+    public readonly url = inject(UrlService);
+    private readonly stateToUrlSyncEnabled = signal(false);
+    constructor() {
+    }
+
+     public enableStateToUrlMatrixParamsSync(): void {
+        this.stateToUrlSyncEnabled.set(true);
+    }
+    // █████ PROCESS URL MATRIX PARAMS ████████████████████████████████████████████████
+    public getUrlMatrixParamsFromStateRuntime(): CrudUrlMatrixParamsType {
+        // define the state objects requir to process, order is important, switch will change url pattern
+        const stateGroups = [
+            // [1] SEARCH_FILTER_FIELD_OBJ
+            this.state.searchFilterFieldObj(),
+
+            // [2] VIEW_OPTION_FIELD_OBJ
+            this.state.viewOptionFieldObj(),
+
+            // [3] LIST_OPERATION_FIELD_OBJ
+            this.state.listOperationFieldObj()
+        ];
+
+        // club them all together using reduce
+        return stateGroups.reduce((acc, currentGroup) => ({
+            ...acc,
+            ...this.generateUrlMatrixParamsFromStateRuntime(currentGroup)
+        }), {} as CrudUrlMatrixParamsType);
+    }
+    private generateUrlMatrixParamsFromStateRuntime(
+        fsi: CrudStateFormFieldObjType
+    ): CrudUrlMatrixParamsType {
+        const ump: CrudUrlMatrixParamsType = {};
+
+        const keys = Object.keys(fsi);
+        for(let i = 0; i < keys.length; i++) {
+            const fKey = keys[i];
+            const fInfo = fsi[fKey];
+
+            const mp = fInfo?.url_matrix_param;
+            if (!mp) {
+                return ump;
+            }
+
+            const result = this.validation.normalizeAndValidateCrudFormFieldValue(
+                fInfo.value,
+                fInfo,
+                undefined,
+                CrudFieldNormalizeModeEnum.STOC
+            );
+
+            if (!result.valid) {
+                return ump;
+            }
+
+            ump[mp] = result.value;
+        }
+
+        return ump;
+    }
+    public getUrlMatrixParamsFromRoute(): CrudUrlMatrixParamsType {
+        const moduleRoute = this.url.getModuleActivatedRoute();
+        const routeParams = moduleRoute.snapshot.url.at(-1)?.parameters ?? {};
+
+        // define the state objects requir to process, order is important, switch will change url pattern
+        const stateGroups = [
+            // [1] SEARCH_FILTER_FIELD_OBJ
+            this.state.searchFilterFieldObj(),
+
+            // [2] VIEW_OPTION_FIELD_OBJ
+            this.state.viewOptionFieldObj(),
+
+            // [3] LIST_OPERATION_FIELD_OBJ
+            this.state.listOperationFieldObj()
+        ];
+
+        // club them all together using reduce
+        return stateGroups.reduce((acc, currentGroup) => ({
+            ...acc,
+            ...this.generateUrlMatrixParamsFromRoute(routeParams, currentGroup)
+        }), {} as CrudUrlMatrixParamsType);
+    }
+    private generateUrlMatrixParamsFromRoute(
+        routeParams: Record<string, unknown>,
+        fsi: CrudStateFormFieldObjType,
+    ): CrudUrlMatrixParamsType {
+        const ump: CrudUrlMatrixParamsType = {};
+        // Clone to maintain immutability
+        const updatedFsi: CrudStateFormFieldObjType = { ...fsi };
+
+        const keys = Object.keys(updatedFsi);
+        for (const fKey of keys) {
+            const fInfo = updatedFsi[fKey];
+            const mp = fInfo?.url_matrix_param;
+
+            // If param is missing in route, stop and return current state
+            if (!mp || !(mp in routeParams)) {
+                return ump;
+            }
+
+            const result = this.validation.normalizeAndValidateCrudFormFieldValue(
+                routeParams[mp],
+                fInfo
+            );
+
+            if (!result.valid) {
+                return ump;
+            }
+
+            // Update the matrix param object
+            ump[mp] = result.value;
+            
+            // Update the state object with the normalized value
+            updatedFsi[fKey] = {
+                ...fInfo,
+                value: result.value
+            };
+        }
+        return ump;
+    }
+    // █████ INIT FROM URL MATRIX PARAMS ████████████████████████████████████████████
+    public initStateRuntimeFromUrlMatrixParamsBefore(): void {
+        const ump = this.getUrlMatrixParamsFromRoute();
+
+        // [1] SEARCH_FILTER_FIELD_OBJ
+        this.syncStateRuntimeFromUrlMatrixParams(
+            ump,
+            this.state.searchFilterFieldObj(),
+            (key: any, patch: any) => this.state.updateSearchFilterFieldObj(key, patch)
+        );
+
+        // [2] VIEW_OPTION_FIELD_OBJ
+        this.syncStateRuntimeFromUrlMatrixParams(
+            ump,
+            this.state.viewOptionFieldObj(),
+            (key: any, patch: any) => this.state.updateViewOptionFieldObj(key, patch)
+        );
+
+        // [3] LIST_OPERATION_FIELD_OBJ
+        this.syncStateRuntimeFromUrlMatrixParams(
+            ump,
+            this.state.listOperationFieldObj(),
+            (key: any, patch: any) => this.state.updateListOperationFieldObj(key, patch),
+            {
+                skipFieldKeys: [
+                    CrudListOperationFieldsEnum.LISTING_SELECTED_ROWS,
+                ],
+            }
+        );
+    }
+
+    public initStateRuntimeFromUrlMatrixParamsAfter(): void {
+        const ump = this.getUrlMatrixParamsFromRoute();
+
+    }
+
+    // █████ SYNC URL MATRIX PARAMS ████████████████████████████████████████████████
+
+    private syncStateRuntimeFromUrlMatrixParams<T extends Record<string, CrudFormFieldInfoType>>(
+        ump: CrudUrlMatrixParamsType,
+        fObj: T,
+        stateUpdate: (key: keyof T, patch: Partial<CrudFormFieldInfoType>) => void,
+        options?: {
+            skipFieldKeys?: string[];
+        }
+    ): void {
+        const keys = Object.keys(fObj) as (keyof T)[];
+        for (let i = 0; i < keys.length; i++) {
+            const fieldKey = keys[i];
+            const finfo = fObj[fieldKey];
+
+            // skip if defined in options
+            if (options?.skipFieldKeys?.includes(fieldKey as string)) {
+                continue;
+            }
+            
+            const paramName = finfo.url_matrix_param;
+
+            // if no matrix param defined or it's not present in the URL, skip
+            if (!paramName || !(paramName in ump)) {
+                continue;
+            }
+
+            // use the specific update method to patch only the value
+            stateUpdate(fieldKey, { value: ump[paramName] });
+        }
+    }
+     /**
+     * Syncs the URL matrix params from the state runtime.
+     * Used after every change in the state runtime.
+     * This update the URL
+     */
+    public async syncUrlMatrixParamsFromStateRuntime(options?: { replaceUrl?: boolean }): Promise<void> {
+        const moduleRoute = this.url.getModuleActivatedRoute();
+        const moduleSegment = moduleRoute.snapshot.url.at(-1)?.path;
+
+        if (!moduleSegment || !moduleRoute.parent) {
+            return;
+        }
+
+        const matrixParams = this.getUrlMatrixParamsFromStateRuntime();
+
+        await this.router.navigate(
+            [moduleSegment, matrixParams],
+            {
+                relativeTo: moduleRoute.parent,
+                replaceUrl: options?.replaceUrl ?? true,
+            }
+        );
+    }
+}

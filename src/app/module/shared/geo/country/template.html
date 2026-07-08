@@ -1,0 +1,108 @@
+<!-- file: ./src/app/module/shared/geo/country/template.html -->
+<app-crud></app-crud>
+
+@if (service.crud.shouldShowCrudListingLayout()) {
+<!-- listing column [metadata] template -->
+<ng-template
+    cdkPortal
+    [crudFieldLayout]="service.crud.getListingFieldSlotPortalKey('metadata')"
+    let-row="row"
+    let-fkey="fkey"
+    let-finfo="finfo"
+>
+    <div class="tw:flex tw:flex-col tw:text-sm tw:text-[13px]!" [termHighlight]="service.crud.state.getQuickSearchValue()">
+        <p><strong class="tw:text-black/70 tw:dark:text-white/50">Flag(s): </strong>{{ row.emoji }}</p>
+        <p>
+            <strong class="tw:text-black/70 tw:dark:text-white/50">Emoji U: </strong>
+            {{ row.emoji_u }}
+        </p>
+        @if(row.fips){
+            <p>
+                <strong class="tw:text-black/70 tw:dark:text-white/50">Fips: </strong>
+                <a routerLink="/" class="">{{ row.fips }}</a>
+            </p>
+        }
+        @if(row.iso_ii){
+        <p><strong class="tw:text-black/70 tw:dark:text-white/50">ISO II: </strong>{{ row.iso_ii }}</p>
+        }
+        @if(row.iso_iii){
+        <p class="tw:flex tw:gap-1">
+            <strong class="tw:text-black/70 tw:dark:text-white/50">ISO III: </strong>
+            <a routerLink="/" target="_blank" class="tw:flex tw:gap-1 tw:hover:text-primary tw:items-center!">
+                <span>{{ row.iso_iii }}</span>
+                <mat-icon class="material-symbols-rounded tw:text-sm! tw:w-4! tw:h-4! tw:leading-none!">
+                    open_in_new
+                </mat-icon>
+            </a>     
+        </p>
+        }
+        @if(row.tld){
+            <p>
+                <strong class="tw:text-black/70 tw:dark:text-white/50">TLD: </strong>
+                {{ row.tld }}
+            </p>
+        }
+    </div>
+</ng-template>
+
+<!-- search form field [test_slot] template -->
+<ng-template
+    cdkPortal
+    [crudFieldLayout]="service.crud.getFilterFieldSlotPortalKey('test_slot')"
+    let-fkey="fkey"
+    let-finfo="finfo"
+    let-fstate="fstate"
+    let-hasError="hasError"
+    let-fieldObj="fieldObj"
+>
+<div class="tw:border">
+<label>CDK Slot Portal Field Trial</label>
+    <input 
+        matInput 
+        [attr.name]="fkey" 
+        [attr.id]="fkey" 
+        [attr.placeholder]="finfo.placeholder || ''" 
+        [attr.minlength]="finfo?.validation?.min_length?.value ?? null"
+        [attr.maxlength]="finfo?.validation?.max_length?.value ?? null"
+        [value]="finfo.value"
+        class="tw:border"
+    />
+    <small>This section is coming from child module via cdkPortal</small>
+</div>
+</ng-template>
+
+<!-- mutation form field [test_slot] template -->
+
+<!--
+If we don't want to use <app-crud> directly and want to define cutom layout then
+user below layout and comment <app-crud>
+To reuse some code from <app-crud> import crud default and place manually in this file
+-->
+
+<!-- START SIDE BAR EXTENSION -->
+<!-- <ng-template cdkPortal [privateAreaLayout]="service.PrivateAreaLayoutSlot.SLOT_START_SIDE_BAR_EXTENSION">
+</ng-template> -->
+
+<!-- MAIN HEADER TOOLBAR EXTENSION -->
+<!-- <ng-template cdkPortal [privateAreaLayout]="service.PrivateAreaLayoutSlot.SLOT_MAIN_HEADER_TOOLBAR_EXTENSION">
+</ng-template> -->
+
+<!-- MAIN FOOTER TOOLBAR EXTENSION -->
+<!-- <ng-template cdkPortal [privateAreaLayout]="service.PrivateAreaLayoutSlot.SLOT_MAIN_FOOTER_TOOLBAR_EXTENSION">
+</ng-template> -->
+
+<!-- END SIDEBAR FOOTER -->
+<!-- <ng-template cdkPortal [privateAreaLayout]="service.PrivateAreaLayoutSlot.SLOT_END_SIDE_BAR_FOOTER">
+</ng-template> -->
+
+<!-- ADD ANY END SIDEBAR IF REQUIRED -->
+<!-- END SIDEBAR TAB EXTENSION (MULTIPLE TABS) -->
+<!-- <ng-template data-tab="2" cdkPortal [privateAreaLayout]="service.PrivateAreaLayoutSlot.SLOT_END_SIDE_BAR_TAB_LABEL">
+    <span>Any Tab</span>
+</ng-template>
+<ng-template data-tab="2" cdkPortal [privateAreaLayout]="service.PrivateAreaLayoutSlot.SLOT_END_SIDE_BAR_TAB_BODY">
+    <div class="tw:p-1">
+        Any tab content
+    </div>
+</ng-template> -->
+}

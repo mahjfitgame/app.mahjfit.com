@@ -1,0 +1,18 @@
+// file: ./src/theme/active/_utility.scss
+@use './variable' as *;
+@use './color' as *;
+
+@keyframes bfw-alert-blink {
+  0%,
+  100% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0.2;
+  }
+}
+
+.bfw-alert-blink {
+  animation: bfw-alert-blink 0.5s ease-in-out 5;
+}

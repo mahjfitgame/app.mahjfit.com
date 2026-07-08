@@ -1,0 +1,13 @@
+<!-- file: ./src/app/base/crud/default/mutation/template.html -->
+@if(service.state.mutationActionUiLayout() === service.CrudActionUiLayoutEnum.END_SIDE_BAR) {
+    <app-crud-default-mutation-end-side-bar></app-crud-default-mutation-end-side-bar>
+}
+@else if(service.state.mutationActionUiLayout() === service.CrudActionUiLayoutEnum.END_DRAWER) {
+    <app-crud-default-mutation-end-drawer></app-crud-default-mutation-end-drawer>
+}
+@else if(
+    service.state.mutationActionUiLayout() === service.CrudActionUiLayoutEnum.PAGE && 
+    service.isMutationActionActive()
+) {
+    <ng-container *ngComponentOutlet="service.getMutationPageComponent(); injector: service.getComponentInjector()"></ng-container>
+}

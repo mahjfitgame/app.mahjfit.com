@@ -1,0 +1,13 @@
+// file: tsconfig.tools.json
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "types": ["node"],
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "target": "ES2024"
+  },
+  "include": [
+    "tools/**/*.ts"
+  ]
+}

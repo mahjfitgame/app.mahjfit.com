@@ -1,0 +1,97 @@
+<!-- file: ./src/app/base/notify/template.html -->
+<div class="tw:my-1 tw:mx-2 tw:md:mx-0">
+    <div
+        class="tw:relative tw:flex tw:items-start tw:justify-between tw:gap-2 tw:w-full tw:md:w-96 tw:rounded-lg tw:text-slate-100 tw:shadow-md! tw:border"
+        [ngClass]="{
+            'tw:bg-emerald-800/95 tw:border-emerald-400/30': toastPackage.toastType === 'toast-success',
+            'tw:bg-rose-800/95 tw:border-rose-400/30': toastPackage.toastType === 'toast-error',
+            'tw:bg-amber-700/95 tw:border-amber-300/35': toastPackage.toastType === 'toast-warning',
+            'tw:bg-slate-900/90 tw:border-sky-400/25': toastPackage.toastType === 'toast-info'
+        }"
+    >
+        <!-- Message -->
+        <span class="tw:text-sm tw:font-medium tw:flex-1 tw:flex tw:items-start tw:gap-2 tw:py-3 tw:ps-3 tw:pb-4">
+            <span class="tw:inline-flex tw:shrink-0 tw:flex-col tw:items-center tw:justify-center tw:gap-1">
+                <mat-icon
+                    class="
+                    material-symbols-rounded
+                    tw:text-slate-100!
+                    tw:text-[18px]!
+                    tw:h-5!
+                    tw:w-5!
+                    tw:min-w-5!
+                    tw:leading-5!
+                    tw:flex!
+                    tw:items-center!
+                    tw:justify-center!
+                    tw:overflow-hidden!
+                    tw:shrink-0
+                    "
+                >
+                    @if (toastPackage.toastType === 'toast-success') {
+                        task_alt
+                    } @else if (toastPackage.toastType === 'toast-error') {
+                        dangerous
+                    } @else if (toastPackage.toastType === 'toast-warning') {
+                        warning
+                    } @else {
+                        info
+                    }
+                </mat-icon>
+                @if (isCountDuplicatesEnabled() && totalDuplicateCount() > 1) {
+                    <small class="tw:leading-none tw:text-slate-100">
+                        {{ totalDuplicateCount() }}
+                    </small>
+                }
+            </span>
+            <span class="tw:flex tw:flex-col tw:gap-0.5">
+                @if (title() && title() != '') {
+                    <span class="tw:text-sm tw:font-semibold tw:leading-5">
+                        {{ title() }}
+                    </span>
+                }
+
+                @if (message()) {
+                    <span 
+                        class="tw:text-sm tw:font-medium tw:leading-5"
+                        [innerHTML]="message()"
+                    >
+                    </span>
+                }
+            </span>
+        </span>
+
+        <!-- Close -->
+        @if (options().closeButton) {
+            <span class="tw:flex! tw:items-start! tw:p-1">
+                <button
+                    matButton="text"
+                    type="button"
+                    class="
+                        tw:min-w-0! tw:px-3! tw:text-slate-100!
+                        tw:[&&_.mat-mdc-button-persistent-ripple::before]:bg-transparent!
+                        tw:[&&_.mat-ripple-element]:bg-current!
+                        tw:[&&_.mat-mdc-button-persistent-ripple::before]:opacity-10!
+                        tw:[&&_.mat-ripple-element]:opacity-20!
+                        "
+                    aria-label="Close notification"
+                    (click)="remove()"
+                >
+                    <mat-icon class="material-symbols-rounded tw:m-0! tw:text-slate-100!">
+                        close
+                    </mat-icon>
+                </button>
+            </span>
+        }
+
+        <!-- Progress Bar -->
+        @if (options().progressBar) {
+            <div class="tw:absolute tw:inset-s-0 tw:bottom-0 tw:h-0.5 tw:w-full tw:bg-white/15">
+                <div
+                    class="tw:h-full tw:bg-white/70"
+                    [style.width.%]="width()"
+                ></div>
+            </div>
+        }
+    </div>
+</div>

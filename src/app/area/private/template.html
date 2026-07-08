@@ -1,0 +1,467 @@
+<div class="tw:flex tw:flex-col">
+  <mat-sidenav-container
+    class="bfw-sidenav-container"
+    [ngClass]="{
+      'bfw-icon-sidebar-opened': !service.bos.isSmAndDown() && BfwStartSideBar.opened,
+      'bfw-icon-sidebar-closed': !service.bos.isSmAndDown() && !BfwStartSideBar.opened,
+    }"
+  >
+    <!-- ██ [1] ██ START SIDEBAR ████████ -->
+    <mat-sidenav
+      #BfwStartSideBar
+      fixedInViewport
+      position="start"
+      [mode]="service.bos.isSmAndDown() ? 'over' : 'side'"
+      [attr.role]="service.bos.isSmAndDown() ? 'dialog' : 'navigation'"
+      [opened]="false"
+      class="bfw-sidenav-start tw:border-r! tw:border-gray-200! tw:dark:border-gray-200/10!"
+    >
+      <!-- ██ [1H] ██ -->
+      <header class="bfw-sidenav-start-header tw:sticky tw:top-0 tw:z-20 tw:backdrop-blur-sm">
+        <div class="bfw-safe-area-pt bfw-safe-area-ps tw:relative">
+          <mat-toolbar class="tw:flex-1 tw:min-w-0 tw:bg-transparent!">
+            <button
+              matIconButton
+              (click)="BfwStartSideBar.toggle()"
+              class="tw:flex tw:h-10 tw:w-10 tw:shrink-0 tw:items-center tw:justify-center"
+              [attr.aria-label]="BfwStartSideBar.opened ? 'Close menu' : 'Open menu'"
+            >
+              <mat-icon class="material-symbols-rounded tw:ms-0! tw:me-0!">{{
+                BfwStartSideBar.opened
+                  ? service.i18n.state.bidi() == 'rtl'
+                    ? 'arrow_forward_ios_new'
+                    : 'arrow_back_ios_new'
+                  : 'menu'
+              }}</mat-icon>
+            </button>
+            <span
+              class="bfw-brand-logo tw:max-w-55 tw:opacity-100 tw:mbs-4 tw:mbe-4 tw:ms-2 tw:inline-flex tw:items-center tw:overflow-hidden tw:whitespace-nowrap tw:transition-all tw:duration-200 tw:group-hover:tw:max-w-[220px] tw:group-hover:tw:opacity-100"
+            >
+              <img
+                src="assets/logo.png"
+                alt="Logo"
+                class="tw:h-10 tw:w-10 tw:inline-block tw:align-middle"
+              />
+              <span class="tw:leading-5 tw:inline-block tw:px-2 tw:align-middle">
+                BFW PWA<br />
+                <small class="tw:opacity-75"
+                  ><span class="tw:hidden md:tw:inline-block">Solution</span> by Thats End</small
+                >
+              </span>
+            </span>
+          </mat-toolbar>
+        </div>
+      </header>
+      <!-- ██ [1B] ██ -->
+      <section class="bfw-safe-area-ps">
+        <nav class="tw:px-3">
+          <mat-nav-list>
+            <mat-accordion>
+              @for (item of navItems; track item.name) {
+                @if (item.children) {
+                  <mat-expansion-panel>
+                    <mat-expansion-panel-header class="tw:p-0! h-auto">
+                      <mat-panel-title class="flex items-center tw:p-3">
+                        <mat-icon matListItemIcon class="material-symbols-rounded">{{
+                          item.icon
+                        }}</mat-icon>
+                        <span class="flex-grow bfw-nav-link-name">{{ item.name }}</span>
+                      </mat-panel-title>
+                    </mat-expansion-panel-header>
+                    <mat-nav-list>
+                      <mat-accordion [multi]="false">
+                        @for (child of item.children; track child.name) {
+                          @if (child.children) {
+                            <mat-expansion-panel>
+                              <mat-expansion-panel-header class="tw:p-0! h-auto">
+                                <mat-panel-title class="flex items-center tw:p-3">
+                                  <mat-icon matListItemIcon class="material-symbols-rounded">{{
+                                    child.icon
+                                  }}</mat-icon>
+                                  <span class="flex-grow bfw-nav-link-name">{{ child.name }}</span>
+                                </mat-panel-title>
+                              </mat-expansion-panel-header>
+                              <mat-nav-list>
+                                @for (grandchild of child.children; track grandchild.name) {
+                                  <a
+                                    mat-list-item
+                                    [routerLink]="grandchild.route"
+                                    routerLinkActive="active"
+                                    (click)="closeSidenavIfSmAndDown(BfwStartSideBar)"
+                                    class="nav-item tw:py-2 tw:ps-6"
+                                  >
+                                    <mat-icon matListItemIcon class="material-symbols-rounded">{{
+                                      grandchild.icon
+                                    }}</mat-icon>
+                                    <span matListItemTitle>{{ grandchild.name }}</span>
+                                  </a>
+                                }
+                              </mat-nav-list>
+                            </mat-expansion-panel>
+                          } @else {
+                            <a
+                              mat-list-item
+                              [routerLink]="child.route"
+                              routerLinkActive="active"
+                              (click)="closeSidenavIfSmAndDown(BfwStartSideBar)"
+                              class="nav-item tw:py-2 tw:ps-6"
+                            >
+                              <mat-icon matListItemIcon class="material-symbols-rounded">{{
+                                child.icon
+                              }}</mat-icon>
+                              <span matListItemTitle class="flex-grow bfw-nav-link-name">{{
+                                child.name
+                              }}</span>
+                            </a>
+                          }
+                        }
+                      </mat-accordion>
+                    </mat-nav-list>
+                  </mat-expansion-panel>
+                } @else {
+                  <a
+                    mat-list-item
+                    [routerLink]="item.route"
+                    [routerLinkActiveOptions]="{
+                      paths: 'exact',
+                      queryParams: 'ignored',
+                      fragment: 'ignored',
+                      matrixParams: 'ignored',
+                    }"
+                    routerLinkActive="active"
+                    (click)="closeSidenavIfSmAndDown(BfwStartSideBar)"
+                    class="tw:w-full rounded-lg"
+                  >
+                    <mat-icon matListItemIcon class="material-symbols-rounded">{{
+                      item.icon
+                    }}</mat-icon>
+                    <span matListItemTitle class="flex-grow bfw-nav-link-name">{{
+                      item.name
+                    }}</span>
+                  </a>
+                }
+              }
+            </mat-accordion>
+          </mat-nav-list>
+        </nav>
+        <ng-template
+          [cdkPortalOutlet]="
+            service.state.slotStartSideBarExtension() ?? DEF_SLOT_START_SIDE_BAR_EXTENSION
+          "
+        >
+        </ng-template>
+      </section>
+      <!-- ██ [1F] ██ -->
+      <footer
+        class="bfw-sidenav-start-footer tw:sticky tw:bottom-0 tw:z-20 tw:w-full tw:backdrop-blur-md tw:mbs-auto"
+      >
+        <div class="bfw-safe-area-pb bfw-safe-area-ps">
+          <div class="tw:px-3">
+            <button
+              type="button"
+              class="tw:flex tw:w-full tw:items-center tw:gap-3 tw:rounded-2xl tw:p-1 tw:text-left tw:transition-all"
+            >
+              <span
+                class="tw:flex tw:h-10 tw:w-10 tw:shrink-0 tw:items-center tw:justify-center tw:rounded-full tw:bg-primary tw:text-on-primary tw:text-sm tw:font-semibold"
+              >
+                NP
+              </span>
+
+              <span class="tw:min-w-0 tw:flex-1">
+                <span
+                  class="tw:block tw:truncate tw:text-sm tw:font-semibold tw:text-on-primary-container"
+                >
+                  Niravraj P Parmar
+                </span>
+                <span class="tw:block tw:truncate tw:text-xs tw:text-on-primary-container/70">
+                  Administrator
+                </span>
+              </span>
+            </button>
+          </div>
+        </div>
+      </footer>
+    </mat-sidenav>
+
+    <!-- ██ [2] ██ MAIN BODY ████████ -->
+    <mat-sidenav-content class="bfw-sidenav-content">
+      <!-- ██ [2H] ██ -->
+      <header
+        class="bfw-sidenav-content-header tw:fixed tw:top-0 tw:z-20 tw:transition-all tw:duration-400 tw:bg-transparent tw:backdrop-blur-sm tw:ease-[cubic-bezier(0.25,0.8,0.25,1)] tw:w-[stretch]"
+      >
+        <div class="bfw-safe-area-pt bfw-safe-area-px tw:relative">
+          <mat-toolbar class="tw:flex tw:items-center tw:min-w-0 tw:bg-transparent!">
+            <button class="bfw-mobile-menu-btn" matIconButton (click)="BfwStartSideBar.toggle()">
+              <mat-icon class="material-symbols-rounded">menu</mat-icon>
+            </button>
+            <div class="tw:ms-2 tw:me-2 tw:inline-flex tw:items-center tw:gap-3 tw:min-w-0">
+              @defer {
+                @if (
+                  (service.state.moduleInfo() && service.state.moduleInfo()?.title) ||
+                  service.state.moduleInfo()?.i18n?.title
+                ) {
+                  <a
+                    [routerLink]="$safeNavigationMigration(service.state.moduleInfo()?.url)"
+                    class="tw:inline-flex tw:items-center tw:gap-3 tw:min-w-0 tw:text-inherit tw:no-underline tw:opacity-85 tw:hover:opacity-100"
+                  >
+                    @if (service.state.moduleInfo()?.icon) {
+                      <span
+                        class="tw:flex tw:h-10 tw:w-10 tw:shrink-0 tw:items-center tw:justify-center tw:rounded-lg tw:bg-primary tw:text-on-primary"
+                      >
+                        <mat-icon class="material-symbols-rounded">{{
+                          service.state.moduleInfo()?.icon
+                        }}</mat-icon>
+                      </span>
+                    }
+                    <span class="tw:flex tw:min-w-0 tw:flex-col tw:leading-tight tw:text-primary">
+                      <h1 class="tw:ms-0 tw:me-0 tw:text-base tw:font-semibold tw:truncate">
+                        @if (service.state.moduleInfo()?.i18n?.title) {
+                          {{
+                            $safeNavigationMigration(service.state.moduleInfo()?.i18n?.title)
+                              | transloco
+                          }}
+                        } @else {
+                          {{ service.state.moduleInfo()?.title }}
+                        }
+                      </h1>
+                      @if (
+                        service.state.moduleInfo()?.hint || service.state.moduleInfo()?.i18n?.hint
+                      ) {
+                        <small class="tw:text-xs tw:opacity-80 tw:truncate">
+                          @if (service.state.moduleInfo()?.i18n?.hint) {
+                            {{
+                              $safeNavigationMigration(service.state.moduleInfo()?.i18n?.hint)
+                                | transloco
+                            }}
+                          } @else {
+                            {{ service.state.moduleInfo()?.hint }}
+                          }
+                        </small>
+                      }
+                    </span>
+                  </a>
+                }
+              } @placeholder {
+                <div class="tw:inline-flex tw:items-center tw:gap-3 tw:min-w-0 tw:animate-pulse">
+                  <span class="tw:h-10 tw:w-10 tw:shrink-0 tw:rounded-lg tw:bg-gray-200"></span>
+                  <span class="tw:flex tw:min-w-0 tw:flex-col tw:gap-2">
+                    <span class="tw:h-4 tw:w-32 tw:rounded tw:bg-gray-200"></span>
+                    <span class="tw:h-3 tw:w-48 tw:rounded tw:bg-gray-100"></span>
+                  </span>
+                </div>
+              }
+            </div>
+            <div class="tw:ms-auto tw:flex tw:shrink-0 tw:items-center tw:gap-2">
+              <ng-template
+                [cdkPortalOutlet]="
+                  service.state.slotMainHeaderToolbarExtension() ??
+                  DEF_SLOT_MAIN_HEADER_TOOLBAR_EXTENSION
+                "
+              >
+              </ng-template>
+              <button
+                mat-icon-button
+                (click)="service.toogleEndSideBarAndSwitchTab(service.PAL_NOTIFICATION_TAB_KEY)"
+                matBadge="3"
+                matBadgeColor="warn"
+                matBadgeSize="medium"
+                matBadgePosition="above after"
+                [matBadgeOverlap]="true"
+                class="tw:text-primary!"
+              >
+                <!-- replaced (click)="BfwEndSideBar.toggle()" with toogleEndSideBarAndSwitchTab() -->
+                <mat-icon class="material-symbols-rounded">side_navigation</mat-icon>
+              </button>
+            </div>
+          </mat-toolbar>
+        </div>
+      </header>
+      <!-- ██ [2B] ██ -->
+      <main class="bfw-main bfw-safe-area-px tw:pt-14 tw:flex-1">
+        <div class="tw:flex tw:flex-col tw:gap-1 tw:mx-2!">
+          <app-notify-banner></app-notify-banner>
+        </div>
+        <router-outlet></router-outlet>
+      </main>
+      <!-- ██ [2F] ██ -->
+      <footer class="bfw-sidenav-content-footer">
+        <div class="bfw-safe-area-pb bfw-safe-area-px">
+          <mat-toolbar class="tw:h-auto! tw:bg-transparent! tw:py-2! tw:px-2!">
+            <ng-template
+              [cdkPortalOutlet]="
+                service.state.slotMainFooterToolbarExtension() ??
+                DEF_SLOT_MAIN_FOOTER_TOOLBAR_EXTENSION
+              "
+            >
+            </ng-template>
+          </mat-toolbar>
+          <div class="tw:flex tw:w-full tw:justify-center tw:text-secondary tw:mb-2">
+            <xng-breadcrumb [separator]="BreadcrumbSeparator">
+              <ng-container *xngBreadcrumbItem="let breadcrumb; let info = info">
+                <span
+                  class="tw:bg-primary-container tw:shadow-sm tw:px-1 tw:rounded-sm tw:inline-flex tw:items-center tw:gap-1"
+                  [matTooltip]="info?.tooltip || ''"
+                  [matTooltipDisabled]="!info?.tooltip"
+                >
+                  @if (info?.icon) {
+                    <mat-icon class="material-symbols-rounded xng-breadcrumb-link-icon tw:p-1">{{
+                      info.icon
+                    }}</mat-icon>
+                  }
+                  @if (!info?.iconOnly) {
+                    <ng-container>{{ breadcrumb }}</ng-container>
+                  }
+                </span>
+              </ng-container>
+            </xng-breadcrumb>
+            <ng-template #BreadcrumbSeparator>
+              <mat-icon class="material-symbols-rounded">chevron_right</mat-icon>
+            </ng-template>
+          </div>
+          <div
+            class="tw:flex tw:w-full tw:justify-center tw:items-center tw:text-secondary tw:gap-2"
+          >
+            <p class="tw:m-0 tw:text-xs">&copy; 2026 Thats End.</p>
+            <span class="tw:text-xs">|</span>
+            <nav class="tw:flex tw:items-center" aria-label="Footer navigation">
+              <a
+                routerLink="/app/privacy-policy"
+                class="tw:px-1 tw:py-1 tw:hover:underline tw:text-xs"
+                >Privacy</a
+              >
+              <a
+                routerLink="/app/terms-of-use"
+                class="tw:px-1 tw:py-1 tw:hover:underline tw:text-xs"
+                >Terms</a
+              >
+              <a routerLink="/web/contact-us" class="tw:px-1 tw:py-1 tw:hover:underline tw:text-xs"
+                >Help</a
+              >
+              <a routerLink="/web/contact-us" class="tw:px-1 tw:py-1 tw:hover:underline tw:text-xs"
+                >Contact</a
+              >
+            </nav>
+          </div>
+        </div>
+      </footer>
+    </mat-sidenav-content>
+
+        <!-- ██ [3] ██ END SIDEBAR ████████ -->
+        <mat-sidenav 
+            #BfwEndSideBar 
+            fixedInViewport 
+            position="end" 
+            mode="over" 
+            role="region" 
+            class="bfw-sidenav-end tw:border-l! tw:border-gray-200! tw:dark:border-gray-200/10!"
+            [opened]="service.state.endSideBarOpen()"
+            (opened)="scrollToActiveBfwEndSideBarTab()"
+            (closedStart)="service.state.runEndSideBarOnClose()"
+            (openedChange)="service.state.setEndSideBarOpen($event)"
+        >
+            <!-- ██ [3H] ██ -->
+            <header class="bfw-sidenav-end-header tw:sticky tw:top-0 tw:z-30">
+                <div class="bfw-safe-area-pt bfw-safe-area-pe tw:relative">
+                    <mat-toolbar class="tw:flex tw:items-center tw:justify-between tw:bg-transparent!">
+                        <div class="tw:flex tw:min-w-0 tw:items-center">
+                            <span class="tw:flex tw:h-14 tw:w-14 tw:shrink-0 tw:items-center tw:justify-center tw:rounded-lg tw:text-primary">
+                                <mat-icon class="material-symbols-rounded tw:h-9! tw:w-9! tw:text-4xl! tw:leading-none!">side_navigation</mat-icon>
+                            </span>
+                            <div class="tw:min-w-0">
+                                <h2 class="tw:m-0 tw:text-xl! tw:leading-none tw:font-bold tw:truncate">
+                                    Control Centre
+                                </h2>
+                            </div>
+                        </div>
+                        <button
+                            matIconButton
+                            (click)="service.toggleEndSideBar()"
+                            class="tw:shrink-0"
+                            [attr.aria-label]="service.state.endSideBarOpen() ? 'Close' : 'Open'"
+                        >
+                            <!-- replaced (click)="BfwEndSideBar.toggle()" with toggleEndSideBar() -->
+                            <!-- replaced [attr.aria-label]="BfwEndSideBar.opened" with service.state.endSideBarOpen() -->
+                            <mat-icon class="material-symbols-rounded">close</mat-icon>
+                        </button>
+                    </mat-toolbar>
+                </div>
+            </header>
+            <!-- ██ [3B] ██ -->
+            <section>
+                <mat-tab-group
+                    #BfwEndSideBarTabGroup 
+                    class="bfw-end-sidebar-tab-group"
+                    animationDuration="250ms"
+                    [dynamicHeight]="false"
+                    [selectedIndex]="service.state.endSideBarOpenTabIndex()"
+                    (selectedIndexChange)="service.state.setEndSideBarOpenTabIndex($event)"
+                >
+                    @let tabLabels = service.state.slotEndSideBarTabLabel() ?? [];
+                    @let tabBodies = service.state.slotEndSideBarTabBody() ?? [];
+                    @for (bodyPortal of tabBodies; track $index; let i = $index) {
+                        <mat-tab>
+                            <!--
+                            # IMPORTANT
+                            in tab html need to adjust classe [bfw-safe-area-pb]
+                            for mohbile device safe area, this can be as per required content element
+                            placement of classes are based on structure of html
+                            -->
+              <ng-template mat-tab-label>
+                @if (tabLabels[i]) {
+                  <ng-template [cdkPortalOutlet]="tabLabels[i]"></ng-template>
+                } @else {
+                  <span>Tab {{ i + 1 }}</span>
+                }
+              </ng-template>
+              <ng-template matTabContent>
+                <ng-template [cdkPortalOutlet]="bodyPortal"></ng-template>
+              </ng-template>
+            </mat-tab>
+          }
+          <mat-tab>
+            <ng-template mat-tab-label>
+              <span
+                matBadge="3"
+                matBadgeColor="warn"
+                matBadgeSize="medium"
+                matBadgePosition="above after"
+                [matBadgeOverlap]="true"
+                class="tw:pe-4"
+                >Notification
+              </span>
+            </ng-template>
+            <!-- tab content -->
+            <ng-template matTabContent>
+              <div>Notification content</div>
+            </ng-template>
+          </mat-tab>
+        </mat-tab-group>
+      </section>
+      <!-- ██ [3F] ██ -->
+      <footer
+        class="bfw-sidenav-end-footer tw:sticky tw:bottom-0 tw:z-10 tw:w-full tw:backdrop-blur-md tw:mbs-auto"
+      >
+        <!--
+                # IMPORTANT
+                need to handle sasfe area class [bfw-safe-area-pb bfw-safe-area-pe] inside content
+                otherwise it will not mess in mobile view
+                this is because each tab can have its own footer and and adding this class will create double glass effect
+                so make sure you add class as below in footer custom template
+                <div class="bfw-safe-area-pb bfw-safe-area-pe">cusom content</div>
+                
+                This footer is just to have some common content required to show just in case
+                otherwise there is no use of this footer
+                -->
+        <ng-template
+          [cdkPortalOutlet]="service.state.slotEndSideBarFooter() ?? DEF_SLOT_END_SIDE_BAR_FOOTER"
+        >
+        </ng-template>
+      </footer>
+    </mat-sidenav>
+  </mat-sidenav-container>
+</div>
+<!-- ng-template DEFAULT FALLBACKS -->
+<ng-template cdkPortal #DEF_SLOT_START_SIDE_BAR_EXTENSION="cdkPortal"></ng-template>
+<ng-template cdkPortal #DEF_SLOT_MAIN_HEADER_TOOLBAR_EXTENSION="cdkPortal"></ng-template>
+<ng-template cdkPortal #DEF_SLOT_MAIN_FOOTER_TOOLBAR_EXTENSION="cdkPortal"></ng-template>
+<ng-template cdkPortal #DEF_SLOT_END_SIDE_BAR_FOOTER="cdkPortal"></ng-template>

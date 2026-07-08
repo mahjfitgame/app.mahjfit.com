@@ -1,0 +1,61 @@
+{
+  "ONBOARDING_MY_PROFILE": {
+    "MODULE": {
+      "TITLE": "Sign In",
+      "HINT": "Sign in to your account."
+    },
+    "STEP": {
+      "USERNAME": { 
+        "HEADING": "Sign In", 
+        "SUBHEADING": "Welcome back! It's good to see you again." 
+      },
+      "PASSWORD": { 
+        "HEADING": "Enter Password", 
+        "SUBHEADING": "Please verify your identity to continue." 
+      },
+      "MFA_OPTION": { 
+        "HEADING": "2FA Verification", 
+        "SUBHEADING": "Select a verification method." 
+      },
+      "VERIFY": { 
+        "HEADING": "Verify Your Access", 
+        "SUBHEADING": "Enter your security verification code." 
+      },
+      "FINISH": { 
+        "HEADING": "Welcome Aboard", 
+        "SUBHEADING": "You have signed in successfully." 
+      }
+    },
+    "FIELD_LABEL": {
+      "USERNAME": "Username, Email, or Mobile",
+      "PASSWORD": "Password",
+      "OTP": "OTP",
+      "KEEP_SIGNED_IN": "Keep me signed in",
+      "CREATE_ACCOUNT": "Create a new account",
+      "FORGOT_PASSWORD": "Forgot password?",
+      "RESEND_OTP": "Resend OTP",
+      "MFA_OPTION": "Multi Factor Authentication Option"
+    },
+    "FIELD_PLACEHOLDER": {
+      "USERNAME": "Enter your username, email, or mobile",
+      "PASSWORD": "Enter your password",
+      "OTP": "Enter your verification code"
+    },
+    "MFA": {
+      "APP": { 
+        "HEADING": "Authenticator App", 
+        "SUBHEADING": "Get a code from your registered 2FA application." 
+      },
+      "EMAIL": { 
+        "HEADING": "Email Verification", 
+        "SUBHEADING": "Receive a one-time verification code via email." 
+      }
+    },
+    "OAUTH_OPTION": {
+      "CONTINUE_WITH": "Or continue with"
+    },
+    "VALIDATION": {
+      "USER_NOT_FOUND": "Sorry, user not found."
+    }
+  }
+}

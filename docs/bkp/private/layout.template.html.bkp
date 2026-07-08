@@ -1,0 +1,434 @@
+<!--
+mat-list mat-list-item {
+                border-bottom: 1px dashed rgba(180, 180, 180, 0.5);
+            }
+-->
+
+<!-- ./src/app/area/private/layout.template.html -->
+<!--
+<div class="tw:flex tw:min-h-dvh tw:flex-col">
+  <header>
+    <div class="tw:safe-area-pt tw:safe-area-px tw:relative tw:z-10"></div>
+  </header>
+  <main class="tw:flex-1 tw:safe-area-px tw:safe-area-pb">
+    <router-outlet></router-outlet>
+  </main>
+  <footer>
+    <div class="tw:safe-area-px tw:safe-area-pb tw:relative tw:z-10">
+    </div>
+  </footer>
+</div>
+-->
+<div class="tw:flex tw:min-h-dvh tw:flex-col">
+  <mat-sidenav-container
+    class="tw:min-h-dvh sidenav-container"
+    [ngClass]="{
+      'is-mobile': isMobile,
+      'icon-sidebar-opened': iconicSidebar() && !isMobile && StartSideBar.opened,
+      'icon-sidebar-closed': iconicSidebar() && !isMobile && !StartSideBar.opened
+    }">
+    <mat-sidenav #StartSideBar fixedInViewport position="start" [mode]="(isHandset$ | async) ? 'over' : 'side'" [attr.role]="(isHandset$ | async) ? 'dialog' : 'navigation'" [opened]="false" class="sidenav">
+      <app-app-sidebar>
+      <aside role="navigation">
+        <header>
+          <div class="tw:safe-area-pt tw:safe-area-pl tw:relative tw:z-10">
+            <ng-container *ngTemplateOutlet="StartSidebarHeader"></ng-container>
+          </div>
+        </header>
+        <section class="tw:safe-area-pl tw:flex-1">
+          <ng-container *ngTemplateOutlet="StartSidebar"></ng-container>
+        </section>
+        <footer>
+          <div class="tw:safe-area-pb tw:safe-area-pl tw:relative tw:z-10">
+            <ng-container *ngTemplateOutlet="StartSidebarFooter"></ng-container>
+          </div>
+        </footer>
+      </aside>
+      </app-app-sidebar>
+    </mat-sidenav> <!-- need to make it dynamic as per device [mode]="(isHandset$ | async) ? 'over' : 'side'" -->
+    <!-- 1. Add flex and h-screen to the container -->
+    <mat-sidenav-content class="main-sidenav-content tw:flex tw:flex-col tw:h-screen">
+    
+        <!-- 2. Header stays at the top, outside the scrollable area -->
+        <header class="tw:shrink-0 tw:z-50">
+            <div class="tw:safe-area-pt tw:safe-area-px tw:relative">
+            <!-- Use tw:sticky and tw:top-0 here -->
+            <app-app-header class="tw:sticky! tw:right-auto! tw:left-auto!">
+                <ng-container *ngTemplateOutlet="MainBodyHeader"></ng-container>
+            </app-app-header>
+            </div>
+        </header>
+
+        <!-- 3. Make the main area the ONLY scrollable part -->
+        <main class="tw:flex-1 tw:overflow-y-auto tw:safe-area-px main-content">
+            <router-outlet></router-outlet>
+            <ng-container *ngTemplateOutlet="MainBody"></ng-container>
+            some ocmntent goes here for testing and its good to have a long string here for celar translationsome ocmntent goes here for testing and its good to have a long string here for celar translationsome ocmntent goes here for testing and its good to have a long string here for celar translationsome ocmntent goes here for testing and its good to have a long string here for celar translationsome ocmntent goes here for testing and its good to have a long string here for celar translationsome ocmntent goes here for testing and its good to have a long string here for celar translationsome ocmntent goes here for testing and its good to have a long string here for celar translationsome ocmntent goes here for testing and its good to have a long string here for celar translationsome ocmntent goes here for testing and its good to have a long string here for celar translation<br>some ocmntent goes here for testing and its good to have a long string here for celar translationsome ocmntent goes here for testing and its good to have a long string here for celar translationsome ocmntent goes here for testing and its good to have a long string here for celar translationsome ocmntent goes here for testing and its good to have a long string here for celar translationsome ocmntent goes here for testing and its good to have a long string here for celar translationsome ocmntent goes here for testing and its good to have a long string here for celar translationsome ocmntent goes here for testing and its good to have a long string here for celar translationsome ocmntent goes here for testing and its good to have a long string here for celar translationsome ocmntent goes here for testing and its good to have a long string here for celar translationsome ocmntent goes here for testing and its good to have a long string here for celar translationsome ocmntent goes here for testing and its good to have a long string here for celar translationsome ocmntent goes here for testing and its good to have a long string here for celar translationsome ocmntent goes here for testing and its good to have a long string here for celar translationsome ocmntent goes here for testing and its good to have a long string here for celar translationsome ocmntent goes here for testing and its good to have a long string here for celar translationsome ocmntent goes here for testing and its good to have a long string here for celar translationsome ocmntent goes here for testing and its good to have a long string here for celar translationsome ocmntent goes here for testing and its good to have a long string here for celar translation<br>some ocmntent goes here for testing and its good to have a long string here for celar translationsome ocmntent goes here for testing and its good to have a long string here for celar translationsome ocmntent goes here for testing and its good to have a long string here for celar translationsome ocmntent goes here for testing and its good to have a long string here for celar translationsome ocmntent goes here for testing and its good to have a long string here for celar translationsome ocmntent goes here for testing and its good to have a long string here for celar translationsome ocmntent goes here for testing and its good to have a long string here for celar translationsome ocmntent goes here for testing and its good to have a long string here for celar translationsome ocmntent goes here for testing and its good to have a long string here for celar translation
+        </main>
+
+        <footer class="tw:shrink-0">
+            <div class="tw:safe-area-pb tw:safe-area-px tw:relative tw:z-10">
+            <ng-container *ngTemplateOutlet="MainBodyFooter"></ng-container>
+            </div>
+        </footer>
+        
+        <!-- Floating Button -->
+        <div class="tw:fixed tw:bottom-0 tw:right-0 tw:m-4 tw:z-50">
+            <button matMiniFab (click)="openSidenav('theme')">
+            <mat-icon>palette</mat-icon>
+            </button>
+        </div>
+    </mat-sidenav-content>
+    <mat-sidenav #EndSideBar fixedInViewport position="end" mode="over" role="region" class="bg-light-gradient">
+      <aside role="region">
+        <header>
+          <div class="tw:safe-area-pt tw:safe-area-pr tw:relative tw:z-10">
+            <ng-container *ngTemplateOutlet="EndSidebarHeader"></ng-container>
+          </div>
+        </header>
+        <section class="tw:safe-area-pr tw:flex-1">
+          <app-notification-sidenav>
+            <ng-container *ngTemplateOutlet="EndSidebar"></ng-container>
+          </app-notification-sidenav>
+        </section>
+        <footer>
+          <div class="tw:safe-area-pb tw:safe-area-pr tw:relative tw:z-10">
+            <ng-container *ngTemplateOutlet="EndSidebarFooter"></ng-container>
+          </div>
+        </footer>
+      </aside>
+    </mat-sidenav> <!--  by default, fit the size of its content. The width can be explicitly set via CSS -->
+  </mat-sidenav-container>
+</div>
+
+<ng-template #StartSidebarHeader>
+  
+</ng-template>
+
+<ng-template #StartSidebar>
+        <div class="sidebar d-flex flex-column flex-grow-1">
+          <div class="sidebar-brand position-absolute top-0 start-0 mx-3">
+              <button matIconButton (click)="StartSideBar.toggle()" class="sidebar-menu-toggle" [attr.aria-label]="StartSideBar.opened ? 'Close menu' : 'Open menu'">
+                  <mat-icon class="material-icons-outlined">{{ StartSideBar.opened ? 'menu_open' : 'menu' }}</mat-icon>
+              </button>
+              <span class="logo">
+                <img src="assets/logo.png" alt="" class="logo-img" />
+                <span class="logo-text">
+                    SaaS Dashboard<br /><small>
+                      <span class="d-none d-md-inline-block">Template</span> by AdminUIUX</small>
+                </span>
+              </span>
+            </div>
+            <nav class="sidebar-nav">
+                <mat-nav-list>
+                    <mat-accordion>
+                        @for (item of navItems; track item.name) {
+                            @if (item.children) {
+                                <mat-expansion-panel>
+                                    <mat-expansion-panel-header class="nav-item-header tw:p-0! h-auto">
+                                        <mat-panel-title class="flex items-center tw:p-3">
+                                            <mat-icon matListItemIcon class="material-icons-outlined">{{ item.icon }}</mat-icon>
+                                            <span class="flex-grow nav-link-name">{{ item.name }}</span>
+                                        </mat-panel-title>
+                                    </mat-expansion-panel-header>
+                                    <mat-nav-list>
+                                        <mat-accordion [multi]="false">
+                                            @for (child of item.children; track child.name) {
+                                                @if (child.children) {
+                                                    <mat-expansion-panel>
+                                                        <mat-expansion-panel-header class="nav-item-header tw:p-0! h-auto">
+                                                            <mat-panel-title class="flex items-center tw:p-3">
+                                                                <mat-icon matListItemIcon class="material-icons-outlined">{{ child.icon }}</mat-icon>
+                                                                <span class="flex-grow nav-link-name">{{ child.name }}</span>
+                                                            </mat-panel-title>
+                                                        </mat-expansion-panel-header>
+                                                        <mat-nav-list>
+                                                            @for (grandchild of child.children; track grandchild.name) {
+                                                                <a mat-list-item [routerLink]="grandchild.route" routerLinkActive="active" (click)="closeSidenavIfHandset()" class="nav-item tw:pl-6 tw:py-2">
+                                                                    <mat-icon matListItemIcon class="material-icons-outlined">{{ grandchild.icon }}</mat-icon>
+                                                                    <span matListItemTitle>{{ grandchild.name }}</span>
+                                                                </a>
+                                                            }
+                                                        </mat-nav-list>
+                                                    </mat-expansion-panel>
+                                                } @else {
+                                                    <a mat-list-item [routerLink]="child.route" routerLinkActive="active" (click)="closeSidenavIfHandset()" class="nav-item tw:pl-6 tw:py-2">
+                                                        <mat-icon matListItemIcon class="material-icons-outlined">{{ child.icon }}</mat-icon>
+                                                        <span matListItemTitle>{{ child.name }}</span>
+                                                    </a>
+                                                }
+                                            }
+                                        </mat-accordion>
+                                    </mat-nav-list>
+                                </mat-expansion-panel>
+                            } @else {
+                                <a mat-list-item [routerLink]="item.route" routerLinkActive="active" (click)="closeSidenavIfHandset()" class="nav-item tw:px-3! tw:py-3! rounded-lg">
+                                    <mat-icon matListItemIcon class="material-icons-outlined">{{ item.icon }}</mat-icon>
+                                    <span matListItemTitle>{{ item.name }}</span>
+                                </a>
+                            }
+                        }
+                    </mat-accordion>
+                </mat-nav-list>
+            </nav>
+
+            <div class="mt-auto w-100 ">
+                @if (approvenotice) {
+                    <mat-card class="bg-light-theme text-theme theme-green hide-iconic">
+                        <mat-card-content><mat-icon class="material-icons-outlined align-middle me-2">check</mat-icon> Leave Approved </mat-card-content>
+                    </mat-card>
+                }
+                @if (notice) {
+                    <mat-card class="bg-light-gradient mt-4 hide-iconic">
+                        <mat-card-content>
+                            <div class="text-center mb-3">
+                                <div class="mb-2" style="margin-top:-45px">
+                                    <img src="assets/user-4.jpg" alt="" class="avatar avatar-60 rounded-circle" />
+                                </div>
+                                <p class="fw-bold mb-2">Liana Doe</p>
+                                <p class="opacity-75 small mb-1 text-truncated">Going for holiday with family and friends</p>
+                                <p class="opacity-75 small">Leave Request: 15 Aug 2025</p>
+                            </div>
+                            <div class="row gx-2">
+                                <div class="col"><button matButton="filled" (click)="approvedNotice()">Approve</button></div>
+                                <div class="col-auto"><button matButton class="theme-red" (click)="hideNotice()">Cancel</button></div>
+                            </div>
+                        </mat-card-content>
+                    </mat-card>
+                }
+                <nav class="sidebar-nav">
+                    <mat-nav-list>
+                        <a mat-list-item routerLink="/app/settings" routerLinkActive="active" (click)="closeSidenavIfHandset()" class="nav-item tw:px-3 tw:py-3 rounded-lg">
+                            <mat-icon matListItemIcon class="material-icons-outlined">settings</mat-icon>
+                            <span matListItemTitle>Settings</span>
+                        </a>
+                    </mat-nav-list>
+                </nav>
+            </div>
+        </div>
+
+
+
+</ng-template>
+<ng-template #StartSidebarFooter>
+  
+</ng-template>
+
+
+<ng-template #MainBodyHeader>
+    <mat-toolbar class="app-header" color="primary">
+            <button matIconButton (click)="StartSideBar.toggle()" class="menu-button">
+                <mat-icon class="material-icons-outlined">menu</mat-icon>
+            </button>
+            <span class="logo mx-2">
+                <img src="assets/logo.png" class="logo-img" alt="" />
+                <span class="logo-text">
+                    SaaS Dashboard<br />
+                    <small><span class="d-none d-md-inline-block">Template</span> by AdminUIUX</small>
+                </span>
+            </span>
+            <span class="header-title"></span>
+            <div class="mx-3 d-none d-lg-block">
+                <mat-form-field appearance="outline" class="w-100 inline-small border-light">
+                    <mat-icon matPrefix>search</mat-icon>
+                    <input matInput placeholder="Search" />
+                </mat-form-field>
+            </div>
+
+            @if(isSearchActive){
+            <mat-toolbar class="position-absolute top-0 start-0 w-100 z-index-1">
+                <!-- search -->
+                <button matIconButton (click)="toggleSearch()"><mat-icon class="material-icons-outlined">arrow_backward</mat-icon></button>
+
+                <mat-form-field appearance="outline" class="w-100 inline-small border-light ms-2">
+                    <mat-icon matPrefix>search</mat-icon>
+                    <input matInput placeholder="Search" />
+                    <button matIconButton matSuffix><mat-icon class="material-icons-outlined">check</mat-icon></button>
+                </mat-form-field>
+            </mat-toolbar>
+            }
+            <span class="spacer"></span>
+
+            <div class="header-actions">
+                <!-- search -->
+                <button matIconButton (click)="toggleSearch()" class="d-inline-block d-lg-none"><mat-icon class="material-icons-outlined">search</mat-icon></button>
+
+                <!-- light dark -->
+                <button matIconButton (click)="toggleMode()"><mat-icon class="dark">dark_mode</mat-icon><mat-icon class="light">sunny</mat-icon></button>
+
+                <!-- settings -->
+                <button matIconButton (click)="EndSideBar.toggle()" [matBadge]="3" matBadgeColor="warn" matBadgeSize="small"><mat-icon class="material-icons-outlined">notifications</mat-icon></button>
+
+                <!-- language -->
+                <button mat-icon-button [matMenuTriggerFor]="language" class="d-none d-lg-inline-block">
+                    <div class="coverimg height-20 width-20 mx-auto rounded-circle align-middle" [ngStyle]="{ 'background-image': 'url(' + selectedLanguage().flag + ')' }"></div>
+                </button>
+                <mat-menu #language="matMenu" class="user-menu bg-light-gradient">
+                    @for (lang of languages(); track lang.code) {
+                    <button mat-menu-item (click)="onLanguageSelect(lang)">
+                        <span class="coverimg avatar avatar-20 rounded-circle me-2" [ngStyle]="{ 'background-image': 'url(' + lang.flag + ')' }"></span>
+                        <span>{{ lang.name }}</span>
+                    </button>
+                    }
+                </mat-menu>
+
+                <!-- profile -->
+                <button matIconButton [matMenuTriggerFor]="menu">
+                    <mat-icon class="material-icons-outlined">account_circle</mat-icon>
+                </button>
+                <mat-menu #menu="matMenu" class="user-menu width-280 pt-0 bg-light-gradient">
+                    <div class="p-3 text-center mb-1" routerLink="./profile" style="margin-top:-8px">
+                        <div class="avatar avatar-120 rounded-circle coverimg align-middle mb-3" style="background-image: url('assets/user-bg.png')">
+                            <figure class="avatar avatar-80 rounded-circle coverimg align-middle" style="background-image: url('assets/user-6.jpg')"></figure>
+                        </div>
+                        <h3 class="mb-0">AdminUIUX</h3>
+                        <p class="opacity-75 mt-0">Lead UX Designer</p>
+                    </div>
+                    <button mat-menu-item routerLink="./dashboard">
+                        <mat-icon class="material-icons-outlined">house</mat-icon>
+                        <span>Dashboard</span>
+                    </button>
+                    <button mat-menu-item routerLink="./profile">
+                        <mat-icon class="material-icons-outlined">person</mat-icon>
+                        <span>Profile</span>
+                    </button>
+                    <button mat-menu-item routerLink="./subscription">
+                        <mat-icon class="material-icons-outlined">workspace_premium</mat-icon>
+                        <span>Subscription</span>
+                    </button>
+                    <button mat-menu-item routerLink="./settings">
+                        <mat-icon class="material-icons-outlined">settings</mat-icon>
+                        <span>Settings</span>
+                    </button>
+                    <div class="px-3 my-2 text-center">
+                        <button matButton (click)="logout()" class="theme-red">
+                            <mat-icon class="material-icons-outlined">logout</mat-icon>
+                            <span>Logout</span>
+                        </button>
+                    </div>
+                </mat-menu>
+            </div>
+        </mat-toolbar>
+</ng-template>
+<ng-template #MainBody>
+  <a matIconButton href="/"><mat-icon>home</mat-icon></a><br>
+  <a matIconButton href="/account/my-profile">My Profile</a><br>
+  <a matIconButton href="/dashboard">Dashboard</a>
+</ng-template>
+<ng-template #MainBodyFooter>
+  MainBody Footer
+  from ng-template
+</ng-template>
+
+
+
+<ng-template #EndSidebarHeader>
+  
+</ng-template>
+<ng-template #EndSidebar>
+          <mat-toolbar class="bg-none">
+              <h2 class="fw-bold">{{ currentView() === "theme" ? "Theme Selection" : "Notifications" }}</h2>
+              <span class="spacer"></span>
+              <button matIconButton aria-label="theme close" (click)="EndSideBar.close()">
+                  <mat-icon>close</mat-icon>
+              </button>
+          </mat-toolbar>
+          <div class="sidebar height-dynamic" style="--h-dynamic: calc(100% - 64px)">
+              <mat-tab-group>
+                  <mat-tab label="All">
+                      <mat-list>
+                          @for (notification of allNotifications(); track notification.id) {
+                          <mat-list-item>
+                              <div class="row gx-3">
+                                  <div class="col-auto">
+                                      <div class="avatar avatar-40 bg-light-theme text-theme rounded" [ngClass]="{ 'theme-red': notification.type === 'system', 'theme-yellow': notification.type === 'comment', 'theme-blue': notification.type === 'sale', 'theme-green': notification.type === 'taskStatus' }">
+                                          <mat-icon matListItemIcon>{{ notification.icon }}</mat-icon>
+                                      </div>
+                                  </div>
+                                  <div class="col maxwidth-dynamic" style="--mw-dynamic:calc(100% - 40px - 1rem)">
+                                      <h4 matListItemTitle class="fw-bold mb-0">{{ notification.title }}</h4>
+                                      <p matListItemLine class="mb-0">{{ notification.text }}</p>
+                                      <div matListItemLine class="small opacity-75 mb-3">{{ notification.timestamp | date : "shortTime" }}</div>
+                                      @if (notification.type === 'sale') {
+                                      <div matListItemActions class="mb-3">
+                                          <button matButton="filled" class="button-sm">Approve</button>
+                                          <button matButton class="theme-red mx-1 button-sm">Reject</button>
+                                      </div>
+                                      } @else if (notification.type === 'comment') {
+                                      <div matListItemActions class="mb-3">
+                                          <button matButton="filled" class="button-sm">Reply</button>
+                                      </div>
+                                      } @else if (notification.type === 'request') {
+                                      <div matListItemActions class="mb-3">
+                                          <button matButton="filled" class="button-sm">Approve</button>
+                                          <button mat-button class="theme-red button-sm">Reject</button>
+                                      </div>
+                                      }
+                                  </div>
+                              </div>
+                          </mat-list-item>
+                          }
+                      </mat-list>
+                  </mat-tab>
+                  <mat-tab [label]="'Unread (' + unreadNotifications().length + ')'">
+                      <mat-list>
+                          @for (notification of unreadNotifications(); track notification.id) {
+                          <mat-list-item>
+                              <div class="row gx-3 flex-nowrap">
+                                  <div class="col-auto">
+                                      <div class="avatar avatar-40 bg-light-theme text-theme rounded" [ngClass]="{ 'theme-red': notification.type === 'system', 'theme-yellow': notification.type === 'comment', 'theme-blue': notification.type === 'sale', 'theme-green': notification.type === 'taskStatus' }">
+                                          <mat-icon matListItemIcon>{{ notification.icon }}</mat-icon>
+                                      </div>
+                                  </div>
+                                  <div class="col">
+                                      <h4 matListItemTitle class="fw-bold mb-0">{{ notification.title }}</h4>
+                                      <div matListItemLine>{{ notification.text }}</div>
+                                      <div matListItemLine class="small opacity-75 mb-3">{{ notification.timestamp | date : "shortTime" }}</div>
+                                      @if (notification.type === 'sale') {
+                                      <div matListItemActions class="mb-3">
+                                          <button matButton="filled" class="button-sm">Approve</button>
+                                          <button mat-button class="theme-red button-sm">Reject</button>
+                                      </div>
+                                      } @else if (notification.type === 'comment') {
+                                      <div matListItemActions class="mb-3">
+                                          <button matButton="filled" class="button-sm">Reply</button>
+                                      </div>
+                                      } @else if (notification.type === 'request') {
+                                      <div matListItemActions class="mb-3">
+                                          <button matButton="filled" class="button-sm">Approve</button>
+                                          <button mat-button class="theme-red button-sm">Reject</button>
+                                      </div>
+                                      }
+                                  </div>
+                              </div>
+                          </mat-list-item>
+                          }
+                      </mat-list>
+                  </mat-tab>
+                  <mat-tab label="Systems">
+                      <mat-list>
+                          @for (notification of systemNotifications(); track notification.id) {
+                          <mat-list-item>
+                              <div class="row gx-3">
+                                  <div class="col-auto">
+                                      <div class="avatar avatar-40 bg-light-theme text-theme rounded" [ngClass]="{ 'theme-red': notification.type === 'system', 'theme-yellow': notification.type === 'comment', 'theme-blue': notification.type === 'sale' }">
+                                          <mat-icon matListItemIcon>{{ notification.icon }}</mat-icon>
+                                      </div>
+                                  </div>
+                                  <div class="col">
+                                      <h4 matListItemTitle class="fw-bold mb-0">{{ notification.title }}</h4>
+                                      <div matListItemLine>{{ notification.text }}</div>
+                                      <div matListItemLine class="small opacity-75 mb-3">{{ notification.timestamp | date : "shortTime" }}</div>
+                                  </div>
+                              </div>
+                          </mat-list-item>
+                          }
+                      </mat-list>
+                  </mat-tab>
+              </mat-tab-group>
+          </div>
+</ng-template>
+<ng-template #EndSidebarFooter>
+  End SideBar Footer
+  from ng-template
+</ng-template>

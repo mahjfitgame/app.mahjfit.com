@@ -1,0 +1,115 @@
+<!-- ./src/app/module/shared/onboarding/signin/template.html -->
+<!-- inject into auth area layout -->
+<!--
+<ng-template cdkPortal [authAreaLayout]="AuthAreaLayoutEnum.SLOT_START_SIDE">
+    <img
+    src="assets/space.webp"
+    alt="side-banner"
+    class="tw:h-full tw:w-full tw:object-cover"
+    />
+</ng-template>
+
+<ng-template cdkPortal [authAreaLayout]="AuthAreaLayoutEnum.SLOT_END_SIDE_HEADER">
+
+</ng-template>
+<ng-template cdkPortal [authAreaLayout]="AuthAreaLayoutEnum.SLOT_END_SIDE_FOOTER">
+
+</ng-template>
+-->
+<div class="tw:flex tw:min-h-[75dvh] tw:md:min-h-[80dvh] tw:items-center tw:justify-center">
+    <div class="tw:w-full tw:max-w-110">
+        <mat-card class="bfw-bg-gradient-b tw:mb-6">
+            <mat-card-content class="tw:p-10 tw:sm:p-5!">
+                <div class="tw:mb-10 tw:text-center">
+                    <h1 class="tw:mb-1 tw:text-4xl tw:font-semibold tw:tracking-tight">
+                        Welcome Back
+                    </h1>
+                    <h2 class="tw:font-normal! tw:text-2xl tw:text-zinc-400">
+                        Sign in to your account
+                    </h2>
+                </div>
+
+                <form [formGroup]="loginForm" (ngSubmit)="onSubmit()" class="tw:space-y-4">
+                    <mat-form-field appearance="outline" class="tw:w-full">
+                        <mat-label>Email</mat-label>
+                        <input
+                        matInput
+                        formControlName="email"
+                        type="email"
+                        placeholder="Enter your email"
+                        />
+                        <mat-icon matSuffix>email</mat-icon>
+                    </mat-form-field>
+
+                    <mat-form-field appearance="outline" class="tw:w-full">
+                        <mat-label>Password</mat-label>
+                        <input
+                        matInput
+                        formControlName="password"
+                        [type]="hidePassword ? 'password' : 'text'"
+                        placeholder="Enter your password"
+                        />
+                        <button
+                        matIconButton
+                        matSuffix
+                        type="button"
+                        (click)="hidePassword = !hidePassword"
+                        >
+                        <mat-icon class="material-icons-outlined">
+                            {{ hidePassword ? "visibility_off" : "visibility" }}
+                        </mat-icon>
+                        </button>
+                    </mat-form-field>
+
+                    <div class="tw:flex tw:items-center tw:justify-center">
+                        <mat-checkbox class="tw:shrink-0">Remember me</mat-checkbox>
+                    </div>
+
+                    <div class="tw:flex tw:items-center tw:justify-center">
+                        <button
+                            matButton="filled"
+                            color="primary"
+                            type="submit"
+                            class="tw:w-full"
+                            [disabled]="loginForm.invalid"
+                        >
+                            Sign In
+                        </button>
+                    </div>
+                    <div class="tw:grid tw:grid-cols-2 tw:gap-2">
+                        <a
+                            mat-button
+                            routerLink="/auth/forgot-password"
+                            class=""
+                        >
+                            Forgot Password?
+                        </a>
+
+                        <a
+                            matButton
+                            routerLink="/auth/signup"
+                            class="tw:flex tw:w-full tw:items-center tw:justify-center"
+                        >
+                            Signup
+                        </a>
+                    </div>
+                </form>
+            </mat-card-content>
+        </mat-card>
+
+        <div class="tw:flex tw:mb-3 tw:items-center tw:gap-3">
+            <hr class="tw:flex-1 tw:border-black/10 tw:dark:border-white/10">
+            <p class="tw:shrink-0 tw:text-sm tw:text-secondary">OR continue with</p>
+            <hr class="tw:flex-1 tw:border-black/10 tw:dark:border-white/10" />
+        </div>
+
+        <div class="tw:flex tw:justify-center tw:items-center tw:gap-4">
+            <button matIconButton type="button">
+                <img src="assets/g-logo.png" alt="Google" />
+            </button>
+            <button matIconButton type="button">
+                <img src="assets/f-logo.png" alt="Facebook" />
+            </button>
+        </div>
+    </div>
+</div>

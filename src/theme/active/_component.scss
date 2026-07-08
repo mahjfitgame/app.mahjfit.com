@@ -1,0 +1,189 @@
+// file: ./src/theme/active/_component.scss
+@use './variable' as *;
+@use './color' as *;
+@use './safe-area' as *;
+
+@use 'ngx-toastr/toastr';
+@use '@danielmoncada/angular-datetime-picker/assets/style/picker.min.css';
+
+
+// ███ mat-progress-bar [src/app/base/progress-bar]███████████████████████████████████████
+mat-progress-bar {
+    /* 1. Set the overall height */
+    height: 2px !important;
+    border-radius: 2px !important;
+    overflow: hidden;
+
+    /* 2. Target Material MDC internal variables */
+    --mat-progress-bar-track-height: 2px;
+    --mat-progress-bar-active-indicator-height: 2px;
+    --mat-progress-bar-track-shape: 2px;
+    --mdc-linear-progress-track-height: 2px;
+    --mdc-linear-progress-active-indicator-height: 2px;
+    
+    /* 3. Round the internal track shape */
+    --mdc-linear-progress-track-shape: 2px;
+
+    /* 4. Fix for the internal 'bar' and 'track' positioning */
+    .mdc-linear-progress__bar-inner,
+    .mdc-linear-progress__track {
+        border-radius: 2px !important;
+    }
+}
+
+// ███ mat-mdc-paginator [src/app/base/pagination/style.scss]██████████████████████████████
+
+/* compact field styling */
+.bfw-jump-field 
+{
+    .mat-mdc-form-field-subscript-wrapper {
+        display: none !important;
+    }
+
+    .mat-mdc-text-field-wrapper {
+        height: 40px !important;
+    }
+
+    .mat-mdc-form-field-flex {
+        height: 40px !important;
+        align-items: center !important;
+    }
+
+    .mat-mdc-form-field-infix {
+        min-height: 40px !important;
+        padding-top: 8px !important;
+        padding-bottom: 8px !important;
+    }
+}
+.mat-mdc-paginator-container {
+  padding: 0 !important;
+}
+html[dir='rtl'] .mat-mdc-paginator-range-label {
+  direction: ltr !important;
+  unicode-bidi: isolate !important;
+  display: inline-block !important;
+}
+@include bfw-sm-and-down {
+    .mat-mdc-paginator-container {
+        justify-content: center !important;
+        flex-wrap: wrap !important;
+        row-gap: 8px !important;
+    }
+    .mat-mdc-paginator-page-size {
+        justify-content: center !important;
+    }
+}
+
+// ███ mat-mdc-snack-bar [src/app/base/snack-bar/style.scss]███████████████████████████████████████
+.mat-mdc-snack-bar-container {
+    .mat-mdc-snackbar-surface {
+        background-color: transparent !important;
+        padding: 0px !important;
+        box-shadow: none !important;
+    }
+}
+// ███ .mat-bottom-sheet [no override component, using material default]███████████████████████████
+.cdk-overlay-container {
+  .mat-bottom-sheet-container,
+  .mat-mdc-bottom-sheet-container,
+  .mat-bottom-sheet-container-xlarge,
+  .mat-bottom-sheet-container-large,
+  .mat-bottom-sheet-container-medium {
+    padding: 0 !important;
+    overflow: hidden !important;
+  }
+}
+
+// ███ ngx-toastr [src/app/base/notify] ██████████████████████████████████
+.toast-container {
+    // must have to handle safe area
+    padding-top: var(--bfw-safe-area-top) !important;
+    padding-inline-start: var(--bfw-safe-area-inline-start) !important;
+    padding-inline-end: var(--bfw-safe-area-inline-end) !important;
+}
+.toast-container .ngx-toastr {
+    padding: 0 !important;
+    background-image: none !important;
+    background-color: transparent !important;
+    box-shadow: none !important;
+    overflow: visible !important;
+}
+
+.toast-container .ngx-toastr.toast-success,
+.toast-container .ngx-toastr.toast-error,
+.toast-container .ngx-toastr.toast-info,
+.toast-container .ngx-toastr.toast-warning {
+    background-image: none !important;
+    background-color: transparent !important;
+}
+.toast-container .ngx-toastr app-notify {
+    display: block;
+}
+
+/* -------------------------------------------------------
+* RTL position flip
+* LTR default = toast-top-right
+* RTL becomes visually top-left
+* ----------------------------------------------------- */
+
+html[dir='rtl'] .toast-top-right,
+[dir='rtl'] .toast-top-right {
+    right: auto !important;
+    left: 12px !important;
+}
+
+html[dir='rtl'] .toast-bottom-right,
+[dir='rtl'] .toast-bottom-right {
+    right: auto !important;
+    left: 12px !important;
+}
+
+// ███ own-datetime-picker [@danielmoncada/angular-datetime-picker]███████████████████████████████████████
+.owl-dt-container, .owl-dt-popup-container {
+    border-radius: var(--mat-sys-corner-large) !important;
+    overflow: hidden !important;
+    .owl-dt-calendar-control button {
+        border: 0;
+        outline: 0;
+        cursor: pointer;
+        border-radius: var(--mat-button-toggle-shape, 999px);
+        background-color: transparent;
+        color: var(--mat-sys-on-surface);
+        transition:
+            background-color 150ms ease,
+            color 150ms ease,
+            box-shadow 150ms ease;
+
+        &:hover {
+            background-color: color-mix(
+            in srgb,
+            var(--mat-sys-on-surface) 8%,
+            transparent
+            );
+        }
+
+        &:focus-visible {
+            outline: 2px solid var(--mat-sys-primary);
+            outline-offset: 2px;
+        }
+        
+        &:active {
+            background-color: color-mix(
+            in srgb,
+            var(--mat-sys-on-surface) 12%,
+            transparent
+            );
+        }
+
+        &:disabled {
+            cursor: default;
+            opacity: 0.38;
+            background-color: transparent;
+        }
+        span {
+            &:hover{
+                background-color: transparent;
+            }
+        }
+    }
+}

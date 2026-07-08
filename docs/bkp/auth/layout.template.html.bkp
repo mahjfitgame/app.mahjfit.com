@@ -1,0 +1,78 @@
+<!-- ./src/app/area/auth/layout.template.html -->
+<div class="tw:flex tw:min-h-dvh tw:flex-col tw:lg:flex-row">
+  <!-- Left banner -->
+  <aside class="tw:relative tw:hidden tw:lg:block tw:lg:w-1/2">
+    <div class="tw:absolute tw:inset-0 tw:overflow-hidden">
+      <img
+        src="assets/beach.webp"
+        alt="side-banner"
+        class="tw:h-full tw:w-full tw:object-cover"
+      />
+    </div>
+  </aside>
+
+  <!-- Right content -->
+  <div class="tw:flex tw:min-h-dvh tw:w-full tw:flex-col tw:lg:w-1/2">
+    <header>
+      <div class="tw:safe-area-pt tw:safe-area-px tw:relative tw:z-10">
+        <mat-toolbar class="tw:flex tw:min-h-16 tw:items-center tw:justify-between tw:bg-transparent! tw:px-4!">
+          <a
+            routerLink="/"
+            class="tw:flex tw:items-center tw:gap-3 tw:no-underline tw:text-inherit"
+          >
+            <span class="fixed-header-logo tw:flex tw:h-10 tw:w-10 tw:items-center tw:justify-center tw:overflow-hidden tw:rounded-full">
+              <img
+                src="assets/logo.png"
+                alt="BFW Frontend logo"
+                class="tw:h-full tw:w-full tw:object-contain"
+              />
+            </span>
+
+            <span class="tw:leading-tight">
+              <span class="tw:block tw:text-sm tw:md:text-base">
+                BFW Frontend
+              </span>
+              <small class="tw:block tw:text-xs tw:opacity-80">
+                <span class="tw:hidden tw:md:inline">ERP</span> by Thats End
+              </small>
+            </span>
+          </a>
+
+          <button
+            routerLink="/web/contact-us"
+            mat-button
+            aria-label="Help"
+            class="tw:min-w-0! tw:inline-flex! tw:items-center! tw:justify-center! tw:px-2! tw:sm:px-4!"
+          >
+            <mat-icon class="material-icons-outlined tw:m-0!">help_outline</mat-icon>
+            <span class="tw:ml-1 tw:hidden tw:md:inline">Help</span>
+          </button>
+        </mat-toolbar>
+      </div>
+    </header>
+
+    <main class="tw:flex-1 tw:safe-area-px tw:safe-area-pb">
+      <div class="tw:px-4">
+        <router-outlet></router-outlet>
+      </div>
+    </main>
+
+    <footer>
+      <div class="tw:safe-area-px tw:safe-area-pb tw:relative tw:z-10">
+        <mat-toolbar class="tw:h-auto! tw:bg-transparent! tw:py-2! tw:px-4!">
+          <div class="tw:grid tw:w-full tw:grid-cols-1 tw:gap-2 tw:md:grid-cols-[1fr_auto] tw:md:items-center">
+            <p class="tw:text-center tw:text-sm tw:text-gray-500 tw:md:text-left">
+              &copy; 2025 BFW ERP. All rights reserved.
+            </p>
+
+            <div class="tw:flex tw:flex-wrap tw:items-center tw:justify-center tw:gap-x-1 tw:gap-y-2 tw:md:justify-end">
+              <a matButton routerLink="/app/privacy-policy">Privacy Policy</a>
+              <a matButton routerLink="/app/terms-of-use">Terms of Service</a>
+              <a matButton routerLink="/web/contact-us">Contact</a>
+            </div>
+          </div>
+        </mat-toolbar>
+      </div>
+    </footer>
+  </div>
+</div>

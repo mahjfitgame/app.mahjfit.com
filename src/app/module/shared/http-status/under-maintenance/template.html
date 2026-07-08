@@ -1,0 +1,46 @@
+<!-- ./src/app/module/shared/http-status/under-maintenance/template.html -->
+<div class="tw:fixed tw:inset-0 tw:size-full tw:overflow-hidden tw:z-0">
+    <img src="assets/space.webp" alt="you-are-on-mars" class="tw:size-full tw:object-cover" />
+</div>
+
+<div class="app-safe-content tw:relative tw:z-10 tw:flex tw:min-h-screen tw:flex-col tw:px-4 tw:lg:px-10">
+    <div class="tw:mb-4 tw:h-12 tw:w-full"></div>
+
+    <div class="tw:mx-auto tw:w-full tw:max-w-7xl tw:text-white">
+        <div class="tw:relative tw:z-10 tw:text-center">
+            <h1 class="tw:mb-4 tw:text-[60px] tw:font-bold tw:leading-tight tw:text-white">
+                We’ll be back soon
+            </h1>
+            <h2 class="tw:mb-3 tw:text-2xl tw:lg:mb-4 tw:lg:text-3xl">
+                This page is temporarily under maintenance while we make a few updates.<br />Please try again shortly.
+            </h2>
+        </div>
+    </div>
+
+    <div class="tw:mt-auto">
+        <div class="action-buttons tw:mb-3 tw:text-center tw:lg:mb-4">
+            <a matButton="elevated" color="primary" class="tw:mx-1" routerLink="/">
+                <mat-icon class="material-symbols-rounded">home</mat-icon>
+                Go Home
+            </a>
+            <a matButton="filled" class="tw:mx-1" routerLink="/auth/signin">
+                <mat-icon class="material-symbols-rounded">chevron_left</mat-icon>
+                Login
+            </a>
+        </div>
+    </div>
+    <div class="tw:flex tw:justify-center">
+        <div class="tw:flex tw:items-center">
+            <label class="tw:text-xs">Theme: </label>
+            <select
+                class="tw:h-6 tw:w-20 tw:px-2 tw:text-xs tw:border-0 tw:bg-transparent tw:outline-none tw:ring-0 focus:tw:outline-none focus:tw:ring-0 focus:tw:border-0"
+                [ngModel]="theme.state.themePreference()"
+                (ngModelChange)="onThemePreferenceChange($event)"
+            >
+                @for (option of themePreferenceOptions; track option.value) {
+                <option [value]="option.value">{{ option.label }}</option>
+                }
+            </select>
+        </div>
+    </div>
+</div>

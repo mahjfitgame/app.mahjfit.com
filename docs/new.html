@@ -1,0 +1,1369 @@
+<body class="field-rounded scrollup bg-theme-1 field-rounded light-mode theme-sky scrollup" data-theme="default"
+    data-theme-mode="light" data-theme-preference="light" cz-shortcut-listen="true">
+    <app-root ng-version="21.2.4"><!--container--><app-global-progress-bar
+             ><app-progress-bar><!--container--></app-progress-bar></app-global-progress-bar><router-outlet
+            ></router-outlet><app-private-area-layout>
+                <app-app-layout >
+                <div class="app-layout tw:flex tw:min-h-dvh tw:flex-col">
+                    <mat-sidenav-container 
+                        class="mat-drawer-container mat-sidenav-container tw:min-h-dvh sidenav-container mat-drawer-transition icon-sidebar-closed">
+                        <div class="mat-drawer-backdrop"></div><!--container-->
+                        <div class="cdk-visually-hidden cdk-focus-trap-anchor" aria-hidden="true"></div><mat-sidenav
+                             fixedinviewport position="start"
+                            class="mat-drawer mat-sidenav sidenav mat-drawer-side mat-sidenav-fixed" role="navigation"
+                            style="top: 0px; bottom: 0px;">
+                            <div cdkscrollable class="mat-drawer-inner-container"><app-app-sidebar
+                                    >
+                                    <aside  role="navigation">
+                                        <header >
+                                            <div 
+                                                class="tw:safe-area-pt tw:safe-area-pl tw:relative tw:z-10">
+                                                <!--container--></div>
+                                        </header>
+                                        <section  class="tw:safe-area-pl tw:flex-1">
+                                            <div 
+                                                class="sidebar d-flex flex-column flex-grow-1"><span
+                                                    
+                                                    class="logo position-absolute top-0 start-0 mx-3"><button
+                                                         maticonbutton
+                                                        class="mdc-icon-button mat-mdc-icon-button mat-mdc-button-base mat-unthemed"
+                                                        mat-ripple-loader-class-name="mat-mdc-button-ripple"
+                                                        mat-ripple-loader-centered><span
+                                                            class="mat-mdc-button-persistent-ripple mdc-icon-button__ripple"></span><img
+                                                             src="assets/logo.png" alt
+                                                            class="logo-img"><span
+                                                            class="mat-focus-indicator"></span><span
+                                                            class="mat-mdc-button-touch-target"></span><span
+                                                            class="mat-ripple mat-mdc-button-ripple"></span></button><span
+                                                         class="logo-text"> SaaS
+                                                        Dashboard<br ><small
+                                                            ><span
+                                                                
+                                                                class="d-none d-md-inline-block">Template</span> by
+                                                            AdminUIUX</small></span></span>
+                                                <nav  class="sidebar-nav"><mat-nav-list
+                                                         role="navigation"
+                                                        class="mat-mdc-nav-list mat-mdc-list-base mdc-list"
+                                                        aria-disabled="false"><mat-accordion
+                                                            
+                                                            class="mat-accordion"><!--container--><a
+                                                                 mat-list-item
+                                                                routerlinkactive="active"
+                                                                class="mat-mdc-list-item mdc-list-item nav-item px-3 py-3 rounded-lg mat-mdc-list-item-interactive mdc-list-item--with-leading-icon mat-mdc-list-item-single-line mdc-list-item--with-one-line"
+                                                                aria-disabled="false" href="/app/dashboard"><mat-icon
+                                                                     role="img"
+                                                                    matlistitemicon
+                                                                    class="mat-icon notranslate mat-mdc-list-item-icon material-icons-outlined material-icons mat-ligature-font mat-icon-no-color mdc-list-item__start"
+                                                                    aria-hidden="true"
+                                                                    data-mat-icon-type="font">house</mat-icon><span
+                                                                    class="mdc-list-item__content"><span
+                                                                         matlistitemtitle
+                                                                        class="mat-mdc-list-item-title mdc-list-item__primary-text">Dashboard</span><span
+                                                                        class="mat-mdc-list-item-unscoped-content"></span></span>
+                                                                <div class="mat-focus-indicator"></div>
+                                                            </a><!--container--><!--container--><a
+                                                                 mat-list-item
+                                                                routerlinkactive="active"
+                                                                class="mat-mdc-list-item mdc-list-item nav-item px-3 py-3 rounded-lg mat-mdc-list-item-interactive mdc-list-item--with-leading-icon mat-mdc-list-item-single-line mdc-list-item--with-one-line"
+                                                                aria-disabled="false" href="/app/employee"><mat-icon
+                                                                     role="img"
+                                                                    matlistitemicon
+                                                                    class="mat-icon notranslate mat-mdc-list-item-icon material-icons-outlined material-icons mat-ligature-font mat-icon-no-color mdc-list-item__start"
+                                                                    aria-hidden="true"
+                                                                    data-mat-icon-type="font">person</mat-icon><span
+                                                                    class="mdc-list-item__content"><span
+                                                                         matlistitemtitle
+                                                                        class="mat-mdc-list-item-title mdc-list-item__primary-text">Employees</span><span
+                                                                        class="mat-mdc-list-item-unscoped-content"></span></span>
+                                                                <div class="mat-focus-indicator"></div>
+                                                            </a><!--container--><mat-expansion-panel
+                                                                
+                                                                class="mat-expansion-panel mat-expansion-panel-animations-enabled"><mat-expansion-panel-header
+                                                                     role="button"
+                                                                    class="mat-expansion-panel-header mat-focus-indicator nav-item-header p-0 h-auto mat-expansion-toggle-indicator-after"
+                                                                    id="mat-expansion-panel-header-0" tabindex="0"
+                                                                    aria-controls="cdk-accordion-child-0"
+                                                                    aria-expanded="false" aria-disabled="false"><span
+                                                                        class="mat-content"><mat-panel-title
+                                                                            
+                                                                            class="mat-expansion-panel-header-title flex items-center p-3"><mat-icon
+                                                                                 role="img"
+                                                                                matlistitemicon
+                                                                                class="mat-icon notranslate mat-mdc-list-item-icon material-icons-outlined material-icons mat-ligature-font mat-icon-no-color mdc-list-item__start"
+                                                                                aria-hidden="true"
+                                                                                data-mat-icon-type="font">dashboard</mat-icon><span
+                                                                                
+                                                                                class="flex-grow nav-link-name">Projects</span></mat-panel-title></span><span
+                                                                        class="mat-expansion-indicator"><svg
+                                                                            xmlns="http://www.w3.org/2000/svg"
+                                                                            viewBox="0 -960 960 960" aria-hidden="true"
+                                                                            focusable="false">
+                                                                            <path
+                                                                                d="M480-345 240-585l56-56 184 184 184-184 56 56-240 240Z">
+                                                                            </path>
+                                                                        </svg></span><!--container--></mat-expansion-panel-header>
+                                                                <div class="mat-expansion-panel-content-wrapper"
+                                                                    inert>
+                                                                    <div role="region"
+                                                                        class="mat-expansion-panel-content"
+                                                                        id="cdk-accordion-child-0"
+                                                                        aria-labelledby="mat-expansion-panel-header-0">
+                                                                        <div class="mat-expansion-panel-body">
+                                                                            <mat-nav-list 
+                                                                                role="navigation"
+                                                                                class="mat-mdc-nav-list mat-mdc-list-base mdc-list"
+                                                                                aria-disabled="false"><mat-accordion
+                                                                                    
+                                                                                    class="mat-accordion"><!--container--><a
+                                                                                        
+                                                                                        mat-list-item
+                                                                                        routerlinkactive="active"
+                                                                                        class="mat-mdc-list-item mdc-list-item nav-item pl-6 py-2 mat-mdc-list-item-interactive mdc-list-item--with-leading-icon mat-mdc-list-item-single-line mdc-list-item--with-one-line"
+                                                                                        aria-disabled="false"
+                                                                                        href="/app/projects"><mat-icon
+                                                                                            
+                                                                                            role="img"
+                                                                                            matlistitemicon
+                                                                                            class="mat-icon notranslate mat-mdc-list-item-icon material-icons-outlined material-icons mat-ligature-font mat-icon-no-color mdc-list-item__start"
+                                                                                            aria-hidden="true"
+                                                                                            data-mat-icon-type="font">assignment</mat-icon><span
+                                                                                            class="mdc-list-item__content"><span
+                                                                                                
+                                                                                                matlistitemtitle
+                                                                                                class="mat-mdc-list-item-title mdc-list-item__primary-text">Projects</span><span
+                                                                                                class="mat-mdc-list-item-unscoped-content"></span></span>
+                                                                                        <div
+                                                                                            class="mat-focus-indicator">
+                                                                                        </div>
+                                                                                    </a><!--container--><!--container--><a
+                                                                                        
+                                                                                        mat-list-item
+                                                                                        routerlinkactive="active"
+                                                                                        class="mat-mdc-list-item mdc-list-item nav-item pl-6 py-2 mat-mdc-list-item-interactive mdc-list-item--with-leading-icon mat-mdc-list-item-single-line mdc-list-item--with-one-line"
+                                                                                        aria-disabled="false"
+                                                                                        href="/app/project-details"><mat-icon
+                                                                                            
+                                                                                            role="img"
+                                                                                            matlistitemicon
+                                                                                            class="mat-icon notranslate mat-mdc-list-item-icon material-icons-outlined material-icons mat-ligature-font mat-icon-no-color mdc-list-item__start"
+                                                                                            aria-hidden="true"
+                                                                                            data-mat-icon-type="font">subject</mat-icon><span
+                                                                                            class="mdc-list-item__content"><span
+                                                                                                
+                                                                                                matlistitemtitle
+                                                                                                class="mat-mdc-list-item-title mdc-list-item__primary-text">Project
+                                                                                                Details</span><span
+                                                                                                class="mat-mdc-list-item-unscoped-content"></span></span>
+                                                                                        <div
+                                                                                            class="mat-focus-indicator">
+                                                                                        </div>
+                                                                                    </a><!--container--><!--container--><a
+                                                                                        
+                                                                                        mat-list-item
+                                                                                        routerlinkactive="active"
+                                                                                        class="mat-mdc-list-item mdc-list-item nav-item pl-6 py-2 mat-mdc-list-item-interactive mdc-list-item--with-leading-icon mat-mdc-list-item-single-line mdc-list-item--with-one-line"
+                                                                                        aria-disabled="false"
+                                                                                        href="/app/all-tasks"><mat-icon
+                                                                                            
+                                                                                            role="img"
+                                                                                            matlistitemicon
+                                                                                            class="mat-icon notranslate mat-mdc-list-item-icon material-icons-outlined material-icons mat-ligature-font mat-icon-no-color mdc-list-item__start"
+                                                                                            aria-hidden="true"
+                                                                                            data-mat-icon-type="font">checklist</mat-icon><span
+                                                                                            class="mdc-list-item__content"><span
+                                                                                                
+                                                                                                matlistitemtitle
+                                                                                                class="mat-mdc-list-item-title mdc-list-item__primary-text">All
+                                                                                                Task</span><span
+                                                                                                class="mat-mdc-list-item-unscoped-content"></span></span>
+                                                                                        <div
+                                                                                            class="mat-focus-indicator">
+                                                                                        </div>
+                                                                                    </a><!--container--><!--container--><a
+                                                                                        
+                                                                                        mat-list-item
+                                                                                        routerlinkactive="active"
+                                                                                        class="mat-mdc-list-item mdc-list-item nav-item pl-6 py-2 mat-mdc-list-item-interactive mdc-list-item--with-leading-icon mat-mdc-list-item-single-line mdc-list-item--with-one-line"
+                                                                                        aria-disabled="false"
+                                                                                        href="/app/task-details"><mat-icon
+                                                                                            
+                                                                                            role="img"
+                                                                                            matlistitemicon
+                                                                                            class="mat-icon notranslate mat-mdc-list-item-icon material-icons-outlined material-icons mat-ligature-font mat-icon-no-color mdc-list-item__start"
+                                                                                            aria-hidden="true"
+                                                                                            data-mat-icon-type="font">task</mat-icon><span
+                                                                                            class="mdc-list-item__content"><span
+                                                                                                
+                                                                                                matlistitemtitle
+                                                                                                class="mat-mdc-list-item-title mdc-list-item__primary-text">Tasks
+                                                                                                Details</span><span
+                                                                                                class="mat-mdc-list-item-unscoped-content"></span></span>
+                                                                                        <div
+                                                                                            class="mat-focus-indicator">
+                                                                                        </div>
+                                                                                    </a><!--container--><!--container--><a
+                                                                                        
+                                                                                        mat-list-item
+                                                                                        routerlinkactive="active"
+                                                                                        class="mat-mdc-list-item mdc-list-item nav-item pl-6 py-2 mat-mdc-list-item-interactive mdc-list-item--with-leading-icon mat-mdc-list-item-single-line mdc-list-item--with-one-line"
+                                                                                        aria-disabled="false"
+                                                                                        href="/app/kanban"><mat-icon
+                                                                                            
+                                                                                            role="img"
+                                                                                            matlistitemicon
+                                                                                            class="mat-icon notranslate mat-mdc-list-item-icon material-icons-outlined material-icons mat-ligature-font mat-icon-no-color mdc-list-item__start"
+                                                                                            aria-hidden="true"
+                                                                                            data-mat-icon-type="font">view_kanban</mat-icon><span
+                                                                                            class="mdc-list-item__content"><span
+                                                                                                
+                                                                                                matlistitemtitle
+                                                                                                class="mat-mdc-list-item-title mdc-list-item__primary-text">Task
+                                                                                                Kanban</span><span
+                                                                                                class="mat-mdc-list-item-unscoped-content"></span></span>
+                                                                                        <div
+                                                                                            class="mat-focus-indicator">
+                                                                                        </div>
+                                                                                    </a><!--container--><!--container--><a
+                                                                                        
+                                                                                        mat-list-item
+                                                                                        routerlinkactive="active"
+                                                                                        class="mat-mdc-list-item mdc-list-item nav-item pl-6 py-2 mat-mdc-list-item-interactive mdc-list-item--with-leading-icon mat-mdc-list-item-single-line mdc-list-item--with-one-line"
+                                                                                        aria-disabled="false"
+                                                                                        href="/app/gantt-chart"><mat-icon
+                                                                                            
+                                                                                            role="img"
+                                                                                            matlistitemicon
+                                                                                            class="mat-icon notranslate mat-mdc-list-item-icon material-icons-outlined material-icons mat-ligature-font mat-icon-no-color mdc-list-item__start"
+                                                                                            aria-hidden="true"
+                                                                                            data-mat-icon-type="font">event</mat-icon><span
+                                                                                            class="mdc-list-item__content"><span
+                                                                                                
+                                                                                                matlistitemtitle
+                                                                                                class="mat-mdc-list-item-title mdc-list-item__primary-text">Task
+                                                                                                Gantt Chart</span><span
+                                                                                                class="mat-mdc-list-item-unscoped-content"></span></span>
+                                                                                        <div
+                                                                                            class="mat-focus-indicator">
+                                                                                        </div>
+                                                                                    </a><!--container--><!--container--><a
+                                                                                        
+                                                                                        mat-list-item
+                                                                                        routerlinkactive="active"
+                                                                                        class="mat-mdc-list-item mdc-list-item nav-item pl-6 py-2 mat-mdc-list-item-interactive mdc-list-item--with-leading-icon mat-mdc-list-item-single-line mdc-list-item--with-one-line"
+                                                                                        aria-disabled="false"
+                                                                                        href="/app/time-tracking"><mat-icon
+                                                                                            
+                                                                                            role="img"
+                                                                                            matlistitemicon
+                                                                                            class="mat-icon notranslate mat-mdc-list-item-icon material-icons-outlined material-icons mat-ligature-font mat-icon-no-color mdc-list-item__start"
+                                                                                            aria-hidden="true"
+                                                                                            data-mat-icon-type="font">alarm</mat-icon><span
+                                                                                            class="mdc-list-item__content"><span
+                                                                                                
+                                                                                                matlistitemtitle
+                                                                                                class="mat-mdc-list-item-title mdc-list-item__primary-text">Time
+                                                                                                Tacking</span><span
+                                                                                                class="mat-mdc-list-item-unscoped-content"></span></span>
+                                                                                        <div
+                                                                                            class="mat-focus-indicator">
+                                                                                        </div>
+                                                                                    </a><!--container--><!--container--></mat-accordion></mat-nav-list><!--container-->
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                            </mat-expansion-panel><!--container--><!--container--><!--container--><mat-expansion-panel
+                                                                
+                                                                class="mat-expansion-panel mat-expansion-panel-animations-enabled"><mat-expansion-panel-header
+                                                                     role="button"
+                                                                    class="mat-expansion-panel-header mat-focus-indicator nav-item-header p-0 h-auto mat-expansion-toggle-indicator-after"
+                                                                    id="mat-expansion-panel-header-1" tabindex="0"
+                                                                    aria-controls="cdk-accordion-child-1"
+                                                                    aria-expanded="false" aria-disabled="false"><span
+                                                                        class="mat-content"><mat-panel-title
+                                                                            
+                                                                            class="mat-expansion-panel-header-title flex items-center p-3"><mat-icon
+                                                                                 role="img"
+                                                                                matlistitemicon
+                                                                                class="mat-icon notranslate mat-mdc-list-item-icon material-icons-outlined material-icons mat-ligature-font mat-icon-no-color mdc-list-item__start"
+                                                                                aria-hidden="true"
+                                                                                data-mat-icon-type="font">shopping_cart</mat-icon><span
+                                                                                
+                                                                                class="flex-grow nav-link-name">E-commerce</span></mat-panel-title></span><span
+                                                                        class="mat-expansion-indicator"><svg
+                                                                            xmlns="http://www.w3.org/2000/svg"
+                                                                            viewBox="0 -960 960 960" aria-hidden="true"
+                                                                            focusable="false">
+                                                                            <path
+                                                                                d="M480-345 240-585l56-56 184 184 184-184 56 56-240 240Z">
+                                                                            </path>
+                                                                        </svg></span><!--container--></mat-expansion-panel-header>
+                                                                <div class="mat-expansion-panel-content-wrapper"
+                                                                    inert>
+                                                                    <div role="region"
+                                                                        class="mat-expansion-panel-content"
+                                                                        id="cdk-accordion-child-1"
+                                                                        aria-labelledby="mat-expansion-panel-header-1">
+                                                                        <div class="mat-expansion-panel-body">
+                                                                            <mat-nav-list 
+                                                                                role="navigation"
+                                                                                class="mat-mdc-nav-list mat-mdc-list-base mdc-list"
+                                                                                aria-disabled="false"><mat-accordion
+                                                                                    
+                                                                                    class="mat-accordion"><!--container--><a
+                                                                                        
+                                                                                        mat-list-item
+                                                                                        routerlinkactive="active"
+                                                                                        class="mat-mdc-list-item mdc-list-item nav-item pl-6 py-2 mat-mdc-list-item-interactive mdc-list-item--with-leading-icon mat-mdc-list-item-single-line mdc-list-item--with-one-line active"
+                                                                                        aria-disabled="false"
+                                                                                        href="/account/my-profile"><mat-icon
+                                                                                            
+                                                                                            role="img"
+                                                                                            matlistitemicon
+                                                                                            class="mat-icon notranslate mat-mdc-list-item-icon material-icons-outlined material-icons mat-ligature-font mat-icon-no-color mdc-list-item__start"
+                                                                                            aria-hidden="true"
+                                                                                            data-mat-icon-type="font">group</mat-icon><span
+                                                                                            class="mdc-list-item__content"><span
+                                                                                                
+                                                                                                matlistitemtitle
+                                                                                                class="mat-mdc-list-item-title mdc-list-item__primary-text">Customers</span><span
+                                                                                                class="mat-mdc-list-item-unscoped-content"></span></span>
+                                                                                        <div
+                                                                                            class="mat-focus-indicator">
+                                                                                        </div>
+                                                                                    </a><!--container--><!--container--><a
+                                                                                        
+                                                                                        mat-list-item
+                                                                                        routerlinkactive="active"
+                                                                                        class="mat-mdc-list-item mdc-list-item nav-item pl-6 py-2 mat-mdc-list-item-interactive mdc-list-item--with-leading-icon mat-mdc-list-item-single-line mdc-list-item--with-one-line"
+                                                                                        aria-disabled="false"
+                                                                                        href="/app/orders"><mat-icon
+                                                                                            
+                                                                                            role="img"
+                                                                                            matlistitemicon
+                                                                                            class="mat-icon notranslate mat-mdc-list-item-icon material-icons-outlined material-icons mat-ligature-font mat-icon-no-color mdc-list-item__start"
+                                                                                            aria-hidden="true"
+                                                                                            data-mat-icon-type="font">local_mall</mat-icon><span
+                                                                                            class="mdc-list-item__content"><span
+                                                                                                
+                                                                                                matlistitemtitle
+                                                                                                class="mat-mdc-list-item-title mdc-list-item__primary-text">Orders</span><span
+                                                                                                class="mat-mdc-list-item-unscoped-content"></span></span>
+                                                                                        <div
+                                                                                            class="mat-focus-indicator">
+                                                                                        </div>
+                                                                                    </a><!--container--><!--container--><a
+                                                                                        
+                                                                                        mat-list-item
+                                                                                        routerlinkactive="active"
+                                                                                        class="mat-mdc-list-item mdc-list-item nav-item pl-6 py-2 mat-mdc-list-item-interactive mdc-list-item--with-leading-icon mat-mdc-list-item-single-line mdc-list-item--with-one-line"
+                                                                                        aria-disabled="false"
+                                                                                        href="/app/ecommerce"><mat-icon
+                                                                                            
+                                                                                            role="img"
+                                                                                            matlistitemicon
+                                                                                            class="mat-icon notranslate mat-mdc-list-item-icon material-icons-outlined material-icons mat-ligature-font mat-icon-no-color mdc-list-item__start"
+                                                                                            aria-hidden="true"
+                                                                                            data-mat-icon-type="font">storefront</mat-icon><span
+                                                                                            class="mdc-list-item__content"><span
+                                                                                                
+                                                                                                matlistitemtitle
+                                                                                                class="mat-mdc-list-item-title mdc-list-item__primary-text">Shop</span><span
+                                                                                                class="mat-mdc-list-item-unscoped-content"></span></span>
+                                                                                        <div
+                                                                                            class="mat-focus-indicator">
+                                                                                        </div>
+                                                                                    </a><!--container--><!--container--><a
+                                                                                        
+                                                                                        mat-list-item
+                                                                                        routerlinkactive="active"
+                                                                                        class="mat-mdc-list-item mdc-list-item nav-item pl-6 py-2 mat-mdc-list-item-interactive mdc-list-item--with-leading-icon mat-mdc-list-item-single-line mdc-list-item--with-one-line"
+                                                                                        aria-disabled="false"
+                                                                                        href="/app/products"><mat-icon
+                                                                                            
+                                                                                            role="img"
+                                                                                            matlistitemicon
+                                                                                            class="mat-icon notranslate mat-mdc-list-item-icon material-icons-outlined material-icons mat-ligature-font mat-icon-no-color mdc-list-item__start"
+                                                                                            aria-hidden="true"
+                                                                                            data-mat-icon-type="font">store</mat-icon><span
+                                                                                            class="mdc-list-item__content"><span
+                                                                                                
+                                                                                                matlistitemtitle
+                                                                                                class="mat-mdc-list-item-title mdc-list-item__primary-text">Products</span><span
+                                                                                                class="mat-mdc-list-item-unscoped-content"></span></span>
+                                                                                        <div
+                                                                                            class="mat-focus-indicator">
+                                                                                        </div>
+                                                                                    </a><!--container--><!--container--><a
+                                                                                        
+                                                                                        mat-list-item
+                                                                                        routerlinkactive="active"
+                                                                                        class="mat-mdc-list-item mdc-list-item nav-item pl-6 py-2 mat-mdc-list-item-interactive mdc-list-item--with-leading-icon mat-mdc-list-item-single-line mdc-list-item--with-one-line"
+                                                                                        aria-disabled="false"
+                                                                                        href="/app/product"><mat-icon
+                                                                                            
+                                                                                            role="img"
+                                                                                            matlistitemicon
+                                                                                            class="mat-icon notranslate mat-mdc-list-item-icon material-icons-outlined material-icons mat-ligature-font mat-icon-no-color mdc-list-item__start"
+                                                                                            aria-hidden="true"
+                                                                                            data-mat-icon-type="font">sell</mat-icon><span
+                                                                                            class="mdc-list-item__content"><span
+                                                                                                
+                                                                                                matlistitemtitle
+                                                                                                class="mat-mdc-list-item-title mdc-list-item__primary-text">Product</span><span
+                                                                                                class="mat-mdc-list-item-unscoped-content"></span></span>
+                                                                                        <div
+                                                                                            class="mat-focus-indicator">
+                                                                                        </div>
+                                                                                    </a><!--container--><!--container--><a
+                                                                                        
+                                                                                        mat-list-item
+                                                                                        routerlinkactive="active"
+                                                                                        class="mat-mdc-list-item mdc-list-item nav-item pl-6 py-2 mat-mdc-list-item-interactive mdc-list-item--with-leading-icon mat-mdc-list-item-single-line mdc-list-item--with-one-line"
+                                                                                        aria-disabled="false"
+                                                                                        href="/app/cart"><mat-icon
+                                                                                            
+                                                                                            role="img"
+                                                                                            matlistitemicon
+                                                                                            class="mat-icon notranslate mat-mdc-list-item-icon material-icons-outlined material-icons mat-ligature-font mat-icon-no-color mdc-list-item__start"
+                                                                                            aria-hidden="true"
+                                                                                            data-mat-icon-type="font">shopping_cart</mat-icon><span
+                                                                                            class="mdc-list-item__content"><span
+                                                                                                
+                                                                                                matlistitemtitle
+                                                                                                class="mat-mdc-list-item-title mdc-list-item__primary-text">Cart</span><span
+                                                                                                class="mat-mdc-list-item-unscoped-content"></span></span>
+                                                                                        <div
+                                                                                            class="mat-focus-indicator">
+                                                                                        </div>
+                                                                                    </a><!--container--><!--container--><a
+                                                                                        
+                                                                                        mat-list-item
+                                                                                        routerlinkactive="active"
+                                                                                        class="mat-mdc-list-item mdc-list-item nav-item pl-6 py-2 mat-mdc-list-item-interactive mdc-list-item--with-leading-icon mat-mdc-list-item-single-line mdc-list-item--with-one-line"
+                                                                                        aria-disabled="false"
+                                                                                        href="/app/checkout"><mat-icon
+                                                                                            
+                                                                                            role="img"
+                                                                                            matlistitemicon
+                                                                                            class="mat-icon notranslate mat-mdc-list-item-icon material-icons-outlined material-icons mat-ligature-font mat-icon-no-color mdc-list-item__start"
+                                                                                            aria-hidden="true"
+                                                                                            data-mat-icon-type="font">local_mall</mat-icon><span
+                                                                                            class="mdc-list-item__content"><span
+                                                                                                
+                                                                                                matlistitemtitle
+                                                                                                class="mat-mdc-list-item-title mdc-list-item__primary-text">Checkout</span><span
+                                                                                                class="mat-mdc-list-item-unscoped-content"></span></span>
+                                                                                        <div
+                                                                                            class="mat-focus-indicator">
+                                                                                        </div>
+                                                                                    </a><!--container--><!--container--><a
+                                                                                        
+                                                                                        mat-list-item
+                                                                                        routerlinkactive="active"
+                                                                                        class="mat-mdc-list-item mdc-list-item nav-item pl-6 py-2 mat-mdc-list-item-interactive mdc-list-item--with-leading-icon mat-mdc-list-item-single-line mdc-list-item--with-one-line"
+                                                                                        aria-disabled="false"
+                                                                                        href="/app/add-product"><mat-icon
+                                                                                            
+                                                                                            role="img"
+                                                                                            matlistitemicon
+                                                                                            class="mat-icon notranslate mat-mdc-list-item-icon material-icons-outlined material-icons mat-ligature-font mat-icon-no-color mdc-list-item__start"
+                                                                                            aria-hidden="true"
+                                                                                            data-mat-icon-type="font">add_box</mat-icon><span
+                                                                                            class="mdc-list-item__content"><span
+                                                                                                
+                                                                                                matlistitemtitle
+                                                                                                class="mat-mdc-list-item-title mdc-list-item__primary-text">Add
+                                                                                                Product</span><span
+                                                                                                class="mat-mdc-list-item-unscoped-content"></span></span>
+                                                                                        <div
+                                                                                            class="mat-focus-indicator">
+                                                                                        </div>
+                                                                                    </a><!--container--><!--container--><a
+                                                                                        
+                                                                                        mat-list-item
+                                                                                        routerlinkactive="active"
+                                                                                        class="mat-mdc-list-item mdc-list-item nav-item pl-6 py-2 mat-mdc-list-item-interactive mdc-list-item--with-leading-icon mat-mdc-list-item-single-line mdc-list-item--with-one-line"
+                                                                                        aria-disabled="false"
+                                                                                        href="/app/invoice"><mat-icon
+                                                                                            
+                                                                                            role="img"
+                                                                                            matlistitemicon
+                                                                                            class="mat-icon notranslate mat-mdc-list-item-icon material-icons-outlined material-icons mat-ligature-font mat-icon-no-color mdc-list-item__start"
+                                                                                            aria-hidden="true"
+                                                                                            data-mat-icon-type="font">receipt</mat-icon><span
+                                                                                            class="mdc-list-item__content"><span
+                                                                                                
+                                                                                                matlistitemtitle
+                                                                                                class="mat-mdc-list-item-title mdc-list-item__primary-text">Invoice</span><span
+                                                                                                class="mat-mdc-list-item-unscoped-content"></span></span>
+                                                                                        <div
+                                                                                            class="mat-focus-indicator">
+                                                                                        </div>
+                                                                                    </a><!--container--><!--container--></mat-accordion></mat-nav-list><!--container-->
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                            </mat-expansion-panel><!--container--><!--container--><!--container--><mat-expansion-panel
+                                                                
+                                                                class="mat-expansion-panel mat-expansion-panel-animations-enabled"><mat-expansion-panel-header
+                                                                     role="button"
+                                                                    class="mat-expansion-panel-header mat-focus-indicator nav-item-header p-0 h-auto mat-expansion-toggle-indicator-after"
+                                                                    id="mat-expansion-panel-header-2" tabindex="0"
+                                                                    aria-controls="cdk-accordion-child-2"
+                                                                    aria-expanded="false" aria-disabled="false"><span
+                                                                        class="mat-content"><mat-panel-title
+                                                                            
+                                                                            class="mat-expansion-panel-header-title flex items-center p-3"><mat-icon
+                                                                                 role="img"
+                                                                                matlistitemicon
+                                                                                class="mat-icon notranslate mat-mdc-list-item-icon material-icons-outlined material-icons mat-ligature-font mat-icon-no-color mdc-list-item__start"
+                                                                                aria-hidden="true"
+                                                                                data-mat-icon-type="font">account_circle</mat-icon><span
+                                                                                
+                                                                                class="flex-grow nav-link-name">Account</span></mat-panel-title></span><span
+                                                                        class="mat-expansion-indicator"><svg
+                                                                            xmlns="http://www.w3.org/2000/svg"
+                                                                            viewBox="0 -960 960 960" aria-hidden="true"
+                                                                            focusable="false">
+                                                                            <path
+                                                                                d="M480-345 240-585l56-56 184 184 184-184 56 56-240 240Z">
+                                                                            </path>
+                                                                        </svg></span><!--container--></mat-expansion-panel-header>
+                                                                <div class="mat-expansion-panel-content-wrapper"
+                                                                    inert>
+                                                                    <div role="region"
+                                                                        class="mat-expansion-panel-content"
+                                                                        id="cdk-accordion-child-2"
+                                                                        aria-labelledby="mat-expansion-panel-header-2">
+                                                                        <div class="mat-expansion-panel-body">
+                                                                            <mat-nav-list 
+                                                                                role="navigation"
+                                                                                class="mat-mdc-nav-list mat-mdc-list-base mdc-list"
+                                                                                aria-disabled="false"><mat-accordion
+                                                                                    
+                                                                                    class="mat-accordion"><mat-expansion-panel
+                                                                                        
+                                                                                        class="mat-expansion-panel mat-expansion-panel-animations-enabled"><mat-expansion-panel-header
+                                                                                            
+                                                                                            role="button"
+                                                                                            class="mat-expansion-panel-header mat-focus-indicator nav-item-header p-0 h-auto mat-expansion-toggle-indicator-after"
+                                                                                            id="mat-expansion-panel-header-3"
+                                                                                            tabindex="0"
+                                                                                            aria-controls="cdk-accordion-child-3"
+                                                                                            aria-expanded="false"
+                                                                                            aria-disabled="false"><span
+                                                                                                class="mat-content"><mat-panel-title
+                                                                                                    
+                                                                                                    class="mat-expansion-panel-header-title flex items-center p-3"><mat-icon
+                                                                                                        
+                                                                                                        role="img"
+                                                                                                        matlistitemicon
+                                                                                                        class="mat-icon notranslate mat-mdc-list-item-icon material-icons-outlined material-icons mat-ligature-font mat-icon-no-color mdc-list-item__start"
+                                                                                                        aria-hidden="true"
+                                                                                                        data-mat-icon-type="font">person</mat-icon><span
+                                                                                                        
+                                                                                                        class="flex-grow nav-link-name">Profile</span></mat-panel-title></span><span
+                                                                                                class="mat-expansion-indicator"><svg
+                                                                                                    xmlns="http://www.w3.org/2000/svg"
+                                                                                                    viewBox="0 -960 960 960"
+                                                                                                    aria-hidden="true"
+                                                                                                    focusable="false">
+                                                                                                    <path
+                                                                                                        d="M480-345 240-585l56-56 184 184 184-184 56 56-240 240Z">
+                                                                                                    </path>
+                                                                                                </svg></span><!--container--></mat-expansion-panel-header>
+                                                                                        <div class="mat-expansion-panel-content-wrapper"
+                                                                                            inert>
+                                                                                            <div role="region"
+                                                                                                class="mat-expansion-panel-content"
+                                                                                                id="cdk-accordion-child-3"
+                                                                                                aria-labelledby="mat-expansion-panel-header-3">
+                                                                                                <div
+                                                                                                    class="mat-expansion-panel-body">
+                                                                                                    <mat-nav-list
+                                                                                                        
+                                                                                                        role="navigation"
+                                                                                                        class="mat-mdc-nav-list mat-mdc-list-base mdc-list"
+                                                                                                        aria-disabled="false"><a
+                                                                                                            
+                                                                                                            mat-list-item
+                                                                                                            routerlinkactive="active"
+                                                                                                            class="mat-mdc-list-item mdc-list-item nav-item pl-6 py-2 mat-mdc-list-item-interactive mdc-list-item--with-leading-icon mat-mdc-list-item-single-line mdc-list-item--with-one-line"
+                                                                                                            aria-disabled="false"
+                                                                                                            href="/app/profile"><mat-icon
+                                                                                                                
+                                                                                                                role="img"
+                                                                                                                matlistitemicon
+                                                                                                                class="mat-icon notranslate mat-mdc-list-item-icon material-icons-outlined material-icons mat-ligature-font mat-icon-no-color mdc-list-item__start"
+                                                                                                                aria-hidden="true"
+                                                                                                                data-mat-icon-type="font">perm_identity</mat-icon><span
+                                                                                                                class="mdc-list-item__content"><span
+                                                                                                                    
+                                                                                                                    matlistitemtitle
+                                                                                                                    class="mat-mdc-list-item-title mdc-list-item__primary-text">Personal</span><span
+                                                                                                                    class="mat-mdc-list-item-unscoped-content"></span></span>
+                                                                                                            <div
+                                                                                                                class="mat-focus-indicator">
+                                                                                                            </div>
+                                                                                                        </a><a
+                                                                                                            
+                                                                                                            mat-list-item
+                                                                                                            routerlinkactive="active"
+                                                                                                            class="mat-mdc-list-item mdc-list-item nav-item pl-6 py-2 mat-mdc-list-item-interactive mdc-list-item--with-leading-icon mat-mdc-list-item-single-line mdc-list-item--with-one-line"
+                                                                                                            aria-disabled="false"
+                                                                                                            href="/app/dashboard"><mat-icon
+                                                                                                                
+                                                                                                                role="img"
+                                                                                                                matlistitemicon
+                                                                                                                class="mat-icon notranslate mat-mdc-list-item-icon material-icons-outlined material-icons mat-ligature-font mat-icon-no-color mdc-list-item__start"
+                                                                                                                aria-hidden="true"
+                                                                                                                data-mat-icon-type="font">subdirectory_arrow_right</mat-icon><span
+                                                                                                                class="mdc-list-item__content"><span
+                                                                                                                    
+                                                                                                                    matlistitemtitle
+                                                                                                                    class="mat-mdc-list-item-title mdc-list-item__primary-text">Level
+                                                                                                                    3
+                                                                                                                    Menu
+                                                                                                                </span><span
+                                                                                                                    class="mat-mdc-list-item-unscoped-content"></span></span>
+                                                                                                            <div
+                                                                                                                class="mat-focus-indicator">
+                                                                                                            </div>
+                                                                                                        </a><!--container--></mat-nav-list><!--container-->
+                                                                                                </div>
+                                                                                            </div>
+                                                                                        </div>
+                                                                                    </mat-expansion-panel><!--container--><!--container--><!--container--><!--container--><a
+                                                                                        
+                                                                                        mat-list-item
+                                                                                        routerlinkactive="active"
+                                                                                        class="mat-mdc-list-item mdc-list-item nav-item pl-6 py-2 mat-mdc-list-item-interactive mdc-list-item--with-leading-icon mat-mdc-list-item-single-line mdc-list-item--with-one-line"
+                                                                                        aria-disabled="false"
+                                                                                        href="/app/subscription"><mat-icon
+                                                                                            
+                                                                                            role="img"
+                                                                                            matlistitemicon
+                                                                                            class="mat-icon notranslate mat-mdc-list-item-icon material-icons-outlined material-icons mat-ligature-font mat-icon-no-color mdc-list-item__start"
+                                                                                            aria-hidden="true"
+                                                                                            data-mat-icon-type="font">workspace_premium</mat-icon><span
+                                                                                            class="mdc-list-item__content"><span
+                                                                                                
+                                                                                                matlistitemtitle
+                                                                                                class="mat-mdc-list-item-title mdc-list-item__primary-text">Subscription</span><span
+                                                                                                class="mat-mdc-list-item-unscoped-content"></span></span>
+                                                                                        <div
+                                                                                            class="mat-focus-indicator">
+                                                                                        </div>
+                                                                                    </a><!--container--><!--container--><a
+                                                                                        
+                                                                                        mat-list-item
+                                                                                        routerlinkactive="active"
+                                                                                        class="mat-mdc-list-item mdc-list-item nav-item pl-6 py-2 mat-mdc-list-item-interactive mdc-list-item--with-leading-icon mat-mdc-list-item-single-line mdc-list-item--with-one-line"
+                                                                                        aria-disabled="false"
+                                                                                        href="/app/plans"><mat-icon
+                                                                                            
+                                                                                            role="img"
+                                                                                            matlistitemicon
+                                                                                            class="mat-icon notranslate mat-mdc-list-item-icon material-icons-outlined material-icons mat-ligature-font mat-icon-no-color mdc-list-item__start"
+                                                                                            aria-hidden="true"
+                                                                                            data-mat-icon-type="font">star</mat-icon><span
+                                                                                            class="mdc-list-item__content"><span
+                                                                                                
+                                                                                                matlistitemtitle
+                                                                                                class="mat-mdc-list-item-title mdc-list-item__primary-text">Plans</span><span
+                                                                                                class="mat-mdc-list-item-unscoped-content"></span></span>
+                                                                                        <div
+                                                                                            class="mat-focus-indicator">
+                                                                                        </div>
+                                                                                    </a><!--container--><!--container--><a
+                                                                                        
+                                                                                        mat-list-item
+                                                                                        routerlinkactive="active"
+                                                                                        class="mat-mdc-list-item mdc-list-item nav-item pl-6 py-2 mat-mdc-list-item-interactive mdc-list-item--with-leading-icon mat-mdc-list-item-single-line mdc-list-item--with-one-line"
+                                                                                        aria-disabled="false"
+                                                                                        href="/app/settings"><mat-icon
+                                                                                            
+                                                                                            role="img"
+                                                                                            matlistitemicon
+                                                                                            class="mat-icon notranslate mat-mdc-list-item-icon material-icons-outlined material-icons mat-ligature-font mat-icon-no-color mdc-list-item__start"
+                                                                                            aria-hidden="true"
+                                                                                            data-mat-icon-type="font">settings</mat-icon><span
+                                                                                            class="mdc-list-item__content"><span
+                                                                                                
+                                                                                                matlistitemtitle
+                                                                                                class="mat-mdc-list-item-title mdc-list-item__primary-text">Settings</span><span
+                                                                                                class="mat-mdc-list-item-unscoped-content"></span></span>
+                                                                                        <div
+                                                                                            class="mat-focus-indicator">
+                                                                                        </div>
+                                                                                    </a><!--container--><!--container--></mat-accordion></mat-nav-list><!--container-->
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                            </mat-expansion-panel><!--container--><!--container--><!--container--><mat-expansion-panel
+                                                                
+                                                                class="mat-expansion-panel mat-expansion-panel-animations-enabled"><mat-expansion-panel-header
+                                                                     role="button"
+                                                                    class="mat-expansion-panel-header mat-focus-indicator nav-item-header p-0 h-auto mat-expansion-toggle-indicator-after"
+                                                                    id="mat-expansion-panel-header-4" tabindex="0"
+                                                                    aria-controls="cdk-accordion-child-4"
+                                                                    aria-expanded="false" aria-disabled="false"><span
+                                                                        class="mat-content"><mat-panel-title
+                                                                            
+                                                                            class="mat-expansion-panel-header-title flex items-center p-3"><mat-icon
+                                                                                 role="img"
+                                                                                matlistitemicon
+                                                                                class="mat-icon notranslate mat-mdc-list-item-icon material-icons-outlined material-icons mat-ligature-font mat-icon-no-color mdc-list-item__start"
+                                                                                aria-hidden="true"
+                                                                                data-mat-icon-type="font">apps</mat-icon><span
+                                                                                
+                                                                                class="flex-grow nav-link-name">Applications</span></mat-panel-title></span><span
+                                                                        class="mat-expansion-indicator"><svg
+                                                                            xmlns="http://www.w3.org/2000/svg"
+                                                                            viewBox="0 -960 960 960" aria-hidden="true"
+                                                                            focusable="false">
+                                                                            <path
+                                                                                d="M480-345 240-585l56-56 184 184 184-184 56 56-240 240Z">
+                                                                            </path>
+                                                                        </svg></span><!--container--></mat-expansion-panel-header>
+                                                                <div class="mat-expansion-panel-content-wrapper"
+                                                                    inert>
+                                                                    <div role="region"
+                                                                        class="mat-expansion-panel-content"
+                                                                        id="cdk-accordion-child-4"
+                                                                        aria-labelledby="mat-expansion-panel-header-4">
+                                                                        <div class="mat-expansion-panel-body">
+                                                                            <mat-nav-list 
+                                                                                role="navigation"
+                                                                                class="mat-mdc-nav-list mat-mdc-list-base mdc-list"
+                                                                                aria-disabled="false"><mat-accordion
+                                                                                    
+                                                                                    class="mat-accordion"><!--container--><a
+                                                                                        
+                                                                                        mat-list-item
+                                                                                        routerlinkactive="active"
+                                                                                        class="mat-mdc-list-item mdc-list-item nav-item pl-6 py-2 mat-mdc-list-item-interactive mdc-list-item--with-leading-icon mat-mdc-list-item-single-line mdc-list-item--with-one-line"
+                                                                                        aria-disabled="false"
+                                                                                        href="/app/explorer"><mat-icon
+                                                                                            
+                                                                                            role="img"
+                                                                                            matlistitemicon
+                                                                                            class="mat-icon notranslate mat-mdc-list-item-icon material-icons-outlined material-icons mat-ligature-font mat-icon-no-color mdc-list-item__start"
+                                                                                            aria-hidden="true"
+                                                                                            data-mat-icon-type="font">folder_zip</mat-icon><span
+                                                                                            class="mdc-list-item__content"><span
+                                                                                                
+                                                                                                matlistitemtitle
+                                                                                                class="mat-mdc-list-item-title mdc-list-item__primary-text">Explorer</span><span
+                                                                                                class="mat-mdc-list-item-unscoped-content"></span></span>
+                                                                                        <div
+                                                                                            class="mat-focus-indicator">
+                                                                                        </div>
+                                                                                    </a><!--container--><!--container--><a
+                                                                                        
+                                                                                        mat-list-item
+                                                                                        routerlinkactive="active"
+                                                                                        class="mat-mdc-list-item mdc-list-item nav-item pl-6 py-2 mat-mdc-list-item-interactive mdc-list-item--with-leading-icon mat-mdc-list-item-single-line mdc-list-item--with-one-line"
+                                                                                        aria-disabled="false"
+                                                                                        href="/app/calendar"><mat-icon
+                                                                                            
+                                                                                            role="img"
+                                                                                            matlistitemicon
+                                                                                            class="mat-icon notranslate mat-mdc-list-item-icon material-icons-outlined material-icons mat-ligature-font mat-icon-no-color mdc-list-item__start"
+                                                                                            aria-hidden="true"
+                                                                                            data-mat-icon-type="font">event</mat-icon><span
+                                                                                            class="mdc-list-item__content"><span
+                                                                                                
+                                                                                                matlistitemtitle
+                                                                                                class="mat-mdc-list-item-title mdc-list-item__primary-text">Calendar</span><span
+                                                                                                class="mat-mdc-list-item-unscoped-content"></span></span>
+                                                                                        <div
+                                                                                            class="mat-focus-indicator">
+                                                                                        </div>
+                                                                                    </a><!--container--><!--container--><a
+                                                                                        
+                                                                                        mat-list-item
+                                                                                        routerlinkactive="active"
+                                                                                        class="mat-mdc-list-item mdc-list-item nav-item pl-6 py-2 mat-mdc-list-item-interactive mdc-list-item--with-leading-icon mat-mdc-list-item-single-line mdc-list-item--with-one-line"
+                                                                                        aria-disabled="false"
+                                                                                        href="/app/chat"><mat-icon
+                                                                                            
+                                                                                            role="img"
+                                                                                            matlistitemicon
+                                                                                            class="mat-icon notranslate mat-mdc-list-item-icon material-icons-outlined material-icons mat-ligature-font mat-icon-no-color mdc-list-item__start"
+                                                                                            aria-hidden="true"
+                                                                                            data-mat-icon-type="font">chat</mat-icon><span
+                                                                                            class="mdc-list-item__content"><span
+                                                                                                
+                                                                                                matlistitemtitle
+                                                                                                class="mat-mdc-list-item-title mdc-list-item__primary-text">Chat</span><span
+                                                                                                class="mat-mdc-list-item-unscoped-content"></span></span>
+                                                                                        <div
+                                                                                            class="mat-focus-indicator">
+                                                                                        </div>
+                                                                                    </a><!--container--><!--container--></mat-accordion></mat-nav-list><!--container-->
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                            </mat-expansion-panel><!--container--><!--container--><!--container--><mat-expansion-panel
+                                                                
+                                                                class="mat-expansion-panel mat-expansion-panel-animations-enabled"><mat-expansion-panel-header
+                                                                     role="button"
+                                                                    class="mat-expansion-panel-header mat-focus-indicator nav-item-header p-0 h-auto mat-expansion-toggle-indicator-after"
+                                                                    id="mat-expansion-panel-header-5" tabindex="0"
+                                                                    aria-controls="cdk-accordion-child-5"
+                                                                    aria-expanded="false" aria-disabled="false"><span
+                                                                        class="mat-content"><mat-panel-title
+                                                                            
+                                                                            class="mat-expansion-panel-header-title flex items-center p-3"><mat-icon
+                                                                                 role="img"
+                                                                                matlistitemicon
+                                                                                class="mat-icon notranslate mat-mdc-list-item-icon material-icons-outlined material-icons mat-ligature-font mat-icon-no-color mdc-list-item__start"
+                                                                                aria-hidden="true"
+                                                                                data-mat-icon-type="font">language</mat-icon><span
+                                                                                
+                                                                                class="flex-grow nav-link-name">Front
+                                                                                Website</span></mat-panel-title></span><span
+                                                                        class="mat-expansion-indicator"><svg
+                                                                            xmlns="http://www.w3.org/2000/svg"
+                                                                            viewBox="0 -960 960 960" aria-hidden="true"
+                                                                            focusable="false">
+                                                                            <path
+                                                                                d="M480-345 240-585l56-56 184 184 184-184 56 56-240 240Z">
+                                                                            </path>
+                                                                        </svg></span><!--container--></mat-expansion-panel-header>
+                                                                <div class="mat-expansion-panel-content-wrapper"
+                                                                    inert>
+                                                                    <div role="region"
+                                                                        class="mat-expansion-panel-content"
+                                                                        id="cdk-accordion-child-5"
+                                                                        aria-labelledby="mat-expansion-panel-header-5">
+                                                                        <div class="mat-expansion-panel-body">
+                                                                            <mat-nav-list 
+                                                                                role="navigation"
+                                                                                class="mat-mdc-nav-list mat-mdc-list-base mdc-list"
+                                                                                aria-disabled="false"><mat-accordion
+                                                                                    
+                                                                                    class="mat-accordion"><!--container--><a
+                                                                                        
+                                                                                        mat-list-item
+                                                                                        routerlinkactive="active"
+                                                                                        class="mat-mdc-list-item mdc-list-item nav-item pl-6 py-2 mat-mdc-list-item-interactive mdc-list-item--with-leading-icon mat-mdc-list-item-single-line mdc-list-item--with-one-line"
+                                                                                        aria-disabled="false"
+                                                                                        href="/web/website"><mat-icon
+                                                                                            
+                                                                                            role="img"
+                                                                                            matlistitemicon
+                                                                                            class="mat-icon notranslate mat-mdc-list-item-icon material-icons-outlined material-icons mat-ligature-font mat-icon-no-color mdc-list-item__start"
+                                                                                            aria-hidden="true"
+                                                                                            data-mat-icon-type="font">web</mat-icon><span
+                                                                                            class="mdc-list-item__content"><span
+                                                                                                
+                                                                                                matlistitemtitle
+                                                                                                class="mat-mdc-list-item-title mdc-list-item__primary-text">Home</span><span
+                                                                                                class="mat-mdc-list-item-unscoped-content"></span></span>
+                                                                                        <div
+                                                                                            class="mat-focus-indicator">
+                                                                                        </div>
+                                                                                    </a><!--container--><!--container--><a
+                                                                                        
+                                                                                        mat-list-item
+                                                                                        routerlinkactive="active"
+                                                                                        class="mat-mdc-list-item mdc-list-item nav-item pl-6 py-2 mat-mdc-list-item-interactive mdc-list-item--with-leading-icon mat-mdc-list-item-single-line mdc-list-item--with-one-line"
+                                                                                        aria-disabled="false"
+                                                                                        href="/web/about-us"><mat-icon
+                                                                                            
+                                                                                            role="img"
+                                                                                            matlistitemicon
+                                                                                            class="mat-icon notranslate mat-mdc-list-item-icon material-icons-outlined material-icons mat-ligature-font mat-icon-no-color mdc-list-item__start"
+                                                                                            aria-hidden="true"
+                                                                                            data-mat-icon-type="font">apartment</mat-icon><span
+                                                                                            class="mdc-list-item__content"><span
+                                                                                                
+                                                                                                matlistitemtitle
+                                                                                                class="mat-mdc-list-item-title mdc-list-item__primary-text">About
+                                                                                                Us</span><span
+                                                                                                class="mat-mdc-list-item-unscoped-content"></span></span>
+                                                                                        <div
+                                                                                            class="mat-focus-indicator">
+                                                                                        </div>
+                                                                                    </a><!--container--><!--container--><a
+                                                                                        
+                                                                                        mat-list-item
+                                                                                        routerlinkactive="active"
+                                                                                        class="mat-mdc-list-item mdc-list-item nav-item pl-6 py-2 mat-mdc-list-item-interactive mdc-list-item--with-leading-icon mat-mdc-list-item-single-line mdc-list-item--with-one-line"
+                                                                                        aria-disabled="false"
+                                                                                        href="/web/case-study"><mat-icon
+                                                                                            
+                                                                                            role="img"
+                                                                                            matlistitemicon
+                                                                                            class="mat-icon notranslate mat-mdc-list-item-icon material-icons-outlined material-icons mat-ligature-font mat-icon-no-color mdc-list-item__start"
+                                                                                            aria-hidden="true"
+                                                                                            data-mat-icon-type="font">border_all</mat-icon><span
+                                                                                            class="mdc-list-item__content"><span
+                                                                                                
+                                                                                                matlistitemtitle
+                                                                                                class="mat-mdc-list-item-title mdc-list-item__primary-text">Case
+                                                                                                Study</span><span
+                                                                                                class="mat-mdc-list-item-unscoped-content"></span></span>
+                                                                                        <div
+                                                                                            class="mat-focus-indicator">
+                                                                                        </div>
+                                                                                    </a><!--container--><!--container--><a
+                                                                                        
+                                                                                        mat-list-item
+                                                                                        routerlinkactive="active"
+                                                                                        class="mat-mdc-list-item mdc-list-item nav-item pl-6 py-2 mat-mdc-list-item-interactive mdc-list-item--with-leading-icon mat-mdc-list-item-single-line mdc-list-item--with-one-line"
+                                                                                        aria-disabled="false"
+                                                                                        href="/web/blog"><mat-icon
+                                                                                            
+                                                                                            role="img"
+                                                                                            matlistitemicon
+                                                                                            class="mat-icon notranslate mat-mdc-list-item-icon material-icons-outlined material-icons mat-ligature-font mat-icon-no-color mdc-list-item__start"
+                                                                                            aria-hidden="true"
+                                                                                            data-mat-icon-type="font">newspaper</mat-icon><span
+                                                                                            class="mdc-list-item__content"><span
+                                                                                                
+                                                                                                matlistitemtitle
+                                                                                                class="mat-mdc-list-item-title mdc-list-item__primary-text">Blog</span><span
+                                                                                                class="mat-mdc-list-item-unscoped-content"></span></span>
+                                                                                        <div
+                                                                                            class="mat-focus-indicator">
+                                                                                        </div>
+                                                                                    </a><!--container--><!--container--><a
+                                                                                        
+                                                                                        mat-list-item
+                                                                                        routerlinkactive="active"
+                                                                                        class="mat-mdc-list-item mdc-list-item nav-item pl-6 py-2 mat-mdc-list-item-interactive mdc-list-item--with-leading-icon mat-mdc-list-item-single-line mdc-list-item--with-one-line"
+                                                                                        aria-disabled="false"
+                                                                                        href="/web/blog-details"><mat-icon
+                                                                                            
+                                                                                            role="img"
+                                                                                            matlistitemicon
+                                                                                            class="mat-icon notranslate mat-mdc-list-item-icon material-icons-outlined material-icons mat-ligature-font mat-icon-no-color mdc-list-item__start"
+                                                                                            aria-hidden="true"
+                                                                                            data-mat-icon-type="font">newspaper</mat-icon><span
+                                                                                            class="mdc-list-item__content"><span
+                                                                                                
+                                                                                                matlistitemtitle
+                                                                                                class="mat-mdc-list-item-title mdc-list-item__primary-text">Blog
+                                                                                                Details</span><span
+                                                                                                class="mat-mdc-list-item-unscoped-content"></span></span>
+                                                                                        <div
+                                                                                            class="mat-focus-indicator">
+                                                                                        </div>
+                                                                                    </a><!--container--><!--container--><a
+                                                                                        
+                                                                                        mat-list-item
+                                                                                        routerlinkactive="active"
+                                                                                        class="mat-mdc-list-item mdc-list-item nav-item pl-6 py-2 mat-mdc-list-item-interactive mdc-list-item--with-leading-icon mat-mdc-list-item-single-line mdc-list-item--with-one-line"
+                                                                                        aria-disabled="false"
+                                                                                        href="/web/contact-us"><mat-icon
+                                                                                            
+                                                                                            role="img"
+                                                                                            matlistitemicon
+                                                                                            class="mat-icon notranslate mat-mdc-list-item-icon material-icons-outlined material-icons mat-ligature-font mat-icon-no-color mdc-list-item__start"
+                                                                                            aria-hidden="true"
+                                                                                            data-mat-icon-type="font">mail</mat-icon><span
+                                                                                            class="mdc-list-item__content"><span
+                                                                                                
+                                                                                                matlistitemtitle
+                                                                                                class="mat-mdc-list-item-title mdc-list-item__primary-text">Contact
+                                                                                                Us</span><span
+                                                                                                class="mat-mdc-list-item-unscoped-content"></span></span>
+                                                                                        <div
+                                                                                            class="mat-focus-indicator">
+                                                                                        </div>
+                                                                                    </a><!--container--><!--container--></mat-accordion></mat-nav-list><!--container-->
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                            </mat-expansion-panel><!--container--><!--container--><!--container--><mat-expansion-panel
+                                                                
+                                                                class="mat-expansion-panel mat-expansion-panel-animations-enabled"><mat-expansion-panel-header
+                                                                     role="button"
+                                                                    class="mat-expansion-panel-header mat-focus-indicator nav-item-header p-0 h-auto mat-expansion-toggle-indicator-after"
+                                                                    id="mat-expansion-panel-header-6" tabindex="0"
+                                                                    aria-controls="cdk-accordion-child-6"
+                                                                    aria-expanded="false" aria-disabled="false"><span
+                                                                        class="mat-content"><mat-panel-title
+                                                                            
+                                                                            class="mat-expansion-panel-header-title flex items-center p-3"><mat-icon
+                                                                                 role="img"
+                                                                                matlistitemicon
+                                                                                class="mat-icon notranslate mat-mdc-list-item-icon material-icons-outlined material-icons mat-ligature-font mat-icon-no-color mdc-list-item__start"
+                                                                                aria-hidden="true"
+                                                                                data-mat-icon-type="font">extension</mat-icon><span
+                                                                                
+                                                                                class="flex-grow nav-link-name">Supportive</span></mat-panel-title></span><span
+                                                                        class="mat-expansion-indicator"><svg
+                                                                            xmlns="http://www.w3.org/2000/svg"
+                                                                            viewBox="0 -960 960 960" aria-hidden="true"
+                                                                            focusable="false">
+                                                                            <path
+                                                                                d="M480-345 240-585l56-56 184 184 184-184 56 56-240 240Z">
+                                                                            </path>
+                                                                        </svg></span><!--container--></mat-expansion-panel-header>
+                                                                <div class="mat-expansion-panel-content-wrapper"
+                                                                    inert>
+                                                                    <div role="region"
+                                                                        class="mat-expansion-panel-content"
+                                                                        id="cdk-accordion-child-6"
+                                                                        aria-labelledby="mat-expansion-panel-header-6">
+                                                                        <div class="mat-expansion-panel-body">
+                                                                            <mat-nav-list 
+                                                                                role="navigation"
+                                                                                class="mat-mdc-nav-list mat-mdc-list-base mdc-list"
+                                                                                aria-disabled="false"><mat-accordion
+                                                                                    
+                                                                                    class="mat-accordion"><!--container--><a
+                                                                                        
+                                                                                        mat-list-item
+                                                                                        routerlinkactive="active"
+                                                                                        class="mat-mdc-list-item mdc-list-item nav-item pl-6 py-2 mat-mdc-list-item-interactive mdc-list-item--with-leading-icon mat-mdc-list-item-single-line mdc-list-item--with-one-line"
+                                                                                        aria-disabled="false"
+                                                                                        href="/coming-soon"><mat-icon
+                                                                                            
+                                                                                            role="img"
+                                                                                            matlistitemicon
+                                                                                            class="mat-icon notranslate mat-mdc-list-item-icon material-icons-outlined material-icons mat-ligature-font mat-icon-no-color mdc-list-item__start"
+                                                                                            aria-hidden="true"
+                                                                                            data-mat-icon-type="font">event</mat-icon><span
+                                                                                            class="mdc-list-item__content"><span
+                                                                                                
+                                                                                                matlistitemtitle
+                                                                                                class="mat-mdc-list-item-title mdc-list-item__primary-text">Coming
+                                                                                                Soon</span><span
+                                                                                                class="mat-mdc-list-item-unscoped-content"></span></span>
+                                                                                        <div
+                                                                                            class="mat-focus-indicator">
+                                                                                        </div>
+                                                                                    </a><!--container--><!--container--><a
+                                                                                        
+                                                                                        mat-list-item
+                                                                                        routerlinkactive="active"
+                                                                                        class="mat-mdc-list-item mdc-list-item nav-item pl-6 py-2 mat-mdc-list-item-interactive mdc-list-item--with-leading-icon mat-mdc-list-item-single-line mdc-list-item--with-one-line"
+                                                                                        aria-disabled="false"
+                                                                                        href="/**"><mat-icon
+                                                                                            
+                                                                                            role="img"
+                                                                                            matlistitemicon
+                                                                                            class="mat-icon notranslate mat-mdc-list-item-icon material-icons-outlined material-icons mat-ligature-font mat-icon-no-color mdc-list-item__start"
+                                                                                            aria-hidden="true"
+                                                                                            data-mat-icon-type="font">bug_report</mat-icon><span
+                                                                                            class="mdc-list-item__content"><span
+                                                                                                
+                                                                                                matlistitemtitle
+                                                                                                class="mat-mdc-list-item-title mdc-list-item__primary-text">Page
+                                                                                                Not Found</span><span
+                                                                                                class="mat-mdc-list-item-unscoped-content"></span></span>
+                                                                                        <div
+                                                                                            class="mat-focus-indicator">
+                                                                                        </div>
+                                                                                    </a><!--container--><!--container--></mat-accordion></mat-nav-list><!--container-->
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                            </mat-expansion-panel><!--container--><!--container--><!--container--><!--container--><a
+                                                                 mat-list-item
+                                                                routerlinkactive="active"
+                                                                class="mat-mdc-list-item mdc-list-item nav-item px-3 py-3 rounded-lg mat-mdc-list-item-interactive mdc-list-item--with-leading-icon mat-mdc-list-item-single-line mdc-list-item--with-one-line"
+                                                                aria-disabled="false" href="/app/pages"><mat-icon
+                                                                     role="img"
+                                                                    matlistitemicon
+                                                                    class="mat-icon notranslate mat-mdc-list-item-icon material-icons-outlined material-icons mat-ligature-font mat-icon-no-color mdc-list-item__start"
+                                                                    aria-hidden="true"
+                                                                    data-mat-icon-type="font">layers</mat-icon><span
+                                                                    class="mdc-list-item__content"><span
+                                                                         matlistitemtitle
+                                                                        class="mat-mdc-list-item-title mdc-list-item__primary-text">Pages</span><span
+                                                                        class="mat-mdc-list-item-unscoped-content"></span></span>
+                                                                <div class="mat-focus-indicator"></div>
+                                                            </a><!--container--><!--container--></mat-accordion></mat-nav-list>
+                                                </nav>
+                                                <div  class="mt-auto w-100">
+                                                    <!--container--><mat-card 
+                                                        class="mat-mdc-card mdc-card bg-light-gradient mt-4 hide-iconic"><mat-card-content
+                                                             class="mat-mdc-card-content">
+                                                            <div  class="text-center mb-3">
+                                                                <div  class="mb-2"
+                                                                    style="margin-top: -45px;"><img
+                                                                        
+                                                                        src="assets/user-4.jpg" alt
+                                                                        class="avatar avatar-60 rounded-circle"></div>
+                                                                <p  class="fw-bold mb-2">
+                                                                    Liana Doe</p>
+                                                                <p 
+                                                                    class="opacity-75 small mb-1 text-truncated">Going
+                                                                    for holiday with family and friends</p>
+                                                                <p 
+                                                                    class="opacity-75 small">Leave Request: 15 Aug 2025
+                                                                </p>
+                                                            </div>
+                                                            <div  class="row gx-2">
+                                                                <div  class="col"><button
+                                                                         matbutton="filled"
+                                                                        class="mdc-button mat-mdc-button-base mdc-button--unelevated mat-mdc-unelevated-button mat-unthemed"
+                                                                        mat-ripple-loader-uninitialized
+                                                                        mat-ripple-loader-class-name="mat-mdc-button-ripple"><span
+                                                                            class="mat-mdc-button-persistent-ripple mdc-button__ripple"></span><span
+                                                                            class="mdc-button__label">Approve</span><span
+                                                                            class="mat-focus-indicator"></span><span
+                                                                            class="mat-mdc-button-touch-target"></span></button>
+                                                                </div>
+                                                                <div  class="col-auto">
+                                                                    <button  matbutton
+                                                                        class="mdc-button mat-mdc-button-base theme-red mat-mdc-button mat-unthemed"
+                                                                        mat-ripple-loader-uninitialized
+                                                                        mat-ripple-loader-class-name="mat-mdc-button-ripple"><span
+                                                                            class="mat-mdc-button-persistent-ripple mdc-button__ripple"></span><span
+                                                                            class="mdc-button__label">Cancel</span><span
+                                                                            class="mat-focus-indicator"></span><span
+                                                                            class="mat-mdc-button-touch-target"></span></button>
+                                                                </div>
+                                                            </div>
+                                                        </mat-card-content></mat-card><!--container-->
+                                                    <nav  class="sidebar-nav"><mat-nav-list
+                                                             role="navigation"
+                                                            class="mat-mdc-nav-list mat-mdc-list-base mdc-list"
+                                                            aria-disabled="false"><a 
+                                                                mat-list-item routerlink="/app/settings"
+                                                                routerlinkactive="active"
+                                                                class="mat-mdc-list-item mdc-list-item nav-item px-3 py-3 rounded-lg mat-mdc-list-item-interactive mdc-list-item--with-leading-icon mat-mdc-list-item-single-line mdc-list-item--with-one-line"
+                                                                aria-disabled="false" href="/app/settings"><mat-icon
+                                                                     role="img"
+                                                                    matlistitemicon
+                                                                    class="mat-icon notranslate mat-mdc-list-item-icon material-icons-outlined material-icons mat-ligature-font mat-icon-no-color mdc-list-item__start"
+                                                                    aria-hidden="true"
+                                                                    data-mat-icon-type="font">settings</mat-icon><span
+                                                                    class="mdc-list-item__content"><span
+                                                                         matlistitemtitle
+                                                                        class="mat-mdc-list-item-title mdc-list-item__primary-text">Settings</span><span
+                                                                        class="mat-mdc-list-item-unscoped-content"></span></span>
+                                                                <div class="mat-focus-indicator"></div>
+                                                            </a></mat-nav-list></nav>
+                                                </div>
+                                            </div><!--container-->
+                                        </section>
+                                        <footer >
+                                            <div 
+                                                class="tw:safe-area-pb tw:safe-area-pl tw:relative tw:z-10"> Start
+                                                SideBar Footer from ng-template
+                                                <!--container-->
+                                            </div>
+                                        </footer>
+                                    </aside>
+                                </app-app-sidebar></div>
+                        </mat-sidenav>
+                        <div class="cdk-visually-hidden cdk-focus-trap-anchor" aria-hidden="true"></div>
+                        <!--mat-drawer-anchor--><mat-sidenav-content 
+                            class="mat-drawer-content mat-sidenav-content main-sidenav-content" style>
+                            <header >
+                                <div 
+                                    class="tw:safe-area-pt tw:safe-area-px tw:relative tw:z-10"><app-app-header
+                                        ><mat-toolbar 
+                                            color="primary"
+                                            class="mat-toolbar app-header mat-primary mat-toolbar-single-row"><button
+                                                 maticonbutton
+                                                class="mdc-icon-button mat-mdc-icon-button mat-mdc-button-base menu-button mat-unthemed"
+                                                mat-ripple-loader-class-name="mat-mdc-button-ripple"
+                                                mat-ripple-loader-centered><span
+                                                    class="mat-mdc-button-persistent-ripple mdc-icon-button__ripple"></span><mat-icon
+                                                     role="img"
+                                                    class="mat-icon notranslate material-icons-outlined material-icons mat-ligature-font mat-icon-no-color"
+                                                    aria-hidden="true" data-mat-icon-type="font">menu</mat-icon><span
+                                                    class="mat-focus-indicator"></span><span
+                                                    class="mat-mdc-button-touch-target"></span><span
+                                                    class="mat-ripple mat-mdc-button-ripple"></span></button><span
+                                                 class="logo mx-2"><img
+                                                     src="assets/logo.png" alt
+                                                    class="logo-img"><span 
+                                                    class="logo-text"> SaaS Dashboard<br
+                                                        ><small
+                                                        ><span 
+                                                            class="d-none d-md-inline-block">Template</span> by
+                                                        AdminUIUX</small></span></span><span
+                                                 class="header-title"></span>
+                                            <div  class="mx-3 d-none d-lg-block">
+                                                <mat-form-field  appearance="outline"
+                                                    class="w-100 inline-small border-light"><mat-icon
+                                                         role="img" matprefix
+                                                        class="mat-icon notranslate material-icons mat-ligature-font mat-icon-no-color"
+                                                        aria-hidden="true"
+                                                        data-mat-icon-type="font">search</mat-icon><input
+                                                         matinput
+                                                        placeholder="Search"></mat-form-field></div>
+                                            <!--container--><span  class="spacer"></span>
+                                            <div  class="header-actions"><button
+                                                     maticonbutton
+                                                    class="mdc-icon-button mat-mdc-icon-button mat-mdc-button-base d-inline-block d-lg-none mat-unthemed"
+                                                    mat-ripple-loader-uninitialized
+                                                    mat-ripple-loader-class-name="mat-mdc-button-ripple"
+                                                    mat-ripple-loader-centered><span
+                                                        class="mat-mdc-button-persistent-ripple mdc-icon-button__ripple"></span><mat-icon
+                                                         role="img"
+                                                        class="mat-icon notranslate material-icons-outlined material-icons mat-ligature-font mat-icon-no-color"
+                                                        aria-hidden="true"
+                                                        data-mat-icon-type="font">search</mat-icon><span
+                                                        class="mat-focus-indicator"></span><span
+                                                        class="mat-mdc-button-touch-target"></span></button><button
+                                                     maticonbutton
+                                                    class="mdc-icon-button mat-mdc-icon-button mat-mdc-button-base mat-unthemed"
+                                                    mat-ripple-loader-uninitialized
+                                                    mat-ripple-loader-class-name="mat-mdc-button-ripple"
+                                                    mat-ripple-loader-centered><span
+                                                        class="mat-mdc-button-persistent-ripple mdc-icon-button__ripple"></span><mat-icon
+                                                         role="img"
+                                                        class="mat-icon notranslate dark material-icons mat-ligature-font mat-icon-no-color"
+                                                        aria-hidden="true"
+                                                        data-mat-icon-type="font">dark_mode</mat-icon><mat-icon
+                                                         role="img"
+                                                        class="mat-icon notranslate light material-icons mat-ligature-font mat-icon-no-color"
+                                                        aria-hidden="true"
+                                                        data-mat-icon-type="font">sunny</mat-icon><span
+                                                        class="mat-focus-indicator"></span><span
+                                                        class="mat-mdc-button-touch-target"></span></button><button
+                                                     maticonbutton matbadgecolor="warn"
+                                                    matbadgesize="small"
+                                                    class="mdc-icon-button mat-mdc-icon-button mat-mdc-button-base mat-badge mat-badge-warn mat-unthemed mat-badge-overlap mat-badge-above mat-badge-after mat-badge-small"
+                                                    mat-ripple-loader-uninitialized
+                                                    mat-ripple-loader-class-name="mat-mdc-button-ripple"
+                                                    mat-ripple-loader-centered><span
+                                                        class="mat-mdc-button-persistent-ripple mdc-icon-button__ripple"></span><mat-icon
+                                                         role="img"
+                                                        class="mat-icon notranslate material-icons-outlined material-icons mat-ligature-font mat-icon-no-color"
+                                                        aria-hidden="true"
+                                                        data-mat-icon-type="font">notifications</mat-icon><span
+                                                        class="mat-focus-indicator"></span><span
+                                                        class="mat-mdc-button-touch-target"></span><span
+                                                        id="mat-badge-content-0" aria-hidden="true"
+                                                        class="mat-badge-content mat-badge-active">3</span></button><button
+                                                     mat-icon-button
+                                                    class="mdc-icon-button mat-mdc-icon-button mat-mdc-button-base mat-mdc-menu-trigger d-none d-lg-inline-block mat-unthemed"
+                                                    mat-ripple-loader-uninitialized
+                                                    mat-ripple-loader-class-name="mat-mdc-button-ripple"
+                                                    mat-ripple-loader-centered aria-haspopup="menu"
+                                                    aria-expanded="false"><span
+                                                        class="mat-mdc-button-persistent-ripple mdc-icon-button__ripple"></span>
+                                                    <div 
+                                                        class="coverimg height-20 width-20 mx-auto rounded-circle align-middle"
+                                                        style="background-image: url(&quot;assets/img/english.png&quot;);">
+                                                    </div><span class="mat-focus-indicator"></span><span
+                                                        class="mat-mdc-button-touch-target"></span>
+                                                </button><!--container--><mat-menu 
+                                                    class><!--container--></mat-menu><button
+                                                     maticonbutton
+                                                    class="mdc-icon-button mat-mdc-icon-button mat-mdc-button-base mat-mdc-menu-trigger mat-unthemed"
+                                                    mat-ripple-loader-class-name="mat-mdc-button-ripple"
+                                                    mat-ripple-loader-centered aria-haspopup="menu"
+                                                    aria-expanded="false"><span
+                                                        class="mat-mdc-button-persistent-ripple mdc-icon-button__ripple"></span><mat-icon
+                                                         role="img"
+                                                        class="mat-icon notranslate material-icons-outlined material-icons mat-ligature-font mat-icon-no-color"
+                                                        aria-hidden="true"
+                                                        data-mat-icon-type="font">account_circle</mat-icon><span
+                                                        class="mat-focus-indicator"></span><span
+                                                        class="mat-mdc-button-touch-target"></span><span
+                                                        class="mat-ripple mat-mdc-button-ripple"></span></button><!--container--><mat-menu
+                                                     class><!--container--></mat-menu>
+                                            </div>
+                                        </mat-toolbar><!--container--></app-app-header></div>
+                            </header>
+                            <main  class="tw:flex-1 tw:safe-area-px main-content">
+                                <router-outlet ></router-outlet><app-my-profile></app-my-profile><!--container--> MainBody Content from
+                                ng-template <button  maticonbutton
+                                    class="mdc-icon-button mat-mdc-icon-button mat-mdc-button-base mat-unthemed"
+                                    mat-ripple-loader-uninitialized
+                                    mat-ripple-loader-class-name="mat-mdc-button-ripple"
+                                    mat-ripple-loader-centered><span
+                                        class="mat-mdc-button-persistent-ripple mdc-icon-button__ripple"></span><mat-icon
+                                         role="img"
+                                        class="mat-icon notranslate material-icons mat-ligature-font mat-icon-no-color"
+                                        aria-hidden="true" data-mat-icon-type="font">menu</mat-icon><span
+                                        class="mat-focus-indicator"></span><span
+                                        class="mat-mdc-button-touch-target"></span></button><button
+                                     maticonbutton
+                                    class="mdc-icon-button mat-mdc-icon-button mat-mdc-button-base mat-unthemed"
+                                    mat-ripple-loader-uninitialized
+                                    mat-ripple-loader-class-name="mat-mdc-button-ripple"
+                                    mat-ripple-loader-centered><span
+                                        class="mat-mdc-button-persistent-ripple mdc-icon-button__ripple"></span><mat-icon
+                                         role="img"
+                                        class="mat-icon notranslate material-icons mat-ligature-font mat-icon-no-color"
+                                        aria-hidden="true" data-mat-icon-type="font">menu</mat-icon><span
+                                        class="mat-focus-indicator"></span><span
+                                        class="mat-mdc-button-touch-target"></span></button><a
+                                     maticonbutton href="/"
+                                    class="mdc-icon-button mat-mdc-icon-button mat-mdc-button-base mat-unthemed"
+                                    mat-ripple-loader-uninitialized
+                                    mat-ripple-loader-class-name="mat-mdc-button-ripple"
+                                    mat-ripple-loader-centered><span
+                                        class="mat-mdc-button-persistent-ripple mdc-icon-button__ripple"></span><mat-icon
+                                         role="img"
+                                        class="mat-icon notranslate material-icons mat-ligature-font mat-icon-no-color"
+                                        aria-hidden="true" data-mat-icon-type="font">home</mat-icon><span
+                                        class="mat-focus-indicator"></span><span
+                                        class="mat-mdc-button-touch-target"></span></a><!--container--></main>
+                            <footer >
+                                <div 
+                                    class="tw:safe-area-pb tw:safe-area-px tw:relative tw:z-10"> MainBody Footer from
+                                    ng-template
+                                    <!--container-->
+                                </div>
+                            </footer>
+                            <div 
+                                class="position-fixed bottom-0 end-0 mx-2 my-3 z-index-9 theme-button"><button
+                                     matminifab aria-label="theme"
+                                    class="mdc-fab mat-mdc-fab-base mdc-fab--mini mat-mdc-mini-fab mat-mdc-button-base theme-magenta mat-accent"
+                                    mat-ripple-loader-uninitialized
+                                    mat-ripple-loader-class-name="mat-mdc-button-ripple"><span
+                                        class="mat-mdc-button-persistent-ripple mdc-fab__ripple"></span><mat-icon
+                                         role="img"
+                                        class="mat-icon notranslate material-icons mat-ligature-font mat-icon-no-color"
+                                        aria-hidden="true" data-mat-icon-type="font">palette</mat-icon><span
+                                        class="mdc-button__label"></span><span class="mat-focus-indicator"></span><span
+                                        class="mat-mdc-button-touch-target"></span></button></div>
+                        </mat-sidenav-content><!--container-->
+                        <div class="cdk-visually-hidden cdk-focus-trap-anchor" aria-hidden="true"></div><mat-sidenav
+                             position="end" mode="over" role="region"
+                            class="mat-drawer mat-sidenav mat-drawer-end mat-drawer-over" tabindex="-1">
+                            <div cdkscrollable class="mat-drawer-inner-container">
+                                <aside  role="region">
+                                    <header >
+                                        <div 
+                                            class="tw:safe-area-pt tw:safe-area-pr tw:relative tw:z-10"> End Sidebar
+                                            Header from ng-template
+                                            <!--container-->
+                                        </div>
+                                    </header>
+                                    <section  class="tw:safe-area-pr tw:flex-1"> End SideBar
+                                        <button  maticonbutton
+                                            class="mdc-icon-button mat-mdc-icon-button mat-mdc-button-base mat-unthemed"
+                                            mat-ripple-loader-uninitialized
+                                            mat-ripple-loader-class-name="mat-mdc-button-ripple"
+                                            mat-ripple-loader-centered><span
+                                                class="mat-mdc-button-persistent-ripple mdc-icon-button__ripple"></span><mat-icon
+                                                 role="img"
+                                                class="mat-icon notranslate material-icons mat-ligature-font mat-icon-no-color"
+                                                aria-hidden="true" data-mat-icon-type="font">close</mat-icon><span
+                                                class="mat-focus-indicator"></span><span
+                                                class="mat-mdc-button-touch-target"></span></button> from ng-template
+                                        <!--container-->
+                                    </section>
+                                    <footer >
+                                        <div 
+                                            class="tw:safe-area-pb tw:safe-area-pr tw:relative tw:z-10"> End SideBar
+                                            Footer from ng-template
+                                            <!--container-->
+                                        </div>
+                                    </footer>
+                                </aside>
+                            </div>
+                        </mat-sidenav>
+                        <div class="cdk-visually-hidden cdk-focus-trap-anchor" aria-hidden="true"></div>
+                    </mat-sidenav-container></div>
+            </app-app-layout><!--container--><!--container--><!--container--><!--container--><!--container--><!--container--><!--container--><!--container--><!--container--></app-private-area-layout><!--container--><!--container--></app-root>
+    <noscript>Please enable JavaScript to continue using this application.</noscript>
+    <script src="main.js" type="module"></script>
+    <div class="cdk-overlay-container"></div>
+</body>

@@ -1,0 +1,41 @@
+// ./src/styles.scss
+/* You can add global styles to this file, and also import other style files */
+@use './theme/active/main.scss';
+
+@import "material-icons/iconfont/material-icons.css";
+@import "@fontsource/poppins/400.css";
+@import "@fontsource/poppins/500.css";
+@import "@fontsource/poppins/700.css";
+
+@source "./**/*.{html,ts}";
+@source "../node_modules/@material-tailwind/html/**/*.js";
+
+@theme {
+  --font-sans: "Poppins", ui-sans-serif, system-ui, sans-serif;
+
+  --color-game-navy: #2f4d99;
+  --color-game-board: #324f9a;
+  --color-game-panel: #2f4592;
+  --color-game-lavender: #6675ac;
+  --color-game-accent: #cb2aa3;
+  --color-game-lime: #e4f22c;
+}
+
+html,
+body,
+app-root {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  overflow: hidden;
+  font-family: "Poppins", system-ui, sans-serif;
+  background: #2f4d99;
+}
+
+canvas {
+  display: block;
+  image-rendering: auto;
+}

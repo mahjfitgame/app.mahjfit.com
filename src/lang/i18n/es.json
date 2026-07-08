@@ -1,0 +1,47 @@
+{
+  "GL": {
+    "LANGUAGE": "Idioma",
+    "ENGLISH": "Inglés",
+    "HINDI": "Hindi",
+    "GUJARATI": "Gujarati",
+    "SPANISH": "Español",
+    "FRENCH": "Francés",
+    "ARABIC": "Árabe",
+
+    "COMMON": {
+      "SAVE": "Guardar",
+      "CANCEL": "Cancelar",
+      "DELETE": "Eliminar",
+      "RESTORE": "Restaurar",
+      "MOVE_TO_TRASH": "Mover a la papelera",
+      "CREATE": "Añadir",
+      "UPDATE": "Actualizar",
+      "SEARCH": "Buscar",
+      "RESET": "Restablecer",
+      "LOADING": "Cargando...",
+      "NO_RECORDS": "No se encontraron registros"
+    },
+
+    "VALIDATION": {
+      "REQUIRED": "El campo {{field}} es obligatorio.",
+      "MIN_LENGTH": "El campo {{field}} debe tener al menos {{min_length}} caracteres.",
+      "MAX_LENGTH": "El campo {{field}} no puede exceder los {{max_length}} caracteres.",
+      "MIN": "El valor mínimo permitido para {{field}} es {{min}}.",
+      "MAX": "El valor máximo permitido para {{field}} es {{max}}.",
+      "PATTERN": "El formato de {{field}} no es válido.",
+      "EMAIL": "Por favor, introduce una dirección de correo electrónico válida.",
+      "DATE": "Por favor, introduce una fecha válida.",
+      "TIME": "Por favor, introduce una hora válida.",
+      "DATETIME": "Por favor, introduce una fecha y hora válidas.",
+      "URL": "Por favor, introduce una URL válida.",
+      "MATCH_FIELD": "El campo {{field}} debe coincidir con {{expected}}.",
+      "COLOR": "Por favor, selecciona un color válido.",
+      "DIGIT": "El campo {{field}} debe ser un número entero.",
+      "DECIMAL": "El campo {{field}} debe ser un número o decimal válido.",
+      "TEXT": "Por favor, introduce un texto válido.",
+      "EXTENSION": "Formato de archivo no válido. Tipos permitidos: {{allowed}}.",
+      "OPTION_RANGE": "El valor seleccionado para {{field}} está fuera de rango.",
+      "FN": "El valor proporcionado para {{field}} no es válido."
+    }
+  }
+}

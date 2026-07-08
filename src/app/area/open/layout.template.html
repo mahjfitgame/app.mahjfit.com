@@ -1,0 +1,39 @@
+<!-- ./src/app/area/open/layout.template.html -->
+<div class="tw:min-h-screen tw:flex tw:items-center tw:justify-center tw:px-4">
+    <div class="tw:w-full tw:max-w-md tw:text-center">
+        <div class="tw:mb-8">
+            <div class="tw:mb-4 tw:flex tw:justify-center">
+                <div class="tw:h-20 tw:w-20 tw:overflow-hidden tw:rounded-full tw:bg-primary-container tw:shadow-lg">
+                    <img
+                        src="{{ brandLogoSrc }}"
+                        alt="Brand logo"
+                        class="tw:h-full tw:w-full tw:object-cover"
+                    />
+                </div>
+            </div>
+
+            <h1 class="tw:text-3xl tw:font-bold tw:text-primary">Welcome</h1>
+            <p class="tw:mt-2 tw:text-base tw:text-secondary">
+                Choose where you want to go
+            </p>
+            <h1>Current DB Version: {{ dbVersion() }}</h1>
+        </div>
+
+        <div class="tw:flex tw:flex-col tw:gap-4 tw:mb-8">
+            @for (link of navLinks; track link.path) {
+                <a
+                    [routerLink]="link.path"
+                    matButton="filled"
+                    class="tw:w-full tw:justify-start tw:rounded-full"
+                >
+                    <mat-icon class="material-symbols-rounded tw:me-2">{{ link.icon }}</mat-icon>
+                    <span>{{ link.label }}</span>
+                </a>
+            }
+        </div>
+
+        <app-theme></app-theme>
+        <app-internationalization></app-internationalization>
+    </div>
+</div>
+<router-outlet></router-outlet>

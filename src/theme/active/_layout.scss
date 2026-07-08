@@ -1,0 +1,471 @@
+// file: ./src/theme/active/_layout.scss
+@use './variable' as *;
+@use './color' as *;
+
+/*
+Fundamental of layout styling and rules to follow when styling the layouts.
+
+There are total 3 types of layout
+L1. app-open-area-layout: Open Area Layout: This layout is for pages that are open to all users, such as the home page, about page, etc. It has a simple and clean design with a focus on content.
+L2. app-auth-area-layout: Auth Area Layout: This layout is for pages that require authentication, such as login, register, etc. It has a split design with a start side for visual elements and an end side for interactive elements. The start side is hidden on smaller screens to prioritize the interactive elements.
+L3. app-private-area-layout: Private Area Layout: This layout is for pages that are only accessible to authenticated users, such as the dashboard, profile, etc. It has a sidebar for navigation and a main content area. The sidebar can be toggled between an expanded state with icons and labels and a collapsed state with icons only.
+
+Each layout has its own component which is responsible for the overall structure and styling of the page, while the content within each layout is managed by individual components that are rendered in specific slots defined by the layout. This separation of concerns allows for a consistent design language across the application while also providing flexibility in how content is displayed within each layout.
+
+There are main 3 parts of each layout
+P1. DEFAULT: Origin of the layout, which is the base styling for the layout
+P2. MEDIA QUERY:  For responsive design
+P3. BIDIRECTIONAL: Support for RTL languages. Bidirectional can have its own media query if needed, but in most cases, the default styles can be adapted for RTL with some adjustments.
+All of 3 parts starts with the same selector as the default to ensure that the styles are applied correctly when the conditions are met.
+It feels redundant to repeat the selector, but it is necessary for the styles to be applied correctly. It also helps to keep the styles organized and easy to understand, as all styles related to a specific layout are grouped together under the same selector.
+*/
+
+// █████████████████████████████████████████████████████████████████████
+// ███ #L1 OPEN AREA LAYOUT ████████████████████████████████████████████
+// █████████████████████████████████████████████████████████████████████
+
+// ███ #P1 DEFAULT █████████████████████████████████████████████████
+app-open-area-layout {
+    background: transparent;
+}
+// ███ #P2 MEDIA QUERY (BREAKPOINT) ████████████████████████████████
+app-open-area-layout {
+
+}
+// ███ #P3 BIDIRECTIONAL ███████████████████████████████████████████
+:dir(rtl) {
+    app-open-area-layout {
+
+    }
+}
+
+
+
+
+
+
+
+
+
+// █████████████████████████████████████████████████████████████████████
+// ███ #L2 AUTH AREA LAYOUT ████████████████████████████████████████████
+// █████████████████████████████████████████████████████████████████████
+
+// ███ #P1 DEFAULT █████████████████████████████████████████████████
+app-auth-area-layout {
+    background: transparent;
+
+    .bfw-start-side {
+
+    }
+
+    .bfw-end-side {
+        header {
+            top: 0;
+            z-index: 10;
+            transition: cubic-bezier(0.25, 0.8, 0.25, 1) all 400ms;
+            background-color: transparent;
+            backdrop-filter: blur(10px);
+            width: stretch;
+            position: sticky;
+        }
+
+        main {
+
+        }
+
+        footer {
+
+        }
+    }
+}
+// ███ #P2 MEDIA QUERY (BREAKPOINT) ████████████████████████████████
+app-auth-area-layout {
+    @include bfw-md-and-down {
+        .bfw-end-side{
+            
+        }
+    }
+}
+// ███ #P3 BIDIRECTIONAL ███████████████████████████████████████████
+:dir(rtl) {
+    app-auth-area-layout {
+
+    }
+}
+
+
+
+
+
+
+
+
+
+
+
+// █████████████████████████████████████████████████████████████████████
+// ███ #L3 PRIVATE AREA LAYOUT █████████████████████████████████████████
+// █████████████████████████████████████████████████████████████████████
+
+// ███ #P1 DEFAULT █████████████████████████████████████████████████
+app-private-area-layout {
+    // ███ BREADCRUMB ██████████████████████████████████████████████████
+    .xng-breadcrumb-root {
+        margin-inline: calc(var(--tw-spacing) * 2) !important;
+        --xng-font-size: 87.35%;
+        --xng-font-size: 87.35%;
+        color: var(--mat-sys-secondary);
+        
+        .xng-breadcrumb-list {
+            display: flex;
+            width: 100%;
+            align-items: center;
+            justify-content: flex-start;
+        }
+
+        .xng-breadcrumb-separator {
+            margin: 0;
+            .mat-icon {
+                font-size: var(--xng-font-size);
+                height: var(--xng-font-size);
+                width: var(--xng-font-size);
+            }
+        }
+        .xng-breadcrumb-item {
+            font-size: var(--xng-font-size);
+            .xng-breadcrumb-link-icon {
+                font-size: var(--xng-font-size);
+                height: var(--xng-font-size);
+                width: var(--xng-font-size);
+            }
+            .xng-breadcrumb-link {
+                &:hover {
+                    text-decoration: none;
+                    color: var(--mat-sys-primary);
+                }
+            }
+            .xng-breadcrumb-trail {
+
+            }
+        }
+    }
+    // ███ MAIN CONTAINER ██████████████████████████████████████████████
+    .bfw-sidenav-container {
+        --sidebar-area: 290px;
+        --sidebar-width: var(--sidebar-area);
+        min-height: 100dvh;
+        background-color: transparent;
+        
+        // ███ SIDEBAR START ███████████████████████████████████████████
+        .bfw-sidenav-start {
+            width: var(--sidebar-width);
+            border-radius: 0;
+            background-color: transparent;
+
+            nav {
+                a {
+                    margin-block-end: 2px;
+                }
+                .mat-mdc-nav-list {
+                    --mat-list-list-item-one-line-container-height: 44px;
+                    --mat-list-list-item-leading-icon-start-space: 1px;
+                    --mat-list-list-item-leading-icon-end-space: 16px;
+                    
+                    .mat-mdc-list-item {
+                        &.mdc-list-item--with-leading-icon {
+                            &.mdc-list-item {
+                                padding-inline-start: 0.75rem;
+                                padding-inline-end: 0;
+                            }
+
+                            .mdc-list-item__start {
+                                margin-inline-start: var(--mat-list-list-item-leading-icon-start-space);
+                                margin-inline-end: var(--mat-list-list-item-leading-icon-end-space);
+                            }
+                        }
+
+                        &:hover,
+                        &:focus {
+                            color: var(--mat-sys-on-primary-container);
+                            background-color: var(--mat-sys-primary-container);
+
+                            * {
+                                color: var(--mat-sys-on-primary-container);
+                            }
+                        }
+
+                        &.active {
+                            color: var(--mat-sys-primary-container);
+                            background: var(--mat-sys-primary);
+                            background-image: var(--bfw-link-gradient);
+
+                            * {
+                                color: light-dark(#ffffff, #02448f)
+                            }
+                        }
+                    }
+                }
+
+                mat-accordion {
+                    border-radius: 35px;
+
+                    mat-expansion-panel {
+                        --mat-expansion-container-shape: 35px;
+                        border-radius: 35px;
+                        box-shadow: none;
+                        background-color: transparent;
+                        margin-block-end: 0;
+
+                        mat-expansion-panel-header {
+                            font-weight: normal;
+
+                            &:hover, &:focus {
+                                background: none;
+                            }
+
+                            mat-icon {
+                                margin-inline-start: var(--mat-list-list-item-leading-icon-start-space);
+                                margin-inline-end: var(--mat-list-list-item-leading-icon-end-space);
+                            }
+
+                            .mat-expansion-indicator {
+                                svg {
+                                    margin-block: 0 !important;
+                                    margin-inline: 10px !important;
+
+                                }
+                            }
+                        }
+
+                        &.mat-expanded {
+                            background-image: var(--bfw-element-gradient);
+                            background-color: var(--mat-sys-on-primary);
+                            margin-block-end: 0.5rem;
+                        }
+
+                        .mat-expansion-panel-body {
+                            padding-block: 0.5rem;
+                            padding-inline: 0;
+
+                            .mat-expansion-panel.mat-expanded {
+                                box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05), 0 3px 10px rgba(0, 0, 0, 0.05);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // ███ SIDEBAR START ICONIC ████████████████████████████████████
+        &.bfw-icon-sidebar-opened {
+            .bfw-sidenav-content {
+                margin-inline-start: var(--sidebar-area);
+            }
+        }
+
+        &.bfw-icon-sidebar-closed {
+            --sidebar-width: 75px;
+
+            .bfw-sidenav-start {
+                transform: none;
+                visibility: visible !important;
+
+                ::-webkit-scrollbar {
+                    width: 0px;
+                    height: 0px;
+                }
+
+                .mat-drawer-inner-container {
+                    display: block !important;
+
+                    .bfw-nav-link-name, .mdc-list-item__content, .mat-expansion-indicator {
+                        display: none;
+                    }
+                }
+
+                &:hover {
+                    --sidebar-width: var(--sidebar-area);
+                    transform: none;
+                    visibility: visible !important;
+                    z-index: 9;
+                    background-color: light-dark(#ffffff, #000000);
+
+                    .bfw-nav-link-name, .mdc-list-item__content, .mat-expansion-indicator {
+                        display: inline;
+                    }
+
+                    &:after {
+                        content: "";
+                        position: absolute;
+                        left: 0;
+                        top: 0;
+                        height: 100%;
+                        width: 100%;
+                        background-image: var(--bfw-navbar-gradient);
+                        opacity: 0.25;
+                        z-index: -1;
+                    }
+                }
+            }
+
+            .bfw-sidenav-content {
+                margin-inline-start: var(--sidebar-width);
+            }
+        }
+
+        // ███ MAIN BODY ███████████████████████████████████████████████
+        .bfw-sidenav-content {
+            margin-inline: 0;
+            z-index: 2;
+
+            .bfw-main {
+                padding-block-start: calc(var(--bfw-safe-area-top) + (var(--tw-spacing) * 16));
+            }
+            .bfw-mobile-menu-btn {
+                display: none !important;
+            }
+        }
+
+        // ███ SIDEBAR END █████████████████████████████████████████████
+        .bfw-sidenav-end {
+            // map custom heights
+            --bfw-end-sidebar-header-height: calc(var(--bfw-safe-area-top, 0px) + 56px);
+            --bfw-tab-header-height: 48px;
+            
+            // matches tw:backdrop-blur-md exactly
+            --bfw-end-sidebar-glass-filter: blur(12px) saturate(150%); 
+
+            background-image: var(--bfw-element-gradient);
+            background-size: cover;
+            background-repeat: no-repeat;
+            
+            transition-property: transform !important;
+            transition-duration: 290ms !important;
+            transition-timing-function: cubic-bezier(0.16, 1, 0.3, 1) !important;
+
+            /* THE FIX: Single Continuous Glass Shelf */
+            &::before {
+                content: "";
+                position: absolute;
+                top: 0;
+                left: 0;
+                right: 0;
+                // Combines Header + Tab Header height exactly
+                height: calc(var(--bfw-end-sidebar-header-height) + var(--bfw-tab-header-height));
+                backdrop-filter: var(--bfw-end-sidebar-glass-filter);
+                -webkit-backdrop-filter: var(--bfw-end-sidebar-glass-filter);
+                
+                z-index: 30; 
+                pointer-events: none;
+            }
+
+            .bfw-sidenav-end-header,
+            .bfw-end-sidebar-tab-group .mat-mdc-tab-header {
+                background: transparent !important;
+                backdrop-filter: none !important;
+                -webkit-backdrop-filter: none !important;
+                box-shadow: none !important;
+                border: 0 !important;
+            }
+
+            .bfw-sidenav-end-header {
+                height: var(--bfw-end-sidebar-header-height);
+            }
+            
+            .bfw-end-sidebar-tab-group {
+                .mat-mdc-tab-header {
+                    position: sticky;
+                    top: var(--bfw-end-sidebar-header-height);
+                    height: var(--bfw-tab-header-height);
+                    z-index: 40;
+                    margin-block-start: -1px; // Ensure no sub-pixel gap
+                    padding-inline-end: var(--bfw-safe-area-inline-end); // this is important
+                }
+
+                .mat-mdc-tab-label-container,
+                .mat-mdc-tab-list,
+                .mat-mdc-tab-labels {
+                    background: transparent !important;
+                }
+
+                .mat-mdc-tab-body-wrapper,
+                .mat-mdc-tab-body,
+                .mat-mdc-tab-body-content {
+                    overflow-y: visible !important;
+                    overflow-x: clip !important;
+                }
+
+                /* APPEAR ANIMATION (No Slide) */
+                .mat-mdc-tab-body {
+                    transform: none !important;
+                    &.mat-mdc-tab-body-active {
+                        animation: bfw-tab-appear 180ms theme('transitionTimingFunction.out');
+                    }
+                }
+            }
+        }
+        .mat-drawer-backdrop {
+            transition-duration: 90ms !important;
+            transition-timing-function: linear !important;
+        }
+    }
+}
+// ███ #P2 MEDIA QUERY (BREAKPOINT) ████████████████████████████████
+app-private-area-layout {
+    .bfw-sidenav-container {
+        @include bfw-sm-and-down {
+            .bfw-sidenav-start {
+                padding-left: 0;
+                padding-right: 0;
+                background-color: var(--mat-sys-primary-container);
+            }
+
+            .bfw-sidenav-content {
+                margin-inline-start: 0;
+                
+                .bfw-mobile-menu-btn {
+                    display: block !important;
+                }
+            }
+            
+            .bfw-sidenav-end {
+                --bfw-end-sidebar-header-height: calc(var(--bfw-safe-area-top, 0px) + 53px);
+            }
+        }
+    }    
+}
+// ███ #P3 BIDIRECTIONAL ████████████████████████████████
+:dir(rtl) {
+    app-private-area-layout {
+    
+        .xng-breadcrumb-root {
+            .xng-breadcrumb-separator {
+                .mat-icon {
+                    transform: rotate(180deg);
+                }
+            }
+        }
+    
+        .bfw-sidenav-container {
+            .bfw-sidenav-start {
+                nav {
+                    // When the sidebar is icon-only, remove start/end icon spacing so
+                    // the icons sit in the visual center for RTL as they do in LTR.
+                    .mat-mdc-nav-list {
+                        --mat-list-list-item-leading-icon-start-space: 16px;
+                        --mat-list-list-item-leading-icon-end-space: 1px;
+                    }
+                }
+            }
+
+            .bfw-sidenav-content {
+
+            }
+
+            .bfw-sidenav-end  {
+
+            }
+        }
+    }
+}

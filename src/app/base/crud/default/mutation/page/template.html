@@ -1,0 +1,44 @@
+<!-- file: ./src/app/base/crud/default/mutation/page/template.html -->
+ <section class="tw:flex tw:min-h-full tw:flex-col">
+    <header class="tw:flex tw:items-center tw:justify-between tw:gap-4 tw:p-4">
+        <div>
+            <h1 class="tw:text-xl tw:font-semibold">
+                {{ service.getMutationTitle() }}
+            </h1>
+
+            @if (service.getCrudActionRecordId()) {
+                <p class="tw:text-sm tw:opacity-70">
+                    Record ID: {{ service.getCrudActionRecordId() }}
+                </p>
+            }
+        </div>
+
+        <button
+            mat-icon-button
+            type="button"
+            aria-label="Back"
+            (click)="service.closeCrudAction()"
+        >
+            <mat-icon class="material-symbols-rounded">arrow_back</mat-icon>
+        </button>
+    </header>
+
+    <main class="tw:flex-1 tw:p-4">
+        <ng-container
+            *ngComponentOutlet="
+                service.getMutationFormComponent();
+                injector: service.getComponentInjector()
+            "
+        ></ng-container>
+    </main>
+
+    <footer class="tw:flex tw:gap-3 tw:p-4">
+        <button mat-button type="reset" form="crudMutationForm" class="tw:flex-1">
+            Reset
+        </button>
+
+        <button mat-flat-button type="submit" form="crudMutationForm" color="primary" class="tw:flex-1">
+            Save
+        </button>
+    </footer>
+</section>

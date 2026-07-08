@@ -1,0 +1,25 @@
+<!-- file: ./src/app/base/crud/default/listing/selected-record-action/template.html -->
+ <button
+    mat-icon-button
+    [matMenuTriggerFor]="BfwSelectedRecordActionsMenu"
+    [aria-label]="service.localText.selected_record_action.label"
+    (click)="$event.stopPropagation()"
+    [matTooltip]="service.localText.selected_record_action.label"
+    matTooltipPosition="above"
+>
+    <mat-icon class="material-symbols-rounded">select_all</mat-icon>
+</button>
+<mat-menu #BfwSelectedRecordActionsMenu="matMenu" yPosition="above" xPosition="after">
+    <button mat-menu-item>
+        <mat-icon class="material-symbols-rounded">edit_circle_outline</mat-icon>
+        <span>Edit</span>
+    </button>
+    <button mat-menu-item>
+        <mat-icon class="material-symbols-rounded">archive</mat-icon>
+        <span>Import</span>
+    </button>
+    <button mat-menu-item>
+        <mat-icon class="material-symbols-rounded">unarchive</mat-icon>
+        <span>Export</span>
+    </button>
+</mat-menu>

@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "1090015428763",
+    "project_id": "bfw-angular-pwa",
+    "storage_bucket": "bfw-angular-pwa.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1090015428763:android:8ea7b469d3b73ab143063e",
+        "android_client_info": {
+          "package_name": "com.thatsend.bfwpwa"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyC6VAHQechxx1UaqipIEuXBsPYulqhF7WA"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

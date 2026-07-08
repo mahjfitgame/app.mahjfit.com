@@ -1,0 +1,63 @@
+// file: ./src/app/base/pagination/style.scss
+// find component scss in [src/theme/active/_component.scss]
+@use 'src/theme/active/_variable.scss' as *;
+:host {
+  display: block;
+}
+
+.bfw-pagination-container {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  justify-content: flex-end;
+}
+
+.bfw-pagination-inline {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.bfw-jump-container {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.bfw-jump-field {
+  width: 120px;
+  margin: 0;
+}
+
+.bfw-page-count {
+  font-size: 14px;
+  color: rgba(0, 0, 0, 0.6);
+  white-space: nowrap;
+}
+
+/* RTL support from root html[dir] */
+:host-context(html[dir='rtl']) .bfw-pagination-inline {
+  flex-direction: row-reverse;
+}
+
+/* optional: keep text/readout order neat in RTL */
+:host-context(html[dir='rtl']) .bfw-jump-container {
+  flex-direction: row-reverse;
+}
+:host .mat-mdc-paginator {
+    background-color: transparent;
+}
+@include bfw-sm-and-down {
+    .bfw-pagination-container {
+        justify-content: center;
+    }
+    .bfw-pagination-inline {
+        width: 100%;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 12px;
+    }
+}

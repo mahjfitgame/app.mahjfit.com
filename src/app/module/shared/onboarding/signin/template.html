@@ -1,0 +1,303 @@
+<!-- file: ./src/app/module/shared/onboarding/signin/template.html -->
+<div class="tw:flex tw:min-h-[75dvh] tw:md:min-h-[80dvh] tw:items-center tw:justify-center">
+    <div class="tw:w-full tw:max-w-110">
+        <mat-card class="tw:bg-transparent! tw:md:bfw-bg-gradient-b tw:mb-6 tw:rounded-4xl! tw:overflow-hidden tw:shadow-none! tw:md:shadow-sm!">
+            <mat-card-header>
+                <div class="tw:p-2 tw:w-100 tw:text-center tw:lg:text-start">
+                    <!-- ██████████ HEADING AREA ██████████████████████████████████████ -->
+                    @defer (on idle) {
+                        <h1 class="tw:mb-1 tw:text-4xl tw:font-normal! tw:tracking-tight tw:text-primary">
+                            {{ service.state.heading() | transloco }}
+                        </h1>
+                        <small>{{ service.state.subHeading() | transloco }}</small>
+                    } @placeholder (minimum 200ms) {
+                        <div class="tw:animate-pulse">
+                            <div class="tw:h-10 tw:w-3/4 tw:bg-gray-200 tw:rounded-lg tw:mb-2 tw:mx-auto tw:lg:mx-0"></div>
+                            <div class="tw:h-4 tw:w-1/2 tw:bg-gray-100 tw:rounded-lg tw:mx-auto tw:lg:mx-0"></div>
+                        </div>
+                    }
+                </div>
+            </mat-card-header>
+            <mat-card-content class="tw:p-6!">
+                <app-notify-banner></app-notify-banner>
+                <form (submit)="$event.preventDefault(); service.onSubmit()" class="tw:space-y-3" novalidate>
+                    <!-- ██████████ USERNAME ██████████████████████████████████████ -->
+                    @if(service.state.step() === service.SigninStepEnum.USERNAME) 
+                    {
+                        @let fo = service.state.mutationFieldObj().un_pe_pm;
+                        @let fs = service.state.mutationForm.un_pe_pm();
+                        
+                        <mat-form-field appearance="outline" class="tw:w-full">
+                            <mat-label>{{ fo.label | transloco }}</mat-label>
+                            <input
+                                matInput
+                                type="text"
+                                [placeholder]="fo.placeholder| transloco"
+                                [formField]="service.state.mutationForm.un_pe_pm"
+                                (keydown.enter)="$event.preventDefault(); service.onSubmit()"
+                                (input)="service.state.clearMutationFormError()"
+                                autoFocus
+                            />
+                            @if ((fs.touched() || fs.dirty()) && fs.invalid()) {
+                                <mat-error class="tw:flex! tw:items-start tw:gap-1">
+                                    <mat-icon class="material-symbols-rounded tw:text-xs! tw:h-4! tw:w-4! tw:shrink-0!"> error </mat-icon>
+                                    <span>
+                                        {{ service.fieldErrorMessage(fs) | transloco: { 
+                                                field: (fo.label | transloco), 
+                                                min_length: fo.validation?.min_length?.value,
+                                            }
+                                        }}
+                                    </span>
+                                </mat-error>
+                            }
+                            <mat-icon matSuffix class="material-symbols-rounded">person_shield</mat-icon>
+                        </mat-form-field>
+                    }
+                    <!-- ██████████ PASSWORD ██████████████████████████████████████ --> 
+                    @else if(service.state.step() === service.SigninStepEnum.PASSWORD) 
+                    {
+                        @let fo = service.state.mutationFieldObj().identify;
+                        @let fs = service.state.mutationForm.identify();
+
+                        <mat-form-field appearance="outline" class="tw:w-full">
+                            <mat-label>{{ fo.label | transloco }}</mat-label>
+                            <input
+                                matInput
+                                [type]="service.state.hidePassword() ? 'password' : 'text'"
+                                [placeholder]="fo.placeholder | transloco"
+                                [formField]="service.state.mutationForm.identify"
+                                (input)="service.state.clearMutationFormError()"
+                                autoFocus
+                                />
+                                <button
+                                    matIconButton
+                                    matSuffix
+                                    type="button"
+                                    (click)="service.toggleHidePassword()"
+                                >
+                                    <mat-icon class="material-symbols-rounded">
+                                        {{ service.state.hidePassword() ? "visibility_off" : "visibility" }}
+                                    </mat-icon>
+                                </button>
+                            @if ((fs.touched() || fs.dirty()) && fs.invalid()) {
+                                <mat-error class="tw:flex! tw:items-start tw:gap-1">
+                                    <mat-icon class="material-symbols-rounded tw:text-xs! tw:h-4! tw:w-4! tw:shrink-0!"> error </mat-icon>
+                                    <span>
+                                        {{ service.fieldErrorMessage(fs) | transloco: {
+                                                field: (fo.label | transloco), 
+                                                min_length: fo.validation?.min_length?.value
+                                            }
+                                        }}
+                                    </span>
+                                </mat-error>
+                            }
+                        </mat-form-field>
+                        <div class="tw:flex tw:items-center tw:justify-start">
+                            <mat-checkbox 
+                                class="tw:shrink-0" 
+                                [formField]="service.state.mutationForm.keep_logged">
+                                {{ 'ONBOARDING_SIGNIN.FIELD_LABEL.KEEP_SIGNED_IN' | transloco }}
+                            </mat-checkbox>
+                        </div>
+	                        
+                    }
+                    <!-- ██████████ MFAO ██████████████████████████████████████ -->
+                    @else if(service.state.step() === service.SigninStepEnum.MFAO) 
+                    {
+                        @let fs = service.state.mutationForm.mfa_option();
+                    
+                        <mat-radio-group
+                        [formField]="service.state.mutationForm.mfa_option"
+                        required
+                        class="tw:flex tw:w-full tw:flex-col tw:gap-3"
+                        >
+                        
+                            @for (record of (service.state.available_mfao() | keyvalue); track record.key) {
+                            @let selected = $any(fs.value()) == record.key;
+                            
+                            <mat-radio-button
+                                [value]="record.key"
+                                [class.tw:bg-primary-container]="selected"
+                                (input)="service.state.clearMutationFormError()"
+                                class="
+                                    tw:w-full! tw:rounded-3xl tw:border tw:border-gray-100 tw:hover:bg-primary-container
+                                    tw:[&_.mdc-form-field]:w-full tw:[&_.mdc-label]:w-full tw:[&_.mdc-label]:cursor-pointer
+                                    tw:[&_.mdc-form-field]:p-2 tw:[&_.mdc-label]:p-2!
+                                    "
+
+                                [checked]="selected"
+                            >
+                                <div class="tw:flex tw:w-full! tw:items-center tw:gap-3">
+                                    <div class="tw:min-w-0 tw:flex-1">
+                                        <div class="tw:text-base tw:font-semibold tw:leading-tight">
+                                        {{ record.value }}
+                                        </div>
+                                        <!-- <div class="tw:mt-1 tw:text-sm tw:font-normal tw:opacity-70">
+                                        Some sub heading
+                                        </div> -->
+                                    </div>
+                                </div>
+                            </mat-radio-button>
+                            } @empty {
+                                <p>No verification options available.</p>
+                            }
+                        </mat-radio-group>
+                        @if ((fs.touched() || fs.dirty()) && fs.invalid()) {
+                            <mat-error class="tw:flex! tw:items-start tw:gap-1 tw:text-xs tw:text-error tw:opacity-90">
+                                <mat-icon class="material-symbols-rounded tw:text-xs! tw:h-4! tw:w-4! tw:shrink-0!"> error </mat-icon>
+                                <span>{{ service.fieldErrorMessage(fs) | transloco }}</span>
+                            </mat-error>
+                        }
+                    }
+                    <!-- ██████████ VERIFY ██████████████████████████████████████ -->
+                    @else if(service.state.step() === service.SigninStepEnum.VERIFY) 
+                    {
+                        @let fo = service.state.mutationFieldObj().mfa_vi;
+                        @let fs = service.state.mutationForm.mfa_vi();
+
+                        @for (ref of [service.state.ref_value()]; track ref) {
+                            @if (ref) {
+                                <p class="bfw-alert-blink tw:text-sm tw:text-secondary">
+                                    <mat-icon class="material-symbols-rounded tw:text-sm! tw:h-4! tw:w-4!">
+                                        notifications_active
+                                    </mat-icon>
+                                    {{ ref }}
+                                </p>
+                            }
+                        }
+                        
+                        <!-- set dynamic typography -->
+                        <mat-form-field appearance="outline" class="tw:w-full">
+                            <mat-label>{{ (fo.label | transloco) }}</mat-label>
+                            <input
+                                matInput
+                                [type]="service.state.hideMfaVi() ? 'password' : 'text'"
+                                [placeholder]="fo.placeholder | transloco"
+                                [formField]="service.state.mutationForm.mfa_vi"
+                                [title]="fo.hint | transloco"
+                                (input)="service.state.clearMutationFormError()"
+                                autoFocus
+                                />
+                                <button
+                                    matIconButton
+                                    matSuffix
+                                    type="button"
+                                    (click)="service.toggleHideVerificationInput()"
+                                >
+                                    <mat-icon class="material-symbols-rounded">
+                                        {{ service.state.hideMfaVi() ? "visibility_off" : "visibility" }}
+                                    </mat-icon>
+                                </button>
+                            @if ((fs.touched() || fs.dirty()) && fs.invalid()) {
+                                <mat-error class="tw:flex! tw:items-start tw:gap-1">
+                                    <mat-icon class="material-symbols-rounded tw:text-xs! tw:h-4! tw:w-4! tw:shrink-0!"> error </mat-icon>
+                                    <span>
+                                        {{ service.fieldErrorMessage(fs) | transloco: { 
+                                                field: (fo.label | transloco), 
+                                                min_length: fo.validation?.min_length?.value,
+                                            }
+                                        }}
+                                    </span>
+                                </mat-error>
+                            }
+                        </mat-form-field>
+                    }
+                    <!-- ██████████ FINISH ██████████████████████████████████████ -->
+                    @else if(service.state.step() === service.SigninStepEnum.FINISH) 
+                    {
+                        <div class="tw:flex tw:items-center tw:justify-center tw:text-green-700">
+                            <mat-icon class="material-symbols-rounded tw:text-7xl! tw:h-18! tw:w-18!">
+                                verified_user
+                            </mat-icon>
+                        </div>
+                    }
+
+                    <!-- ██████████ BUTTONS AREA ██████████████████████████████████████ -->
+                    <div class="tw:flex tw:items-center tw:justify-end tw:gap-3">
+                        @if(service.state.step() === service.SigninStepEnum.USERNAME) {
+                            <a matButton="text" [routerLink]="service.authSignupUrl">{{ 'ONBOARDING_SIGNIN.FIELD_LABEL.CREATE_ACCOUNT' | transloco }}</a>
+                        }
+                        @if(service.state.step() === service.SigninStepEnum.PASSWORD) {
+                            <a matButton="text" [routerLink]="service.authForgotPasswordUrl">{{ 'ONBOARDING_SIGNIN.FIELD_LABEL.FORGOT_PASSWORD' | transloco }}</a>
+                        }
+                        @if(service.state.step() === service.SigninStepEnum.VERIFY) {
+                            @if(service.state.disable_resend_otp() === false) {
+                                <button 
+                                    matButton="text"
+                                    type="button"
+                                    [disabled]="service.state.disable_resend_otp()"
+                                    (click)="service.resendOtp()"
+                                >{{ 'ONBOARDING_SIGNIN.FIELD_LABEL.RESEND_OTP' | transloco }}
+                                </button>
+                            }
+                        }
+                        @if(service.state.step() !== service.SigninStepEnum.FINISH) {
+                            @if(service.state.step() !== service.SigninStepEnum.USERNAME) {
+                                <button
+                                    matButton="text"
+                                    type="button"
+                                    class="tw:ml-auto"
+                                    (click)="service.goBack()"
+                                    [disabled]="service.gpbs.processing"
+                                >{{ 'GL.COMMON.BACK' | transloco }}</button>
+                            }
+                            <button
+                                matButton="filled"
+                                type="submit"
+                                class="tw:relative tw:overflow-hidden"
+                                [disabled]="!service.isCurrentStepValid() || service.gpbs.processing"
+                            >{{ 'GL.COMMON.NEXT' | transloco }}
+                            </button>
+                        }
+                    </div>
+                    
+                    <!-- ██████████ DEBUG AREA ██████████████████████████████████████ -->
+                    @if(service.state.debug) {
+                        <div class="tw:mt-4 tw:rounded-2xl tw:bg-black/5 tw:p-3 tw:text-xs tw:leading-relaxed tw:dark:bg-white/5">
+                            <div class="tw:font-semibold">{{ 'GL.DEBUG.DEBUG_INFO' | transloco }}</div>
+                            <div>{{ 'GL.COMMON.STEP' | transloco }}: {{ service.state.step() }}</div>
+                            <div class="tw:mt-2 tw:font-semibold">Data State</div>
+                            <pre class="tw:mt-1 tw:whitespace-pre-wrap tw:wrap-break-word">{{ service.state.debugState() | json }}</pre>
+                        </div>
+                    }
+                </form>
+            </mat-card-content>
+        </mat-card>
+
+        <!-- ██████████ OAUTH AREA ██████████████████████████████████████ -->
+        <!-- TODO: OAuth based signin option is future implementation -->
+        @if (service.state.oauthSignin() === true && service.state.step() === service.SigninStepEnum.USERNAME) {
+            <div class="tw:flex tw:mb-3 tw:items-center tw:gap-3">
+                <hr class="tw:flex-1 tw:border-black/10 tw:dark:border-white/10">
+                <p class="tw:shrink-0 tw:text-sm tw:text-secondary">{{ 'ONBOARDING_SIGNIN.OAUTH_OPTION.CONTINUE_WITH' | transloco }}</p>
+                <hr class="tw:flex-1 tw:border-black/10 tw:dark:border-white/10" />
+            </div>
+
+            <div class="tw:flex tw:justify-center tw:items-center tw:gap-4">
+                <button matIconButton type="button">
+                <img src="assets/g-logo.png" alt="Google" />
+                </button>
+                <button matIconButton type="button">
+                <img src="assets/f-logo.png" alt="Facebook" />
+                </button>
+            </div>
+        }
+  </div>
+</div>
+<!-- inject into auth area layout -->
+<!--
+<ng-template cdkPortal [authAreaLayout]="service.AuthAreaLayoutStateRuntimeEnum.SLOT_START_SIDE">
+    <img
+    src="assets/space.webp"
+    alt="side-banner"
+    class="tw:h-full tw:w-full tw:object-cover"
+    />
+</ng-template>
+
+<ng-template cdkPortal [authAreaLayout]="service.AuthAreaLayoutStateRuntimeEnum.SLOT_END_SIDE_HEADER">
+
+</ng-template>
+<ng-template cdkPortal [authAreaLayout]="service.AuthAreaLayoutStateRuntimeEnum.SLOT_END_SIDE_FOOTER">
+
+</ng-template>
+-->

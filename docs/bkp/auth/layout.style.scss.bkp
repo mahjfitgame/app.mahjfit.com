@@ -1,0 +1,16 @@
+// ./src/app/area/auth/layout.style.scss
+:host {
+    header {
+        top: 0;
+        z-index: 10;
+        transition: cubic-bezier(0.25, 0.8, 0.25, 1) all 400ms;
+        background-color: transparent;
+        backdrop-filter: blur(10px);
+        width: stretch;
+        position: sticky;
+        @media screen and (max-width: --breakpoint-md) {
+            position: fixed;
+            left: 0;
+        }
+    }
+}

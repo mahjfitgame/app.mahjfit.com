@@ -1,0 +1,87 @@
+// ./src/app/area/open/layout.component.ts
+import { Component, DOCUMENT, inject, Input, OnDestroy, OnInit, Renderer2 } from "@angular/core";
+import { MatIconModule } from "@angular/material/icon";
+import { MatToolbarModule } from "@angular/material/toolbar";
+import { Router, RouterModule, RouterOutlet } from "@angular/router";
+import { ConfService, LogService, GlobalStateUiPersisted } from "@libs/index";
+import { MatDrawer, MatSidenavModule } from "@angular/material/sidenav";
+import { MatListModule } from "@angular/material/list";
+@Component({
+  selector: 'app-open-area-layout',
+  standalone: true,
+  templateUrl: './layout.template.html',
+  styleUrl: './layout.style.scss',
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  imports: [
+    RouterOutlet,
+    RouterModule,
+    MatToolbarModule,
+    MatIconModule,
+    MatSidenavModule,
+    MatListModule, 
+  ],
+  providers: [
+    
+  ],
+})
+export class OpenAreaLayoutComponent implements OnInit, OnDestroy {
+    @Input() drawers!: MatDrawer;
+    isDarkMode = false;
+    navLinks = [
+        { label: "Home", path: "/" },
+        { label: "Sign In", path: "/auth/signin" },
+        { label: "My Profile", path: "/account/my-profile" },
+        { label: "Dashboard", path: "/dashboard" },
+        { label: "Mantainance", path: "/under-maintenance" },
+    ];
+
+    // framework
+    private router = inject(Router);
+    private renderer = inject(Renderer2);
+    private document = inject(DOCUMENT);
+    
+    
+    // libs
+    protected readonly gsuip = inject(GlobalStateUiPersisted);
+    private readonly conf = inject(ConfService);
+    private readonly log = inject(LogService);
+
+    // third party
+
+    // component
+
+    constructor() {
+  }
+  
+  public async ngOnInit(): Promise<void> {
+  }
+
+  public async ngOnDestroy() {
+  }
+
+  goHome() {
+        this.router.navigate(["/web/website"]);
+  }
+  goToAuth() {
+        this.router.navigate(["/"]);
+    }
+  goToSignup() {
+      this.router.navigate(["/auth/signup"]);
+  }
+  toggleTheme() {
+      this.isDarkMode = !this.isDarkMode;
+      this.applyTheme();
+  }
+
+  private applyTheme() {
+      if (this.isDarkMode) {
+          this.renderer.addClass(this.document.body, "dark-mode");
+          this.renderer.removeClass(this.document.body, "light-mode"); // Ensure only one class is active
+      } else {
+          this.renderer.addClass(this.document.body, "light-mode");
+          this.renderer.removeClass(this.document.body, "dark-mode");
+      }
+  }
+
+
+}

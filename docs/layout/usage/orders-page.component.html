@@ -1,0 +1,41 @@
+<ng-template cdkPortal appLayoutSlot="mainHeader">
+  <div class="tw:flex tw:items-center tw:justify-between tw:gap-3">
+    <div class="tw:text-lg tw:font-medium">Orders</div>
+
+    <div class="tw:flex tw:items-center tw:gap-2">
+      <input
+        type="text"
+        placeholder="Search orders..."
+        class="tw:min-w-56 tw:rounded-md tw:border tw:px-3 tw:py-2"
+      />
+      <button matIconButton>
+        <mat-icon>search</mat-icon>
+      </button>
+    </div>
+  </div>
+</ng-template>
+
+<ng-template cdkPortal appLayoutSlot="mainFooter">
+  <div class="tw:flex tw:justify-end tw:gap-3">
+    <button matButton>Cancel</button>
+    <button mat-raised-button>Save Changes</button>
+  </div>
+</ng-template>
+
+<ng-template cdkPortal appLayoutSlot="startSidebar">
+  <div class="tw:space-y-3">
+    <div class="tw:font-medium">Filters</div>
+    <div>Status</div>
+    <div>Date Range</div>
+    <div>Customer</div>
+  </div>
+</ng-template>
+
+<ng-template cdkPortal appLayoutSlot="startSidebarFooter">
+  <button mat-raised-button class="tw:w-full">Apply Filters</button>
+</ng-template>
+
+<section class="tw:py-4">
+  <h2 class="tw:text-xl tw:font-semibold">Orders Page Body</h2>
+  <p>Routed content renders here inside the main body.</p>
+</section>

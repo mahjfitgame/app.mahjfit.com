@@ -1,0 +1,16 @@
+<!-- file: app/base/theme/template.html -->
+<div class="tw:flex tw:justify-center">
+    <div class="tw:items-center">
+        <label class="tw:text-xs">Theme: </label>
+        <select
+            class="tw:h-6 tw:w-20 tw:px-2 tw:text-xs tw:border-0 tw:bg-transparent tw:outline-none tw:ring-0 focus:tw:outline-none focus:tw:ring-0 focus:tw:border-0"
+            [ngModel]="service.state.themePreference()"
+            (ngModelChange)="service.state.setThemePreference($event)"
+        >
+            @for (option of service.THEME_PREFERENCE_OPTIONS; track option.value) {
+                <option [value]="option.value">{{ option.label }}</option>
+            }
+        </select>
+        <small>{{ service.state.themeMode() }}</small>
+    </div>
+</div>

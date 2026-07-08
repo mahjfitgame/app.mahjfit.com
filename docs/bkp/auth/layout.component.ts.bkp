@@ -1,0 +1,47 @@
+// ./src/app/area/auth/layout.component.ts
+import { Component, OnDestroy, OnInit, inject } from '@angular/core';
+import { ActivatedRoute, RouterModule, RouterOutlet } from '@angular/router';
+import { ConfService, LogService, GlobalStateUiPersisted } from '@libs';
+import { MatToolbarModule } from "@angular/material/toolbar";
+import { MatButtonModule } from '@angular/material/button';
+import { MatIconModule } from '@angular/material/icon';
+
+@Component({
+  selector: 'app-auth-area-layout',
+  standalone: true,
+  templateUrl: './layout.template.html',
+  styleUrl: './layout.style.scss',
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  imports: [
+    RouterOutlet,
+    RouterModule,
+    MatToolbarModule,
+    MatButtonModule,
+    MatIconModule,
+  ],
+  providers: [
+    
+  ],
+})
+export class AuthAreaLayoutComponent implements OnInit, OnDestroy {
+  // framework
+  protected readonly route: ActivatedRoute = inject(ActivatedRoute);
+
+  // libs
+  protected readonly uiState = inject(GlobalStateUiPersisted);
+  private readonly conf = inject(ConfService);
+  private readonly log = inject(LogService);
+
+  // third party
+
+  // component
+
+  constructor() {
+  }
+  
+  public async ngOnInit(): Promise<void> {
+  }
+
+  public async ngOnDestroy() {
+  }
+}

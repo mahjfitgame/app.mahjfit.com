@@ -1,0 +1,1 @@
+CREATE INDEX `in_sync_queue_operation` ON `te_sync_queue` (`syq_operation`);

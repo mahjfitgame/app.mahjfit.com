@@ -1,0 +1,63 @@
+<!-- file: ./src/app/base/crud/default/module-action/template.html -->
+<!-- Module action menu template -->
+<ng-template #BfwCrudModuleActionMenu>
+    <div>
+        @if(service.bos.isLgAndUp()) {
+            <button
+                matIconButton
+                [matMenuTriggerFor]="BfwCrudModuleAction"
+                aria-label="Open module actions"
+                matTooltip=""
+                matTooltipPosition="above"
+                class="tw:rounded-full! tw:text-primary!"
+            >
+                <mat-icon class="material-symbols-rounded">more_vert</mat-icon>
+            </button>
+        } @else {
+            <button
+                matFab 
+                [matMenuTriggerFor]="BfwCrudModuleAction"
+                aria-label="Open module actions"
+                matTooltip="Module actions"
+                matTooltipPosition="above"
+                class="tw:rounded-full! tw:bg-primary/70! tw:text-on-primary!"
+            >
+            <mat-icon class="material-symbols-rounded">more_vert</mat-icon>
+            </button>
+        }
+        <mat-menu
+            #BfwCrudModuleAction="matMenu"
+            xPosition="before"
+            yPosition="above"
+        >
+            <a
+                mat-menu-item
+                [routerLink]="service.url.getCreateActionUrl()"
+                [state]="service.url.getCrudActionNavigationState()"
+            >
+                <mat-icon class="material-symbols-rounded">add</mat-icon>
+                <span>Add</span>
+            </a>
+
+            <button mat-menu-item>
+                <mat-icon class="material-symbols-rounded">cloud_upload</mat-icon>
+                <span>Import</span>
+            </button>
+
+            <button mat-menu-item>
+                <mat-icon class="material-symbols-rounded">cloud_download</mat-icon>
+                <span>Export</span>
+            </button>
+        </mat-menu>
+    </div>
+</ng-template>
+
+@if(service.bos.isLgAndUp()) {
+    <!-- Module action menu for large screen and up -->
+    <ng-container *ngTemplateOutlet="BfwCrudModuleActionMenu"></ng-container>    
+} @else {
+    <!-- Floating action button for mobile and tablet layout -->
+    <div class="tw:fixed tw:right-4 tw:top-[calc(100dvh-70px)] tw:z-50">
+        <ng-container *ngTemplateOutlet="BfwCrudModuleActionMenu"></ng-container>
+    </div>
+}

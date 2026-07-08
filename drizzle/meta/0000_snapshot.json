@@ -1,0 +1,292 @@
+{
+  "version": "6",
+  "dialect": "sqlite",
+  "id": "4d88daad-9908-42fb-8d4e-77559e9553dd",
+  "prevId": "00000000-0000-0000-0000-000000000000",
+  "tables": {
+    "_local_migrations": {
+      "name": "_local_migrations",
+      "columns": {
+        "lm_version": {
+          "name": "lm_version",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "lm_name": {
+          "name": "lm_name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "lm_executed": {
+          "name": "lm_executed",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "lm_sql_up": {
+          "name": "lm_sql_up",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "lm_sql_down": {
+          "name": "lm_sql_down",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "lm_checksum": {
+          "name": "lm_checksum",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "lm_status": {
+          "name": "lm_status",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        }
+      },
+      "indexes": {
+        "in__local_migrations_executed": {
+          "name": "in__local_migrations_executed",
+          "columns": [
+            "lm_executed"
+          ],
+          "isUnique": false
+        },
+        "in__local_migrations_status": {
+          "name": "in__local_migrations_status",
+          "columns": [
+            "lm_status"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
+    "te_app_config": {
+      "name": "te_app_config",
+      "columns": {
+        "conf_key": {
+          "name": "conf_key",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "conf_value": {
+          "name": "conf_value",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "conf_updated": {
+          "name": "conf_updated",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        }
+      },
+      "indexes": {
+        "in_app_config_updated": {
+          "name": "in_app_config_updated",
+          "columns": [
+            "conf_updated"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
+    "te_app_state": {
+      "name": "te_app_state",
+      "columns": {
+        "as_key": {
+          "name": "as_key",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "as_value": {
+          "name": "as_value",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "as_updated": {
+          "name": "as_updated",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
+    "te_sync_meta": {
+      "name": "te_sync_meta",
+      "columns": {
+        "sym_key": {
+          "name": "sym_key",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "sym_bootstrap_done": {
+          "name": "sym_bootstrap_done",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": 0
+        },
+        "sym_last_pulled": {
+          "name": "sym_last_pulled",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": 0
+        },
+        "sym_cursor": {
+          "name": "sym_cursor",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "sym_updated": {
+          "name": "sym_updated",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        }
+      },
+      "indexes": {
+        "in_sync_meta_last_pulled": {
+          "name": "in_sync_meta_last_pulled",
+          "columns": [
+            "sym_last_pulled"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
+    "te_sync_queue": {
+      "name": "te_sync_queue",
+      "columns": {
+        "syq_id": {
+          "name": "syq_id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "syq_operation": {
+          "name": "syq_operation",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "syq_payload": {
+          "name": "syq_payload",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "syq_status": {
+          "name": "syq_status",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "syq_retry_count": {
+          "name": "syq_retry_count",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": 0
+        },
+        "syq_created": {
+          "name": "syq_created",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "syq_updated": {
+          "name": "syq_updated",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        }
+      },
+      "indexes": {
+        "in_sync_queue_status": {
+          "name": "in_sync_queue_status",
+          "columns": [
+            "syq_status"
+          ],
+          "isUnique": false
+        },
+        "in_sync_queue_created": {
+          "name": "in_sync_queue_created",
+          "columns": [
+            "syq_created"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    }
+  },
+  "views": {},
+  "enums": {},
+  "_meta": {
+    "schemas": {},
+    "tables": {},
+    "columns": {}
+  },
+  "internal": {
+    "indexes": {}
+  }
+}

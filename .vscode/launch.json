@@ -1,0 +1,71 @@
+{
+  "version": "1.0.0",
+  "configurations": [
+    {
+      "name": "BFW Angular Web: Serve & Debug (Chrome)",
+      "type": "node",
+      "request": "launch",
+      //"runtimeVersion": "26", 
+      //"runtimeExecutable": "node",
+      "runtimeExecutable": "${userHome}/.nvm/versions/node/v26.0.0/bin/node",
+      "program": "${workspaceFolder}/node_modules/@angular/cli/bin/ng.js",
+      "args": [
+        "serve", 
+        "--host=0.0.0.0", 
+        "--port=20155", 
+        "--open=false",
+        "--configuration=debug",
+        //"--proxy-config=proxy.conf.json"
+        //"--ssl",
+        //"--ssl-cert=ssl/localhost.pem",
+        //"--ssl-key=ssl/localhost-key.pem"
+      ],
+      "cwd": "${workspaceFolder}",
+      "console": "integratedTerminal",
+      "autoAttachChildProcesses": true,
+      "serverReadyAction": {
+        "pattern": "https://(?:localhost|0\\.0\\.0\\.0|192\\.168\\.0\\.98):20155",
+        //"uriFormat": "https://localhost:20155",
+        "uriFormat": "https://0.0.0.0:20155",
+        //"pattern": "Local:\\s+(https?://\\S+)",
+        //"uriFormat": "%s",
+        "action": "debugWithChrome",
+        "webRoot": "${workspaceFolder}"
+      },
+      "sourceMaps": true,
+      "sourceMapPathOverrides": {
+        "webpack:///./*": "${webRoot}/*",
+        "webpack:///src/*": "${webRoot}/src/*"
+      }
+    },
+  ]
+}
+/*
+{
+  "version": "2.0.0",
+  "configurations": [
+    {
+      "name": "BFW Angular Web: Serve & Debug Workbox (Chrome)",
+      "type": "node",
+      "request": "launch",
+      "runtimeExecutable": "${userHome}/.nvm/versions/node/v26.0.0/bin/node",
+      "program": "${workspaceFolder}/server.js",
+      "cwd": "${workspaceFolder}",
+      "console": "integratedTerminal",
+      "autoAttachChildProcesses": true,
+      "serverReadyAction": {
+        "pattern": "https://(?:localhost|0\\.0\\.0\\.0|192\\.168\\.0\\.98):20155",
+        "uriFormat": "https://0.0.0.0:20155",
+        "action": "debugWithChrome",
+        "webRoot": "${workspaceFolder}"
+      },
+      "sourceMaps": true,
+      "sourceMapPathOverrides": {
+        "webpack:///./*": "${webRoot}/*",
+        "webpack:///src/*": "${webRoot}/src/*",
+        "ng:///*": "${webRoot}/*"
+      }
+    }
+  ]
+}
+*/

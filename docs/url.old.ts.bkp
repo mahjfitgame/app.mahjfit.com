@@ -1,0 +1,423 @@
+import { effect, inject, Injectable, signal } from "@angular/core";
+import { ActivatedRoute, Router } from "@angular/router";
+import { CrudStateRuntime } from "./state.r";
+import { CrudListingAdditionalColumnsEnum } from "./enum";
+import { CrudUtility } from "./utility";
+// https://chatgpt.com/codex/cloud/tasks/task_e_6a02b9b9c4648332b793127a421f1581
+
+export interface CrudUrlMatrixParamsType {
+    /**
+     * qs: string | null
+     * Quick search
+     */
+    qs?: string | null;
+
+    /**
+     * page: number | null
+     * Current page of listing
+     */
+    cp?: number | null;
+
+    /**
+     * ipp: number | null
+     * item per page of listing, page size
+     */
+    rpp?: number | null;
+
+    /**
+     * lcp: string[] | null
+     * Listing table column position, comma separated
+     * Columns position in listing
+     */
+    lcp?: string[] | null
+
+    /**
+     * lsr: string[] | null 
+     * Listing selected rows/records list, comma separated
+     * Selected row primary keys in listing.
+     */
+    lsr?: string[] | null
+}
+
+
+@Injectable()
+export class CrudUrl {
+    public readonly router = inject(Router);
+    public readonly aRoute = inject(ActivatedRoute);
+
+    public readonly state = inject(CrudStateRuntime);
+    public readonly utility = inject(CrudUtility);
+    
+    private readonly stateToUrlSyncEnabled = signal(false);
+
+    constructor() {
+        effect(() => {
+            if (!this.stateToUrlSyncEnabled()) {
+                return;
+            }
+            this.syncMatrixParamsFromStateToUrl();
+        });
+    }
+
+    public enableStateToUrlMatrixParamsSync(): void {
+        this.stateToUrlSyncEnabled.set(true);
+    }
+
+    // [x]█████ PAGE NUMBER ████████████████████████████████████████████████
+    public normalizeCurrentPageValue(value: unknown): number {
+        const page = Number(value);
+
+        return Number.isInteger(page) && page > 0
+            ? page
+            : 1;
+    }
+    // [x]█████ ROWS PER PAGE ████████████████████████████████████████████████
+    public normalizeRowsPerPageValue(value: unknown): number {
+        const ipp = Number(value);
+
+        // check if ipp is as per set criteria or not
+        if(this.state.getRowsPerPageOption().includes(ipp)) {
+            return ipp;
+        }
+        return this.state.getRowsPerPageDefault();
+    }
+
+
+    // [x]█████ QUICK SEARCH ████████████████████████████████████████████████
+
+    private normalizeQuickSearchValue(value: unknown): string | null {
+        const query = String(value ?? '').trim().toLowerCase();
+
+        return query.length > 0 ? query : null;
+    }
+
+    // [x]█████ LISTING COLUMN POSITION ████████████████████████████████████████████████
+    /**
+     * lco = listing column order
+     * Accepts:
+     * - "name,email,recaction"
+     * - ["name", "email", "recaction"]
+     * - ["name,email,recaction"]
+     *
+     * RECORD_SELECT is intentionally removed from URL state.
+     */
+    private normalizeListingColumnPositionValue(value: unknown): string[] | null {
+        const columns = Array.isArray(value)
+            ? value.flatMap((item) => String(item).split(','))
+            : String(value ?? '').split(',');
+
+        const normalized = columns
+            .map((column) => column.trim())
+            .filter((column) => column.length > 0)
+            .filter((column) => column !== CrudListingAdditionalColumnsEnum.RECORD_SELECT);
+
+        const uniqueColumns = [...new Set(normalized)];
+
+        return uniqueColumns.length > 0 ? uniqueColumns : null;
+    }
+    /**
+     * [x]
+     * Returns displayColumns without RECORD_SELECT.
+     * This is what should go into the URL as ;lco=...
+     */
+    private getListingColumnPositionForomStateRuntime(): string[] | null {
+        const columns = this.state.getListingColumnPositionValue()
+            .filter((column) => column !== CrudListingAdditionalColumnsEnum.RECORD_SELECT);
+
+        return columns.length > 0 ? columns : null;
+    }
+    /**
+     * 
+     * Applies URL column order safely:
+     * - RECORD_SELECT is always first
+     * - unknown columns from URL are ignored
+     * - missing current columns are appended
+     * - RECORD_SELECT is never accepted from URL
+     */
+    //[x]
+    private verifyDisplayColumns(lco: unknown): string[] {
+        const currentColumns = this.state.getListingColumnPositionValue();
+
+        const selectableColumn = CrudListingAdditionalColumnsEnum.RECORD_SELECT;
+
+        const availableColumns = currentColumns
+            .filter((column) => column !== selectableColumn);
+
+        const requestedColumns = this.normalizeListingColumnPositionValue(lco) ?? [];
+
+        const orderedColumns = requestedColumns
+            .filter((column) => availableColumns.includes(column));
+
+        const missingColumns = availableColumns
+            .filter((column) => !orderedColumns.includes(column));
+
+        return [
+            selectableColumn,
+            ...orderedColumns,
+            ...missingColumns,
+        ];
+    }
+
+    // [x]█████ LISTING SELECTED ROWS ████████████████████████████████████████████████
+
+    /**
+     * lsr = listing selected rows
+     * Accepts:
+     * - "abc123,xyz789"
+     * - ["abc123", "xyz789"]
+     * - ["abc123,xyz789"]
+     *
+     * Values are deterministic aliases, not real primary keys.
+     */
+    public normalizeListingSelectedRowsValue(value: unknown): string[] | null {
+        const aliases = Array.isArray(value)
+            ? value.flatMap((item) => String(item).split(','))
+            : String(value ?? '').split(',');
+
+        const normalized = aliases
+            .map((alias) => alias.trim())
+            .filter((alias) => alias.length > 0);
+
+        const uniqueAliases = [...new Set(normalized)];
+
+        return uniqueAliases.length > 0 ? uniqueAliases : null;
+    }
+
+    // [x]
+    public aliasListingSelectedRowsFromStateRuntime(rowIdKey?: string): string[] | null {
+        // get primary key field name from state
+        const pkf = this.state.primaryKey();
+
+        if (!rowIdKey && pkf) {
+            rowIdKey = pkf;
+        }
+
+        const aliases: string[] = [];
+        for (const row of this.state.getListingSelectedRowsValue().selected) {
+            const id = this.utility.getRecordId(row, rowIdKey);
+
+            if (id) {
+                aliases.push(this.utility.encId(id));
+            }
+        }
+
+        const uniqueAliases = [...new Set(aliases)];
+
+        return uniqueAliases.length > 0 ? uniqueAliases : null;
+    }
+
+    public syncSelectedRowsStateRuntimeFromUrlMatrixParams(rowIdKey?: string): void {
+        const pkf = this.state.primaryKey();
+
+        if (!rowIdKey && pkf) {
+            rowIdKey = pkf;
+        }
+
+        const selectedAliases = this.getUrlMatrixParamsFromRoute().lsr;
+        const selectedIds = this.utility.descIds(selectedAliases, rowIdKey);
+
+        if (!selectedIds || selectedIds.length === 0) {
+            // Important: patch a NEW SelectionModel via state setter.
+            this.state.setListingSelectedRowsValue([]);
+            return;
+        }
+
+        const selectedIdSet = new Set(selectedIds);
+
+        const selectedRows = this.state.listingDataSource().data.filter((row) => {
+            const rowId = this.utility.getRecordId(row, rowIdKey);
+            return rowId ? selectedIdSet.has(rowId) : false;
+        });
+
+        // Important: patch a NEW SelectionModel so Angular signals/effects rerun.
+        this.state.setListingSelectedRowsValue(selectedRows);
+    }
+
+    // █████ PROCESS URL MATRIX PARAMS ████████████████████████████████████████████████
+    /**
+     * ################################
+     * URL MATRIX PARAMS
+     * PROCESING URL Matrix Params
+     * ################################
+     */ 
+    // [x]
+    public verifyMatrixParams(ump: CrudUrlMatrixParamsType): Record<string, string | number | boolean> {
+        const matrixParams: Record<string, string | number | boolean> = {};
+
+        Object.entries(ump).forEach(([key, value]) => {
+            if (value === null || value === undefined || value === '') {
+                return;
+            }
+
+            /**
+             * Matrix params should be URL-friendly.
+             * lco is stored as: ;lco=code,name,created_at,recaction
+             */
+            if (Array.isArray(value)) {
+                if (value.length > 0) {
+                    matrixParams[key] = value.join(',');
+                }
+                return;
+            }
+
+            matrixParams[key] = value;
+        });
+
+        return matrixParams;
+    }
+    // [x]
+    public getUrlMatrixParamsFromRoute(): CrudUrlMatrixParamsType {
+        const moduleRoute = this.utility.getModuleActivatedRoute();
+        const params = (moduleRoute.snapshot.url.at(-1)?.parameters ?? {}) as CrudUrlMatrixParamsType;
+
+        const ump: CrudUrlMatrixParamsType ={
+            qs: this.normalizeQuickSearchValue(params?.qs),
+            cp: this.normalizeCurrentPageValue(params?.cp),
+            rpp: this.normalizeRowsPerPageValue(params?.rpp),
+            lcp: this.normalizeListingColumnPositionValue(params?.lcp),
+            lsr: this.normalizeListingSelectedRowsValue(params?.lsr),
+        };
+
+        return ump;
+    }
+    // [x]
+    public getUrlMatrixParamsFromStateRuntime(): CrudUrlMatrixParamsType {
+        const ump: CrudUrlMatrixParamsType = {
+            qs: this.state.getQuickSearchValue(),
+            cp: this.state.getCurrentPageValue(),
+            rpp: this.state.getRowsPerPageValue(),
+            lcp: this.getListingColumnPositionForomStateRuntime(),
+            lsr: this.aliasListingSelectedRowsFromStateRuntime(),
+        };
+
+        return ump;
+    }
+
+    // █████ SYNC URL MATRIX PARAMS ████████████████████████████████████████████████
+
+    /**
+     * Syncs the state runtime from the URL matrix params.
+     * Used at initial load 
+     */
+    // [x]
+    public syncStateRuntimeFromUrlMatrixParamsBefore(): void {
+        const ump = this.getUrlMatrixParamsFromRoute();
+
+        if (ump.qs !== undefined) {
+            this.state.setQuickSearchValue(ump.qs ?? null);
+        }
+
+        if (ump.cp) {
+            this.state.setCurrentPageValue(ump.cp);
+        }
+
+        if (ump.rpp) {
+            this.state.setRowsPerPageValue(ump.rpp);
+        }
+
+        if (ump.lcp) {
+            this.state.setListingColumnPositionValue(
+                this.verifyDisplayColumns(ump.lcp)
+            );
+        }
+    }
+    public syncStateRuntimeFromUrlMatrixParamsAfter(): void {
+        const ump = this.getUrlMatrixParamsFromRoute();
+
+        if(ump.lsr) {
+            this.syncSelectedRowsStateRuntimeFromUrlMatrixParams();
+        }
+    }
+    // [x]
+    public async patchMatrixParamsFromStateToUrl(
+        patch: CrudUrlMatrixParamsType,
+        options?: { replaceUrl?: boolean }
+    ): Promise<void> {
+        const current = this.getUrlMatrixParamsFromStateRuntime();
+
+        const next: CrudUrlMatrixParamsType = {
+            ...current,
+            ...patch,
+        };
+
+        if (patch.qs) {
+            this.state.setQuickSearchValue(this.normalizeQuickSearchValue(patch.qs));
+        }
+
+        if (patch.cp) {
+            const page = this.normalizeCurrentPageValue(patch.cp);
+            this.state.setCurrentPageValue(page ?? 1);
+        }
+
+        if (patch.rpp) {
+            const ipp = this.normalizeRowsPerPageValue(patch.rpp);
+            if (ipp) {
+                this.state.setRowsPerPageValue(ipp);
+            }
+        }
+
+        if (patch.lcp) {
+            this.state.setDisplayFieldsValue(
+                this.verifyDisplayColumns(patch.lcp)
+            );
+        }
+
+        if (patch.lsr) {
+            const aliases = this.normalizeListingSelectedRowsValue(patch.lsr);
+            const rowIdKey = this.state.primaryKey() ?? undefined;
+            const ids = this.utility.descIds(aliases, rowIdKey);
+
+            if (!ids || ids.length === 0) {
+                this.state.setListingSelectedRowsValue([]);
+            } else {
+                const selectedIdSet = new Set(ids);
+
+                const selectedRows = this.state.listingDataSource().data.filter((row) => {
+                    const rowId = this.utility.getRecordId(row, rowIdKey);
+                    return rowId ? selectedIdSet.has(rowId) : false;
+                });
+
+                this.state.setListingSelectedRowsValue(selectedRows);
+            }
+        }
+
+        const moduleRoute = this.utility.getModuleActivatedRoute();
+        const moduleSegment = moduleRoute.snapshot.url.at(-1)?.path;
+
+        if (!moduleSegment || !moduleRoute.parent) {
+            return;
+        }
+
+        await this.router.navigate(
+            [moduleSegment, this.verifyMatrixParams(next)],
+            {
+                relativeTo: moduleRoute.parent,
+                replaceUrl: options?.replaceUrl ?? true,
+            }
+        );
+    }
+    /**
+     * Syncs the URL matrix params from the state runtime.
+     * Used after every change in the state runtime.
+     * This update the URL
+     */
+    // [x]
+    public async syncMatrixParamsFromStateToUrl(options?: { replaceUrl?: boolean }): Promise<void> {
+        const moduleRoute = this.utility.getModuleActivatedRoute();
+        const moduleSegment = moduleRoute.snapshot.url.at(-1)?.path;
+
+        if (!moduleSegment || !moduleRoute.parent) {
+            return;
+        }
+
+        const matrixParams = this.verifyMatrixParams(this.getUrlMatrixParamsFromStateRuntime());
+
+        await this.router.navigate(
+            [moduleSegment, matrixParams],
+            {
+                relativeTo: moduleRoute.parent,
+                replaceUrl: options?.replaceUrl ?? true,
+            }
+        );
+    }
+}

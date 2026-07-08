@@ -1,0 +1,92 @@
+<!-- file: ./src/app/area/auth/template.html -->
+<div class="tw:flex tw:min-h-dvh tw:flex-col tw:lg:flex-row">
+    <!-- START SIDE -->
+    <aside class="bfw-start-side tw:relative tw:hidden tw:lg:block tw:lg:w-1/2">
+        <div class="tw:absolute tw:inset-0 tw:overflow-hidden">
+            <ng-template 
+            [cdkPortalOutlet]="service.state.slotStartSide() ?? DEF_SLOT_START_SIDE"
+            ></ng-template>
+        </div>
+    </aside>
+
+    <!-- END SIDE -->
+    <div class="bfw-end-side tw:flex tw:min-h-dvh tw:w-full tw:flex-col tw:lg:w-1/2">
+        <header>
+            <div class="bfw-safe-area-pt bfw-safe-area-px tw:relative tw:z-10">
+                <mat-toolbar class="tw:flex tw:min-h-16 tw:bg-transparent! tw:px-2!">
+                    <ng-template 
+                    [cdkPortalOutlet]="service.state.slotEndSideHeader() ?? DEF_SLOT_END_SIDE_HEADER"
+                    ></ng-template>
+                </mat-toolbar>
+            </div>
+        </header>
+        <main class="bfw-safe-area-px tw:flex-1">
+            <div class="tw:px-2">
+                <router-outlet></router-outlet>
+            </div>
+        </main>
+        <footer>
+            <div class="bfw-safe-area-pb bfw-safe-area-px tw:relative tw:z-10">
+                <mat-toolbar class="tw:h-auto! tw:bg-transparent! tw:py-2! tw:px-2!">
+                    <ng-template 
+                    [cdkPortalOutlet]="service.state.slotEndSideFooter() ?? DEF_SLOT_END_SIDE_FOOTER"
+                    ></ng-template>
+                </mat-toolbar>
+            </div>
+        </footer>
+    </div>
+</div>
+
+<!-- ng-template DEFAULT FALLBACKS -->
+<ng-template cdkPortal #DEF_SLOT_START_SIDE="cdkPortal">
+    <img
+    src="assets/beach.webp"
+    alt="side-banner"
+    class="tw:h-full tw:w-full tw:object-cover"
+    />
+</ng-template>
+<ng-template cdkPortal #DEF_SLOT_END_SIDE_HEADER="cdkPortal">
+    <div class="tw:flex tw:w-full tw:justify-center tw:items-center">
+        <a
+        routerLink="/"
+        class="tw:flex tw:items-center tw:gap-3 tw:no-underline tw:text-inherit"
+        >
+        <span class="fixed-header-logo tw:flex tw:h-10 tw:w-10 tw:items-center tw:justify-center tw:overflow-hidden tw:rounded-full">
+            <img
+            src="assets/logo.png"
+            alt="brand logo"
+            class="tw:h-full tw:w-full tw:object-contain"
+            />
+        </span>
+
+        <span class="tw:leading-tight">
+            <span class="tw:block tw:text-sm tw:md:text-base">
+            BFW Frontend
+            </span>
+            <small class="tw:block tw:text-xs tw:opacity-80">
+            <span class="tw:hidden tw:md:inline">ERP</span> by Thats End
+            </small>
+        </span>
+        </a>
+    </div>
+</ng-template>
+<ng-template cdkPortal #DEF_SLOT_END_SIDE_FOOTER="cdkPortal">
+    <div class="tw:flex tw:w-full tw:justify-center tw:items-center tw:text-secondary tw:gap-2">
+        <p class="tw:m-0 tw:text-xs">&copy; 2026 Thats End.</p>
+        <span class="tw:text-xs">|</span>
+        <nav class="tw:flex tw:items-center" aria-label="Footer navigation">
+            <a routerLink="/app/privacy-policy"
+                class="tw:px-1 tw:py-1 tw:hover:underline tw:text-xs"
+            >Privacy</a>
+            <a routerLink="/app/terms-of-use"
+                class="tw:px-1 tw:py-1 tw:hover:underline tw:text-xs"
+            >Terms</a>
+            <a routerLink="/web/contact-us"
+                class="tw:px-1 tw:py-1 tw:hover:underline tw:text-xs"
+            >Help</a>
+            <a routerLink="/web/contact-us"
+                class="tw:px-1 tw:py-1 tw:hover:underline tw:text-xs"
+            >Contact</a>
+        </nav>
+    </div>
+</ng-template>
