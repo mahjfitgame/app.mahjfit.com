@@ -1,7 +1,7 @@
 import { inject, Service } from '@angular/core';
 
 import { SignatureService } from '../signature/service';
-import { PLATFORM_ADAPTER, type PlatformAdapter } from './adapter';
+import { type PlatformAdapter } from './adapter';
 import {
   PLATFORM_NAME_ANDROID,
   PLATFORM_NAME_IOS,
@@ -26,6 +26,7 @@ import type {
   PlatformPluginType,
   PlatformType,
 } from './type';
+import { PLATFORM_ADAPTER } from './provider';
 
 /**
  * Stable application-facing façade for platform state, commands, and queries.
@@ -79,7 +80,6 @@ export class PlatformService {
       mac_address: undefined,
       user_defined_id: '',
       user_defined_name: '',
-      dtoken: await this.deviceToken(),
       dpid: await this.deviceProviderId(),
       avatar: this.sign.avtar(this.avatarKey),
       useragent: runtime.userAgent,
@@ -93,10 +93,6 @@ export class PlatformService {
       max_touch_points: String(runtime.maxTouchPoints),
       device_memory: String(runtime.deviceMemory ?? 'unknown'),
     };
-  }
-
-  public async deviceToken(): Promise<string | null> {
-    return this.state.dtoken();
   }
 
   public async deviceProviderId(): Promise<string> {

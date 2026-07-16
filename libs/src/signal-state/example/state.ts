@@ -21,7 +21,8 @@ import { Country, CountryFindInputDto, CountryFindOutputDto, CountryFindOutputSe
 import { BfwApiService } from '@libs/third-party-apis/bfw-api/service';
 import { RecordSortDirectionEnum, RecordSortNullPositionEnum, YesNoEnum } from '@bfw/api-sdk/graphql/libs/crud.enum';
 import { rxResource, toObservable } from '@angular/core/rxjs-interop';
-import { PLATFORM_ADAPTER, PlatformAdapter } from '@libs/platform/adapter';
+import { PlatformAdapter } from '@libs/platform/adapter';
+import { PLATFORM_ADAPTER } from '@libs/platform/provider';
 
 type ThemeMode = 'light' | 'dark' | 'system';
 @Service({ autoProvided: false })

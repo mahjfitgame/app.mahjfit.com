@@ -10,6 +10,7 @@ import { MatButtonModule } from "@angular/material/button";
 import { FormsModule } from "@angular/forms";
 import { InternationalizationComponent } from "@base/internationalization/component";
 import { ThemeComponent } from "@base/theme/component";
+import { ClientSessionService } from "@libs/client-session/service";
 @Component({
   selector: 'app-open-area-layout',
   standalone: true,
@@ -52,6 +53,7 @@ export class OpenAreaLayoutComponent implements OnInit, OnDestroy {
     // libs
     private readonly conf = inject(ConfService);
     private readonly log = inject(LogService);
+    public readonly session = inject(ClientSessionService);
 
     // third party
 

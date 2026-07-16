@@ -31,6 +31,10 @@
                 </a>
             }
         </div>
+        @if(session.state.st() !== null) {
+            <a matButton="text" class="tw:text-xs" [routerLink]=""signout>Sign out</a>
+        }
+        
 
         <app-theme></app-theme>
         <app-internationalization></app-internationalization>

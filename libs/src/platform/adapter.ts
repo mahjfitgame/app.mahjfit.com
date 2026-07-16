@@ -1,6 +1,4 @@
-import { InjectionToken, Provider, Type, inject } from '@angular/core';
-
-import { CapacitorPlatformAdapter } from './capacitor.adapter';
+// file: libs/src/platform/adapter.ts
 import { PlatformKeyboardResizeEnum } from './enum';
 import type {
   PlatformBatteryInfoType,
@@ -77,17 +75,4 @@ export interface PlatformAdapter {
   addKeyboardDidHideListener(
     callback: () => void,
   ): Promise<PlatformPluginListenerHandleType | null>;
-}
-
-export const PLATFORM_ADAPTER = new InjectionToken<PlatformAdapter>('PLATFORM_ADAPTER', {
-  providedIn: 'root',
-  factory: () => inject(CapacitorPlatformAdapter),
-});
-
-/** Override the default Capacitor adapter without changing application code. */
-export function providePlatformAdapter(adapter: Type<PlatformAdapter>): Provider {
-  return {
-    provide: PLATFORM_ADAPTER,
-    useClass: adapter,
-  };
 }

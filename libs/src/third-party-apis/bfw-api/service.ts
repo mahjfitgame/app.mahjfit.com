@@ -1,12 +1,9 @@
-import { inject, Injectable } from "@angular/core";
+import { inject, Injectable, Service } from "@angular/core";
 import { io } from 'socket.io-client';
 import { BfwApiSdk, DefaultHeaders } from "@bfw/api-sdk/core";
 import { GraphLoginOutputDto, GraphSignupOutputDto } from '@bfw/api-sdk/graphql/endpoints/shared';
 import { ConfService } from "@libs/conf/service";
 import { LogService } from "@libs/log/service";
-import { PlatformService } from "@libs/platform/service";
-import { I18nService } from "@base/internationalization/service";
-import { AuthSessionState } from "@libs/auth-session/state";
 
 /*
 i have a api sdk package
@@ -42,14 +39,11 @@ now this is different use case and api is different.
 
 so i need some robust solution which improve performance and setup standes to use api through the application.
 */
-@Injectable({providedIn: 'root'})
+@Service()
 export class BfwApiService {
     public readonly conf: ConfService = inject(ConfService);
     public readonly log: LogService = inject(LogService);
 
-    public readonly i18n: I18nService = inject(I18nService);
-    public readonly ps: PlatformService = inject(PlatformService);
-    
     public sdk!: BfwApiSdk;
     constructor() {
         this.init();
@@ -73,6 +67,14 @@ export class BfwApiService {
                         },
                         socketFactory: ({ url, options }) => io(url, options),
                     },
+                    /*fetchImpl: async (url, init) => {
+                        console.log('[SDK fetch debug]', {
+                            url,
+                            credentials: init?.credentials,
+                            headers: init?.headers,
+                        });
+                        return fetch(url, init);
+                    },*/
                 },
                 rest: { 
                     baseUrl: this.conf.bfwApiSdkRestUrl, 
@@ -85,10 +87,14 @@ export class BfwApiService {
                     logRequest: true,
                     logResponse: true,
                     headers: {
-                        [DefaultHeaders.ACCEPT_LANGUAGE]: () => this.i18n.currentLang(),
-                        [DefaultHeaders.CURRENT_BIDI]: () => this.i18n.state.bidi(),
-                        [DefaultHeaders.DTOKEN]: () => this.ps.state.dtoken(),
-                        // need to add tenant id later on
+                        // TODO: we can to add required headers as needed 
+                        // such as tenant id later on if its direct and no process required
+                        /**
+                         * there are some headers set from respective state list is as below
+                         * this is because it depends on the process required some input from client
+                         * - src/app/base/internationalization/state.ts
+                         * - libs/src/auth-session/state.ts
+                         */
                     }
                 },
             });

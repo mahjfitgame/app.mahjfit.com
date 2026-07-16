@@ -8,14 +8,16 @@ import { SigninStepEnum, UserMultiFactorAuthenticationTypeEnum, UserMultiFactorA
 import { CrudFieldUiTypeEnum } from "@base/crud/enum";
 import { form, hidden, minLength, required, validate } from "@angular/forms/signals";
 import { GlobalProgressBarService } from "@base/global-progress-bar/service";
-import { AuthSessionService } from "@libs/auth-session/service";
+import { ClientSessionService } from "@libs/client-session/service";
+import { BfwApiService } from "@libs/third-party-apis/bfw-api";
 
 @Service({ autoProvided: false })
 export class SigninState extends SignalStateService {
     private readonly conf = inject(ConfService);
     private readonly log = inject(LogService);
     private readonly gpbs = inject(GlobalProgressBarService);
-    private readonly session = inject(AuthSessionService);
+    private readonly session = inject(ClientSessionService);
+    private readonly api = inject(BfwApiService);
 
     // required for persisted state
     protected override readonly storeKey = 'sin';
@@ -236,7 +238,7 @@ export class SigninState extends SignalStateService {
     public readonly disable_resend_otp = computed(() => this.computedDisableResendOtp());
 
     // debug helper (template-friendly): shows the state info as set.
-    public readonly debug: boolean = false;
+    public readonly debug: boolean = true;
     public readonly debugState = computed(() => ({
         step: this.step(),
         heading: this.heading(),

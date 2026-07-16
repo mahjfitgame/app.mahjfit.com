@@ -2,7 +2,7 @@ import { computed, inject, Service, signal } from '@angular/core';
 import { LogService } from '@libs/log/service';
 import { SignalStateService } from '@libs/signal-state/service';
 
-import { PLATFORM_ADAPTER, type PlatformAdapter } from './adapter';
+import { type PlatformAdapter } from './adapter';
 import {
   PLATFORM_KBD_EVENT_DID_HIDE,
   PLATFORM_KBD_EVENT_DID_SHOW,
@@ -20,6 +20,7 @@ import type {
   PlatformPluginListenerHandleType,
   PlatformScreenSizeType,
 } from './type';
+import { PLATFORM_ADAPTER } from './provider';
 
 @Service()
 export class PlatformState extends SignalStateService {
@@ -32,26 +33,7 @@ export class PlatformState extends SignalStateService {
   private runtimeActive = false;
   private runtimeInitialized = false;
 
-  private readonly _dtoken = this.localStoragePersistSignal<string | null>(
-    'dtoken',
-    null,
-    {
-        crossTab: true,
-        validate: (value): value is string | null => value === null || typeof value === 'string',
-    }
-    );
-  public readonly dtoken = this._dtoken.asReadonly();
-
-  private readonly _dpid = this.localStoragePersistSignal<string | null>(
-    'dpid',
-    null,
-    {
-        crossTab: true,
-        validate: (value): value is string | null => value === null || typeof value === 'string',
-    }
-    );
-  public readonly dpid = this._dpid.asReadonly();
-
+  // for persistent storage params for security reasons keep names unpredictable obfuscated, such as dtoken becomes token
   private readonly _batteryLevel = signal<number | null>(null);
   public readonly batteryLevel = this._batteryLevel.asReadonly();
 
@@ -89,12 +71,34 @@ export class PlatformState extends SignalStateService {
 
   private readonly _runtimeReady = signal(false);
   public readonly runtimeReady = this._runtimeReady.asReadonly();
-  /** @deprecated Use runtimeReady; retained for application compatibility. */
-  public readonly kbdReady = this.runtimeReady;
 
+  // comment this in production mode to reduce memory usage and browser load
+  public readonly debugState = computed(() => ({
+      batteryLevel: this.batteryLevel(),
+      isCharging: this.isCharging(),
+      networkConnected: this.networkConnected(),
+      isOnline: this.isOnline(),
+      networkConnectionType: this.networkConnectionType(),
+      orientation: this.orientation(),
+      screenSize: this.screenSize(),
+      kbdIsVisible: this.kbdIsVisible(),
+      kbdHeight: this.kbdHeight(),
+      kbdResizeMode: this.kbdResizeMode(),
+      kbdPhase: this.kbdPhase(),
+      runtimeReady: this.runtimeReady(),
+  }));
   constructor() {
     super();
     this.initializeSignalState();
+  }
+  protected override onActivate(): void {
+    this.runtimeActive = true;
+    void this.init();
+  }
+
+  protected override onDeactivate(): void {
+    this.runtimeActive = false;
+    this._runtimeReady.set(false);
   }
 
   /** Resolves after the initial runtime snapshot and listeners have been initialized. */
@@ -112,43 +116,6 @@ export class PlatformState extends SignalStateService {
     });
 
     return this.initPromise;
-  }
-
-  public setDtoken(value: string | null): void {
-    this._dtoken.set(value);
-  }
-
-  public setDpid(value: string | null): void {
-    this._dpid.set(value);
-  }
-
-  public debug(): Readonly<Record<string, unknown>> {
-    return {
-      dtoken: this.dtoken(),
-      dpid: this.dpid(),
-      batteryLevel: this.batteryLevel(),
-      isCharging: this.isCharging(),
-      networkConnected: this.networkConnected(),
-      isOnline: this.isOnline(),
-      networkConnectionType: this.networkConnectionType(),
-      orientation: this.orientation(),
-      screenSize: this.screenSize(),
-      kbdIsVisible: this.kbdIsVisible(),
-      kbdHeight: this.kbdHeight(),
-      kbdResizeMode: this.kbdResizeMode(),
-      kbdPhase: this.kbdPhase(),
-      runtimeReady: this.runtimeReady(),
-    };
-  }
-
-  protected override onActivate(): void {
-    this.runtimeActive = true;
-    void this.init();
-  }
-
-  protected override onDeactivate(): void {
-    this.runtimeActive = false;
-    this._runtimeReady.set(false);
   }
 
   private async initializeRuntime(): Promise<void> {

@@ -19,8 +19,6 @@ import { TranslocoModule } from "@jsverse/transloco";
 import { URL_PROVIDER } from "@libs/url/provider";
 import { CRUD_PROVIDER } from "@base/crud/provider";
 import { NotifyBannerComponent } from "@base/notify-banner/component";
-import { ServiceExample } from "@libs/signal-state/example/service";
-import { StateExample } from "@libs/signal-state/example/state";
 import { SigninState } from "@module/shared/onboarding/signin/state";
 
 @Component({

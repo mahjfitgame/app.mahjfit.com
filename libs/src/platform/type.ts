@@ -93,7 +93,6 @@ export interface PlatformHandshakeInfoType {
   mac_address?: string;
   user_defined_id: string;
   user_defined_name: string;
-  dtoken: string | null;
   dpid: string;
   avatar: string;
   useragent: string;

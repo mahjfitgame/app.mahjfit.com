@@ -209,6 +209,7 @@
                             <mat-icon class="material-symbols-rounded tw:text-7xl! tw:h-18! tw:w-18!">
                                 verified_user
                             </mat-icon>
+                            
                         </div>
                     }
 
@@ -255,6 +256,7 @@
                     @if(service.state.debug) {
                         <div class="tw:mt-4 tw:rounded-2xl tw:bg-black/5 tw:p-3 tw:text-xs tw:leading-relaxed tw:dark:bg-white/5">
                             <div class="tw:font-semibold">{{ 'GL.DEBUG.DEBUG_INFO' | transloco }}</div>
+                            <pre class="tw:mt-1 tw:whitespace-pre-wrap tw:wrap-break-word">{{ service.session.state.debugState() | json }}</pre>
                             <div>{{ 'GL.COMMON.STEP' | transloco }}: {{ service.state.step() }}</div>
                             <div class="tw:mt-2 tw:font-semibold">Data State</div>
                             <pre class="tw:mt-1 tw:whitespace-pre-wrap tw:wrap-break-word">{{ service.state.debugState() | json }}</pre>

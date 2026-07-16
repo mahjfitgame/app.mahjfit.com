@@ -11,18 +11,15 @@ import { ForgotPasswordService } from "@module/shared/onboarding/forgot-password
 import { GlobalProgressBarService } from "@base/global-progress-bar/service";
 import { I18nService } from "@base/internationalization/service";
 import { ONBOARDING_SIGNIN_I18N_KEY, UserMultiFactorAuthenticationOptionMap } from "@module/shared/onboarding/signin/const";
-import { AppStepSigninSubProcessOutputDto, AppStepSigninUserOutputDto, AppStepSigninUserOutputSelectionSchema, AuthorisationRoleEnum, AuthorisationRoleEnumAddon, SigninStepEnum, StepSigninSubProcessEnum, UserAuthentication, UserMultiFactorAuthenticationTypeEnum, UserMultiFactorAuthenticationTypeEnumAddon } from "@bfw/api-sdk/graphql/endpoints/shared";
+import { AppStepSigninInputDto, AppStepSigninSubProcessOutputDto, AppStepSigninUserOutputDto, AppStepSigninUserOutputSelectionSchema, AuthorisationRoleEnum, SigninStepEnum, StepSigninSubProcessEnum, UserAuthentication, UserMultiFactorAuthenticationTypeEnum, UserMultiFactorAuthenticationTypeEnumAddon } from "@bfw/api-sdk/graphql/endpoints/shared";
 import { NotifyService } from "@base/notify/service";
 import { NotifyBannerService } from "@base/notify-banner/service";
 import { ApiError } from "@bfw/api-sdk/core";
 import { AuthAreaLayoutStateRuntimeEnum } from "src/app/area/auth/enum";
 import { SigninState } from "./state";
-import { NotificationService } from "@libs/notification/service";
-//import { NotificationService } from "src/app/base/notification/service";
-
-
-import { YesNoEnum } from "@bfw/api-sdk/graphql/libs/crud.enum";
-import { AuthSessionService } from "@libs/auth-session/service";
+import { ClientSessionService } from "@libs/client-session/service";
+import { SignatureService } from "@libs/signature/service";
+import { UtilityService } from "@libs/utility/service";
 
 @Service({ autoProvided: false })
 export class SigninService {
@@ -37,14 +34,15 @@ export class SigninService {
     public readonly log = inject(LogService);
     public readonly i18n = inject(I18nService);
     public readonly ps = inject(PlatformService);
+    public readonly session = inject(ClientSessionService);
     public readonly notify = inject(NotifyService);
     public readonly notifyBanner = inject(NotifyBannerService);
+    public readonly sign = inject(SignatureService);
+    public readonly utility = inject(UtilityService);
     
     public readonly api = inject(BfwApiService);
-    private readonly session = inject(AuthSessionService);
 
     public readonly state = inject(SigninState);
-    public readonly notificationService = inject(NotificationService);
 
     constructor(){
         // load api service
@@ -53,8 +51,7 @@ export class SigninService {
         effect(() => {
             this.syncHeadingsForStep();
         });
-        //this.notificationService.initPushNotification();
-        this.notificationService.init();
+        // we might need notification service here
     }
     public initI18n(): void {
         this.i18n.useModule(ONBOARDING_SIGNIN_I18N_KEY);
@@ -189,19 +186,25 @@ export class SigninService {
                 default:
                 break;
             }
-            this.gpbs.stream = 40;
+            this.gpbs.stream = 30;
             // perform common process
             if(resp) {
                 // state: save the response, use if required, added provision and might be use ful in debugging
                 this.state.pushStepResponse(this.state.step(), resp); // for now there is no use, only debugging
-                this.gpbs.stream = 50;
+                this.gpbs.stream = 40;
 
                 // state: keep the stamp for secure process
                 this.state.setStamp(resp.stamp as string);
-                this.gpbs.stream = 60;
+                this.gpbs.stream = 50;
 
                 // state: set step sequence
                 this.state.updateStepSequence(resp.next_step as SigninStepEnum, resp.previous_step as SigninStepEnum);
+                this.gpbs.stream = 60;
+
+                // state: updated user device as it might get changed during process due to any availabe previous session
+                if(resp.dkeyid){
+                    this.session.state.setDkeyid(resp.dkeyid as string);    
+                }
                 this.gpbs.stream = 70;
 
                 // state: keep available_mfao for next step
@@ -238,7 +241,7 @@ export class SigninService {
 
                 // state: go to next step
                 this.state.setStep(resp.next_step as SigninStepEnum);
-
+                
                 this.gpbs.stream = 90;
 
                 /**
@@ -265,6 +268,7 @@ export class SigninService {
     public getStepSigninSelection(): AppStepSigninUserOutputSelectionSchema {
         const selection: AppStepSigninUserOutputSelectionSchema = {
             stamp: true,
+            dkeyid: true,
             next_step: true,
             previous_step: true,
             ref_id: true,
@@ -338,6 +342,15 @@ export class SigninService {
         };
         return selection;
     }
+    public getStepSigninDefaultInput(): AppStepSigninInputDto {
+        const input: AppStepSigninInputDto = {
+            dkeyid: this.session.state.dkeyid() ?? undefined,
+            dtoken: this.session.state.dtoken() as string,
+            dpid: this.session.state.dpid() as string,
+            stamp: this.state.stamp(),
+        };
+        return input;
+    }
     public async stepUsername(): Promise<AppStepSigninUserOutputDto> {
         const un_pe_pm: string = this.state.mutationForm.un_pe_pm().value();
         try {
@@ -345,10 +358,9 @@ export class SigninService {
                 await this.api.sdk.graphql.userAuthentication.stepSigninUser({
                 selection: this.getStepSigninSelection(),
                 input: {
-                    dtoken: this.ps.state.dtoken() as string,
-                    dpid: this.ps.state.dpid() as string,
+                    ...this.getStepSigninDefaultInput(),
+
                     arole_id: AuthorisationRoleEnum.SUPER_ADMIN,
-                    stamp: this.state.stamp(),
                     un_pe_pm: un_pe_pm
                 }
             });
@@ -367,16 +379,16 @@ export class SigninService {
     }
     public async stepPassword(): Promise<AppStepSigninUserOutputDto> {
         const identify: string = this.state.mutationForm.identify().value();
+
         try{
             const resp: AppStepSigninUserOutputDto = 
                 await this.api.sdk.graphql.userAuthentication.stepSigninPassword({
                 selection: this.getStepSigninSelection(),
                 input: {
-                    dtoken: this.ps.state.dtoken() as string,
-                    dpid: this.ps.state.dpid() as string,
-                    keep_logged: this.state.mutationForm.keep_logged().value() ? YesNoEnum.YES : YesNoEnum.NO,
-                    stamp: this.state.stamp(),
-                    identify: identify
+                    ...this.getStepSigninDefaultInput(),
+
+                    keep_logged: this.state.mutationForm.keep_logged().value() ? new Date() : null,
+                    identify: this.utility.packString(identify),
                 }
             });
             return resp;
@@ -399,9 +411,8 @@ export class SigninService {
                 await this.api.sdk.graphql.userAuthentication.stepSigninMultiFAOption({
                 selection: this.getStepSigninSelection(),
                 input: {
-                    dtoken: this.ps.state.dtoken() as string,
-                    dpid: this.ps.state.dpid() as string,
-                    stamp: this.state.stamp(),
+                    ...this.getStepSigninDefaultInput(),
+
                     mfa_option: UserMultiFactorAuthenticationOptionMap[mfao]
                 }
             });
@@ -421,9 +432,8 @@ export class SigninService {
                 await this.api.sdk.graphql.userAuthentication.stepSigninVerify({
                 selection: this.getStepSigninSelection(),
                 input: {
-                    dtoken: this.ps.state.dtoken() as string,
-                    dpid: this.ps.state.dpid() as string,
-                    stamp: this.state.stamp(),
+                    ...this.getStepSigninDefaultInput(),
+
                     otp: vi,
                     answer: vi
                 }
@@ -445,9 +455,8 @@ export class SigninService {
                 await this.api.sdk.graphql.userAuthentication.stepSigninSubProcess({
                 selection: this.getStepSigninSelection(),
                 input: {
-                    dtoken: this.ps.state.dtoken() as string,
-                    dpid: this.ps.state.dpid() as string,
-                    stamp: this.state.stamp(),
+                    ...this.getStepSigninDefaultInput(),
+
                     sub_process: StepSigninSubProcessEnum.RESEND_OTP
                 }
             });
@@ -511,8 +520,11 @@ export class SigninService {
             session?.active === null &&
             session?.deleted === null
         ) {
-            // set the state ful jwt in persistent storage
-             this.session.state.setSession(session?.jwt ?? null, session?.keep_logged ?? YesNoEnum.NO);
+            // set the stateful jwt in persistent storage
+            this.session.state.setSt(
+                session?.jwt ?? null, 
+                session?.keep_logged ?? null
+            );
         }
     }
 

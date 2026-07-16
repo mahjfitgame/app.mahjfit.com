@@ -9,8 +9,8 @@ import { I18nService } from "@base/internationalization/service";
 import { SplashScreenService } from "@base/splash-screen/service";
 import { GlobalProgressBarService } from "@base/global-progress-bar/service";
 import { Router } from "@angular/router";
-import { UserDevice, UserDeviceHandShakeInputDto, UserDeviceHandShakeOutputDto, UserDeviceHandShakeOutputSelectionSchema, UserWsToken } from "@bfw/api-sdk/graphql/endpoints/shared";
-import { AuthSessionService } from "@libs/auth-session/service";
+import { AppClientServerHandShakeOutputDto, UserAuthentication, UserDevice, UserDeviceHandShakeInputDto, UserDeviceHandShakeOutputDto, UserDeviceHandShakeOutputSelectionSchema, UserWsToken } from "@bfw/api-sdk/graphql/endpoints/shared";
+import { ClientSessionService } from "@libs/client-session/service";
 
 @Service()
 export class AppService {
@@ -25,7 +25,7 @@ export class AppService {
     public readonly ps = inject(PlatformService);
     public readonly splash = inject(SplashScreenService);
     public readonly gpbs = inject(GlobalProgressBarService);
-    public readonly session = inject(AuthSessionService);
+    public readonly session = inject(ClientSessionService);
 
     public readonly i18n = inject(I18nService);
     public readonly api = inject(BfwApiService);
@@ -45,25 +45,15 @@ export class AppService {
         // need to find some way and work around for this
         try {
             // load api service
-            this.api.sdk.graphql.use(UserDevice);
+            this.api.sdk.graphql.use(UserAuthentication);
 
             // if token is not exist, get required data
             const hsi = await this.ps.handShakeInfo();
 
-            // set handshake api response
-            const selection: UserDeviceHandShakeOutputSelectionSchema = {
-                id: true,
-                keyid: true,
-                u_id: true,
-                device_id: true,
-                dtoken: true,
-                dpid: true,
-            };
-
             // set input for new hand shake
-            const input: UserDeviceHandShakeInputDto = {
-                dtoken: hsi.dtoken ?? '0',
-                dpid: hsi.dpid ?? '0',
+            const clientInput: UserDeviceHandShakeInputDto = {
+                dtoken: '0', // by default for new device there is no dtoken
+                dpid: hsi.dpid ?? '0', // this is possible to get from native platform but in some case it might be missing 
 
                 //u_id: 0,
                 //user_defined_id: hsi.user_defined_id,
@@ -86,26 +76,49 @@ export class AppService {
             };
 
             // if token is alreadu exist
-            if(this.ps.state.dtoken() && this.ps.state.dtoken() !== null && this.ps.state.dtoken() !== ''){
+            if(this.session.state.dtoken() && this.session.state.dtoken() !== null && this.session.state.dtoken() !== ''){
                 this.log.info('[AppService] Client/Server Handshake Token Found.');
                 // set input for found token hand shake
-                input.dtoken = this.ps.state.dtoken() as string;
-                input.dpid = this.ps.state.dpid() as string;
+                clientInput.dtoken = this.session.state.dtoken() as string;
+                clientInput.dpid = this.session.state.dpid() as string;
+                clientInput.keyid = this.session.state.dkeyid() ?? undefined
             }
             
+            // set api headers, as its sartup need to make sure the headers are set for initial api call
+            this.session.state.configureBfwApiHeaders();
+
             // api handshake: check if existing or add new both in one request
-            const resp: UserDeviceHandShakeOutputDto[] = await this.api.sdk.graphql.userDevice.handShake({
-                selection: selection,
-                input: input
+            const resp: AppClientServerHandShakeOutputDto = await this.api.sdk.graphql.userAuthentication.appClientServerHandShake({
+                selection: {
+                    server: {
+                        //id: true,
+                        //u_id: true,
+                        //device_id: true,
+                        keyid: true,
+                        dtoken: true,
+                        dpid: true,
+                    },
+                    skeyid: true
+                },
+                input: {
+                    client: clientInput,
+                }
             });
 
-            const data = resp?.[0];
+            const server = resp.server;
+            const skeyid = resp.skeyid;
 
             // set hand shake identity
-            if (data && Object.keys(data).length > 0 && data.dtoken) {
-                this.ps.state.setDtoken(data.dtoken);
-                this.ps.state.setDpid(data.dpid ?? null);
-                return data?.dtoken ?? null;
+            if (server && Object.keys(server).length > 0 && server.dtoken) {
+                // set verified client info by server in state
+                this.session.state.setDtoken(server.dtoken);
+                this.session.state.setDpid(server.dpid ?? null);
+                this.session.state.setDkeyid(server.keyid ?? null);
+
+                // set user session info in state
+                this.session.state.setSkeyid(skeyid ?? null);
+
+                return server?.dtoken ?? null;
             }
 
             // handshake failed so do not allow app to run

@@ -85,6 +85,22 @@ export class AppComponent implements OnInit, OnDestroy, AfterViewInit {
     this.service.onWindowScroll();
   }
 
+  @HostListener('window:beforeunload', ['$event'])
+  public beforeTabUnload(event: BeforeUnloadEvent): void {
+    this.service.log.warn(`Tab is closed`);
+    // make sure this is not whole browser window close its only browser tab close
+    /*
+    const url = 'https://yourdomain.com';
+    const payload = JSON.stringify({ userId: '12345', timestamp: Date.now() });
+
+    // Convert your data into a Blob payload
+    const blob = new Blob([payload], { type: 'application/json' });
+
+    // The browser executes this request in the background after the tab closes
+    navigator.sendBeacon(url, blob);
+    */
+  }
+
   public registerServiceWorker(): void {
     if ('serviceWorker' in navigator) { // && !isDevMode()
       const register = () => {

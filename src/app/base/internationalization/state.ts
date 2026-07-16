@@ -5,11 +5,14 @@ import { LogService } from '@libs/log/service';
 import { SignalStateService } from '@libs/signal-state/service';
 import { I18N_P_STATE_VERSION } from '@base/internationalization/const';
 import { I18nBidiEnum, I18nLanguageEnum } from '@base/internationalization/enum';
+import { BfwApiService } from '@libs/third-party-apis/bfw-api';
+import { DefaultHeaders } from '@bfw/api-sdk/core';
 
 @Service()
 export class I18nState extends SignalStateService {
     private readonly conf = inject(ConfService)
     private readonly log = inject(LogService)
+    public readonly api = inject(BfwApiService);
 
     // required for persisted state
     protected override readonly storeKey = 'i18n';
@@ -55,8 +58,12 @@ export class I18nState extends SignalStateService {
                 return;
             }
 
+            // set i18n in html dom
             document.documentElement.setAttribute(this.attrLang, lang);
             document.documentElement.setAttribute(this.attrBidi, bidi);
+
+            // set i18n in api request header
+            this.setBfwApiHeaderI18n();
         });
 
         this.registerDeactivationCleanup(() => domEffect.destroy());
@@ -84,5 +91,13 @@ export class I18nState extends SignalStateService {
 
     private isBidi(value: unknown): value is I18nBidiEnum {
         return value === I18nBidiEnum.LTR || value === I18nBidiEnum.RTL;
+    }
+
+    // SET BFW API CONFIGURATION
+    public setBfwApiHeaderI18n(): void {
+        this.log.info('[I18nState] Setting lang and bidi in BfwApiService');
+        
+        this.api.sdk.setHeaderAcceptLanguage(this.lang());
+        this.api.sdk.setHeaderCurrentBidi(this.bidi());
     }
 }
