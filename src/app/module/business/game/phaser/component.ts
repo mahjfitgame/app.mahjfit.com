@@ -16,6 +16,7 @@ import Phaser from "phaser";
 import { TileVm, PassDirection } from "../model/tile";
 import { TableScene } from "./scenes/scene";
 import { TablePhase } from "../model/table-phase";
+import { GameHapticsService, GameHapticType } from "../platform/haptics.service";
 
 @Component({
   selector: "app-phaser-board",
@@ -60,6 +61,7 @@ export class PhaserBoardComponent implements AfterViewInit {
 
   private readonly zone = inject(NgZone);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly haptics = inject(GameHapticsService);
 
   private game?: Phaser.Game;
   private sceneReady = false;
@@ -110,6 +112,9 @@ export class PhaserBoardComponent implements AfterViewInit {
       const scene = new TableScene({
         onSelectionChanged: (ids) => this.zone.run(() => this.selectionChanged.emit(ids)),
         onPassCompleted: (payload) => this.zone.run(() => this.passCompleted.emit(payload)),
+        onHaptic: (type: GameHapticType) => {
+          void this.haptics.play(type);
+        },
       });
 
       this.game = new Phaser.Game({

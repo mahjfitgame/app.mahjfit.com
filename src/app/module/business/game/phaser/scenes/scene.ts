@@ -8,11 +8,15 @@ import { selectTileAtlas, TILE_ATLAS_1X_KEY, TILE_ATLAS_2X_KEY } from "../../til
 import { PassAnimationManager } from "../animations/pass-animation.manager";
 import { PassAnimationItem } from "../models/pass-animation.model";
 import { TablePhase } from "../../model/table-phase";
+import { inject } from "@angular/core";
+import { GameHapticsService, GameHapticType } from "../../platform/haptics.service";
 //import { AssetTextureLoader } from "../asset-texture.loader";
+
 
 interface TableSceneCallbacks {
   readonly onSelectionChanged: (ids: readonly string[]) => void;
   readonly onPassCompleted: (payload: { readonly tileIds: readonly string[]; readonly direction: PassDirection }) => void;
+  onHaptic?: (type: GameHapticType) => void;
 }
 
 type TableSeat = "top" | "right" | "bottom" | "left";
@@ -225,6 +229,8 @@ export class TableScene extends Phaser.Scene {
     left: 0,
   };
 
+  
+
   constructor(callbacks: TableSceneCallbacks) {
     super({ key: "table-scene" });
     this.callbacks = callbacks;
@@ -366,6 +372,22 @@ export class TableScene extends Phaser.Scene {
     sound.play({
       volume: this.tileVoiceVolume,
     });
+  }
+  private playWebFallback(type: GameHapticType): void {
+    const nav = navigator as Navigator & {
+      vibrate?: (pattern: number | readonly number[]) => boolean;
+    };
+
+    if (typeof nav.vibrate !== "function") {
+      return;
+    }
+
+    if (type === "pass-submit") {
+      nav.vibrate([8, 25, 12]);
+      return;
+    }
+
+    nav.vibrate(type === "tile-discard" ? 14 : 8);
   }
 
   public setTablePhase(phase: TablePhase): void {
@@ -814,6 +836,7 @@ export class TableScene extends Phaser.Scene {
        */
       if (runtime.zone === "pass") {
         pointer.event?.stopPropagation?.();
+        this.playHaptic("tile-return");
         this.returnPassTileToRack(runtime.vm.id);
         return;
       }
@@ -1024,6 +1047,7 @@ export class TableScene extends Phaser.Scene {
 
         this.lastTapAtByTileId.set(runtime.vm.id, now);
 
+        this.playHaptic("tile-tap");
         if (now - previous <= this.doubleTapMs) {
           this.snapTileToPassWaiting(runtime);
         }
@@ -1031,6 +1055,7 @@ export class TableScene extends Phaser.Scene {
         return;
       }
 
+      this.playHaptic("tile-tap");
       this.toggleTile(runtime);
     });
   }
@@ -2049,6 +2074,7 @@ private animatePassedTiles(
 
     container.on("pointerdown", () => {
       if (this.tablePhase === "playing") {
+        this.playHaptic("pick");
         this.pickTileForSeat(this.pickTargetSeat);
         return;
       }
@@ -2056,6 +2082,7 @@ private animatePassedTiles(
       if (!this.canSubmitPassWaitingTiles()) return;
       if (this.isPassAnimating) return;
 
+      this.playHaptic("pass-submit");
       this.submitPassWaitingTiles();
     });
 
@@ -2483,6 +2510,7 @@ private snapTileToDiscard(runtime: TileRuntime): void {
     ease: "Sine.easeOut",
   });
 
+  this.playHaptic("tile-discard");
   this.playTileDiscardVoice(runtime.vm);
 
   this.layoutRackTiles(true);
@@ -2822,6 +2850,7 @@ private layoutRackTiles(animate: boolean): void {
     this.passWaitingTileIds.push(runtime.vm.id);
     this.ensurePassCloseButton(runtime.vm.id);
 
+    this.playHaptic("tile-pass");
     this.playSfx("tile-pass-waiting");
     this.layoutRackTiles(true);
     this.layoutPassWaitingTiles(true);
@@ -2841,6 +2870,7 @@ private layoutRackTiles(animate: boolean): void {
       hasCloseButton: this.passCloseButtons.has(tileId),
     });
     if (runtime.zone !== "pass") return;
+    this.playHaptic("tile-return");
 
     const close = this.passCloseButtons.get(tileId);
     close?.disableInteractive();
@@ -3863,7 +3893,11 @@ console.log("RETURN AFTER REMOVE", {
     this.sfxReady = true;
   }
 
+  private playHaptic(type: GameHapticType): void {
+    this.callbacks.onHaptic?.(type);
+  }
 
+  
   private playSfx(id: TableSfxId): void {
     const config = this.sfxConfig[id];
     const pool = this.sfxPools.get(id);

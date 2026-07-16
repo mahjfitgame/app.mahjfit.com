@@ -4,6 +4,7 @@ import { PhaserBoardComponent } from "../phaser/component";
 import { PassDirection, TileSoundKey, TileSuit, TileVm } from "../model/tile";
 import { resolveTileSoundKey } from "../model/tile-sound.resolver";
 import { TablePhase } from "../model/table-phase";
+import { Haptics, ImpactStyle, NotificationType } from "@capacitor/haptics";
 
 interface TileVmInput {
   readonly id: string;
@@ -41,6 +42,11 @@ function createTileVm(input: TileVmInput): TileVm {
         </select>
       </label>
     </div>
+    <button class="haptic-test-button"
+      (click)="testHaptic()"
+    >
+      Test Haptic
+    </button>
     <app-phaser-board
       [rack]="rack()"
       [passDirection]="passDirection()"
@@ -87,6 +93,21 @@ function createTileVm(input: TileVmInput): TileVm {
         font: inherit;
         color: inherit;
       }
+
+      .haptic-test-button {
+        position: fixed;
+        top: max(80px, env(safe-area-inset-top));
+        right: 20px;
+        z-index: 2147483647;
+        pointer-events: auto;
+        padding: 12px 16px;
+        border: 2px solid red;
+        border-radius: 10px;
+        background: yellow;
+        color: black;
+        font-size: 16px;
+        font-weight: 800;
+      }
     `,
   ],
 })
@@ -113,6 +134,19 @@ export class GameShellComponent {
     createTileVm({ id: "t14", code:'WS', label: "South", suit: "wind", asset: "assets/game/tiles/wind_s.svg" }),
   ]);
 
+  async testHaptic(): Promise<void> {
+    console.log("TEST HAPTIC CLICKED");
+
+    await Haptics.impact({ style: ImpactStyle.Heavy });
+
+    setTimeout(() => {
+      void Haptics.notification({ type: NotificationType.Success });
+    }, 500);
+
+    setTimeout(() => {
+      void Haptics.vibrate({ duration: 400 });
+    }, 1000);
+  }
   handlePassCompletedOLD(event: { readonly tileIds: readonly string[]; readonly direction: PassDirection }): void {
     const passedIds = new Set(event.tileIds);
     this.rack.update((tiles) => tiles.filter((tile) => !passedIds.has(tile.id)));
