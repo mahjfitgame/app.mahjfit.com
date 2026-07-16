@@ -1595,6 +1595,172 @@ private animatePassedTiles(
     };
   }
   private drawTable(): void {
+    const g = this.graphics;
+
+    g.clear();
+
+    const canvas = this.layout.canvas;
+    const table = this.layout.tableOuter;
+    const hud = this.layout.hud;
+    const instruction = this.layout.instructionBar;
+
+    /**
+     * PSD colors.
+     */
+    const pageColor = 0x151d3b;
+    const tableColor = 0xb832a6;
+    const tableBorderDark = 0x111827;
+    const tableBorderLight = 0xd34fbd;
+    const panelColor = 0x172447;
+    const cardColor = 0xffffff;
+
+    g.fillStyle(pageColor, 1);
+    g.fillRect(0, 0, canvas.width, canvas.height);
+
+    /**
+     * Top HUD.
+     */
+    g.fillStyle(0x121a36, 1);
+    g.fillRect(hud.x, hud.y, hud.width, hud.height);
+
+    /**
+     * Main PSD board.
+     */
+    const tableRadius = this.layout.metrics.isMobile ? 14 : 24;
+
+    g.fillStyle(tableBorderDark, 1);
+    g.fillRoundedRect(
+      table.x,
+      table.y,
+      table.width,
+      table.height,
+      tableRadius,
+    );
+
+    g.fillStyle(tableBorderLight, 1);
+    g.fillRoundedRect(
+      table.x + 5,
+      table.y + 5,
+      table.width - 10,
+      table.height - 10,
+      Math.max(8, tableRadius - 4),
+    );
+
+    g.fillStyle(tableColor, 1);
+    g.fillRoundedRect(
+      table.x + 12,
+      table.y + 12,
+      table.width - 24,
+      table.height - 24,
+      Math.max(8, tableRadius - 8),
+    );
+
+    /**
+     * Player exposure/rack panels.
+     */
+    this.drawPsdPanel(this.layout.leftExposure, panelColor, true);
+    this.drawPsdPanel(this.layout.rightExposure, panelColor, true);
+    this.drawPsdPanel(this.layout.topExposure, panelColor, false);
+    this.drawPsdPanel(this.layout.bottomExposure, panelColor, false);
+
+    this.drawActiveSeatExposureHighlight();
+
+    /**
+     * Discard area is intentionally transparent in PSD.
+     * Keep a very subtle invisible structure only for readability/testing.
+     */
+    g.fillStyle(0xffffff, 0.035);
+    g.fillRoundedRect(
+      this.layout.discardArea.x,
+      this.layout.discardArea.y,
+      this.layout.discardArea.width,
+      this.layout.discardArea.height,
+      14,
+    );
+
+    /**
+     * Center instruction card.
+     */
+    g.fillStyle(0x000000, 0.16);
+    g.fillRoundedRect(
+      instruction.x + 4,
+      instruction.y + 6,
+      instruction.width,
+      instruction.height,
+      20,
+    );
+
+    g.fillStyle(cardColor, 1);
+    g.fillRoundedRect(
+      instruction.x,
+      instruction.y,
+      instruction.width,
+      instruction.height,
+      20,
+    );
+
+    g.lineStyle(1, 0xe5e7eb, 1);
+    g.strokeRoundedRect(
+      instruction.x,
+      instruction.y,
+      instruction.width,
+      instruction.height,
+      20,
+    );
+  }
+  private drawPsdPanel(rect: Rect, color: number, vertical: boolean): void {
+    const g = this.graphics;
+    const radius = this.layout.metrics.isMobile ? 8 : 14;
+
+    g.fillStyle(0x000000, 0.22);
+    g.fillRoundedRect(
+      rect.x + 4,
+      rect.y + 5,
+      rect.width,
+      rect.height,
+      radius,
+    );
+
+    g.fillStyle(color, 1);
+    g.fillRoundedRect(
+      rect.x,
+      rect.y,
+      rect.width,
+      rect.height,
+      radius,
+    );
+
+    g.lineStyle(2, 0x263b6b, 1);
+    g.strokeRoundedRect(
+      rect.x + 1,
+      rect.y + 1,
+      rect.width - 2,
+      rect.height - 2,
+      radius,
+    );
+
+    /**
+     * Small inner guide line like the PSD rack slots.
+     */
+    g.lineStyle(1, 0xffffff, 0.08);
+
+    if (vertical) {
+      g.lineBetween(
+        rect.x + rect.width / 2,
+        rect.y + 12,
+        rect.x + rect.width / 2,
+        rect.y + rect.height - 12,
+      );
+    } else {
+      g.lineBetween(
+        rect.x + 12,
+        rect.y + rect.height / 2,
+        rect.x + rect.width - 12,
+        rect.y + rect.height / 2,
+      );
+    }
+  }
+  private drawTableOLD(): void {
     const c = this.config.colors;
     const g = this.graphics;
 
@@ -1839,13 +2005,29 @@ private animatePassedTiles(
     tilesLeft.setFontStyle("500");
     actions.setFontStyle("500");
 
-    iconLeft.setPosition(
+    /* iconLeft.setPosition(
       hud.x + hud.width * 0.018,
       hud.y + hud.height / 2,
     );
 
     points.setPosition(
       hud.x + hud.width * 0.055,
+      hud.y + hud.height / 2,
+    ); */
+
+    iconLeft
+    .setText("☰  MAJHFIT")
+    .setOrigin(0, 0.5)
+    .setPosition(
+      hud.x + Math.max(16, hud.height * 0.32),
+      hud.y + hud.height / 2,
+    );
+
+  points
+    .setText("1,000 POINTS")
+    .setOrigin(0, 0.5)
+    .setPosition(
+      hud.x + hud.width - Math.max(420, hud.width * 0.33),
       hud.y + hud.height / 2,
     );
 
@@ -1870,13 +2052,22 @@ private animatePassedTiles(
       this.hudMenuOpen = false;
     }
 
-    this.instructionText
+    /* this.instructionText
       ?.setPosition(
         this.layout.instructionBar.x + this.layout.instructionBar.width / 2,
         this.layout.instructionBar.y + this.layout.instructionBar.height / 2,
       )
       .setFontSize(metrics.instructionFont)
-      .setFontStyle("400");
+      .setFontStyle("400"); */
+
+    this.instructionText
+    ?.setPosition(
+      this.layout.instructionBar.x + this.layout.instructionBar.width / 2,
+      this.layout.instructionBar.y + this.layout.instructionBar.height * 0.36,
+    )
+    .setFontSize(metrics.instructionFont)
+    .setFontStyle("700")
+    .setColor("#172447");
 
     this.updateInstructionText();
 
@@ -1898,10 +2089,16 @@ private animatePassedTiles(
       .setFontStyle("400")
       .setAngle(-90);
 
+    /* this.usernameText
+      ?.setPosition(this.layout.username.x, this.layout.username.y)
+      .setFontSize(metrics.usernameFont)
+      .setFontStyle("400"); */
+
     this.usernameText
       ?.setPosition(this.layout.username.x, this.layout.username.y)
       .setFontSize(metrics.usernameFont)
-      .setFontStyle("400");
+      .setFontStyle("700")
+      .setColor("#ffe94a");
 
     /* for (const text of [
       iconLeft,
@@ -1953,6 +2150,72 @@ private animatePassedTiles(
   }
 
   private layoutWallTileBox(): void {
+    if (!this.wallTileBox || this.hudTextObjects.length < 3) return;
+
+    const hud = this.layout.hud;
+    const metrics = this.layout.metrics;
+    const tilesLeft = this.hudTextObjects[2];
+
+    this.updateWallCountText();
+
+    tilesLeft
+      .setOrigin(0, 0.5)
+      .setFontSize(metrics.hudCounterFont)
+      .setFontStyle("700")
+      .setColor("#ffffff");
+
+    const size = this.wallTileBoxSize();
+    const gap = Math.max(7, Math.round(size.width * 0.34));
+
+    /**
+     * PSD: wall icon + 93 LEFT sits in the top HUD, right of center.
+     */
+    const groupLeft = hud.x + hud.width - Math.max(650, hud.width * 0.48);
+
+    this.wallTileBox.setPosition(
+      Math.round(groupLeft + size.width / 2),
+      Math.round(hud.y + hud.height / 2),
+    );
+
+    tilesLeft.setPosition(
+      Math.round(groupLeft + size.width + gap),
+      Math.round(hud.y + hud.height / 2),
+    );
+
+    const graphics = this.wallTileBox.list[0] as Phaser.GameObjects.Graphics;
+    const radius = Math.max(3, Math.round(Math.min(size.width, size.height) * 0.14));
+
+    graphics.clear();
+    graphics.fillStyle(0xffffff, 1);
+    graphics.fillRoundedRect(
+      -size.width / 2,
+      -size.height / 2,
+      size.width,
+      size.height,
+      radius,
+    );
+
+    graphics.lineStyle(1, 0xd9d9d9, 1);
+    graphics.strokeRoundedRect(
+      -size.width / 2,
+      -size.height / 2,
+      size.width,
+      size.height,
+      radius,
+    );
+
+    const inset = Math.max(2, Math.round(Math.min(size.width, size.height) * 0.12));
+
+    graphics.lineStyle(1, 0xf1f5f9, 1);
+    graphics.strokeRoundedRect(
+      -size.width / 2 + inset,
+      -size.height / 2 + inset,
+      size.width - inset * 2,
+      size.height - inset * 2,
+      Math.max(2, radius - 1),
+    );
+  }
+  private layoutWallTileBoxOLD(): void {
     if (!this.wallTileBox || this.hudTextObjects.length < 3) return;
 
     const hud = this.layout.hud;
@@ -2128,7 +2391,8 @@ private animatePassedTiles(
     );
 
     bg.clear();
-    bg.fillStyle(this.config.colors.accent, 1);
+    //bg.fillStyle(this.config.colors.accent, 1);
+    bg.fillStyle(0xcb2aa3, 1);
     bg.fillRoundedRect(
       -button.width / 2,
       -button.height / 2,
@@ -2140,6 +2404,7 @@ private animatePassedTiles(
     text
       .setFontSize(metrics.passFont)
       .setFontStyle("700")
+      .setColor("#ffffff")
       .setPosition(0, 0);
 
     this.passButton.setInteractive(
@@ -2154,6 +2419,30 @@ private animatePassedTiles(
   }
 
   private updateInstructionText(): void {
+    if (this.tablePhase === "playing") {
+      const seatLabel =
+        this.pickTargetSeat === "bottom"
+          ? "YOUR RACK"
+          : this.pickTargetSeat === "top"
+            ? "TOP SEAT"
+            : this.pickTargetSeat === "left"
+              ? "LEFT SEAT"
+              : "RIGHT SEAT";
+
+      this.instructionText?.setText(`YOUR TURN\nPick a tile to ${seatLabel}`);
+      return;
+    }
+
+    const label =
+      this.passDirection === "right"
+        ? "YOUR TURN\nSelect 3 tiles to pass to the right."
+        : this.passDirection === "left"
+          ? "YOUR TURN\nSelect 3 tiles to pass to the left."
+          : "YOUR TURN\nSelect 3 tiles to pass across.";
+
+    this.instructionText?.setText(label);
+  }
+  private updateInstructionTextOLD(): void {
   if (this.tablePhase === "playing") {
     const seatLabel =
       this.pickTargetSeat === "bottom"
@@ -2221,7 +2510,7 @@ private animatePassedTiles(
       fontFamily: "Poppins, Arial",
       fontSize: "24px",
       fontStyle: "700",
-      color: "#cb2aa3",
+      color: "#ffffff",
     };
   }
 
@@ -2458,193 +2747,193 @@ private animatePassedTiles(
     return targetIndex;
   }
 
-private isInsideRackArea(x: number, y: number): boolean {
-  return Phaser.Geom.Rectangle.Contains(
-    new Phaser.Geom.Rectangle(
-      this.layout.bottomRack.x,
-      this.layout.bottomRack.y,
-      this.layout.bottomRack.width,
-      this.layout.bottomRack.height,
-    ),
-    x,
-    y,
-  );
-}
-private snapTileToDiscard(runtime: TileRuntime): void {
-  if (this.tablePhase !== "playing") {
-    this.returnTileToSlot(runtime);
-    return;
+  private isInsideRackArea(x: number, y: number): boolean {
+    return Phaser.Geom.Rectangle.Contains(
+      new Phaser.Geom.Rectangle(
+        this.layout.bottomRack.x,
+        this.layout.bottomRack.y,
+        this.layout.bottomRack.width,
+        this.layout.bottomRack.height,
+      ),
+      x,
+      y,
+    );
   }
-
-  this.removeFromRackOrder(runtime.vm.id);
-
-  if (!this.discardedTileIds.includes(runtime.vm.id)) {
-    this.discardedTileIds.push(runtime.vm.id);
-  }
-
-  this.reindexRackRuntimeSlots();
-
-  runtime.zone = "discard";
-  runtime.selected = false;
-  runtime.isDragging = false;
-
-  this.selectedIds.delete(runtime.vm.id);
-  runtime.image.clearTint();
-  runtime.image.setDepth(45);
-
-  const grid = this.discardGrid();
-  const slot = this.discardSlotFor(
-    this.discardedTileIds.indexOf(runtime.vm.id),
-    grid,
-  );
-
-  runtime.image.setDisplaySize(grid.tileWidth, grid.tileHeight);
-
-  this.tweens.killTweensOf(runtime.image);
-  this.tweens.add({
-    targets: runtime.image,
-    x: Math.round(slot.x),
-    y: Math.round(slot.y),
-    angle: 0,
-    duration: 160,
-    ease: "Sine.easeOut",
-  });
-
-  this.playHaptic("tile-discard");
-  this.playTileDiscardVoice(runtime.vm);
-
-  this.layoutRackTiles(true);
-  this.callbacks.onSelectionChanged([...this.selectedIds]);
-}
-private snapTileToDiscardOLD(runtime: TileRuntime): void {
-   if (this.tablePhase !== "playing") {
-    this.returnTileToSlot(runtime);
-    return;
-  }
-  this.removeFromRackOrder(runtime.vm.id);
-
-  if (!this.discardedTileIds.includes(runtime.vm.id)) {
-    this.discardedTileIds.push(runtime.vm.id);
-  }
-
-  this.reindexRackRuntimeSlots();
-
-  runtime.zone = "discard";
-  runtime.selected = false;
-  runtime.isDragging = false;
-
-  this.selectedIds.delete(runtime.vm.id);
-  runtime.image.clearTint();
-  runtime.image.setDepth(45);
-
-  const slot = this.discardSlotFor(this.discardedTileIds.indexOf(runtime.vm.id));
-
-  this.tweens.killTweensOf(runtime.image);
-  console.log("snapTileToDiscard", runtime.vm.id, slot.x, slot.y, runtime.vm);
-  this.tweens.add({
-    targets: runtime.image,
-    x: Math.round(slot.x),
-    y: Math.round(slot.y),
-    angle: 0,
-    duration: 160,
-    ease: "Sine.easeOut",
-  });
-  this.playTileDiscardVoice(runtime.vm); // spoken tile name
-  this.layoutRackTiles(true);
-  this.callbacks.onSelectionChanged([...this.selectedIds]);
-}
-
-private snapTileToRackEnd(runtime: TileRuntime): void {
-  this.removeFromDiscardOrder(runtime.vm.id);
-  this.removeFromRackOrder(runtime.vm.id);
-
-  this.rackOrder.push(runtime.vm.id);
-  this.reindexRackRuntimeSlots();
-
-  runtime.zone = "rack";
-  runtime.selected = false;
-  runtime.isDragging = false;
-
-  runtime.image.clearTint();
-  runtime.image.setDepth(30);
-
-  this.returnTileToSlot(runtime);
-  this.layoutDiscardTiles(true);
-}
-
-private destroyTileVoiceSounds(): void {
-  if (this.currentTileVoice?.isPlaying) {
-    this.currentTileVoice.stop();
-  }
-
-  this.currentTileVoice = undefined;
-
-  for (const sound of this.tileVoiceSounds.values()) {
-    sound.destroy();
-  }
-
-  this.tileVoiceSounds.clear();
-}
-private applyTileTextureFilter(image: Phaser.GameObjects.Image): void {
-  const tileWidth = this.layout.bottomTileLayout.width;
-
-  /* image.texture.setFilter(
-    tileWidth <= 34
-      ? Phaser.Textures.FilterMode.NEAREST
-      : Phaser.Textures.FilterMode.LINEAR,
-  ); */
-  image.texture.setFilter(Phaser.Textures.FilterMode.LINEAR);
-}
-
-private layoutRackTiles(animate: boolean): void {
-  this.reindexRackRuntimeSlots();
-
-  const tileWidth = Math.round(this.layout.bottomTileLayout.width);
-  const tileHeight = Math.round(this.layout.bottomTileLayout.height);
-
-  for (const runtime of this.tileMap.values()) {
-    if (runtime.zone === "discard" || runtime.zone === "pass") continue;
-
-    const slot = this.slotFor(runtime);
-    const selectedOffset = runtime.selected ? -tileHeight * 0.18 : 0;
-
-    const targetX = Math.round(slot.x);
-    const targetY = Math.round(slot.y + selectedOffset);
-
-    /**
-     * Keep the actively dragged tile under the pointer.
-     * Do not resize or tween it while rack neighbors rearrange.
-     */
-    if (runtime.isDragging) {
-      runtime.slotIndex = this.rackOrder.indexOf(runtime.vm.id);
-      runtime.image.setDepth(100);
-      continue;
+  private snapTileToDiscard(runtime: TileRuntime): void {
+    if (this.tablePhase !== "playing") {
+      this.returnTileToSlot(runtime);
+      return;
     }
 
-    runtime.image.setDisplaySize(tileWidth, tileHeight);
+    this.removeFromRackOrder(runtime.vm.id);
+
+    if (!this.discardedTileIds.includes(runtime.vm.id)) {
+      this.discardedTileIds.push(runtime.vm.id);
+    }
+
+    this.reindexRackRuntimeSlots();
+
+    runtime.zone = "discard";
+    runtime.selected = false;
+    runtime.isDragging = false;
+
+    this.selectedIds.delete(runtime.vm.id);
+    runtime.image.clearTint();
+    runtime.image.setDepth(45);
+
+    const grid = this.discardGrid();
+    const slot = this.discardSlotFor(
+      this.discardedTileIds.indexOf(runtime.vm.id),
+      grid,
+    );
+
+    runtime.image.setDisplaySize(grid.tileWidth, grid.tileHeight);
 
     this.tweens.killTweensOf(runtime.image);
+    this.tweens.add({
+      targets: runtime.image,
+      x: Math.round(slot.x),
+      y: Math.round(slot.y),
+      angle: 0,
+      duration: 160,
+      ease: "Sine.easeOut",
+    });
 
-    if (animate) {
-      this.tweens.add({
-        targets: runtime.image,
-        x: targetX,
-        y: targetY,
-        angle: 0,
-        duration: 140,
-        ease: "Sine.easeOut",
-      });
-    } else {
-      runtime.image.setPosition(targetX, targetY);
-      runtime.image.setAngle(0);
+    this.playHaptic("tile-discard");
+    this.playTileDiscardVoice(runtime.vm);
+
+    this.layoutRackTiles(true);
+    this.callbacks.onSelectionChanged([...this.selectedIds]);
+  }
+  private snapTileToDiscardOLD(runtime: TileRuntime): void {
+    if (this.tablePhase !== "playing") {
+      this.returnTileToSlot(runtime);
+      return;
     }
+    this.removeFromRackOrder(runtime.vm.id);
+
+    if (!this.discardedTileIds.includes(runtime.vm.id)) {
+      this.discardedTileIds.push(runtime.vm.id);
+    }
+
+    this.reindexRackRuntimeSlots();
+
+    runtime.zone = "discard";
+    runtime.selected = false;
+    runtime.isDragging = false;
+
+    this.selectedIds.delete(runtime.vm.id);
+    runtime.image.clearTint();
+    runtime.image.setDepth(45);
+
+    const slot = this.discardSlotFor(this.discardedTileIds.indexOf(runtime.vm.id));
+
+    this.tweens.killTweensOf(runtime.image);
+    console.log("snapTileToDiscard", runtime.vm.id, slot.x, slot.y, runtime.vm);
+    this.tweens.add({
+      targets: runtime.image,
+      x: Math.round(slot.x),
+      y: Math.round(slot.y),
+      angle: 0,
+      duration: 160,
+      ease: "Sine.easeOut",
+    });
+    this.playTileDiscardVoice(runtime.vm); // spoken tile name
+    this.layoutRackTiles(true);
+    this.callbacks.onSelectionChanged([...this.selectedIds]);
   }
 
-  this.layoutDiscardTiles(animate);
-  this.layoutPassWaitingArea();
-  this.layoutPassWaitingTiles(animate);
-  this.updatePassButtonState();
-}
+  private snapTileToRackEnd(runtime: TileRuntime): void {
+    this.removeFromDiscardOrder(runtime.vm.id);
+    this.removeFromRackOrder(runtime.vm.id);
+
+    this.rackOrder.push(runtime.vm.id);
+    this.reindexRackRuntimeSlots();
+
+    runtime.zone = "rack";
+    runtime.selected = false;
+    runtime.isDragging = false;
+
+    runtime.image.clearTint();
+    runtime.image.setDepth(30);
+
+    this.returnTileToSlot(runtime);
+    this.layoutDiscardTiles(true);
+  }
+
+  private destroyTileVoiceSounds(): void {
+    if (this.currentTileVoice?.isPlaying) {
+      this.currentTileVoice.stop();
+    }
+
+    this.currentTileVoice = undefined;
+
+    for (const sound of this.tileVoiceSounds.values()) {
+      sound.destroy();
+    }
+
+    this.tileVoiceSounds.clear();
+  }
+  private applyTileTextureFilter(image: Phaser.GameObjects.Image): void {
+    const tileWidth = this.layout.bottomTileLayout.width;
+
+    /* image.texture.setFilter(
+      tileWidth <= 34
+        ? Phaser.Textures.FilterMode.NEAREST
+        : Phaser.Textures.FilterMode.LINEAR,
+    ); */
+    image.texture.setFilter(Phaser.Textures.FilterMode.LINEAR);
+  }
+
+  private layoutRackTiles(animate: boolean): void {
+    this.reindexRackRuntimeSlots();
+
+    const tileWidth = Math.round(this.layout.bottomTileLayout.width);
+    const tileHeight = Math.round(this.layout.bottomTileLayout.height);
+
+    for (const runtime of this.tileMap.values()) {
+      if (runtime.zone === "discard" || runtime.zone === "pass") continue;
+
+      const slot = this.slotFor(runtime);
+      const selectedOffset = runtime.selected ? -tileHeight * 0.18 : 0;
+
+      const targetX = Math.round(slot.x);
+      const targetY = Math.round(slot.y + selectedOffset);
+
+      /**
+       * Keep the actively dragged tile under the pointer.
+       * Do not resize or tween it while rack neighbors rearrange.
+       */
+      if (runtime.isDragging) {
+        runtime.slotIndex = this.rackOrder.indexOf(runtime.vm.id);
+        runtime.image.setDepth(100);
+        continue;
+      }
+
+      runtime.image.setDisplaySize(tileWidth, tileHeight);
+
+      this.tweens.killTweensOf(runtime.image);
+
+      if (animate) {
+        this.tweens.add({
+          targets: runtime.image,
+          x: targetX,
+          y: targetY,
+          angle: 0,
+          duration: 140,
+          ease: "Sine.easeOut",
+        });
+      } else {
+        runtime.image.setPosition(targetX, targetY);
+        runtime.image.setAngle(0);
+      }
+    }
+
+    this.layoutDiscardTiles(animate);
+    this.layoutPassWaitingArea();
+    this.layoutPassWaitingTiles(animate);
+    this.updatePassButtonState();
+  }
   private layoutRackTilesOLD(animate: boolean): void {
     this.reindexRackRuntimeSlots();
 
@@ -2904,13 +3193,13 @@ private layoutRackTiles(animate: boolean): void {
      */
     this.removeFromPassWaiting(tileId);
     
-console.log("RETURN AFTER REMOVE", {
-  tileId,
-  zone: runtime.zone,
-  passWaitingTileIds: [...this.passWaitingTileIds],
-  rackOrder: [...this.rackOrder],
-  hasCloseButton: this.passCloseButtons.has(tileId),
-});
+    console.log("RETURN AFTER REMOVE", {
+      tileId,
+      zone: runtime.zone,
+      passWaitingTileIds: [...this.passWaitingTileIds],
+      rackOrder: [...this.rackOrder],
+      hasCloseButton: this.passCloseButtons.has(tileId),
+    });
 
     runtime.zone = "rack";
     runtime.selected = false;
@@ -3749,7 +4038,6 @@ console.log("RETURN AFTER REMOVE", {
 
   /**
    * Applies current local pass result.
-   *
    * In production this will be replaced by applying the server-authoritative rack.
    */
   private applyPassWaitingResult(ids: readonly string[]): void {
@@ -4221,34 +4509,34 @@ console.log("RETURN AFTER REMOVE", {
   }
 
   private createTileFrontPickClone(
-      tile: TileVm,
-      x: number,
-      y: number,
-      width: number,
-      height: number,
-    ): Phaser.GameObjects.Image {
-      const texture = this.tileTextureResolver.resolve(tile, Math.round(width));
+    tile: TileVm,
+    x: number,
+    y: number,
+    width: number,
+    height: number,
+  ): Phaser.GameObjects.Image {
+    const texture = this.tileTextureResolver.resolve(tile, Math.round(width));
 
-      if (
-        !this.textures.exists(texture.atlasKey) ||
-        !this.textures.get(texture.atlasKey).has(texture.frameKey)
-      ) {
-        /**
-         * Fallback only. In normal flow the atlas is already loaded by setRack().
-         */
-        const fallback = this.add.image(x, y, TILE_ATLAS_1X_KEY);
-        fallback.setOrigin(0.5);
-        fallback.setDisplaySize(width, height);
-        return fallback;
-      }
-
-      const image = this.add.image(x, y, texture.atlasKey, texture.frameKey);
-      image.setOrigin(0.5);
-      image.setDisplaySize(width, height);
-      this.applyTileTextureFilter(image);
-
-      return image;
+    if (
+      !this.textures.exists(texture.atlasKey) ||
+      !this.textures.get(texture.atlasKey).has(texture.frameKey)
+    ) {
+      /**
+       * Fallback only. In normal flow the atlas is already loaded by setRack().
+       */
+      const fallback = this.add.image(x, y, TILE_ATLAS_1X_KEY);
+      fallback.setOrigin(0.5);
+      fallback.setDisplaySize(width, height);
+      return fallback;
     }
+
+    const image = this.add.image(x, y, texture.atlasKey, texture.frameKey);
+    image.setOrigin(0.5);
+    image.setDisplaySize(width, height);
+    this.applyTileTextureFilter(image);
+
+    return image;
+  }
 
   private animateWallTileToSeatOLD(
     seat: TableSeat,

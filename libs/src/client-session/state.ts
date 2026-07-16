@@ -1,7 +1,8 @@
 // file: libs/src/auth-session/state.ts
 
 import { computed, effect, inject, Service } from "@angular/core";
-import { DateTime, Session } from "@bfw/api-sdk/graphql/endpoints/shared";
+import { Session } from "@bfw/api-sdk/graphql/endpoints/shared";
+import { DateTime } from "@bfw/api-sdk/graphql/libs/crud.scalar";
 import { ConfService } from "@libs/conf/service";
 import { CookieService } from "@libs/cookie/service";
 import { LogService } from "@libs/log/service";

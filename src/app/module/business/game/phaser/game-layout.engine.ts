@@ -85,7 +85,225 @@ const ZERO_SAFE_AREA: SafeAreaInsets = {
 
 export class GameLayoutEngine {
 
-  compute(width: number, height: number, tileCount: number, config: GameTableConfig, 
+  compute(
+    width: number,
+    height: number,
+    tileCount: number,
+    config: GameTableConfig,
+    safeArea: SafeAreaInsets = ZERO_SAFE_AREA,
+  ): TableLayout {
+    if (!Number.isFinite(width) || !Number.isFinite(height) || width <= 0 || height <= 0) {
+      throw new Error(`Invalid canvas size ${width}x${height}`);
+    }
+
+    const safeTop = Math.max(0, safeArea.top);
+    const safeRight = Math.max(0, safeArea.right);
+    const safeBottom = Math.max(0, safeArea.bottom);
+    const safeLeft = Math.max(0, safeArea.left);
+
+    const safeWidth = Math.max(1, width - safeLeft - safeRight);
+    const safeHeight = Math.max(1, height - safeTop - safeBottom);
+    const safeCenterX = safeLeft + safeWidth / 2;
+
+    const count = Math.max(tileCount, 14);
+    const metrics = this.computeResponsiveMetrics(safeWidth, safeHeight);
+    const shortest = Math.min(safeWidth, safeHeight);
+
+    /**
+     * PSD baseline: 1920 x 1080 landscape.
+     * This scales the PSD structure proportionally while still respecting
+     * the actual CSS-pixel canvas size and safe area.
+     */
+    const sx = safeWidth / 1920;
+    const sy = safeHeight / 1080;
+    const s = Math.min(sx, sy);
+
+    const headerHeight = this.clamp(76 * s, metrics.isMobile ? 44 : 58, metrics.isMobile ? 58 : 86);
+
+    const outerMarginX = this.clamp(26 * s, metrics.isMobile ? 8 : 18, metrics.isMobile ? 14 : 32);
+    const outerMarginBottom = this.clamp(18 * s, metrics.isMobile ? 6 : 12, metrics.isMobile ? 12 : 24);
+
+    const tableOuter: Rect = {
+      x: safeLeft + outerMarginX,
+      y: safeTop + headerHeight,
+      width: safeWidth - outerMarginX * 2,
+      height: safeHeight - headerHeight - outerMarginBottom,
+    };
+
+    const sideExposureWidth = this.clamp(
+      tableOuter.width * 0.047,
+      metrics.isMobile ? 34 : 58,
+      metrics.isMobile ? 52 : 88,
+    );
+
+    const sideExposureHeight = this.clamp(
+      tableOuter.height * 0.67,
+      metrics.isMobile ? 260 : 520,
+      Math.max(280, tableOuter.height * 0.76),
+    );
+
+    const sideExposureY = tableOuter.y + tableOuter.height * 0.14;
+
+    const leftExposure: Rect = {
+      x: tableOuter.x + tableOuter.width * 0.035,
+      y: sideExposureY,
+      width: sideExposureWidth,
+      height: sideExposureHeight,
+    };
+
+    const rightExposure: Rect = {
+      x: tableOuter.x + tableOuter.width - tableOuter.width * 0.035 - sideExposureWidth,
+      y: sideExposureY,
+      width: sideExposureWidth,
+      height: sideExposureHeight,
+    };
+
+    const topExposureWidth = this.clamp(
+      tableOuter.width * 0.30,
+      metrics.isMobile ? 230 : 420,
+      tableOuter.width * 0.42,
+    );
+
+    const topExposureHeight = this.clamp(
+      tableOuter.height * 0.066,
+      metrics.isMobile ? 34 : 54,
+      metrics.isMobile ? 48 : 78,
+    );
+
+    const topExposure: Rect = {
+      x: safeCenterX - topExposureWidth / 2,
+      y: tableOuter.y + tableOuter.height * 0.065,
+      width: topExposureWidth,
+      height: topExposureHeight,
+    };
+
+    const bottomExposureWidth = this.clamp(
+      tableOuter.width * 0.32,
+      metrics.isMobile ? 260 : 450,
+      tableOuter.width * 0.46,
+    );
+
+    const bottomExposureHeight = this.clamp(
+      tableOuter.height * 0.072,
+      metrics.isMobile ? 36 : 56,
+      metrics.isMobile ? 50 : 82,
+    );
+
+    const rackHeight = metrics.rackHeight;
+    const tableRackGap = this.clamp(tableOuter.height * 0.014, 6, 18);
+
+    const bottomRack: Rect = {
+      x: tableOuter.x + tableOuter.width * 0.09,
+      y: tableOuter.y + tableOuter.height - rackHeight - this.clamp(12 * s, 4, 18),
+      width: tableOuter.width * 0.82,
+      height: rackHeight,
+    };
+
+    const bottomExposure: Rect = {
+      x: safeCenterX - bottomExposureWidth / 2,
+      y: bottomRack.y - bottomExposureHeight - tableRackGap,
+      width: bottomExposureWidth,
+      height: bottomExposureHeight,
+    };
+
+    const hud: Rect = {
+      x: safeLeft,
+      y: safeTop,
+      width: safeWidth,
+      height: headerHeight,
+    };
+
+    /**
+     * Center white action card from PSD.
+     * instructionBar is now the card.
+     */
+    const instructionWidth = this.clamp(
+      tableOuter.width * 0.25,
+      metrics.isMobile ? 260 : 360,
+      metrics.isMobile ? 340 : 500,
+    );
+
+    const instructionHeight = this.clamp(
+      tableOuter.height * 0.19,
+      metrics.isMobile ? 110 : 145,
+      metrics.isMobile ? 145 : 210,
+    );
+
+    const instructionBar: Rect = {
+      x: safeCenterX - instructionWidth / 2,
+      y: tableOuter.y + tableOuter.height * 0.37,
+      width: instructionWidth,
+      height: instructionHeight,
+    };
+
+    const passButtonWidth = this.clamp(
+      instructionWidth * 0.38,
+      metrics.isMobile ? 84 : 116,
+      metrics.isMobile ? 112 : 158,
+    );
+
+    const passButtonHeight = this.clamp(
+      instructionHeight * 0.24,
+      metrics.isMobile ? 32 : 38,
+      metrics.isMobile ? 42 : 56,
+    );
+
+    const passButton: Rect = {
+      x: instructionBar.x + instructionBar.width / 2 - passButtonWidth / 2,
+      y: instructionBar.y + instructionBar.height - passButtonHeight - instructionHeight * 0.16,
+      width: passButtonWidth,
+      height: passButtonHeight,
+    };
+
+    const discardAreaTop = topExposure.y + topExposure.height + this.clamp(34 * s, 12, 42);
+    const discardAreaBottom = bottomExposure.y - this.clamp(32 * s, 10, 42);
+
+    const discardArea: Rect = {
+      x: leftExposure.x + leftExposure.width + this.clamp(58 * s, 16, 78),
+      y: discardAreaTop,
+      width:
+        rightExposure.x -
+        (leftExposure.x + leftExposure.width) -
+        this.clamp(116 * s, 34, 156),
+      height: Math.max(80, discardAreaBottom - discardAreaTop),
+    };
+
+    const bottomTileLayout = this.computeTileLayout(bottomRack, count, width, config);
+
+    return {
+      canvas: { x: 0, y: 0, width, height },
+      tableOuter,
+      discardArea,
+      topExposure,
+      rightExposure,
+      bottomExposure,
+      leftExposure,
+      hud,
+      instructionBar,
+      passButton,
+      bottomRack,
+      bottomTileLayout,
+      topLabel: {
+        x: topExposure.x + topExposure.width / 2,
+        y: topExposure.y - this.clamp(18 * s, 8, 22),
+      },
+      leftLabel: {
+        x: leftExposure.x + leftExposure.width / 2,
+        y: leftExposure.y - this.clamp(18 * s, 8, 22),
+      },
+      rightLabel: {
+        x: rightExposure.x + rightExposure.width / 2,
+        y: rightExposure.y - this.clamp(18 * s, 8, 22),
+      },
+      username: {
+        x: bottomExposure.x + bottomExposure.width / 2,
+        y: bottomExposure.y + bottomExposure.height / 2,
+      },
+      isMobile: metrics.isMobile,
+      metrics,
+    };
+  }
+  computeOLDW(width: number, height: number, tileCount: number, config: GameTableConfig, 
   safeArea: SafeAreaInsets = ZERO_SAFE_AREA): TableLayout {
     if (!Number.isFinite(width) || !Number.isFinite(height) || width <= 0 || height <= 0) {
       throw new Error(`Invalid canvas size ${width}x${height}`);

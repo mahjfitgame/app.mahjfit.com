@@ -36,6 +36,71 @@ Recommended future multiplayer flow:
 7. Next pass round or play phase.
 
 
+
+
+UPDATE TABLE fields
+mj_user
+
++++
+user_auth
+active, key_id
+created_uri_id
+
+
+[tech][Frontend development][D1] Convert final PSD/PDF layout to HTML design of game board table
+
+
+
+Today, I have started work on convert final PSD/PDF layout to HTML design for game board table.
+
+I attached the sound files of game play.
+CHECK TC: 2026-07-16
+
+Below are the game play actions/events
+lobbay
+serving
+Charleston-st1-right
+Charleston-st1-across
+Charleston-st1-left
+Charleston-st2-left
+Charleston-st2-across
+Charleston-st2- right
+Charleston-st3-left
+Charleston-st3-across
+Charleston-st3- right
+CourtesyPass
+Discard
+Pick (from Wall)
+Call (from discarded)/ CANCEL CALL
+Make: PUNG/KONG/QUINT/SEXTET
+JockerReplace
+DeclairDead
+MahJong
+OrderInRackOne
+OrderInRackTwo
+OrderInExposerOne
+OrderInExposerTwo
+OrderBySuitRackOne
+OrderBySuitRackTwo
+OrderByRankRackOne
+OrderByRankRackTwo
+MoveToRackOne
+MoveToRackTwo
+DeadHand
+TileStyleChane
+SoundSettingChange
+EndGame/ExitGame
+SaimeseFirstMahjong
+SaimeseSecondMahjong
+RemovePlayer (if away)
+Joined
+Decline
+SecondCharlestoneSubmitVotes
+
+I will keep you posted on work progress.
+Thank you!
+
+
 #############################
 #############################
 #############################

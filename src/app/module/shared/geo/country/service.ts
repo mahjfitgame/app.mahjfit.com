@@ -532,30 +532,12 @@ export class GeoCountryService implements CrudSubType {
                     currency_name: true,
                     currency_symbol: true,
                     emoji: true,
-                    emoji_u: true,
-                    fips: true,
                     iso_ii: true,
                     iso_iii: true,
-                    latitude: true,
-                    longitude: true,
-                    nationality: true,
-                    native: true,
                     numeric_code: true,
-                    region_id: true,
-                    subdivision_title: true,
-                    subregion_id: true,
-                    tld: true,
                     created: true,
                     updated: true,
                     deleted: true,
-                    fr_region: {
-                        id: true,
-                        name: true
-                    },
-                    fr_subregion: {
-                        id: true,
-                        name: true
-                    }
                 }
             };
 
