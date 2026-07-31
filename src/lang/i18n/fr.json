@@ -18,8 +18,37 @@
       "UPDATE": "独特 Mettre à jour",
       "SEARCH": "Rechercher",
       "RESET": "Réinitialiser",
+      "TRY_AGAIN": "Réessayer",
+      "NEXT": "Suivant",
+      "BACK": "Retour",
+      "CONTINUE": "Continuer",
+      "PREVIOUS": "Précédent",
       "LOADING": "Chargement...",
-      "NO_RECORDS": "Aucun enregistrement trouvé"
+      "NO_RECORDS": "Aucun enregistrement trouvé",
+      "STEP": "Étape"
+    },
+    "DEBUG": {
+      "DEBUG_INFO": "Informations de débogage"
+    },
+    "ACTION": {
+      "CREATE": "Ajouter",
+      "UPDATE": "Mettre à jour",
+      "SEARCH": "Rechercher",
+      "TRASH": "Corbeille",
+      "DELETE": "Supprimer",
+      "RESTORE": "Restaurer"
+    },
+    "NUMBER": {
+      "0": "0",
+      "1": "1",
+      "2": "2",
+      "3": "3",
+      "4": "4",
+      "5": "5",
+      "6": "6",
+      "7": "7",
+      "8": "8",
+      "9": "9"
     },
 
     "VALIDATION": {
@@ -42,6 +71,18 @@
       "EXTENSION": "Format de fichier invalide. Formats autorisés : {{allowed}}.",
       "OPTION_RANGE": "La valeur sélectionnée pour {{field}} est hors limites.",
       "FN": "La valeur fournie pour {{field}} est invalide."
+    },
+    "MODULE": {
+      "HOME": "Accueil",
+      "ONBOARDING": {
+        "SIGNUP": "S'inscrire",
+        "SIGNIN": "Se connecter",
+        "SIGNOUT": "Se déconnecter",
+        "FORGOT_PASSWORD": "Mot de passe oublié",
+        "MY_ACCOUNT": "Mon compte",
+        "MY_PROFILE": "Mon profil",
+        "DASHBOARD": "Tableau de bord"
+      }
     }
   }
 }

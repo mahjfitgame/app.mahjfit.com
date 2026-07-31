@@ -1,19 +1,32 @@
 // file: src/app/base/global-progress-bar/state.ts
-import { DestroyRef, inject, Injectable, signal } from "@angular/core";
+import { DestroyRef, effect, inject, Service, signal } from "@angular/core";
 import { ConfService } from "@libs/conf/service";
 import { LogService } from "@libs/log/service";
 import { SignalStateService } from "@libs/signal-state/service";
+import { AppModuleStateType } from "@libs/utility/type";
 
-@Injectable({providedIn: 'root'})
-export class GlobalProgressBarState extends SignalStateService {
+@Service()
+export class GlobalProgressBarState extends SignalStateService implements AppModuleStateType {
+
+    // ████ DEPENDENCIES ████████████████████████████████████████████████
+
     private readonly conf = inject(ConfService);
     private readonly log = inject(LogService);
 
-    // required for persisted state
-    protected override readonly storeKey = 'gpbs';
+    // ████ CLASS PROPERTIES ████████████████████████████████████████████
+
+    public override readonly storeKey = 'gpbs';
+
+    // ████ SIGNAL FORM PROPERTIES ██████████████████████████████████████
+    // n/a
+
+    // ████ SIGNAL PROPERTIES ███████████████████████████████████████████
 
     private readonly _loading = signal<false | number>(false);
     public readonly loading = this._loading.asReadonly();
+
+    // ████ STATE DEBUGGER ██████████████████████████████████████████████
+    // n/a
 
     constructor() {
         super();
@@ -21,6 +34,24 @@ export class GlobalProgressBarState extends SignalStateService {
         // Signal-state fields must be initialized before the base service is initialized.
         this.initializeSignalState();
     }
+
+    // ████ LISTENERS ███████████████████████████████████████████████████
+
+    public override onActivate(): void {
+        const registerEffect = effect(() => {
+            if (!this.ready()) {
+                return;
+            }
+        });
+
+        this.registerDeactivationCleanup(() => registerEffect.destroy());
+    }
+
+    public override onDeactivate(): void {
+
+    }
+
+    // ████ SIGNAL METHODS ██████████████████████████████████████████████
 
     public setLoading(loading: false | number): void {
         this._loading.set(loading);
@@ -37,4 +68,16 @@ export class GlobalProgressBarState extends SignalStateService {
 
         return duration;
     }
+
+    // ████ SIGNAL DATA VALIDATORS ██████████████████████████████████████
+    // n/a
+
+    // ████ REGISTRATION AND CALLBACKS ██████████████████████████████████
+    // n/a
+
+    // ████ API CALLS ███████████████████████████████████████████████████
+    // n/a
+
+    // ████ WEB SOCKET CALLS ████████████████████████████████████████████
+    // n/a
 }

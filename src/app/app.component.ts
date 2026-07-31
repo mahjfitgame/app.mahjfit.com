@@ -47,14 +47,21 @@ export class AppComponent implements OnInit, OnDestroy, AfterViewInit {
     try {
       // initialize platform runtime state/listeners
       await this.service.ps.init();
+      this.service.splash.stream = 30;
+
+      // perform required registration and initialization
+      this.service.registerBeforeRequestInterceptor();
+      this.service.registerAfterResponseInterceptor();
+      this.service.registerAfterResponseErrorInterceptor();
       this.service.splash.stream = 40;
 
       // hand shake with api to wake it up and check if it's responsive, also can be used to fetch some critical data for app initialization
       const hs = await this.service.clientServerHandShake();
       this.service.splash.stream = 60;
+      
 
       // decide to hide splash or not
-      if (hs === false) {
+      if (!hs) {
         removeSplash = false;
       } else {
         await this.service.afterClientServerHandShake();

@@ -93,7 +93,7 @@ export type SignalStateCookieValueType<T> = SignalStateStorageValueType<T>;
  * Full cookie control, especially HttpOnly, must still come from Set-Cookie headers.
  * path and expires are used while saving; url is used while saving, loading, and deleting.
  */
-export interface SignalStateCookieOptionsType extends CookieUrlOptionsType {
+export interface SignalStateCookieSourceType extends CookieUrlOptionsType {
   path?: SetCookieOptionsType['path'];
   expires?: SetCookieOptionsType['expires'];
 }
@@ -140,6 +140,9 @@ export interface PersistSignalOptionsBaseType<T> {
 
   /** Optional conversion after decryption. */
   deserialize?: (value: unknown) => T;
+
+  /** Default: false. Removes the persisted record instead of saving a null value. */
+  deleteOnNull?: boolean;
 }
 
 /**
@@ -202,7 +205,7 @@ export interface CookiePersistSignalOptionsType<T>
    * Optional cookie write/read options. The underlying CookieService controls
    * platform-specific URL normalization. path and expires are write-only.
    */
-  cookie?: SignalStateCookieOptionsType;
+  source?: SignalStateCookieSourceType;
 }
 
 /**
@@ -217,8 +220,11 @@ export interface NormalizedPersistSignalOptionsType<T> {
   validate: (value: unknown) => value is T;
   serialize?: (value: T) => unknown;
   deserialize?: (value: unknown) => T;
-  source?: SignalStateLocalDbSourceType | SignalStateServerSyncSourceType;
-  cookie?: SignalStateCookieOptionsType;
+  deleteOnNull: boolean;
+  source?:
+    | SignalStateLocalDbSourceType
+    | SignalStateServerSyncSourceType
+    | SignalStateCookieSourceType;
 }
 
 export type NormalizedLocalStoragePersistSignalOptionsType<T> =
@@ -242,6 +248,12 @@ export interface PersistSignalRegistrationType<T = unknown> {
   ready: boolean;
   loadSequence: number;
   lastSavedSnapshot: string;
+  /** One-write cookie expiry override, consumed after the matching save or removal. */
+  nextCookieExpires?: string;
+  /** Reactive write marker so an expiry-only change can rewrite an unchanged cookie value. */
+  cookieWriteRevision: WritableSignal<number>;
+  /** Latest cookie write revision successfully persisted or removed. */
+  savedCookieWriteRevision: number;
 }
 
 export type LocalStoragePersistSignalRegistrationType<T = unknown> =

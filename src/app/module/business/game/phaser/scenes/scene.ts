@@ -1,15 +1,27 @@
 // src/app/game/scenes/table.scene.ts
 import Phaser from "phaser";
 import { GAME_TABLE_CONFIG } from "../game-table.config";
-import { GameLayoutEngine, Point, Rect, SafeAreaInsets, TableLayout } from "../game-layout.engine";
+import { GameLayoutEngine } from "../game-layout.engine";
+import { Point, Rect, SafeAreaInsets, TableLayout } from "../type";
 import { PassDirection, TileVm } from "../../model/tile";
 import { TileTextureResolver } from "../../tiles/tile-texture.resolver";
 import { selectTileAtlas, TILE_ATLAS_1X_KEY, TILE_ATLAS_2X_KEY } from "../../tiles/tile-atlas.config";
-import { PassAnimationManager } from "../animations/pass-animation.manager";
 import { PassAnimationItem } from "../models/pass-animation.model";
 import { TablePhase } from "../../model/table-phase";
-import { inject } from "@angular/core";
-import { GameHapticsService, GameHapticType } from "../../platform/haptics.service";
+import type { GameHapticType } from "../../platform/haptics.service";
+import type { DeviceLayoutState } from "../device-layout.service";
+import { AnimationManager } from "./managers/animation";
+import { PassFlowManager } from "./managers/pass-flow";
+import { SoundManager } from "./managers/sound";
+import { StateManager, type TableSeat, type TileRuntime } from "./managers/state";
+import { TileInteractionManager } from "./managers/tile-interaction";
+import { HudActionKey, UiLayoutManager, HamburgerMenuActionKey } from "./managers/ui-layout";
+import {
+  type ExposurePanelMode,
+  exposureLipRatio,
+  exposureNameStripRatio,
+} from "../exposure-panel.tokens";
+import { COLOR_AVOCADO_NUM, COLOR_BLUE_NUM, COLOR_GRAY_NUM, COLOR_LAVENDER_NUM, ICON_DEADHAND_HOVER, ICON_DEADHAND_NORMAL, ICON_DEADHAND_PRESSED, ICON_HELP_HOVER, ICON_HELP_NORMAL, ICON_HELP_PRESSED, ICON_HINT_HOVER, ICON_HINT_NORMAL, ICON_HINT_PRESSED, ICON_SETTINGS_HOVER, ICON_SETTINGS_NORMAL, ICON_SETTINGS_PRESSED, ICON_SORT_HOVER, ICON_SORT_NORMAL, ICON_SORT_PRESSED } from "../const";
 //import { AssetTextureLoader } from "../asset-texture.loader";
 
 
@@ -17,23 +29,12 @@ interface TableSceneCallbacks {
   readonly onSelectionChanged: (ids: readonly string[]) => void;
   readonly onPassCompleted: (payload: { readonly tileIds: readonly string[]; readonly direction: PassDirection }) => void;
   onHaptic?: (type: GameHapticType) => void;
+  readonly getDeviceLayout: (width: number, height: number) => DeviceLayoutState;
 }
-
-type TableSeat = "top" | "right" | "bottom" | "left";
-
 
 interface SeatPassMove {
   readonly from: TableSeat;
   readonly to: TableSeat;
-}
-
-interface TileRuntime {
-  readonly vm: TileVm;
-  readonly image: Phaser.GameObjects.Image;
-  slotIndex: number;
-  selected: boolean;
-  isDragging: boolean;
-  zone: "rack" | "discard" | "pass";
 }
 
 type TableSfxId =
@@ -51,10 +52,57 @@ type TableSfxConfig = {
   throttleMs?: number;
 };
 
+interface DiscardGrid {
+  readonly x: number;
+  readonly y: number;
+  readonly width: number;
+  readonly height: number;
+  readonly tileWidth: number;
+  readonly tileHeight: number;
+  readonly paddingX: number;
+  readonly paddingY: number;
+  readonly gapX: number;
+  readonly gapY: number;
+  readonly columns: number;
+}
+
+
+type CharlestonVisualPhase =
+  | "idle"
+  | "selecting"
+  | "bot-staging"
+  | "committing";
+
+interface CharlestonVisualTransfer {
+  readonly from: TableSeat;
+  readonly to: TableSeat;
+  readonly includeBottom: boolean;
+}
+
+interface BotPassVisualTile {
+  readonly id: string;
+  readonly from: TableSeat;
+  readonly to: TableSeat;
+  readonly image: Phaser.GameObjects.Container;
+}
+
+
+
 export class TableScene extends Phaser.Scene {
   private readonly callbacks: TableSceneCallbacks;
   private readonly layoutEngine = new GameLayoutEngine();
   private readonly config = GAME_TABLE_CONFIG;
+
+  // Manager skeletons; existing Scene logic remains the active implementation.
+  private readonly tileInteractionManager: TileInteractionManager;
+  private readonly passFlowManager: PassFlowManager;
+  private readonly animationManager = new AnimationManager(this);
+  //private readonly uiLayoutManager = new UiLayoutManager();
+  private readonly uiLayoutManager: UiLayoutManager;
+  private readonly soundManager: SoundManager;
+  private readonly stateManager = new StateManager();
+
+  private readonly logoTextureKey = "majhfit-logo";
 
   private readonly tileVoiceVolume = 0.85;
 
@@ -106,80 +154,100 @@ export class TableScene extends Phaser.Scene {
 
   //private assetLoader!: AssetTextureLoader;
 
-  private layout!: TableLayout;
+  private get layout(): TableLayout {
+    return this.stateManager.layout;
+  }
+
+  private set layout(value: TableLayout) {
+    this.stateManager.layout = value;
+  }
   
 
   private graphics!: Phaser.GameObjects.Graphics;
-  private hudTextObjects: Phaser.GameObjects.Text[] = [];
-  private instructionText?: Phaser.GameObjects.Text;
-  private passButton?: Phaser.GameObjects.Container;
-  private playerLabels: Phaser.GameObjects.Text[] = [];
-  private usernameText?: Phaser.GameObjects.Text;
+  private get hudTextObjects(): Phaser.GameObjects.Text[] { return this.uiLayoutManager.hudTextObjects; }
+  private set hudTextObjects(value: Phaser.GameObjects.Text[]) { this.uiLayoutManager.hudTextObjects = value; }
+  private get hudPointsIcon(): Phaser.GameObjects.Container | undefined { return this.uiLayoutManager.hudPointsIcon; }
+  private set hudPointsIcon(value: Phaser.GameObjects.Container | undefined) { this.uiLayoutManager.hudPointsIcon = value; }
+  private get hudBg(): Phaser.GameObjects.Rectangle | undefined { return this.uiLayoutManager.hudBg; }
+  private set hudBg(value: Phaser.GameObjects.Rectangle | undefined) { this.uiLayoutManager.hudBg = value; }
+  private get hudActionsContainer(): Phaser.GameObjects.Container | undefined { return this.uiLayoutManager.hudActionsContainer; }
+  private set hudActionsContainer(value: Phaser.GameObjects.Container | undefined) { this.uiLayoutManager.hudActionsContainer = value; }
+  private get hudActionIconTexts(): Phaser.GameObjects.Text[] { return this.uiLayoutManager.hudActionIconTexts; }
+  private set hudActionIconTexts(value: Phaser.GameObjects.Text[]) { this.uiLayoutManager.hudActionIconTexts = value; }
+  private get instructionText(): Phaser.GameObjects.Text | undefined { return this.uiLayoutManager.instructionText; }
+  private set instructionText(value: Phaser.GameObjects.Text | undefined) { this.uiLayoutManager.instructionText = value; }
+  private get passButton(): Phaser.GameObjects.Container | undefined { return this.uiLayoutManager.passButton; }
+  private set passButton(value: Phaser.GameObjects.Container | undefined) { this.uiLayoutManager.passButton = value; }
+  private get playerLabels(): Phaser.GameObjects.Text[] { return this.uiLayoutManager.playerLabels; }
+  private set playerLabels(value: Phaser.GameObjects.Text[]) { this.uiLayoutManager.playerLabels = value; }
+  private get usernameText(): Phaser.GameObjects.Text | undefined { return this.uiLayoutManager.usernameText; }
+  private set usernameText(value: Phaser.GameObjects.Text | undefined) { this.uiLayoutManager.usernameText = value; }
+  private get wallTileBox(): Phaser.GameObjects.Container | undefined { return this.uiLayoutManager.wallTileBox; }
+  private set wallTileBox(value: Phaser.GameObjects.Container | undefined) { this.uiLayoutManager.wallTileBox = value; }
+  private get wallTileCount(): number { return this.stateManager.wallTileCount; }
+  private set wallTileCount(value: number) { this.stateManager.wallTileCount = value; }
+  private get pickTargetSeat(): TableSeat { return this.stateManager.pickTargetSeat; }
+  private set pickTargetSeat(value: TableSeat) { this.stateManager.pickTargetSeat = value; }
+  private get pickSeatSelector(): Phaser.GameObjects.Container | undefined { return this.uiLayoutManager.pickSeatSelector; }
+  private set pickSeatSelector(value: Phaser.GameObjects.Container | undefined) { this.uiLayoutManager.pickSeatSelector = value; }
+  private get pickSeatButtons(): Phaser.GameObjects.Text[] { return this.uiLayoutManager.pickSeatButtons; }
+  private set pickSeatButtons(value: Phaser.GameObjects.Text[]) { this.uiLayoutManager.pickSeatButtons = value; }
+  private get isPickAnimating(): boolean { return this.stateManager.isPickAnimating; }
+  private set isPickAnimating(value: boolean) { this.stateManager.isPickAnimating = value; }
+  private get nextMockTileId(): number { return this.stateManager.nextMockTileId; }
+  private set nextMockTileId(value: number) { this.stateManager.nextMockTileId = value; }
 
-  private wallTileBox?: Phaser.GameObjects.Container;
-  private wallTileCount = 93;
-
-  private pickTargetSeat: TableSeat = "bottom";
-  private pickSeatSelector?: Phaser.GameObjects.Container;
-  private pickSeatButtons: Phaser.GameObjects.Text[] = [];
-  private isPickAnimating = false;
-  private nextMockTileId = 1;
-
-  private rackTiles: readonly TileVm[] = [];
-  private readonly tileMap = new Map<string, TileRuntime>();
-  private readonly selectedIds = new Set<string>();
-
-  private rackOrder: string[] = [];
-  private readonly discardedTileIds: string[] = [];
-  private activeDragTile?: TileRuntime;
-  private dragPointerId?: number;
+  private get rackTiles(): readonly TileVm[] { return this.stateManager.rackTiles; }
+  private set rackTiles(value: readonly TileVm[]) { this.stateManager.rackTiles = value; }
+  private get tileMap(): Map<string, TileRuntime> { return this.stateManager.tileMap; }
+  private get selectedIds(): Set<string> { return this.stateManager.selectedIds; }
+  private get rackOrder(): string[] { return this.stateManager.rackOrder; }
+  private set rackOrder(value: string[]) { this.stateManager.rackOrder = value; }
+  private get discardedTileIds(): string[] { return this.stateManager.discardedTileIds; }
+  private get activeDragTile(): TileRuntime | undefined { return this.stateManager.activeDragTile; }
+  private set activeDragTile(value: TileRuntime | undefined) { this.stateManager.activeDragTile = value; }
+  private get dragPointerId(): number | undefined { return this.stateManager.dragPointerId; }
+  private set dragPointerId(value: number | undefined) { this.stateManager.dragPointerId = value; }
 
   private renderDpr = 1;
 
-  private hudMenuOpen = false;
-  private hudMenuItems: Phaser.GameObjects.Text[] = [];
+  private get hudMenuOpen(): boolean { return this.uiLayoutManager.hudMenuOpen; }
+  private set hudMenuOpen(value: boolean) { this.uiLayoutManager.hudMenuOpen = value; }
+  private get hudMenuItems(): Phaser.GameObjects.Text[] { return this.uiLayoutManager.hudMenuItems; }
+  private set hudMenuItems(value: Phaser.GameObjects.Text[]) { this.uiLayoutManager.hudMenuItems = value; }
 
   private readonly tileTextureResolver = new TileTextureResolver();
-  private readonly dragStartByTileId = new Map<string, { x: number; y: number }>();
-  private readonly dragThresholdPx = 10;
+  private get dragStartByTileId(): Map<string, { x: number; y: number }> { return this.stateManager.dragStartByTileId; }
+  private get dragThresholdPx(): number { return this.stateManager.dragThresholdPx; }
+  private get suppressTapByTileId(): Set<string> { return this.stateManager.suppressTapByTileId; }
+  private get passTrayClones(): Phaser.GameObjects.Image[] { return this.stateManager.passTrayClones; }
+  private set passTrayClones(value: Phaser.GameObjects.Image[]) { this.stateManager.passTrayClones = value; }
+  private get passAnimationClones(): Phaser.GameObjects.GameObject[] { return this.stateManager.passAnimationClones; }
+  private set passAnimationClones(value: Phaser.GameObjects.GameObject[]) { this.stateManager.passAnimationClones = value; }
+  private get passDirection(): PassDirection { return this.stateManager.passDirection; }
+  private set passDirection(value: PassDirection) { this.stateManager.passDirection = value; }
+  private get tablePhase(): TablePhase { return this.stateManager.tablePhase; }
+  private set tablePhase(value: TablePhase) { this.stateManager.tablePhase = value; }
+  private get currentPassDestination(): TableSeat { return this.stateManager.currentPassDestination; }
+  private set currentPassDestination(value: TableSeat) { this.stateManager.currentPassDestination = value; }
+  private get activeSeat(): TableSeat { return this.stateManager.activeSeat; }
+  private set activeSeat(value: TableSeat) { this.stateManager.activeSeat = value; }
+  private get passWaitingTileIds(): string[] { return this.stateManager.passWaitingTileIds; }
+  private get passCloseButtons(): Map<string, Phaser.GameObjects.Container> { return this.stateManager.passCloseButtons; }
+  private get passWaitingAreaGraphics(): Phaser.GameObjects.Graphics | undefined { return this.stateManager.passWaitingAreaGraphics; }
+  private set passWaitingAreaGraphics(value: Phaser.GameObjects.Graphics | undefined) { this.stateManager.passWaitingAreaGraphics = value; }
+  private get doubleTapMs(): number { return this.stateManager.doubleTapMs; }
+  private get lastTapAtByTileId(): Map<string, number> { return this.stateManager.lastTapAtByTileId; }
+  private get isPassAnimating(): boolean { return this.stateManager.isPassAnimating; }
+  private set isPassAnimating(value: boolean) { this.stateManager.isPassAnimating = value; }
+  private get passWaitingTileScale(): number { return this.stateManager.passWaitingTileScale; }
+  private get passCloseButtonScale(): number { return this.stateManager.passCloseButtonScale; }
+  private get activeRackAtlasKey(): string | undefined { return this.stateManager.activeRackAtlasKey; }
+  private set activeRackAtlasKey(value: string | undefined) { this.stateManager.activeRackAtlasKey = value; }
+  private get pendingAtlasRefresh(): boolean { return this.stateManager.pendingAtlasRefresh; }
+  private set pendingAtlasRefresh(value: boolean) { this.stateManager.pendingAtlasRefresh = value; }
 
-  private readonly suppressTapByTileId = new Set<string>();
-
-  private passTrayClones: Phaser.GameObjects.Image[] = [];
-
-  private passAnimationClones: Phaser.GameObjects.GameObject[] = [];
-  
-  private passDirection: PassDirection = "across";
-  private tablePhase: TablePhase = "playing";
-  private currentPassDestination: "top" | "right" | "bottom" | "left" = "top";
-
-  private activeSeat: TableSeat = "bottom";
-
-  private readonly passWaitingTileIds: string[] = [];
-  private readonly passCloseButtons = new Map<string, Phaser.GameObjects.Container>();
-
-  private passWaitingAreaGraphics?: Phaser.GameObjects.Graphics;
-
-  private readonly doubleTapMs = 280;
-  private readonly lastTapAtByTileId = new Map<string, number>();
-
-  private isPassAnimating = false;
-
-  private readonly passWaitingTileScale = 1.08;
-  private readonly passCloseButtonScale = 0.145;
-
-  private activeRackAtlasKey?: string;
-  private pendingAtlasRefresh = false;
-
-  /**
-   * Charleston animation layer.
-   *
-   * Independent from rack rendering.
-   */
-  private readonly passAnimation =
-      new PassAnimationManager(this);
-  
-  private readonly sfxConfig: Record<TableSfxId, TableSfxConfig> = {
+  /* private readonly sfxConfig: Record<TableSfxId, TableSfxConfig> = {
     "tile-select": {
       key: "sfx-tile-select",
       urls: ["assets/sounds/tile-select.mp3"],
@@ -220,7 +288,7 @@ export class TableScene extends Phaser.Scene {
   private readonly sfxPools = new Map<TableSfxId, Phaser.Sound.BaseSound[]>();
   private readonly sfxPoolCursor = new Map<TableSfxId, number>();
   private readonly lastSfxAt = new Map<TableSfxId, number>();
-  private sfxReady = false;
+  private sfxReady = false; */
 
   private safeAreaInsets: SafeAreaInsets = {
     top: 0,
@@ -231,9 +299,78 @@ export class TableScene extends Phaser.Scene {
 
   
 
+  /**
+   * Visual-only Charleston bot/opponent pass tiles.
+   *
+   * These objects are temporary Phaser clones only.
+   * They never enter rackOrder, tileMap, passWaitingTileIds, or scoring/rules state.
+   */
+  private readonly botPassVisualTiles: BotPassVisualTile[] = [];
+  private botPassVisualSequence = 0;
+  private isBotPassVisualAnimating = false;
+
+  /**
+   * The first Charleston round should NOT auto-stage bot tiles before the user presses PASS.
+   * After the first successful local PASS, later rounds auto-stage non-bottom seats.
+   */
+  private hasCompletedFirstCharlestonVisualPass = false;
+
+  /**
+   * Prevents auto-staging again for the same pass direction after a submit.
+   */
+  private lastSubmittedPassDestination?: TableSeat;
+  private botAutoStagedDestination?: TableSeat;
+
+  private readonly botPassWaitingPauseMs = 320;
+  private readonly botPassMoveDurationMs = 620;
+  private readonly botPassCommitDurationMs = 520;
+
+
   constructor(callbacks: TableSceneCallbacks) {
     super({ key: "table-scene" });
     this.callbacks = callbacks;
+
+    this.uiLayoutManager = new UiLayoutManager({
+      logoTextureKey: this.logoTextureKey,
+      onHudAction: (action) => this.handleHudAction(action),
+      onPrimaryAction: () => this.handlePrimaryAction(),
+      onPickSeatChange: (seat) => {
+        this.pickTargetSeat = seat;
+        this.setActiveSeat(seat);
+        this.updateInstructionText();
+      },
+      onHamburgerMenuAction: (action) => this.handleHamburgerMenuAction(action),
+    });
+
+    this.tileInteractionManager = new TileInteractionManager({
+      canSelectTile: (runtime) => runtime.zone === "rack",
+      canStartDrag: (runtime) => runtime.zone !== "pass",
+      canDropTile: () => true,
+      canDiscard: (runtime, x, y) =>
+        this.tablePhase === "playing" && runtime.zone === "rack" && this.isInsidePlayableDiscardArea(x, y),
+      canPass: (runtime, x, y) =>
+        this.isPassingPhase() && runtime.zone === "rack" && this.isInsidePassWaitingArea(x, y),
+      onTileSelected: () => undefined,
+      onTileDropped: () => undefined,
+      onDragFinished: () => undefined,
+      requestAnimation: () => undefined,
+    });
+    this.soundManager = new SoundManager(this, callbacks.onHaptic);
+    
+    this.passFlowManager = new PassFlowManager(
+      this.stateManager,
+      this.animationManager,
+      this.uiLayoutManager,
+      {
+        isPassPhaseAllowed: () => this.tablePhase === "passing",
+        validateSubmission: () => this.passFlowManager.canSubmitPassWaitingTiles(),
+        approveSubmission: () => !this.isPassAnimating,
+        onPassCompleted: (payload) => this.callbacks.onPassCompleted(payload),
+        notifyNetworking: () => undefined,
+        emitExternalEvent: (event, payload) => this.game.events.emit(event, payload),
+        requestPassUiUpdate: () => this.updatePassButtonState(),
+      },
+    );
   }
 
   create(): void {
@@ -280,116 +417,159 @@ export class TableScene extends Phaser.Scene {
       this.game.events.off("table:safe-area", this.setSafeAreaInsets, this);
       this.game.events.off("table:active-seat", this.setActiveSeat, this);
 
-      
-      this.destroyTileVoiceSounds();
+      this.clearBotPassVisualTiles();
+      this.isBotPassVisualAnimating = false;
+
+
+      this.soundManager.destroy();
     });
     this.events.once(Phaser.Scenes.Events.DESTROY, () => {
-      this.destroyTileVoiceSounds();
+      this.soundManager.destroy();
     });
 
-    this.createSoundPools();
-    this.createTileVoiceSounds();
+    this.soundManager.create();
+  
   }
   public preload(): void {
-    for (const config of Object.values(this.sfxConfig)) {
-      if (this.cache.audio.exists(config.key)) continue;
-
-      this.load.audio(config.key, config.urls);
+    this.soundManager.preload();
+    // Phaser's Loader.image accepts (key, url) or ImageFileConfig without a 'config' property.
+    // Remove unsupported 'config' object and load the image by key and url.
+    if (!this.textures.exists(this.logoTextureKey)) {
+      this.load.image(
+        this.logoTextureKey,
+        "assets/majhfit-logo-blue@3x.png",
+      );
     }
-    this.preloadTileVoiceAudio();
-  }
 
-  private preloadTileVoiceAudio(): void {
-    for (const key of this.tileVoiceKeys) {
-      const audioKey = this.tileVoiceAudioKey(key);
+    /* if (!this.textures.exists(this.logoTextureKey)) {
+      this.load.svg(
+        this.logoTextureKey,
+        "assets/Logo_white.svg",
+        {
+          width: 360,
+          height: 110,
+        },
+      );
+    } */
+    // Hud action ICONS
+    this.load.image(ICON_SORT_NORMAL, "assets/game/icons/icon_sort_default.png");
+    this.load.image(ICON_SORT_HOVER, "assets/game/icons/icon_sort_hover.png");
+    this.load.image(ICON_SORT_PRESSED, "assets/game/icons/icon_sort_pressed.png");
 
-      if (this.cache.audio.exists(audioKey)) {
-        continue;
-      }
+    this.load.image(ICON_HINT_NORMAL, "assets/game/icons/icon_hint_default.png");
+    this.load.image(ICON_HINT_HOVER, "assets/game/icons/icon_hint_hover.png");
+    this.load.image(ICON_HINT_PRESSED, "assets/game/icons/icon_hint_pressed.png");
 
-      this.load.audio(audioKey, [`assets/sounds/${key}.mp3`]);
-    }
+    this.load.image(ICON_DEADHAND_NORMAL, "assets/game/icons/icon_deadhand_default.png");
+    this.load.image(ICON_DEADHAND_HOVER, "assets/game/icons/icon_deadhand_hover.png");
+    this.load.image(ICON_DEADHAND_PRESSED, "assets/game/icons/icon_deadhand_pressed.png");
+
+    this.load.image(ICON_SETTINGS_NORMAL, "assets/game/icons/icon_settings_default.png");
+    this.load.image(ICON_SETTINGS_HOVER, "assets/game/icons/icon_settings_hover.png");
+    this.load.image(ICON_SETTINGS_PRESSED, "assets/game/icons/icon_settings_pressed.png");
+
+    this.load.image(ICON_HELP_NORMAL, "assets/game/icons/icon_help_default.png");
+    this.load.image(ICON_HELP_HOVER, "assets/game/icons/icon_help_hover.png");
+    this.load.image(ICON_HELP_PRESSED, "assets/game/icons/icon_help_pressed.png");
   }
 
   private setSafeAreaInsets(insets: SafeAreaInsets): void {
     this.safeAreaInsets = insets;
   }
-  private tileVoiceAudioKey(soundKey: string): string {
-    return `tile-voice-${soundKey}`;
-  }
-  private createTileVoiceSounds(): void {
-    if (this.tileVoiceSounds.size > 0) {
-      return;
-    }
-
-    for (const key of this.tileVoiceKeys) {
-      const audioKey = this.tileVoiceAudioKey(key);
-
-      if (!this.cache.audio.exists(audioKey)) {
-        continue;
-      }
-
-      const sound = this.sound.add(audioKey, {
-        volume: this.tileVoiceVolume,
-      });
-
-      this.tileVoiceSounds.set(key, sound);
-    }
-  }
-
   private playTileDiscardVoice(vm: TileVm): void {
-    const soundKey = vm.soundKey;
-    if (!soundKey) {
-      return;
-    }
-
-    const sound = this.tileVoiceSounds.get(soundKey);
-
-    if (!sound) {
-      return;
-    }
-
-    const now = this.time.now;
-
-    // Prevent accidental double-play from duplicate drop/click events.
-    if (now - this.lastTileVoiceAt < 80) {
-      return;
-    }
-
-    this.lastTileVoiceAt = now;
-
-    // Spoken tile names should usually not overlap.
-    if (this.currentTileVoice?.isPlaying) {
-      this.currentTileVoice.stop();
-    }
-
-    this.currentTileVoice = sound;
-
-    if (sound.isPlaying) {
-      sound.stop();
-    }
-
-    sound.play({
-      volume: this.tileVoiceVolume,
-    });
+    this.soundManager.playTileDiscardVoice(vm);
   }
   private playWebFallback(type: GameHapticType): void {
-    const nav = navigator as Navigator & {
-      vibrate?: (pattern: number | readonly number[]) => boolean;
-    };
-
-    if (typeof nav.vibrate !== "function") {
-      return;
-    }
-
-    if (type === "pass-submit") {
-      nav.vibrate([8, 25, 12]);
-      return;
-    }
-
-    nav.vibrate(type === "tile-discard" ? 14 : 8);
+    this.soundManager.playWebFallback(type);
   }
 
+  private handleHamburgerMenuAction(action: HamburgerMenuActionKey): void {
+    switch (action) {
+      case "gameplay-settings":
+        // open gameplay settings
+        return;
+      case "play-history":
+        // open play history
+        return;
+      case "account-billing":
+        // open account/billing
+        return;
+      case "restart-game":
+        // restart flow
+        return;
+      case "quit-exit":
+        // quit/exit flow
+        return;
+      case "log-out":
+        // logout flow
+        return;
+    }
+  }
+  
+  private handlePrimaryAction(): void {
+    if (this.tablePhase === "playing") {
+      this.playHaptic("pick");
+      this.pickTileForSeat(this.pickTargetSeat);
+      return;
+    }
+
+    if (!this.canSubmitPassWaitingTiles()) return;
+    if (this.isPassAnimating) return;
+    if (this.isBotPassVisualAnimating) return;
+
+    this.playHaptic("pass-submit");
+    this.submitPassWaitingTiles();
+  }
+
+  private handleHudAction(action: HudActionKey): void {
+    if (action === "sort") {
+      this.sortRackTilesForDebug();
+      return;
+    }
+
+    if (action === "hint") {
+      // TODO: connect hint engine.
+      return;
+    }
+
+    if (action === "dead-hand") {
+      // TODO: connect dead-hand flow.
+      return;
+    }
+
+    if (action === "settings") {
+      // Menu open/close is owned by UiLayoutManager.
+      return;
+    }
+
+    if (action === "help") {
+      // TODO: open help UI.
+      return;
+    }
+  }
+  private sortRackTilesForDebug(): void {
+    if (this.rackOrder.length <= 1) return;
+
+    const tileRank = (tileId: string): number => {
+      const runtime = this.tileMap.get(tileId);
+      if (!runtime) return 9999;
+
+      const soundKey = runtime.vm.soundKey ?? "";
+      const rank = Number.parseInt(soundKey, 10) || 0;
+
+      if (runtime.vm.suit === "dot") return 100 + rank;
+      if (runtime.vm.suit === "bam") return 200 + rank;
+      if (runtime.vm.suit === "char") return 300 + rank;
+      if (runtime.vm.suit === "flower") return 800;
+      if (runtime.vm.suit === "joker") return 900;
+
+      return 9999;
+    };
+
+    this.rackOrder.sort((a, b) => tileRank(a) - tileRank(b));
+    this.reindexRackRuntimeSlots();
+    this.layoutRackTiles(true);
+  }
   public setTablePhase(phase: TablePhase): void {
     if (this.tablePhase === phase) {
       return;
@@ -397,6 +577,14 @@ export class TableScene extends Phaser.Scene {
 
     this.tablePhase = phase;
     console.log("setTablePhase", phase);
+
+    if (phase !== "passing") {
+      this.clearBotPassVisualTiles();
+      this.isBotPassVisualAnimating = false;
+      this.hasCompletedFirstCharlestonVisualPass = false;
+      this.lastSubmittedPassDestination = undefined;
+      this.botAutoStagedDestination = undefined;
+    }
 
     this.updatePhaseUi();
   }
@@ -409,6 +597,7 @@ export class TableScene extends Phaser.Scene {
 
     if (this.layout && this.graphics) {
       this.drawTable();
+      this.layoutStaticUi();
     }
   }
   private updatePhaseUi(): void {
@@ -419,20 +608,8 @@ export class TableScene extends Phaser.Scene {
     this.layoutPassWaitingArea();
     this.layoutPassWaitingTiles(false);
   }
-  private updatePhaseUiOLD(): void {
-    this.updatePassButtonState();
-
-    if (this.tablePhase === "passing") {
-      this.layoutPassWaitingArea();
-      this.layoutPassWaitingTiles(false);
-      return;
-    }
-
-    this.layoutPassWaitingArea();
-    this.layoutPassWaitingTiles(false);
-  }
   private isPassingPhase(): boolean {
-    return this.tablePhase === "passing";
+    return this.passFlowManager.isPassingPhase();
   }
   private resize(width: number, height: number): void {
     this.renderDpr = 1;
@@ -442,8 +619,45 @@ export class TableScene extends Phaser.Scene {
     this.cameras.main.setScroll(0, 0);
 
     this.layout = this.layoutEngine.compute(
-      width,
-      height,
+      this.callbacks.getDeviceLayout(width, height),
+      this.activeRackLayoutTileCount(),
+      this.config,
+      this.safeAreaInsets,
+    );
+
+    this.drawTable();
+    this.layoutStaticUi();
+    this.layoutRackTiles(false);
+    this.layoutPassWaitingArea();
+
+    /**
+     * Real bottom selected pass tiles.
+     * These are TileRuntime objects from passWaitingTileIds.
+     */
+    this.layoutPassWaitingTiles(false);
+
+    /**
+     * Bot/opponent Charleston pass backs.
+     *
+     * These are temporary visual clones, not TileRuntime objects.
+     * On orientation change, keep them alive and only reposition them
+     * into the new pass waiting area targets.
+     */
+    this.relayoutBotPassVisualTilesAfterResize();
+
+    this.updatePassButtonState();
+
+    this.refreshRackTexturesIfAtlasChanged();
+  }
+  private resizeOLDW(width: number, height: number): void {
+    this.renderDpr = 1;
+
+    this.cameras.main.setViewport(0, 0, width, height);
+    this.cameras.main.setZoom(1);
+    this.cameras.main.setScroll(0, 0);
+
+    this.layout = this.layoutEngine.compute(
+      this.callbacks.getDeviceLayout(width, height),
       //this.rackTiles.length || 14,
       this.activeRackLayoutTileCount(),
       this.config,
@@ -458,6 +672,12 @@ export class TableScene extends Phaser.Scene {
     this.updatePassButtonState();
 
     this.refreshRackTexturesIfAtlasChanged();
+
+    /**
+     * Important after orientation change.
+     * PASS waiting tiles must use the new passAreaTargets().
+     */
+    this.relayoutPassWaitingTilesAfterResize();
   }
 
   private activeRackLayoutTileCount(): number {
@@ -472,6 +692,7 @@ export class TableScene extends Phaser.Scene {
      */
     return Math.max(14, this.rackOrder.length);
   }
+
   private resizeW(width: number, height: number): void {
     this.renderDpr = 1;
 
@@ -479,7 +700,11 @@ export class TableScene extends Phaser.Scene {
     this.cameras.main.setZoom(1);
     this.cameras.main.setScroll(0, 0);
 
-    this.layout = this.layoutEngine.compute(width, height, this.rackTiles.length || 14, this.config);
+    this.layout = this.layoutEngine.compute(
+      this.callbacks.getDeviceLayout(width, height),
+      this.rackTiles.length || 14,
+      this.config,
+    );
 
     this.drawTable();
     this.layoutStaticUi();
@@ -489,27 +714,10 @@ export class TableScene extends Phaser.Scene {
     this.layoutPassWaitingTiles(false);
     this.updatePassButtonState();
   }
-  private setPassDirectionOLD(direction: PassDirection): void {
-    this.passDirection = direction;
-    this.updateInstructionText();
-  }
-  private setPassDirectionOLDW(direction: PassDirection): void {
-    console.log('direction ========', direction);
-    
-    this.passDirection = direction;
-    this.currentPassDestination = this.passDestinationForDirection(direction);
-
-    console.log('this.currentPassDestination', this.currentPassDestination)
-
-    this.updateInstructionText();
-    this.layoutPassWaitingArea();
-    this.layoutPassWaitingTiles(true);
-    this.updatePassButtonState();
-  }
+  
 
   private setPassDirection(direction: PassDirection): void {
-    this.passDirection = direction;
-    this.currentPassDestination = this.passDestinationForDirection(direction);
+    this.passFlowManager.setPassDirection(direction);
 
     console.log("[TableScene] pass direction received:", {
       direction: this.passDirection,
@@ -520,115 +728,61 @@ export class TableScene extends Phaser.Scene {
     this.layoutPassWaitingArea();
     this.layoutPassWaitingTiles(false);
     this.updatePassButtonState();
+
+    /**
+     * After the first Charleston pass, bot/opponent seats auto-stage their
+     * next pass tiles to the destination waiting areas.
+     */
+    this.time.delayedCall(120, () => {
+      this.tryAutoStageBotPassTilesForCurrentDirection();
+    });
   }
 
-  /* private setRack(tiles: readonly TileVm[]): void {
-    this.validateTiles(tiles);
+  private setRack(tiles: readonly TileVm[]): void {
+    //this.validateTiles(tiles);
     this.rackTiles = [...tiles];
 
-    const requiredTextureKeys = tiles
-      .filter((tile) => !this.textures.exists(this.textureKey(tile)))
-      .map((tile) => ({ key: this.textureKey(tile), asset: tile.asset }));
+    const needs1xAtlas = !this.textures.exists(TILE_ATLAS_1X_KEY);
+    const needs2xAtlas = !this.textures.exists(TILE_ATLAS_2X_KEY);
 
-    if (requiredTextureKeys.length > 0) {
-      for (const item of requiredTextureKeys) {
-        this.load.image(item.key, item.asset);
-      }
-
-      this.load.once(Phaser.Loader.Events.COMPLETE, () => this.reconcileRackTiles());
-      if (!this.load.isLoading()) this.load.start();
+    if (!needs1xAtlas && !needs2xAtlas) {
+      this.reconcileRackTiles();
+      const tileWidth = Math.round(this.layout.bottomTileLayout.width);
+      this.activeRackAtlasKey = selectTileAtlas(tileWidth).atlasKey;
       return;
     }
 
-    this.reconcileRackTiles();
-  } */
- private setRack(tiles: readonly TileVm[]): void {
-  this.validateTiles(tiles);
-  this.rackTiles = [...tiles];
-
-  const needs1xAtlas = !this.textures.exists(TILE_ATLAS_1X_KEY);
-  const needs2xAtlas = !this.textures.exists(TILE_ATLAS_2X_KEY);
-
-  if (!needs1xAtlas && !needs2xAtlas) {
-    this.reconcileRackTiles();
-    const tileWidth = Math.round(this.layout.bottomTileLayout.width);
-    this.activeRackAtlasKey = selectTileAtlas(tileWidth).atlasKey;
-    return;
-  }
-
-  this.load.once("loaderror", (file: Phaser.Loader.File) => {
-    console.error("[PHASER LOAD ERROR]", file.key, file.src);
-  });
-
-  if (needs1xAtlas) {
-    this.load.atlas(
-      TILE_ATLAS_1X_KEY,
-      "assets/game/tiles/1xnew/tiles_1x.png",
-      "assets/game/tiles/1xnew/tiles_1x.json",
-    );
-  }
-
-  if (needs2xAtlas) {
-    this.load.atlas(
-      TILE_ATLAS_2X_KEY,
-      "assets/game/tiles/2xnew/tiles_2x.png",
-      "assets/game/tiles/2xnew/tiles_2x.json",
-    );
-  }
-
-  this.load.once(Phaser.Loader.Events.COMPLETE, () => {
-    this.reconcileRackTiles();
-    const tileWidth = Math.round(this.layout.bottomTileLayout.width);
-    this.activeRackAtlasKey = selectTileAtlas(tileWidth).atlasKey;
-  });
-
-  if (!this.load.isLoading()) {
-    this.load.start();
-  }
-}
- private setRackOLDW(tiles: readonly TileVm[]): void {
-  this.validateTiles(tiles);
-  this.rackTiles = [...tiles];
-
-  const tileW = Math.ceil(this.layout.bottomTileLayout.width * window.devicePixelRatio);
-  const tileH = Math.ceil(this.layout.bottomTileLayout.height * window.devicePixelRatio);
-
-  const missing = tiles.filter((tile) => !this.textures.exists(this.textureKey(tile)));
-
-  if (missing.length === 0) {
-    this.reconcileRackTiles();
-    return;
-  }
-
-  /* for (const tile of missing) {
-    this.load.svg(this.textureKey(tile), tile.asset, {
-      width: tileW,
-      height: tileH,
+    this.load.once("loaderror", (file: Phaser.Loader.File) => {
+      console.error("[PHASER LOAD ERROR]", file.key, file.src);
     });
-  } */
 
-  this.load.on("loaderror", (file: Phaser.Loader.File) => {
-    console.error("[PHASER LOAD ERROR]", file.key, file.src);
-  });
+    if (needs1xAtlas) {
+      this.load.atlas(
+        TILE_ATLAS_1X_KEY,
+        "assets/game/tiles/1xnew/tiles_1x.png",
+        "assets/game/tiles/1xnew/tiles_1x.json",
+      );
+    }
 
-  this.load.atlas(
-    TILE_ATLAS_1X_KEY,
-    "assets/game/tiles/1xnew/tiles_1x.png",
-    "assets/game/tiles/1xnew/tiles_1x.json",
-  );
+    if (needs2xAtlas) {
+      this.load.atlas(
+        TILE_ATLAS_2X_KEY,
+        "assets/game/tiles/2xnew/tiles_2x.png",
+        "assets/game/tiles/2xnew/tiles_2x.json",
+      );
+    }
 
-  this.load.atlas(
-    TILE_ATLAS_2X_KEY,
-    "assets/game/tiles/2xnew/tiles_2x.png",
-    "assets/game/tiles/2xnew/tiles_2x.json",
-  );
+    this.load.once(Phaser.Loader.Events.COMPLETE, () => {
+      this.reconcileRackTiles();
+      const tileWidth = Math.round(this.layout.bottomTileLayout.width);
+      this.activeRackAtlasKey = selectTileAtlas(tileWidth).atlasKey;
+    });
 
-  this.load.once(Phaser.Loader.Events.COMPLETE, () => {
-    this.reconcileRackTiles();
-  });
-
-  this.load.start();
-}
+    if (!this.load.isLoading()) {
+      this.load.start();
+    }
+  }
+ 
 
   private reconcileRackTiles(): void {
     const incomingIds = new Set(this.rackTiles.map((tile) => tile.id));
@@ -649,22 +803,6 @@ export class TableScene extends Phaser.Scene {
       }
 
       if (this.tileMap.has(tile.id)) continue;
-
-      /* const image = this.add.image(0, 0, this.textureKey(tile))
-        .setInteractive({ draggable: true, useHandCursor: true })
-        .setDepth(30); */
-
-      // const texture = this.tileTextureResolver.resolve(tile);
-      /* const tileWidth = Math.round(this.layout.bottomTileLayout.width);
-      const tileHeight = Math.round(this.layout.bottomTileLayout.height);
-      const texture = this.tileTextureResolver.resolve(tile, tileWidth);
-
-      const image = this.add.image(0, 0, texture.atlasKey, texture.frameKey);
-      image.setOrigin(0.5);
-      image.setDisplaySize(tileWidth, tileHeight);
-      //image.texture.setFilter(Phaser.Textures.FilterMode.LINEAR);
-      this.applyTileTextureFilter(image); */
-
 
       const tileWidth = Math.round(this.layout.bottomTileLayout.width);
       const tileHeight = Math.round(this.layout.bottomTileLayout.height);
@@ -732,6 +870,34 @@ export class TableScene extends Phaser.Scene {
 
     if (this.activeRackAtlasKey === atlas.atlasKey) {
       return;
+    }
+
+    this.ensureTileAtlasLoaded(() => {
+      this.activeRackAtlasKey = atlas.atlasKey;
+      this.refreshRackTileTextures();
+      this.layoutRackTiles(false);
+      this.layoutPassWaitingArea();
+
+      /**
+       * Real bottom selected pass tiles may change size after atlas/layout update.
+       */
+      this.layoutPassWaitingTiles(false);
+
+      /**
+       * Bot/opponent staged Charleston backs are temporary clones.
+       * They also need to follow the updated pass waiting positions.
+       */
+      this.relayoutBotPassVisualTilesAfterResize();
+
+      this.updatePassButtonState();
+    });
+  }
+  private refreshRackTexturesIfAtlasChangedOLD(): void {
+    const tileWidth = Math.round(this.layout.bottomTileLayout.width);
+    const atlas = selectTileAtlas(tileWidth);
+
+    if (this.activeRackAtlasKey === atlas.atlasKey) {
+      return;       
     }
 
     this.ensureTileAtlasLoaded(() => {
@@ -812,20 +978,7 @@ export class TableScene extends Phaser.Scene {
 
     this.input.setDraggable(runtime.image);
 
-    /* runtime.image.on("pointerdown", (pointer: Phaser.Input.Pointer) => {
-      this.activeDragTile = runtime;
-      this.suppressTapByTileId.delete(runtime.vm.id);
-
-      this.dragStartByTileId.set(runtime.vm.id, {
-        x: pointer.worldX,
-        y: pointer.worldY,
-      });
-
-      runtime.isDragging = false;
-      runtime.image.setDepth(100);
-    }); */
-
-    runtime.image.on("pointerdown", (pointer: Phaser.Input.Pointer) => {
+    this.tileInteractionManager.onPointerDown(runtime.image, (pointer: Phaser.Input.Pointer) => {
       /**
        * PASS TILE TAP
        *
@@ -844,31 +997,25 @@ export class TableScene extends Phaser.Scene {
       this.activeDragTile = runtime;
       this.suppressTapByTileId.delete(runtime.vm.id);
 
-      this.dragStartByTileId.set(runtime.vm.id, {
-        x: pointer.worldX,
-        y: pointer.worldY,
-      });
+      this.tileInteractionManager.beginPointer(runtime.vm.id, pointer);
 
       runtime.isDragging = false;
       runtime.image.setDepth(100);
     });
 
-    runtime.image.on("dragstart", () => {
+    this.tileInteractionManager.onDragStart(runtime.image, () => {
       runtime.image.setDepth(100);
     });
 
-    runtime.image.on("drag", (pointer: Phaser.Input.Pointer, dragX: number, dragY: number) => {
-      const start = this.dragStartByTileId.get(runtime.vm.id);
-      if (!start) return;
-
-      const distance = Phaser.Math.Distance.Between(
-        start.x,
-        start.y,
-        pointer.worldX,
-        pointer.worldY,
-      );
-
-      if (!runtime.isDragging && distance < this.dragThresholdPx) return;
+    this.tileInteractionManager.onDrag(runtime.image, (pointer: Phaser.Input.Pointer, dragX: number, dragY: number) => {
+      if (
+        !runtime.isDragging &&
+        !this.tileInteractionManager.hasReachedDragThreshold(
+          runtime.vm.id,
+          pointer,
+          this.dragThresholdPx,
+        )
+      ) return;
 
       if (!runtime.isDragging) {
         runtime.isDragging = true;
@@ -882,45 +1029,20 @@ export class TableScene extends Phaser.Scene {
 
       runtime.image.setPosition(Math.round(dragX), Math.round(dragY));
 
-      /* if (
-        this.tablePhase === "passing" &&
-        runtime.zone === "rack" &&
-        this.isInsidePassWaitingArea(pointer.worldX, pointer.worldY)
-      ) {
-        return;
-      } */
-     /* if (
-      this.tablePhase === "passing" &&
-      runtime.zone === "rack" &&
-      (
-        this.isInsidePassWaitingArea(pointer.worldX, pointer.worldY) ||
-        this.isInsidePlayableDiscardArea(pointer.worldX, pointer.worldY)
-      )
-    ) {
-      return;
-    }
-
-      if (
-        this.tablePhase !== "passing" &&
-        runtime.zone === "rack" &&
-        this.isInsideRackArea(pointer.worldX, pointer.worldY)
-      ) {
-        const newIndex = this.rackIndexFromX(pointer.worldX);
-        const currentIndex = this.rackOrder.indexOf(runtime.vm.id);
-
-        if (newIndex !== currentIndex && newIndex >= 0) {
-          this.moveRackTileToIndex(runtime.vm.id, newIndex);
-          this.layoutRackTiles(true);
-          runtime.image.setDepth(100);
-        }
-      } */
      if (runtime.zone === "rack") {
-        const isPassingDropTarget =
+        /* const isPassingDropTarget =
           this.tablePhase === "passing" &&
           (
             this.isInsidePassWaitingArea(pointer.worldX, pointer.worldY) ||
             this.isInsidePlayableDiscardArea(pointer.worldX, pointer.worldY)
-          );
+          ); */
+        
+          const isPassingDropTarget =
+            this.tablePhase === "passing" &&
+            (
+              this.isInsidePassWaitingArea(pointer.worldX, pointer.worldY) ||
+              this.isInsidePlayablePassDropArea(pointer.worldX, pointer.worldY)
+            );
 
         /**
          * During PASSING phase, pass/drop targets still win.
@@ -937,14 +1059,6 @@ export class TableScene extends Phaser.Scene {
          * - playing phase
          */
         if (this.isInsideRackArea(pointer.worldX, pointer.worldY)) {
-          /* const newIndex = this.rackIndexFromX(pointer.worldX);
-          const currentIndex = this.rackOrder.indexOf(runtime.vm.id);
-
-          if (newIndex !== currentIndex && newIndex >= 0) {
-            this.moveRackTileToIndex(runtime.vm.id, newIndex);
-            this.layoutRackTiles(true);
-            runtime.image.setDepth(100);
-          } */
           const newIndex = this.rackIndexFromDragX(runtime.vm.id, pointer.worldX);
           const currentIndex = this.rackOrder.indexOf(runtime.vm.id);
 
@@ -957,144 +1071,127 @@ export class TableScene extends Phaser.Scene {
       }
     });
 
-    runtime.image.on("dragend", (pointer: Phaser.Input.Pointer) => {
-      runtime.image.setDepth(30);
+    this.tileInteractionManager.onDragEnd(runtime.image, (pointer: Phaser.Input.Pointer) => {
+      this.tileInteractionManager.handleDrop(runtime, pointer, () => {
+        runtime.image.setDepth(30);
 
-      if (!runtime.isDragging) {
-        this.returnTileToSlot(runtime);
-        return;
-      }
+        if (!runtime.isDragging) {
+          this.returnTileToSlot(runtime);
+          return;
+        }
 
-      this.suppressTapByTileId.add(runtime.vm.id);
-      runtime.isDragging = false;
-
-      /* if (
-        this.tablePhase === "passing" &&
-        runtime.zone === "rack" &&
-        this.isInsidePassWaitingArea(pointer.worldX, pointer.worldY)
-      ) {
-        this.dragStartByTileId.delete(runtime.vm.id);
-        this.snapTileToPassWaiting(runtime);
-        return;
-      } */
+        this.suppressTapByTileId.add(runtime.vm.id);
+        runtime.isDragging = false;
      
-     if (
+      /* if (
+          this.tablePhase === "passing" &&
+          runtime.zone === "rack" &&
+          (
+            this.isInsidePassWaitingArea(pointer.worldX, pointer.worldY) ||
+            this.isInsidePlayableDiscardArea(pointer.worldX, pointer.worldY)
+          )
+        ) {
+          this.tileInteractionManager.cleanupDrop(runtime.vm.id);
+          this.snapTileToPassWaiting(runtime);
+          return;
+        } */
+       if (
         this.tablePhase === "passing" &&
         runtime.zone === "rack" &&
         (
           this.isInsidePassWaitingArea(pointer.worldX, pointer.worldY) ||
-          this.isInsidePlayableDiscardArea(pointer.worldX, pointer.worldY)
+          this.isInsidePlayablePassDropArea(pointer.worldX, pointer.worldY)
         )
       ) {
-        this.dragStartByTileId.delete(runtime.vm.id);
+        this.tileInteractionManager.cleanupDrop(runtime.vm.id);
         this.snapTileToPassWaiting(runtime);
         return;
       }
 
-      if (
-        this.tablePhase !== "passing" &&
-        this.isInsidePlayableDiscardArea(pointer.worldX, pointer.worldY)
-      ) {
-        this.dragStartByTileId.delete(runtime.vm.id);
-        this.snapTileToDiscard(runtime);
-        return;
-      }
+        if (
+          this.tablePhase !== "passing" &&
+          this.isInsidePlayableDiscardArea(pointer.worldX, pointer.worldY)
+        ) {
+          this.tileInteractionManager.cleanupDrop(runtime.vm.id);
+          this.snapTileToDiscard(runtime);
+          return;
+        }
 
-      this.dragStartByTileId.delete(runtime.vm.id);
-      this.returnTileToSlot(runtime);
+          this.tileInteractionManager.cleanupDrop(runtime.vm.id);
+          this.returnTileToSlot(runtime);
+        });
     });
 
-    /* runtime.image.on("pointerup", () => {
+    this.tileInteractionManager.onPointerUp(runtime.image, () => {
       this.activeDragTile = undefined;
 
       const shouldSuppressTap = this.suppressTapByTileId.delete(runtime.vm.id);
-      this.dragStartByTileId.delete(runtime.vm.id);
-
-      if (shouldSuppressTap) return;
-      if (runtime.isDragging) return;
-      if (runtime.zone !== "rack") return;
-
-      if (this.tablePhase === "passing") {
-        const now = this.time.now;
-        const previous = this.lastTapAtByTileId.get(runtime.vm.id) ?? 0;
-
-        this.lastTapAtByTileId.set(runtime.vm.id, now);
-
-        if (now - previous <= this.doubleTapMs) {
-          this.snapTileToPassWaiting(runtime);
-        }
-
-        return;
-      }
-
-      this.toggleTile(runtime);
-    }); */
-
-    runtime.image.on("pointerup", () => {
-      this.activeDragTile = undefined;
-
-      const shouldSuppressTap = this.suppressTapByTileId.delete(runtime.vm.id);
-      this.dragStartByTileId.delete(runtime.vm.id);
+      this.tileInteractionManager.finishPointer(runtime.vm.id);
 
       if (shouldSuppressTap) return;
       if (runtime.isDragging) return;
 
+      /**
+       * Discarded tiles are final.
+       * No tap, no select, no return to rack.
+       */
+      if (runtime.zone === "discard") return;
+
+      /**
+       * Pass tile return remains handled in pointerdown.
+       */
       if (runtime.zone !== "rack") return;
 
+      const now = this.time.now;
+      const previous = this.lastTapAtByTileId.get(runtime.vm.id) ?? 0;
+      const isDoubleTap = now - previous <= this.doubleTapMs;
+
+      this.lastTapAtByTileId.set(runtime.vm.id, now);
+
+      /**
+       * Single tap/click on rack tile intentionally does nothing.
+       */
+      if (!isDoubleTap) return;
+
       if (this.tablePhase === "passing") {
-        const now = this.time.now;
-        const previous = this.lastTapAtByTileId.get(runtime.vm.id) ?? 0;
-
-        this.lastTapAtByTileId.set(runtime.vm.id, now);
-
         this.playHaptic("tile-tap");
-        if (now - previous <= this.doubleTapMs) {
-          this.snapTileToPassWaiting(runtime);
-        }
-
+        this.snapTileToPassWaiting(runtime);
         return;
       }
 
-      this.playHaptic("tile-tap");
-      this.toggleTile(runtime);
+      if (this.tablePhase === "playing") {
+        runtime.selected = false;
+        this.selectedIds.delete(runtime.vm.id);
+        runtime.image.clearTint();
+
+        //this.playHaptic("tile-tap");
+        this.snapTileToDiscard(runtime);
+      }
     });
   }
   private toggleTile(runtime: TileRuntime): void {
-    if (runtime.zone !== "rack") return;
-
-    if (runtime.selected) {
-      runtime.selected = false;
-      this.selectedIds.delete(runtime.vm.id);
-      runtime.image.clearTint();
-      this.applyTileSelection(runtime);
-      this.playSfx("tile-select");
-      this.callbacks.onSelectionChanged([...this.selectedIds]);
-      return;
-    }
-
-    if (this.selectedIds.size >= 3) return;
-
-    runtime.selected = true;
-    this.selectedIds.add(runtime.vm.id);
-    this.applyTileSelection(runtime);
-    this.playSfx("tile-select");
-    this.callbacks.onSelectionChanged([...this.selectedIds]);
+    this.tileInteractionManager.toggleSelection(
+      runtime,
+      this.selectedIds,
+      (tile, selecting) =>
+        tile.zone === "rack" && (!selecting || this.selectedIds.size < 3),
+      (tile) => this.applyTileSelection(tile),
+      () => {
+        this.playSfx("tile-select");
+        this.callbacks.onSelectionChanged([...this.selectedIds]);
+      },
+    );
   }
 
   private applyTileSelection(runtime: TileRuntime): void {
     const slot = this.slotFor(runtime);
     const selectedOffset = runtime.selected ? -this.layout.bottomTileLayout.height * 0.18 : 0;
 
-    this.tweens.killTweensOf(runtime.image);
-
-    this.tweens.add({
-      targets: runtime.image,
-      x: slot.x,
-      y: slot.y + selectedOffset,
-      angle: 0,
-      duration: 110,
-      ease: "Sine.easeOut",
-    });
+    this.animationManager.animateRackTileSelection(
+      runtime.image,
+      slot.x,
+      slot.y + selectedOffset,
+    );
 
     if (runtime.selected) {
       runtime.image.setTint(0xe4f22c);
@@ -1116,16 +1213,12 @@ export class TableScene extends Phaser.Scene {
       ? -this.layout.bottomTileLayout.height * 0.18
       : 0;
 
-    this.tweens.killTweensOf(runtime.image);
-
-    this.tweens.add({
-      targets: runtime.image,
-      x: Math.round(slot.x),
-      y: Math.round(slot.y + selectedOffset),
-      angle: 0,
-      duration: this.config.animation.dragReturnMs,
-      ease: "Back.easeOut",
-    });
+    this.animationManager.animateRackTileReturn(
+      runtime.image,
+      Math.round(slot.x),
+      Math.round(slot.y + selectedOffset),
+      this.config.animation.dragReturnMs,
+    );
   }
 
   /**
@@ -1508,57 +1601,57 @@ export class TableScene extends Phaser.Scene {
     this.passTrayClones.forEach((clone) => clone.destroy());
     this.passTrayClones = [];
   }
-/**
- * -------------------------------------------------------------------------
- * Animates the local player's selected tiles.
- *
- * These tiles visually leave the rack.
- *
- * No game state is modified here.
- * -------------------------------------------------------------------------
- */
-private animatePassedTiles(
-  ids: readonly string[],
-  onFinished: () => void,
-): void {
+  /**
+  * -------------------------------------------------------------------------
+  * Animates the local player's selected tiles.
+  *
+  * These tiles visually leave the rack.
+  *
+  * No game state is modified here.
+  * -------------------------------------------------------------------------
+  */
+  private animatePassedTiles(
+    ids: readonly string[],
+    onFinished: () => void,
+  ): void {
 
-  const targets = this.passTargets(ids.length);
-  let completed = 0;
+    const targets = this.passTargets(ids.length);
+    let completed = 0;
 
-  ids.forEach((id, index) => {
-    const runtime = this.tileMap.get(id);
-    if (!runtime) {
-      completed++;
-      if (completed === ids.length) {
-        onFinished();
-      }
-      return;
-    }
-
-    runtime.image.disableInteractive();
-    runtime.image.clearTint();
-    runtime.image.setDepth(120);
-
-    this.tweens.killTweensOf(runtime.image);
-
-    this.tweens.add({
-      targets: runtime.image,
-      x: targets[index].x,
-      y: targets[index].y,
-      angle: 0,
-      scale: 0.78,
-      alpha: 0.92,
-      duration: this.config.animation.passDurationMs,
-      ease: "Cubic.easeInOut",
-      onComplete: () => {
+    ids.forEach((id, index) => {
+      const runtime = this.tileMap.get(id);
+      if (!runtime) {
         completed++;
         if (completed === ids.length) {
           onFinished();
         }
+        return;
       }
+
+      runtime.image.disableInteractive();
+      runtime.image.clearTint();
+      runtime.image.setDepth(120);
+
+      this.tweens.killTweensOf(runtime.image);
+
+      this.tweens.add({
+        targets: runtime.image,
+        x: targets[index].x,
+        y: targets[index].y,
+        angle: 0,
+        scale: 0.78,
+        alpha: 0.92,
+        duration: this.config.animation.passDurationMs,
+        ease: "Cubic.easeInOut",
+        onComplete: () => {
+          completed++;
+          if (completed === ids.length) {
+            onFinished();
+          }
+        }
+      });
     });
-  });
-}
+  }
   private passTargets(count: number): readonly Point[] {
     const spacing = this.layout.bottomTileLayout.width * 0.85;
     const discard = this.layout.discardArea;
@@ -1583,8 +1676,6 @@ private animatePassedTiles(
     }));
   }
 
-  
-
   private slotFor(runtime: TileRuntime): Point {
     const index = this.rackOrder.indexOf(runtime.vm.id);
     const slot = this.layout.bottomTileLayout.slots[index];
@@ -1602,31 +1693,33 @@ private animatePassedTiles(
     const canvas = this.layout.canvas;
     const table = this.layout.tableOuter;
     const hud = this.layout.hud;
-    const instruction = this.layout.instructionBar;
 
-    /**
-     * PSD colors.
-     */
-    const pageColor = 0x151d3b;
-    const tableColor = 0xb832a6;
-    const tableBorderDark = 0x111827;
-    const tableBorderLight = 0xd34fbd;
-    const panelColor = 0x172447;
-    const cardColor = 0xffffff;
+    const pageColor = COLOR_BLUE_NUM; //0x121a36; //0xDAB6D6
+    const hudColor = COLOR_BLUE_NUM; //0x121a36;
+    const tableBorderDark = 0x0b1228;
+    const tableBorderInnerShadowGray = COLOR_GRAY_NUM;
+    const tableBorderMid = 0x27314f;
+    const tableBorderPink = 0xd64abf;
+    const feltColor = COLOR_LAVENDER_NUM;//0xc783b8;
+    const panelColor = 0x162449;
+    const panelInner = 0x253a78;
 
     g.fillStyle(pageColor, 1);
     g.fillRect(0, 0, canvas.width, canvas.height);
 
-    /**
-     * Top HUD.
-     */
-    g.fillStyle(0x121a36, 1);
+    // Header.
+    g.fillStyle(hudColor, 1);
     g.fillRect(hud.x, hud.y, hud.width, hud.height);
 
+
     /**
-     * Main PSD board.
+     * Outer board border.
+     * Single solid black border.
      */
-    const tableRadius = this.layout.metrics.isMobile ? 14 : 24;
+    const borderSize = Math.max(
+      6,
+      Math.round(Math.min(table.width, table.height) * 0.009),
+    );
 
     g.fillStyle(tableBorderDark, 1);
     g.fillRoundedRect(
@@ -1634,40 +1727,86 @@ private animatePassedTiles(
       table.y,
       table.width,
       table.height,
-      tableRadius,
-    );
-
-    g.fillStyle(tableBorderLight, 1);
-    g.fillRoundedRect(
-      table.x + 5,
-      table.y + 5,
-      table.width - 10,
-      table.height - 10,
-      Math.max(8, tableRadius - 4),
-    );
-
-    g.fillStyle(tableColor, 1);
-    g.fillRoundedRect(
-      table.x + 12,
-      table.y + 12,
-      table.width - 24,
-      table.height - 24,
-      Math.max(8, tableRadius - 8),
+      0,
     );
 
     /**
-     * Player exposure/rack panels.
+     * Felt area inside the black border.
      */
-    this.drawPsdPanel(this.layout.leftExposure, panelColor, true);
-    this.drawPsdPanel(this.layout.rightExposure, panelColor, true);
-    this.drawPsdPanel(this.layout.topExposure, panelColor, false);
-    this.drawPsdPanel(this.layout.bottomExposure, panelColor, false);
+    const feltX = table.x + borderSize;
+    const feltY = table.y + borderSize;
+    const feltWidth = table.width - borderSize * 2;
+    const feltHeight = table.height - borderSize * 2;
 
-    this.drawActiveSeatExposureHighlight();
+    g.fillStyle(feltColor, 1);
+    g.fillRoundedRect(
+      feltX,
+      feltY,
+      feltWidth,
+      feltHeight,
+      0,
+    );
 
     /**
-     * Discard area is intentionally transparent in PSD.
-     * Keep a very subtle invisible structure only for readability/testing.
+     * Small inset depth shadow.
+     *
+     * Only draw a soft shadow on the inside top and left edges.
+     * This keeps the black border tight and avoids creating empty space
+     * around every corner.
+     */
+    /**
+     * Small inset shadow on all 4 sides.
+     *
+     * Use a single thin inner stroke.
+     * This gives depth on every side without creating multiple gray boxes
+     * or taking too much space from the corners.
+     */
+    const insetShadowWidth = Math.max(
+      2,
+      Math.round(borderSize * 0.26),
+    );
+
+    g.lineStyle(
+      insetShadowWidth,
+      0x000000,
+      0.13,
+    );
+
+    g.strokeRoundedRect(
+      feltX + insetShadowWidth / 2,
+      feltY + insetShadowWidth / 2,
+      feltWidth - insetShadowWidth,
+      feltHeight - insetShadowWidth,
+      0,
+    );
+
+    /**
+     * Very soft inner lift so the felt does not look flat.
+     * Keep this extremely subtle.
+     */
+    const liftWidth = Math.max(1, Math.round(borderSize * 0.10));
+
+    g.lineStyle(
+      liftWidth,
+      0xffffff,
+      0.03,
+    );
+
+    g.strokeRoundedRect(
+      feltX + liftWidth / 2,
+      feltY + liftWidth / 2,
+      feltWidth - liftWidth,
+      feltHeight - liftWidth,
+      0,
+    );
+
+
+
+
+
+    
+    /**
+     * Very subtle center felt panel.
      */
     g.fillStyle(0xffffff, 0.035);
     g.fillRoundedRect(
@@ -1678,147 +1817,1172 @@ private animatePassedTiles(
       14,
     );
 
-    /**
-     * Center instruction card.
-     */
-    g.fillStyle(0x000000, 0.16);
-    g.fillRoundedRect(
-      instruction.x + 4,
-      instruction.y + 6,
-      instruction.width,
-      instruction.height,
-      20,
+    /* this.drawPsdSideRackPanel(this.layout.leftExposure, "left");
+    this.drawPsdSideRackPanel(this.layout.rightExposure, "right");
+
+    this.drawPsdHorizontalRackPanel(this.layout.topExposure, 'horizontal');
+    this.drawPsdHorizontalRackPanel(this.layout.bottomExposure, 'bottom'); */
+
+    this.drawPsdRackPanel(
+      this.layout.leftExposure,
+      0,
+      0,
+      "vertical-left",
     );
 
-    g.fillStyle(cardColor, 1);
-    g.fillRoundedRect(
-      instruction.x,
-      instruction.y,
-      instruction.width,
-      instruction.height,
-      20,
+    this.drawPsdRackPanel(
+      this.layout.rightExposure,
+      0,
+      0,
+      "vertical-right",
     );
 
-    g.lineStyle(1, 0xe5e7eb, 1);
-    g.strokeRoundedRect(
-      instruction.x,
-      instruction.y,
-      instruction.width,
-      instruction.height,
-      20,
-    );
-  }
-  private drawPsdPanel(rect: Rect, color: number, vertical: boolean): void {
-    const g = this.graphics;
-    const radius = this.layout.metrics.isMobile ? 8 : 14;
-
-    g.fillStyle(0x000000, 0.22);
-    g.fillRoundedRect(
-      rect.x + 4,
-      rect.y + 5,
-      rect.width,
-      rect.height,
-      radius,
+    this.drawPsdRackPanel(
+      this.layout.topExposure,
+      0,
+      0,
+      "horizontal",
     );
 
-    g.fillStyle(color, 1);
-    g.fillRoundedRect(
-      rect.x,
-      rect.y,
-      rect.width,
-      rect.height,
-      radius,
-    );
-
-    g.lineStyle(2, 0x263b6b, 1);
-    g.strokeRoundedRect(
-      rect.x + 1,
-      rect.y + 1,
-      rect.width - 2,
-      rect.height - 2,
-      radius,
-    );
-
-    /**
-     * Small inner guide line like the PSD rack slots.
-     */
-    g.lineStyle(1, 0xffffff, 0.08);
-
-    if (vertical) {
-      g.lineBetween(
-        rect.x + rect.width / 2,
-        rect.y + 12,
-        rect.x + rect.width / 2,
-        rect.y + rect.height - 12,
-      );
-    } else {
-      g.lineBetween(
-        rect.x + 12,
-        rect.y + rect.height / 2,
-        rect.x + rect.width - 12,
-        rect.y + rect.height / 2,
-      );
-    }
-  }
-  private drawTableOLD(): void {
-    const c = this.config.colors;
-    const g = this.graphics;
-
-    g.clear();
-
-    g.fillStyle(c.page, 1);
-    g.fillRect(0, 0, this.layout.canvas.width, this.layout.canvas.height);
-
-    g.fillStyle(c.exposure, 1);
-    g.fillRect(
-      this.layout.leftExposure.x,
-      this.layout.leftExposure.y,
-      this.layout.leftExposure.width,
-      this.layout.leftExposure.height,
-    );
-    g.fillRect(
-      this.layout.rightExposure.x,
-      this.layout.rightExposure.y,
-      this.layout.rightExposure.width,
-      this.layout.rightExposure.height,
-    );
-    g.fillRect(
-      this.layout.topExposure.x,
-      this.layout.topExposure.y,
-      this.layout.topExposure.width,
-      this.layout.topExposure.height,
-    );
-    g.fillRect(
-      this.layout.bottomExposure.x,
-      this.layout.bottomExposure.y,
-      this.layout.bottomExposure.width,
-      this.layout.bottomExposure.height,
+    this.drawPsdRackPanel(
+      this.layout.bottomExposure,
+      0,
+      0,
+      "bottom",
     );
 
     this.drawActiveSeatExposureHighlight();
 
-    g.fillStyle(c.discard, 1);
-    g.fillRect(
+    /**
+     * Center card.
+     */
+    /* const card = this.layout.instructionBar;
+
+    g.fillStyle(0x000000, 0.22);
+    g.fillRoundedRect(card.x + 5, card.y + 7, card.width, card.height, 20);
+
+    g.fillStyle(0xffffff, 1);
+    g.fillRoundedRect(card.x, card.y, card.width, card.height, 20);
+
+    g.lineStyle(3, 0xb0b751, 0.8);
+    g.strokeRoundedRect(card.x, card.y, card.width, card.height, 20); */
+
+    const card = this.layout.instructionBar;
+
+    const cardRadius = Math.round(
+      Phaser.Math.Clamp(card.height * 0.22, 16, 34),
+    );
+
+    /**
+     * Instruction card shadow.
+     */
+    g.fillStyle(0x000000, 0.18);
+    g.fillRoundedRect(
+      card.x + Math.max(4, card.width * 0.012),
+      card.y + Math.max(6, card.height * 0.045),
+      card.width,
+      card.height,
+      cardRadius,
+    );
+
+    g.fillStyle(0x000000, 0.08);
+    g.fillRoundedRect(
+      card.x + Math.max(8, card.width * 0.020),
+      card.y + Math.max(10, card.height * 0.065),
+      card.width,
+      card.height,
+      cardRadius,
+    );
+
+    /**
+     * White card body.
+     */
+    g.fillStyle(0xffffff, 0.98);
+    g.fillRoundedRect(
+      card.x,
+      card.y,
+      card.width,
+      card.height,
+      cardRadius,
+    );
+
+    /**
+     * Subtle inner cream overlay
+     */
+    g.fillStyle(0xfffbf2, 0.20);
+    g.fillRoundedRect(
+      card.x + 2,
+      card.y + 2,
+      card.width - 4,
+      card.height - 4,
+      Math.max(10, cardRadius - 2),
+    );
+
+    /**
+     * Olive/yellow border.
+     */
+    g.lineStyle(
+      Math.max(2, Math.round(card.height * 0.018)),
+      COLOR_AVOCADO_NUM,
+      0.95,
+    );
+    g.strokeRoundedRect(
+      card.x,
+      card.y,
+      card.width,
+      card.height,
+      cardRadius,
+    );
+  }
+  private drawTableOLDDEsign(): void {
+    const g = this.graphics;
+
+    g.clear();
+
+    const canvas = this.layout.canvas;
+    const table = this.layout.tableOuter;
+    const hud = this.layout.hud;
+
+    const pageColor = 0x121a36;
+    const hudColor = 0x121a36;
+    const tableBorderDark = 0x0b1228;
+    const tableBorderMid = 0x27314f;
+    const tableBorderPink = 0xd64abf;
+    const feltColor = 0xc783b8;
+    const panelColor = 0x162449;
+    const panelInner = 0x253a78;
+
+    g.fillStyle(pageColor, 1);
+    g.fillRect(0, 0, canvas.width, canvas.height);
+
+    /**
+     * Header.
+     */
+    g.fillStyle(hudColor, 1);
+    g.fillRect(hud.x, hud.y, hud.width, hud.height);
+
+    /**
+     * Outer board shadow/border.
+     */
+    g.fillStyle(tableBorderDark, 1);
+    g.fillRoundedRect(
+      table.x,
+      table.y,
+      table.width,
+      table.height,
+      20,
+    );
+
+    g.fillStyle(tableBorderMid, 1);
+    g.fillRoundedRect(
+      table.x + 5,
+      table.y + 5,
+      table.width - 10,
+      table.height - 10,
+      18,
+    );
+
+    g.fillStyle(tableBorderPink, 1);
+    g.fillRoundedRect(
+      table.x + 9,
+      table.y + 9,
+      table.width - 18,
+      table.height - 18,
+      16,
+    );
+
+    /**
+     * Felt area.
+     */
+    g.fillStyle(feltColor, 1);
+    g.fillRoundedRect(
+      table.x + 16,
+      table.y + 16,
+      table.width - 32,
+      table.height - 32,
+      12,
+    );
+
+    /**
+     * Very subtle center felt panel.
+     */
+    g.fillStyle(0xffffff, 0.035);
+    g.fillRoundedRect(
       this.layout.discardArea.x,
       this.layout.discardArea.y,
       this.layout.discardArea.width,
       this.layout.discardArea.height,
+      14,
     );
 
-    g.fillStyle(c.panel, 1);
-    g.fillRect(
-      this.layout.hud.x,
-      this.layout.hud.y,
-      this.layout.hud.width,
-      this.layout.hud.height,
+    /* this.drawPsdSideRackPanel(this.layout.leftExposure, "left");
+    this.drawPsdSideRackPanel(this.layout.rightExposure, "right");
+
+    this.drawPsdHorizontalRackPanel(this.layout.topExposure, 'horizontal');
+    this.drawPsdHorizontalRackPanel(this.layout.bottomExposure, 'bottom'); */
+
+    this.drawPsdRackPanel(
+      this.layout.leftExposure,
+      0,
+      0,
+      "vertical-left",
     );
-    g.fillRect(
-      this.layout.instructionBar.x,
-      this.layout.instructionBar.y,
-      this.layout.instructionBar.width,
-      this.layout.instructionBar.height,
+
+    this.drawPsdRackPanel(
+      this.layout.rightExposure,
+      0,
+      0,
+      "vertical-right",
+    );
+
+    this.drawPsdRackPanel(
+      this.layout.topExposure,
+      0,
+      0,
+      "horizontal",
+    );
+
+    this.drawPsdRackPanel(
+      this.layout.bottomExposure,
+      0,
+      0,
+      "bottom",
+    );
+
+    this.drawActiveSeatExposureHighlight();
+
+    /**
+     * Center card.
+     */
+    /* const card = this.layout.instructionBar;
+
+    g.fillStyle(0x000000, 0.22);
+    g.fillRoundedRect(card.x + 5, card.y + 7, card.width, card.height, 20);
+
+    g.fillStyle(0xffffff, 1);
+    g.fillRoundedRect(card.x, card.y, card.width, card.height, 20);
+
+    g.lineStyle(3, 0xb0b751, 0.8);
+    g.strokeRoundedRect(card.x, card.y, card.width, card.height, 20); */
+
+    const card = this.layout.instructionBar;
+
+    const cardRadius = Math.round(
+      Phaser.Math.Clamp(card.height * 0.22, 16, 34),
+    );
+
+    /**
+     * PSD-style instruction card shadow.
+     */
+    g.fillStyle(0x000000, 0.18);
+    g.fillRoundedRect(
+      card.x + Math.max(4, card.width * 0.012),
+      card.y + Math.max(6, card.height * 0.045),
+      card.width,
+      card.height,
+      cardRadius,
+    );
+
+    g.fillStyle(0x000000, 0.08);
+    g.fillRoundedRect(
+      card.x + Math.max(8, card.width * 0.020),
+      card.y + Math.max(10, card.height * 0.065),
+      card.width,
+      card.height,
+      cardRadius,
+    );
+
+    /**
+     * White card body.
+     */
+    g.fillStyle(0xffffff, 0.98);
+    g.fillRoundedRect(
+      card.x,
+      card.y,
+      card.width,
+      card.height,
+      cardRadius,
+    );
+
+    /**
+     * Subtle inner cream overlay, closer to PSD.
+     */
+    g.fillStyle(0xfffbf2, 0.20);
+    g.fillRoundedRect(
+      card.x + 2,
+      card.y + 2,
+      card.width - 4,
+      card.height - 4,
+      Math.max(10, cardRadius - 2),
+    );
+
+    /**
+     * Olive/yellow border.
+     */
+    g.lineStyle(
+      Math.max(2, Math.round(card.height * 0.018)),
+      0xb4ba4a,
+      0.95,
+    );
+    g.strokeRoundedRect(
+      card.x,
+      card.y,
+      card.width,
+      card.height,
+      cardRadius,
     );
   }
+  private exposureLipRatio(): number {
+    /**
+     * Shared lip/bevel ratio for all exposure panels.
+     */
+    return 0.14;
+  }
+
+  private exposureNameStripRatio(): number {
+    /**
+     * Shared player-name strip ratio for all exposure panels.
+     * This keeps top, bottom, left, and right visually consistent.
+     */
+    return 0.125;
+  }
+
+  private horizontalExposureNameStripRatio(): number {
+    /**
+     * Top/bottom label strip height.
+     *
+     * Desktop already looks good, so keep it unchanged.
+     * Mobile uses a slightly smaller strip to avoid stealing tile area.
+     */
+    if (this.layout.metrics.isMobile) {
+      return 0.105;
+    }
+
+    return 0.225;
+  }
+
+  private verticalExposureNameStripRatio(): number {
+    /**
+     * Left/right label strip width.
+     *
+     * Side panels are narrow on mobile, so use smaller ratio
+     * than top/bottom.
+     */
+    if (this.layout.metrics.isMobile && this.layout.metrics.isPortrait) {
+      return 0.075;
+    }
+
+    if (this.layout.metrics.isMobile && !this.layout.metrics.isPortrait) {
+      return 0.080;
+    }
+
+    return 0.225;
+  }
+  private exposurePanelMode(): ExposurePanelMode {
+    const width = this.layout.canvas.width;
+    const height = this.layout.canvas.height;
+
+    const phoneLandscape =
+      width > height &&
+      height <= 520 &&
+      width <= 980;
+
+    if (this.layout.metrics.isMobile && this.layout.metrics.isPortrait) {
+      return "mobile-portrait";
+    }
+
+    if (phoneLandscape || (this.layout.metrics.isMobile && !this.layout.metrics.isPortrait)) {
+      return "mobile-landscape";
+    }
+
+    if (this.layout.metrics.isTablet) {
+      return "tablet";
+    }
+
+    return "desktop";
+  }
+  private drawPsdRackPanel(
+    rect: Rect,
+    color: number,
+    innerColor: number,
+    mode: "vertical-left" | "vertical-right" | "horizontal" | "bottom",
+  ): void {
+    if (mode === "vertical-left") {
+      this.drawPsdSideRackPanel(rect, "left", this.activeSeat === "left");
+      return;
+    }
+
+    if (mode === "vertical-right") {
+      this.drawPsdSideRackPanel(rect, "right", this.activeSeat === "right");
+      return;
+    }
+
+    this.drawPsdHorizontalRackPanel(
+      rect,
+      mode,
+      mode === "bottom"
+        ? this.activeSeat === "bottom"
+        : this.activeSeat === "top",
+    );
+  }
+  private drawPsdSideRackPanel(
+    rect: Rect,
+    side: "left" | "right",
+    active: boolean,
+  ): void {
+    const g = this.graphics;
+
+    const x = Math.round(rect.x);
+    const y = Math.round(rect.y);
+    const w = Math.round(rect.width);
+    const h = Math.round(rect.height);
+
+    const shadowX = Math.max(4, Math.round(w * 0.045));
+    const shadowY = Math.max(5, Math.round(w * 0.055));
+
+    const compactMobile = this.layout.metrics.isMobile;
+
+    /**
+     * In mobile portrait, reduce label strip width
+     * so the exposure tile area becomes larger.
+     */
+    const modeKey = this.exposurePanelMode();
+
+    /**
+     * Landscape side exposure:
+     * Keep the whole panel size unchanged, but make its inner structure
+     * closer to top/bottom exposure proportions.
+     *
+     * This reduces the over-large inner tile channel only for landscape side panels.
+     */
+    const lipRatio = exposureLipRatio(modeKey);
+
+    const nameStripRatio =  exposureNameStripRatio(modeKey);
+
+    const lipW = Math.max(
+      compactMobile ? 4 : 8,
+      Math.round(w * lipRatio),
+    );
+
+    const nameStripW = Math.max(
+      compactMobile ? 3 : 8,
+      Math.round(w * nameStripRatio),
+    );
+
+    const dividerW = 1;
+
+    const stripFill = active ? 0xd7d33a : 0x22488f;
+    const stripHighlight = active ? 0xf0eb78 : 0x3c63bb;
+    const dividerFill = active ? 0x9b9722 : 0x8ea4d0;
+
+    /**
+     * Soft separated outside shadow.
+     */
+    const shadowOffsetX = 2;
+    const shadowOffsetY = 3;
+    const shadowSpread = 2;
+    
+    // --- FIXED SHADOW SYSTEM ---
+    // Draw the shadow elements directly onto the graphics pipeline.
+    // We draw multiple overlapping rectangles with decreasing alphas to create a "soft blur" effect.
+    
+    const shadowAlphaBase = 0.08;
+    const shadowColor = 0x000000;
+
+    // Layer 1: Broad, faint outer glow/spread
+    g.fillStyle(shadowColor, shadowAlphaBase * 0.5);
+    g.fillRect(
+      x + shadowOffsetX - shadowSpread,
+      y + shadowOffsetY - shadowSpread,
+      w + (shadowSpread * 2),
+      h + (shadowSpread * 2)
+    );
+
+    // Layer 2: Core drop shadow box
+    g.fillStyle(shadowColor, shadowAlphaBase * 1.5);
+    g.fillRect(
+      x + shadowOffsetX,
+      y + shadowOffsetY,
+      w,
+      h
+    );
+
+    // Layer 3: Soft ambient edge reinforcement
+    g.fillStyle(shadowColor, shadowAlphaBase * 0.8);
+    g.fillRect(
+      x + shadowOffsetX - 1,
+      y + shadowOffsetY - 1,
+      w + 2,
+      h + 2
+    );
+    
+    /**
+     * Main outer tray.
+     */
+    g.fillStyle(0x17336f, 1);
+    g.fillRect(x, y, w, h);
+
+    /**
+     * Soft outer border.
+     */
+    g.lineStyle(1, 0x07142f, 0.45);
+    g.strokeRect(x, y, w, h);
+
+    if (side === "left") {
+      /**
+       * LEFT PANEL:
+       * small left lip -> center tray -> divider -> right player strip
+       */
+      const contentX = x + lipW;
+      const contentW = w - lipW - nameStripW - dividerW;
+      const dividerX = contentX + contentW;
+      const stripX = dividerX + dividerW;
+
+      g.fillStyle(0x3159aa, 1);
+      g.fillRect(x, y, lipW, h);
+
+      g.fillStyle(0x5e82d5, 0.42);
+      g.fillRect(
+        x + Math.max(2, Math.round(lipW * 0.18)),
+        y + Math.max(4, Math.round(h * 0.01)),
+        Math.max(2, Math.round(lipW * 0.16)),
+        h - Math.max(8, Math.round(h * 0.02)),
+      );
+
+      g.fillStyle(0x172c61, 1);
+      g.fillRect(contentX, y, contentW, h);
+
+      g.fillStyle(0x1f3b83, 0.76);
+      g.fillRect(
+        contentX + Math.max(2, Math.round(contentW * 0.035)),
+        y + Math.max(4, Math.round(h * 0.01)),
+        contentW - Math.max(4, Math.round(contentW * 0.07)),
+        h - Math.max(8, Math.round(h * 0.02)),
+      );
+
+      g.fillStyle(0x07122d, 0.14);
+      g.fillRect(
+        contentX,
+        y,
+        Math.max(3, Math.round(contentW * 0.045)),
+        h,
+      );
+
+      g.fillStyle(dividerFill, active ? 0.72 : 0.58);
+      g.fillRect(
+        dividerX,
+        y + Math.max(4, Math.round(h * 0.012)),
+        dividerW,
+        h - Math.max(8, Math.round(h * 0.024)),
+      );
+
+      g.fillStyle(stripFill, 1);
+      g.fillRect(stripX, y, nameStripW, h);
+
+      /* g.fillStyle(stripHighlight, active ? 0.34 : 0.24);
+      g.fillRect(
+        stripX + Math.max(2, Math.round(nameStripW * 0.15)),
+        y + Math.max(4, Math.round(h * 0.01)),
+        Math.max(2, Math.round(nameStripW * 0.12)),
+        h - Math.max(8, Math.round(h * 0.02)),
+      ); */
+
+      g.fillStyle(stripHighlight, active ? 0.34 : 0.24);
+      g.fillRect(
+        stripX + Math.max(1, Math.round(nameStripW * 0.10)),
+        y + Math.max(3, Math.round(h * 0.01)),
+        Math.max(1, Math.round(nameStripW * (compactMobile ? 0.08 : 0.12))),
+        h - Math.max(6, Math.round(h * 0.02)),
+      );
+
+      return;
+    }
+
+    /**
+     * RIGHT PANEL:
+     * left player strip -> divider -> center tray -> small right lip
+     */
+    const stripX = x;
+    const dividerX = stripX + nameStripW;
+    const contentX = dividerX + dividerW;
+    const contentW = w - nameStripW - dividerW - lipW;
+    const rightLipX = contentX + contentW;
+
+    g.fillStyle(stripFill, 1);
+    g.fillRect(stripX, y, nameStripW, h);
+
+    /* g.fillStyle(stripHighlight, active ? 0.34 : 0.24);
+    g.fillRect(
+      stripX + Math.max(2, Math.round(nameStripW * 0.15)),
+      y + Math.max(4, Math.round(h * 0.01)),
+      Math.max(2, Math.round(nameStripW * 0.12)),
+      h - Math.max(8, Math.round(h * 0.02)),
+    ); */
+    if (nameStripW >= 6) {
+      g.fillStyle(stripHighlight, active ? 0.22 : 0.16);
+      g.fillRect(
+        stripX + Math.max(1, Math.round(nameStripW * 0.18)),
+        y + Math.max(3, Math.round(h * 0.01)),
+        Math.max(1, Math.round(nameStripW * 0.06)),
+        h - Math.max(6, Math.round(h * 0.02)),
+      );
+    }
+
+    g.fillStyle(dividerFill, active ? 0.72 : 0.58);
+    g.fillRect(
+      dividerX,
+      y + Math.max(4, Math.round(h * 0.012)),
+      dividerW,
+      h - Math.max(8, Math.round(h * 0.024)),
+    );
+
+    g.fillStyle(0x172c61, 1);
+    g.fillRect(contentX, y, contentW, h);
+
+    g.fillStyle(0x1f3b83, 0.76);
+    g.fillRect(
+      contentX + Math.max(2, Math.round(contentW * 0.035)),
+      y + Math.max(4, Math.round(h * 0.01)),
+      contentW - Math.max(4, Math.round(contentW * 0.07)),
+      h - Math.max(8, Math.round(h * 0.02)),
+    );
+
+    g.fillStyle(0x07122d, 0.10);
+    g.fillRect(
+      contentX + contentW - Math.max(3, Math.round(contentW * 0.045)),
+      y,
+      Math.max(3, Math.round(contentW * 0.045)),
+      h,
+    );
+
+    g.fillStyle(0x3159aa, 1);
+    g.fillRect(rightLipX, y, lipW, h);
+
+    g.fillStyle(0x5e82d5, 0.42);
+    g.fillRect(
+      rightLipX + Math.max(2, Math.round(lipW * 0.66)),
+      y + Math.max(4, Math.round(h * 0.01)),
+      Math.max(2, Math.round(lipW * 0.16)),
+      h - Math.max(8, Math.round(h * 0.02)),
+    );
+  }
+  private drawPsdSideRackPanelW(rect: Rect, side: "left" | "right"): void {
+    const g = this.graphics;
+
+    const x = Math.round(rect.x);
+    const y = Math.round(rect.y);
+    const w = Math.round(rect.width);
+    const h = Math.round(rect.height);
+
+    const shadowX = Math.max(4, Math.round(w * 0.045));
+    const shadowY = Math.max(5, Math.round(w * 0.055));
+
+    /* const lipW = Math.max(10, Math.round(w * 0.16));
+    const nameStripW = Math.max(18, Math.round(w * 0.27)); */
+    const lipW = Math.max(8, Math.round(w * 0.105));
+    const nameStripW = Math.max(24, Math.round(w * 0.315));
+    const dividerW = 1;
+
+    /**
+     * Outside shadow.
+     */
+    g.fillStyle(0x05091a, 0.12);
+    g.fillRect(
+      x + shadowX * 0.45,
+      y + shadowY * 0.45,
+      w,
+      h,
+    );
+
+    g.fillStyle(0x05091a, 0.10);
+    g.fillRect(
+      x + shadowX * 0.85,
+      y + shadowY * 0.85,
+      w,
+      h,
+    );
+
+    g.fillStyle(0x05091a, 0.08);
+    g.fillRect(
+      x + shadowX * 1.25,
+      y + shadowY * 1.25,
+      w,
+      h,
+    );
+
+    /**
+     * Main outer tray.
+     */
+    g.fillStyle(0x17336f, 1);
+    g.fillRect(x, y, w, h);
+
+    /**
+     * Dark outer border.
+     */
+    g.lineStyle(1, 0x07142f, 0.45);
+    g.strokeRect(x, y, w, h);
+
+    if (side === "left") {
+      /**
+       * LEFT PANEL
+       * left lip -> center -> divider -> right name strip
+       */
+
+      const contentX = x + lipW;
+      const contentY = y;
+      const contentW = w - lipW - nameStripW - dividerW;
+      const contentH = h;
+
+      const dividerX = contentX + contentW;
+      const stripX = dividerX + dividerW;
+
+      /**
+       * Left bevel/lip.
+       */
+      g.fillStyle(0x3159aa, 1);
+      g.fillRect(x, y, lipW, h);
+
+      g.fillStyle(0x5e82d5, 0.42);
+      g.fillRect(
+        x + Math.max(2, Math.round(lipW * 0.18)),
+        y + Math.max(4, Math.round(h * 0.01)),
+        Math.max(2, Math.round(lipW * 0.16)),
+        h - Math.max(8, Math.round(h * 0.02)),
+      );
+
+      /**
+       * Recessed center tray.
+       */
+      g.fillStyle(0x172c61, 1);
+      g.fillRect(contentX, contentY, contentW, contentH);
+
+      g.fillStyle(0x1f3b83, 0.76);
+      g.fillRect(
+        contentX + Math.max(2, Math.round(contentW * 0.035)),
+        contentY + Math.max(4, Math.round(h * 0.01)),
+        contentW - Math.max(4, Math.round(contentW * 0.07)),
+        contentH - Math.max(8, Math.round(h * 0.02)),
+      );
+
+      g.fillStyle(0x07122d, 0.14);
+      g.fillRect(
+        contentX,
+        contentY,
+        Math.max(3, Math.round(contentW * 0.045)),
+        contentH,
+      );
+
+      /**
+       * Divider.
+       */
+      g.fillStyle(0x8ea4d0, 0.58);
+      g.fillRect(
+        dividerX,
+        y + Math.max(4, Math.round(h * 0.012)),
+        dividerW,
+        h - Math.max(8, Math.round(h * 0.024)),
+      );
+
+      /**
+       * Right-side player strip.
+       */
+      g.fillStyle(0x22488f, 1);
+      g.fillRect(stripX, y, nameStripW, h);
+
+      g.fillStyle(0x3c63bb, 0.24);
+      g.fillRect(
+        stripX + Math.max(2, Math.round(nameStripW * 0.15)),
+        y + Math.max(4, Math.round(h * 0.01)),
+        Math.max(2, Math.round(nameStripW * 0.12)),
+        h - Math.max(8, Math.round(h * 0.02)),
+      );
+    } else {
+      /**
+       * RIGHT PANEL
+       * left name strip (big) -> divider -> center -> right lip (small)
+       */
+
+      const stripX = x;
+      const dividerX = stripX + nameStripW;
+      const contentX = dividerX + dividerW;
+      const contentY = y;
+      const contentW = w - nameStripW - dividerW - lipW;
+      const contentH = h;
+      const rightLipX = contentX + contentW;
+
+      /**
+       * Left-side player strip (big).
+       */
+      g.fillStyle(0x22488f, 1);
+      g.fillRect(stripX, y, nameStripW, h);
+
+      g.fillStyle(0x3c63bb, 0.24);
+      g.fillRect(
+        stripX + Math.max(2, Math.round(nameStripW * 0.15)),
+        y + Math.max(4, Math.round(h * 0.01)),
+        Math.max(2, Math.round(nameStripW * 0.12)),
+        h - Math.max(8, Math.round(h * 0.02)),
+      );
+
+      /**
+       * Divider.
+       */
+      g.fillStyle(0x8ea4d0, 0.58);
+      g.fillRect(
+        dividerX,
+        y + Math.max(4, Math.round(h * 0.012)),
+        dividerW,
+        h - Math.max(8, Math.round(h * 0.024)),
+      );
+
+      /**
+       * Recessed center tray.
+       */
+      g.fillStyle(0x172c61, 1);
+      g.fillRect(contentX, contentY, contentW, contentH);
+
+      g.fillStyle(0x1f3b83, 0.76);
+      g.fillRect(
+        contentX + Math.max(2, Math.round(contentW * 0.035)),
+        contentY + Math.max(4, Math.round(h * 0.01)),
+        contentW - Math.max(4, Math.round(contentW * 0.07)),
+        contentH - Math.max(8, Math.round(h * 0.02)),
+      );
+
+      g.fillStyle(0x07122d, 0.10);
+      g.fillRect(
+        contentX + contentW - Math.max(3, Math.round(contentW * 0.045)),
+        contentY,
+        Math.max(3, Math.round(contentW * 0.045)),
+        contentH,
+      );
+
+      /**
+       * Small right bevel/lip.
+       */
+      g.fillStyle(0x3159aa, 1);
+      g.fillRect(rightLipX, y, lipW, h);
+
+      g.fillStyle(0x5e82d5, 0.42);
+      g.fillRect(
+        rightLipX + Math.max(2, Math.round(lipW * 0.66)),
+        y + Math.max(4, Math.round(h * 0.01)),
+        Math.max(2, Math.round(lipW * 0.16)),
+        h - Math.max(8, Math.round(h * 0.02)),
+      );
+    }
+
+    /**
+     * Far-right depth.
+     */
+    g.fillStyle(0x07122d, 0.30);
+    g.fillRect(
+      x + w - Math.max(3, Math.round(w * 0.025)),
+      y,
+      Math.max(3, Math.round(w * 0.025)),
+      h,
+    );
+  }
+  private drawPsdSideRackPanelWW(rect: Rect): void {
+    const g = this.graphics;
+
+    const x = Math.round(rect.x);
+    const y = Math.round(rect.y);
+    const w = Math.round(rect.width);
+    const h = Math.round(rect.height);
+
+    const shadowX = Math.max(4, Math.round(w * 0.045));
+    const shadowY = Math.max(5, Math.round(w * 0.055));
+
+    const leftLipW = Math.max(10, Math.round(w * 0.16));
+    const nameStripW = Math.max(18, Math.round(w * 0.27));
+    const dividerW = 1;
+
+    const contentX = x + leftLipW;
+    const contentY = y;
+    const contentW = w - leftLipW - nameStripW - dividerW;
+    const contentH = h;
+
+    const dividerX = contentX + contentW;
+    const stripX = dividerX + dividerW;
+
+    /**
+     * Outside shadow.
+     */
+    g.fillStyle(0x05091a, 0.42);
+    g.fillRect(x + shadowX, y + shadowY, w, h);
+
+    /**
+     * Main outer tray.
+     */
+    g.fillStyle(0x17336f, 1);
+    g.fillRect(x, y, w, h);
+
+    /**
+     * Dark outer border.
+     */
+    g.lineStyle(1, 0x07142f, 0.95);
+    g.strokeRect(x, y, w, h);
+
+    /**
+     * Left bevel/lip.
+     * This now matches the top rack lip style, without a black line.
+     */
+    g.fillStyle(0x3159aa, 1);
+    g.fillRect(x, y, leftLipW, h);
+
+    /**
+     * Bright lip highlight.
+     */
+    g.fillStyle(0x5e82d5, 0.42);
+    g.fillRect(
+      x + Math.max(2, Math.round(leftLipW * 0.18)),
+      y + Math.max(4, Math.round(h * 0.01)),
+      Math.max(2, Math.round(leftLipW * 0.16)),
+      h - Math.max(8, Math.round(h * 0.02)),
+    );
+
+    /**
+     * Recessed main center tray.
+     */
+    g.fillStyle(0x172c61, 1);
+    g.fillRect(contentX, contentY, contentW, contentH);
+
+    /**
+     * Soft center fill.
+     */
+    g.fillStyle(0x1f3b83, 0.76);
+    g.fillRect(
+      contentX + Math.max(2, Math.round(contentW * 0.035)),
+      contentY + Math.max(4, Math.round(h * 0.01)),
+      contentW - Math.max(4, Math.round(contentW * 0.07)),
+      contentH - Math.max(8, Math.round(h * 0.02)),
+    );
+
+    /**
+     * Very soft inner left shadow.
+     */
+    g.fillStyle(0x07122d, 0.14);
+    g.fillRect(
+      contentX,
+      contentY,
+      Math.max(3, Math.round(contentW * 0.045)),
+      contentH,
+    );
+
+    /**
+     * Thin divider before name strip.
+     */
+    g.fillStyle(0x8ea4d0, 0.58);
+    g.fillRect(
+      dividerX,
+      y + Math.max(4, Math.round(h * 0.012)),
+      dividerW,
+      h - Math.max(8, Math.round(h * 0.024)),
+    );
+
+    /**
+     * Player name strip.
+     */
+    g.fillStyle(0x22488f, 1);
+    g.fillRect(stripX, y, nameStripW, h);
+
+    /**
+     * Subtle strip highlight.
+     */
+    g.fillStyle(0x3c63bb, 0.24);
+    g.fillRect(
+      stripX + Math.max(2, Math.round(nameStripW * 0.15)),
+      y + Math.max(4, Math.round(h * 0.01)),
+      Math.max(2, Math.round(nameStripW * 0.12)),
+      h - Math.max(8, Math.round(h * 0.02)),
+    );
+
+    /**
+     * Right depth.
+     */
+    g.fillStyle(0x07122d, 0.30);
+    g.fillRect(
+      x + w - Math.max(3, Math.round(w * 0.025)),
+      y,
+      Math.max(3, Math.round(w * 0.025)),
+      h,
+    );
+  }
+  private drawPsdHorizontalRackPanel(
+    rect: Rect,
+    mode: "horizontal" | "bottom",
+    active: boolean,
+  ): void {
+    const g = this.graphics;
+
+    const x = Math.round(rect.x);
+    const y = Math.round(rect.y);
+    const w = Math.round(rect.width);
+    const h = Math.round(rect.height);
+
+    const modeKey = this.exposurePanelMode();
+
+    const lipRatio = exposureLipRatio(modeKey);
+    const nameStripRatio = exposureNameStripRatio(modeKey);
+
+    const topLipH = Math.max(
+      this.layout.metrics.isMobile ? 4 : 8,
+      Math.round(h * lipRatio),
+    );
+
+    const nameStripH = Math.max(
+      this.layout.metrics.isMobile ? 4 : 8,
+      Math.round(h * nameStripRatio),
+    );
+
+    const dividerH = 1;
+    const contentX = x;
+    const contentY = y + topLipH;
+    const contentW = w;
+    const contentH = h - topLipH - nameStripH - dividerH;
+
+    const dividerY = contentY + contentH;
+    const stripY = dividerY + dividerH;
+
+    const isBottom = mode === "bottom";
+
+    /**
+     * Bottom/current user strip becomes yellow instead of using
+     * an outer yellow rounded border.
+     */
+    const stripFill = active ? 0xd7d33a : 0x22488f;
+    const stripHighlight = active ? 0xf0eb78 : 0x3c63bb;
+    const dividerFill = active ? 0x9b9722 : 0x8ea4d0;
+
+    /**
+     * Soft separated outside shadow.
+     */
+    const shadowOffsetX = 2;
+    const shadowOffsetY = 3;
+    const shadowSpread = 2;
+
+    const shadowAlphaBase = 0.08;
+    const shadowColor = 0x000000;
+
+    // Layer 1: Broad, faint outer glow/spread
+    g.fillStyle(shadowColor, shadowAlphaBase * 0.5);
+    g.fillRect(
+      x + shadowOffsetX - shadowSpread,
+      y + shadowOffsetY - shadowSpread,
+      w + (shadowSpread * 2),
+      h + (shadowSpread * 2)
+    );
+
+    // Layer 2: Core drop shadow box
+    g.fillStyle(shadowColor, shadowAlphaBase * 1.5);
+    g.fillRect(
+      x + shadowOffsetX,
+      y + shadowOffsetY,
+      w,
+      h
+    );
+
+    // Layer 3: Soft ambient edge reinforcement
+    g.fillStyle(shadowColor, shadowAlphaBase * 0.8);
+    g.fillRect(
+      x + shadowOffsetX - 1,
+      y + shadowOffsetY - 1,
+      w + 2,
+      h + 2
+    );
+
+    /**
+     * Main outer tray.
+     */
+    g.fillStyle(0x17336f, 1);
+    g.fillRect(x, y, w, h);
+
+    /**
+     * Softer outer border.
+     */
+    g.lineStyle(1, 0x07142f, 0.45);
+    g.strokeRect(x, y, w, h);
+
+    /**
+     * Top bevel/lip.
+     */
+    g.fillStyle(0x3159aa, 1);
+    g.fillRect(x, y, w, topLipH);
+
+    /**
+     * Bright highlight inside top lip.
+     */
+    g.fillStyle(0x5e82d5, 0.42);
+    g.fillRect(
+      x + Math.max(4, Math.round(w * 0.01)),
+      y + Math.max(2, Math.round(topLipH * 0.18)),
+      w - Math.max(8, Math.round(w * 0.02)),
+      Math.max(2, Math.round(topLipH * 0.16)),
+    );
+
+    /**
+     * Recessed main center tray.
+     */
+    g.fillStyle(0x172c61, 1);
+    g.fillRect(contentX, contentY, contentW, contentH);
+
+    /**
+     * Soft center fill.
+     */
+    g.fillStyle(0x1f3b83, 0.76);
+    g.fillRect(
+      contentX + Math.max(4, Math.round(w * 0.01)),
+      contentY + Math.max(3, Math.round(contentH * 0.045)),
+      contentW - Math.max(8, Math.round(w * 0.02)),
+      contentH - Math.max(6, Math.round(contentH * 0.09)),
+    );
+
+    /**
+     * Very soft inner top shadow.
+     */
+    g.fillStyle(0x07122d, 0.18);
+    g.fillRect(
+      contentX,
+      contentY,
+      contentW,
+      Math.max(3, Math.round(contentH * 0.06)),
+    );
+
+    /**
+     * Thin divider above name strip.
+     */
+    g.fillStyle(dividerFill, isBottom ? 0.72 : 0.58);
+    g.fillRect(x, dividerY, w, dividerH);
+
+    /**
+     * Name strip.
+     */
+    g.fillStyle(stripFill, 1);
+    g.fillRect(x, stripY, w, nameStripH);
+
+    if (nameStripH >= 8) {
+      g.fillStyle(stripHighlight, active ? 0.22 : 0.16);
+      g.fillRect(
+        x + Math.max(3, Math.round(w * 0.01)),
+        stripY + Math.max(1, Math.round(nameStripH * 0.18)),
+        w - Math.max(6, Math.round(w * 0.02)),
+        Math.max(1, Math.round(nameStripH * 0.06)),
+      );
+    }
+
+    /**
+     * Bottom depth.
+     */
+    g.fillStyle(0x07122d, 0.22);
+    g.fillRect(
+      x,
+      y + h - Math.max(3, Math.round(h * 0.018)),
+      w,
+      Math.max(3, Math.round(h * 0.018)),
+    );
+  }
+  
   private drawActiveSeatExposureHighlight(): void {
     const rect = this.exposureRectForSeat(this.activeSeat);
     const g = this.graphics;
@@ -1833,7 +2997,7 @@ private animatePassedTiles(
      * Multiple strokes are cheaper than a separate blurred object
      * and only redraw when layout/active seat changes.
      */
-    g.lineStyle(lineWidth + 5, 0xffd166, 0.16);
+    /* g.lineStyle(lineWidth + 5, 0xffd166, 0.16);
     g.strokeRoundedRect(
       rect.x + 2,
       rect.y + 2,
@@ -1849,12 +3013,12 @@ private animatePassedTiles(
       rect.width - 6,
       rect.height - 6,
       radius,
-    );
+    ); */
 
     /**
      * Main active border.
      */
-    g.lineStyle(lineWidth, 0xfff3a3, 0.95);
+    /* g.lineStyle(lineWidth, 0xfff3a3, 0.95);
     g.strokeRoundedRect(
       rect.x + 5,
       rect.y + 5,
@@ -1862,7 +3026,7 @@ private animatePassedTiles(
       rect.height - 10,
       radius,
     );
-
+ */
     /**
      * Very subtle inner overlay so the active exposure feels selected.
      */
@@ -1891,638 +3055,98 @@ private animatePassedTiles(
 
     return this.layout.rightExposure;
   }
-  private drawTableOLDW(): void {
-    const c = this.config.colors;
-    const g = this.graphics;
-
-    g.clear();
-
-    g.fillStyle(c.page, 1);
-    g.fillRect(0, 0, this.layout.canvas.width, this.layout.canvas.height);
-
-    g.fillStyle(c.exposure, 1);
-    g.fillRect(this.layout.leftExposure.x, this.layout.leftExposure.y, this.layout.leftExposure.width, this.layout.leftExposure.height);
-    g.fillRect(this.layout.rightExposure.x, this.layout.rightExposure.y, this.layout.rightExposure.width, this.layout.rightExposure.height);
-    g.fillRect(this.layout.topExposure.x, this.layout.topExposure.y, this.layout.topExposure.width, this.layout.topExposure.height);
-    g.fillRect(this.layout.bottomExposure.x, this.layout.bottomExposure.y, this.layout.bottomExposure.width, this.layout.bottomExposure.height);
-
-    g.fillStyle(c.discard, 1);
-    g.fillRect(this.layout.discardArea.x, this.layout.discardArea.y, this.layout.discardArea.width, this.layout.discardArea.height);
-
-    g.fillStyle(c.panel, 1);
-    g.fillRect(this.layout.hud.x, this.layout.hud.y, this.layout.hud.width, this.layout.hud.height);
-    g.fillRect(this.layout.instructionBar.x, this.layout.instructionBar.y, this.layout.instructionBar.width, this.layout.instructionBar.height);
-  }
+  
   private createStaticUi(): void {
-
-    this.hudTextObjects = [
-      this.add.text(0, 0, "☰", this.hudIconStyle()).setOrigin(0.5),
-      this.add.text(0, 0, "xx Points", this.hudTextStyle()).setOrigin(0, 0.5),
-      this.add.text(0, 0, "93 left", this.hudCenterStyle()).setOrigin(0.5),
-      this.add.text(0, 0, "⟳   ♦   ☝   ⚙   ?", this.hudIconStyle()).setOrigin(1, 0.5),
-    ];
-
-    this.hudTextObjects[3].setInteractive({ useHandCursor: true });
-    this.hudTextObjects[3].on("pointerdown", () => {
-      if (!this.layout.isMobile) return;
-      this.hudMenuOpen = !this.hudMenuOpen;
-      this.layoutMobileHudMenu();
-    });
-    /* this.hudTextObjects = [
-      this.add.text(0, 0, "☰", this.hudIconStyle()).setOrigin(0.5),
-      this.add.text(0, 0, "xx Points", this.hudTextStyle()).setOrigin(0, 0.5),
-      this.add.text(0, 0, "93 left", this.hudCenterStyle()).setOrigin(0.5),
-      this.add.text(0, 0, "⟳   ♦   ☝   ⚙   ?", this.hudIconStyle()).setOrigin(1, 0.5),
-    ]; */
-
-    this.instructionText = this.add.text(0, 0, "", {
-      fontFamily: "Poppins, Arial",
-      fontSize: "22px",
-      fontStyle: "700",
-      color: this.config.colors.white,
-    }).setOrigin(0.5);
-
-    this.playerLabels = [
-      this.add.text(0, 0, "PLAYER 1", this.labelStyle()).setOrigin(0.5),
-      this.add.text(0, 0, "PLAYER 2", this.labelStyle()).setOrigin(0.5),
-      this.add.text(0, 0, "PLAYER 3", this.labelStyle()).setOrigin(0.5),
-    ];
-
-    this.usernameText = this.add.text(0, 0, "USERNAME", this.labelStyle()).setOrigin(0.5);
-
-    this.wallTileBox = this.createWallTileBox();
-    this.pickSeatSelector = this.createPickSeatSelector();
-
-    this.passButton = this.createPassButton();
+    this.uiLayoutManager.createStaticUi(this);
     this.layoutStaticUi();
   }
+  private layoutStaticUi(): void {
+    if (!this.layout) return;
 
-  private ensureMobileHudMenu(): void {
-    if (this.hudMenuItems.length > 0) return;
-
-    const labels = ["Sort By Rank", "Sort By Suit", "Undo", "Help"];
-
-    this.hudMenuItems = labels.map((label) =>
-      this.add.text(0, 0, label, {
-        fontFamily: "Poppins, Arial",
-        fontSize: "11px",
-        color: this.config.colors.white,
-        backgroundColor: "#6675ac",
-        padding: { x: 8, y: 5 },
-      }).setOrigin(1, 0).setDepth(80).setVisible(false),
-    );
-  }
-
-  private layoutMobileHudMenu(): void {
-    this.ensureMobileHudMenu();
-
-    const hud = this.layout.hud;
-    const itemGap = 3;
-
-    this.hudMenuItems.forEach((item, index) => {
-      item
-        .setPosition(hud.x + hud.width - 6, hud.y + hud.height + 5 + index * (item.height + itemGap))
-        .setVisible(this.layout.isMobile && this.hudMenuOpen);
+    this.uiLayoutManager.layoutStaticUi({
+      layout: this.layout,
+      renderDpr: this.renderDpr,
+      tablePhase: this.tablePhase,
+      pickTargetSeat: this.pickTargetSeat,
+      passDirection: this.passDirection,
+      wallTileCount: this.wallTileCount,
+      passWaitingCount: this.passWaitingTileIds.length,
+      canSubmitPass: this.canSubmitPassWaitingTiles(),
+      isPassAnimating: this.isPassAnimating,
+      isPickAnimating: this.isPickAnimating,
+      activeSeat: this.activeSeat,
     });
   }
-  private layoutStaticUi(): void {
-    if (!this.layout || this.hudTextObjects.length < 4) return;
-
-    const hud = this.layout.hud;
-    const metrics = this.layout.metrics;
-
-    const iconLeft = this.hudTextObjects[0];
-    const points = this.hudTextObjects[1];
-    const tilesLeft = this.hudTextObjects[2];
-    const actions = this.hudTextObjects[3];
-
-    iconLeft.setFontSize(metrics.hudIconFont);
-    points.setFontSize(metrics.hudFont);
-    tilesLeft.setFontSize(metrics.hudCounterFont);
-    actions.setFontSize(metrics.hudIconFont);
-
-    points.setFontStyle("500");
-    tilesLeft.setFontStyle("500");
-    actions.setFontStyle("500");
-
-    /* iconLeft.setPosition(
-      hud.x + hud.width * 0.018,
-      hud.y + hud.height / 2,
-    );
-
-    points.setPosition(
-      hud.x + hud.width * 0.055,
-      hud.y + hud.height / 2,
-    ); */
-
-    iconLeft
-    .setText("☰  MAJHFIT")
-    .setOrigin(0, 0.5)
-    .setPosition(
-      hud.x + Math.max(16, hud.height * 0.32),
-      hud.y + hud.height / 2,
-    );
-
-  points
-    .setText("1,000 POINTS")
-    .setOrigin(0, 0.5)
-    .setPosition(
-      hud.x + hud.width - Math.max(420, hud.width * 0.33),
-      hud.y + hud.height / 2,
-    );
-
-    /* tilesLeft.setPosition(
-      hud.x + hud.width / 2,
-      hud.y + hud.height / 2,
-    ); */
-    this.layoutWallTileBox();
-
-    if (this.layout.isMobile) {
-      actions.setText("⚙");
-      actions.setPosition(
-        hud.x + hud.width - hud.height * 0.45,
-        hud.y + hud.height / 2,
-      );
-    } else {
-      actions.setText("⟳  ♦  ☝  ⚙  ?");
-      actions.setPosition(
-        hud.x + hud.width * 0.982,
-        hud.y + hud.height / 2,
-      );
-      this.hudMenuOpen = false;
-    }
-
-    /* this.instructionText
-      ?.setPosition(
-        this.layout.instructionBar.x + this.layout.instructionBar.width / 2,
-        this.layout.instructionBar.y + this.layout.instructionBar.height / 2,
-      )
-      .setFontSize(metrics.instructionFont)
-      .setFontStyle("400"); */
-
-    this.instructionText
-    ?.setPosition(
-      this.layout.instructionBar.x + this.layout.instructionBar.width / 2,
-      this.layout.instructionBar.y + this.layout.instructionBar.height * 0.36,
-    )
-    .setFontSize(metrics.instructionFont)
-    .setFontStyle("700")
-    .setColor("#172447");
-
-    this.updateInstructionText();
-
-    this.playerLabels[0]
-      ?.setPosition(this.layout.topLabel.x, this.layout.topLabel.y)
-      .setFontSize(metrics.playerLabelFont)
-      .setFontStyle("400")
-      .setAngle(0);
-
-    this.playerLabels[1]
-      ?.setPosition(this.layout.rightLabel.x, this.layout.rightLabel.y)
-      .setFontSize(metrics.playerLabelFont)
-      .setFontStyle("400")
-      .setAngle(90);
-
-    this.playerLabels[2]
-      ?.setPosition(this.layout.leftLabel.x, this.layout.leftLabel.y)
-      .setFontSize(metrics.playerLabelFont)
-      .setFontStyle("400")
-      .setAngle(-90);
-
-    /* this.usernameText
-      ?.setPosition(this.layout.username.x, this.layout.username.y)
-      .setFontSize(metrics.usernameFont)
-      .setFontStyle("400"); */
-
-    this.usernameText
-      ?.setPosition(this.layout.username.x, this.layout.username.y)
-      .setFontSize(metrics.usernameFont)
-      .setFontStyle("700")
-      .setColor("#ffe94a");
-
-    /* for (const text of [
-      iconLeft,
-      points,
-      tilesLeft,
-      actions,
-      this.instructionText,
-      this.playerLabels[0],
-      this.playerLabels[1],
-      this.playerLabels[2],
-      this.usernameText,
-    ]) {
-      text?.setResolution(this.renderDpr);
-    } */
-    for (const text of [
-      ...this.hudTextObjects,
-      this.instructionText,
-      ...this.playerLabels,
-      this.usernameText,
-    ]) {
-      text?.setResolution(this.renderDpr);
-    }
-    this.layoutPassButton();
-    this.layoutPickSeatSelector();
-    this.layoutMobileHudMenu();
+  private layoutMobileHudMenu(): void {
+    this.uiLayoutManager.layoutMobileHud(this.layout);
   }
-  private hudBg?: Phaser.GameObjects.Rectangle;
-
   
-  private addOrUpdateHudBackground(): void {
-    const hud = this.layout.hud;
-
-    if (!this.hudBg) {
-      this.hudBg = this.add.rectangle(0, 0, 1, 1, this.config.colors.panel, 1).setOrigin(0, 0).setDepth(10);
-      this.hudTextObjects.forEach((item) => item.setDepth(11));
-    }
-
-    this.hudBg.setPosition(hud.x, hud.y);
-    this.hudBg.setSize(hud.width, hud.height);
-  }
-  private createWallTileBox(): Phaser.GameObjects.Container {
-    const graphics = this.add.graphics();
-
-    const container = this.add
-      .container(0, 0, [graphics])
-      .setDepth(12);
-
-    return container;
-  }
-
-  private layoutWallTileBox(): void {
-    if (!this.wallTileBox || this.hudTextObjects.length < 3) return;
-
-    const hud = this.layout.hud;
-    const metrics = this.layout.metrics;
-    const tilesLeft = this.hudTextObjects[2];
-
-    this.updateWallCountText();
-
-    tilesLeft
-      .setOrigin(0, 0.5)
-      .setFontSize(metrics.hudCounterFont)
-      .setFontStyle("700")
-      .setColor("#ffffff");
-
-    const size = this.wallTileBoxSize();
-    const gap = Math.max(7, Math.round(size.width * 0.34));
-
-    /**
-     * PSD: wall icon + 93 LEFT sits in the top HUD, right of center.
-     */
-    const groupLeft = hud.x + hud.width - Math.max(650, hud.width * 0.48);
-
-    this.wallTileBox.setPosition(
-      Math.round(groupLeft + size.width / 2),
-      Math.round(hud.y + hud.height / 2),
-    );
-
-    tilesLeft.setPosition(
-      Math.round(groupLeft + size.width + gap),
-      Math.round(hud.y + hud.height / 2),
-    );
-
-    const graphics = this.wallTileBox.list[0] as Phaser.GameObjects.Graphics;
-    const radius = Math.max(3, Math.round(Math.min(size.width, size.height) * 0.14));
-
-    graphics.clear();
-    graphics.fillStyle(0xffffff, 1);
-    graphics.fillRoundedRect(
-      -size.width / 2,
-      -size.height / 2,
-      size.width,
-      size.height,
-      radius,
-    );
-
-    graphics.lineStyle(1, 0xd9d9d9, 1);
-    graphics.strokeRoundedRect(
-      -size.width / 2,
-      -size.height / 2,
-      size.width,
-      size.height,
-      radius,
-    );
-
-    const inset = Math.max(2, Math.round(Math.min(size.width, size.height) * 0.12));
-
-    graphics.lineStyle(1, 0xf1f5f9, 1);
-    graphics.strokeRoundedRect(
-      -size.width / 2 + inset,
-      -size.height / 2 + inset,
-      size.width - inset * 2,
-      size.height - inset * 2,
-      Math.max(2, radius - 1),
-    );
-  }
-  private layoutWallTileBoxOLD(): void {
-    if (!this.wallTileBox || this.hudTextObjects.length < 3) return;
-
-    const hud = this.layout.hud;
-    const metrics = this.layout.metrics;
-    const tilesLeft = this.hudTextObjects[2];
-
-    this.updateWallCountText();
-
-    tilesLeft
-      .setOrigin(0, 0.5)
-      .setFontSize(metrics.hudCounterFont)
-      .setFontStyle("500");
-
-    const size = this.wallTileBoxSize();
-    const gap = Math.max(6, Math.round(size.width * 0.28));
-
-    const textWidth = tilesLeft.width;
-    const groupWidth = size.width + gap + textWidth;
-    const groupLeft = hud.x + hud.width / 2 - groupWidth / 2;
-
-    this.wallTileBox.setPosition(
-      Math.round(groupLeft + size.width / 2),
-      Math.round(hud.y + hud.height / 2),
-    );
-
-    tilesLeft.setPosition(
-      Math.round(groupLeft + size.width + gap),
-      Math.round(hud.y + hud.height / 2),
-    );
-
-    const graphics = this.wallTileBox.list[0] as Phaser.GameObjects.Graphics;
-    const radius = Math.max(3, Math.round(Math.min(size.width, size.height) * 0.14));
-
-    graphics.clear();
-    graphics.fillStyle(0xffffff, 1);
-    graphics.fillRoundedRect(
-      -size.width / 2,
-      -size.height / 2,
-      size.width,
-      size.height,
-      radius,
-    );
-
-    graphics.lineStyle(1, 0xd9d9d9, 1);
-    graphics.strokeRoundedRect(
-      -size.width / 2,
-      -size.height / 2,
-      size.width,
-      size.height,
-      radius,
-    );
-
-    const inset = Math.max(2, Math.round(Math.min(size.width, size.height) * 0.12));
-
-    graphics.lineStyle(1, 0xf1f5f9, 1);
-    graphics.strokeRoundedRect(
-      -size.width / 2 + inset,
-      -size.height / 2 + inset,
-      size.width - inset * 2,
-      size.height - inset * 2,
-      Math.max(2, radius - 1),
-    );
-  }
-
   private wallTileBoxSize(): { readonly width: number; readonly height: number } {
-    const hudHeight = this.layout.hud.height;
-
-    const height = Math.round(
-      Phaser.Math.Clamp(
-        hudHeight * 0.58,
-        this.layout.metrics.isMobile ? 14 : 18,
-        this.layout.metrics.isMobile ? 24 : 30,
-      ),
-    );
-
-    const width = Math.round(height * 0.72);
-
-    return { width, height };
+    return this.uiLayoutManager.wallTileBoxSize(this.layout);
   }
 
   private wallTileSourcePoint(): Point {
-    if (this.wallTileBox) {
-      return {
-        x: this.wallTileBox.x,
-        y: this.wallTileBox.y,
-      };
-    }
-
-    return {
-      x: this.layout.hud.x + this.layout.hud.width / 2,
-      y: this.layout.hud.y + this.layout.hud.height / 2,
-    };
+    return this.uiLayoutManager.wallTileSourcePoint(this.layout);
   }
 
   private updateWallCountText(): void {
-    const tilesLeft = this.hudTextObjects[2];
-    if (!tilesLeft) return;
-
-    tilesLeft.setText(`${this.wallTileCount} left`);
+    this.uiLayoutManager.updateWallTiles(this.wallTileCount);
   }
-  private createPassButton(): Phaser.GameObjects.Container {
-    const bg = this.add.graphics();
-
-    const text = this.add
-      .text(0, 0, "PICK", {
-        fontFamily: "Poppins, Arial",
-        fontSize: "13px",
-        fontStyle: "700",
-        color: this.config.colors.white,
-      })
-      .setOrigin(0.5);
-
-    const container = this.add.container(0, 0, [bg, text]).setDepth(20);
-
-    container.setInteractive(
-      new Phaser.Geom.Rectangle(-70, -32, 140, 64),
-      Phaser.Geom.Rectangle.Contains,
-    );
-
-    container.on("pointerdown", () => {
-      if (this.tablePhase === "playing") {
-        this.playHaptic("pick");
-        this.pickTileForSeat(this.pickTargetSeat);
-        return;
-      }
-
-      if (!this.canSubmitPassWaitingTiles()) return;
-      if (this.isPassAnimating) return;
-
-      this.playHaptic("pass-submit");
-      this.submitPassWaitingTiles();
-    });
-
-    return container;
-  }
-  private createPassButtonOLD(): Phaser.GameObjects.Container {
-    const bg = this.add.graphics();
-    const text = this.add.text(0, 0, "PASS", {
-      fontFamily: "Poppins, Arial",
-      fontSize: "13px",
-      fontStyle: "700",
-      color: this.config.colors.white,
-    }).setOrigin(0.5);
-
-    const container = this.add.container(0, 0, [bg, text]).setDepth(20);
-    container.setInteractive(
-      new Phaser.Geom.Rectangle(-70, -32, 140, 64),
-      Phaser.Geom.Rectangle.Contains,
-    );
-
-    container.on("pointerdown", () => {
-      if (!this.canSubmitPassWaitingTiles()) return;
-      if (this.isPassAnimating) return;
-
-      this.submitPassWaitingTiles();
-    });
-
-    return container;
-  }
+  
 
   private layoutPassButton(): void {
-    if (!this.passButton) return;
-
-    const button = this.layout.passButton;
-    const metrics = this.layout.metrics;
-
-    const bg = this.passButton.list[0] as Phaser.GameObjects.Graphics;
-    const text = this.passButton.list[1] as Phaser.GameObjects.Text;
-
-    this.passButton.setPosition(
-      button.x + button.width / 2,
-      button.y + button.height / 2,
-    );
-
-    bg.clear();
-    //bg.fillStyle(this.config.colors.accent, 1);
-    bg.fillStyle(0xcb2aa3, 1);
-    bg.fillRoundedRect(
-      -button.width / 2,
-      -button.height / 2,
-      button.width,
-      button.height,
-      Math.min(12, button.height * 0.28),
-    );
-
-    text
-      .setFontSize(metrics.passFont)
-      .setFontStyle("700")
-      .setColor("#ffffff")
-      .setPosition(0, 0);
-
-    this.passButton.setInteractive(
-      new Phaser.Geom.Rectangle(
-        -button.width / 2,
-        -button.height / 2,
-        button.width,
-        button.height,
-      ),
-      Phaser.Geom.Rectangle.Contains,
-    );
+    this.uiLayoutManager.layoutPassButton(this.layout);
   }
+  
 
   private updateInstructionText(): void {
-    if (this.tablePhase === "playing") {
-      const seatLabel =
-        this.pickTargetSeat === "bottom"
-          ? "YOUR RACK"
-          : this.pickTargetSeat === "top"
-            ? "TOP SEAT"
-            : this.pickTargetSeat === "left"
-              ? "LEFT SEAT"
-              : "RIGHT SEAT";
-
-      this.instructionText?.setText(`YOUR TURN\nPick a tile to ${seatLabel}`);
-      return;
-    }
-
-    const label =
-      this.passDirection === "right"
-        ? "YOUR TURN\nSelect 3 tiles to pass to the right."
-        : this.passDirection === "left"
-          ? "YOUR TURN\nSelect 3 tiles to pass to the left."
-          : "YOUR TURN\nSelect 3 tiles to pass across.";
-
-    this.instructionText?.setText(label);
+    this.uiLayoutManager.updateInstruction(
+      this.tablePhase,
+      this.pickTargetSeat,
+      this.passDirection,
+    );
   }
-  private updateInstructionTextOLD(): void {
-  if (this.tablePhase === "playing") {
-    const seatLabel =
-      this.pickTargetSeat === "bottom"
-        ? "your rack"
-        : this.pickTargetSeat === "top"
-          ? "top seat"
-          : this.pickTargetSeat === "left"
-            ? "left seat"
-            : "right seat";
-
-    this.instructionText?.setText(`Pick a tile from the wall to ${seatLabel}`);
-    return;
-  }
-
-  const label =
-    this.passDirection === "right"
-      ? "Select 3 tiles to pass to the right"
-      : this.passDirection === "left"
-        ? "Select 3 tiles to pass to the left"
-        : "Select 3 tiles to pass across";
-
-  this.instructionText?.setText(label);
-}
-
-  private validateTiles(tiles: readonly TileVm[]): void {
-    const ids = new Set<string>();
-
-    for (const tile of tiles) {
-      if (!tile.id || !tile.asset || !tile.label) {
-        throw new Error(`Invalid tile data: ${JSON.stringify(tile)}`);
-      }
-
-      if (ids.has(tile.id)) {
-        throw new Error(`Duplicate tile id: ${tile.id}`);
-      }
-
-      ids.add(tile.id);
-    }
-  }
-
+  
   private textureKey(tile: TileVm): string {
     return `tile-${tile.id}`;
   }
 
-  private hudTextStyle(): Phaser.Types.GameObjects.Text.TextStyle {
-    return {
-      fontFamily: "Poppins, Arial",
-      fontSize: "18px",
-      fontStyle: "700",
-      color: this.config.colors.white,
-    };
-  }
-
-  private hudCenterStyle(): Phaser.Types.GameObjects.Text.TextStyle {
-    return {
-      fontFamily: "Poppins, Arial",
-      fontSize: "24px",
-      fontStyle: "700",
-      color: this.config.colors.white,
-    };
-  }
-
-  private hudIconStyle(): Phaser.Types.GameObjects.Text.TextStyle {
-    return {
-      fontFamily: "Poppins, Arial",
-      fontSize: "24px",
-      fontStyle: "700",
-      color: "#ffffff",
-    };
-  }
-
-  private labelStyle(): Phaser.Types.GameObjects.Text.TextStyle {
-    return {
-      fontFamily: "Poppins, Arial",
-      fontSize: "13px",
-      fontStyle: "400",
-      color: this.config.colors.lime,
-    };
-  }
   private discardSlotFor(
+    index: number,
+    grid = this.discardGrid(),
+  ): Point {
+    const row = Math.floor(index / grid.columns);
+    const col = index % grid.columns;
+
+    /**
+     * Center the FULL discard grid inside the discard area,
+     * but do NOT center each individual row.
+     *
+     * This means:
+     * - first discarded tile starts from the left side of the grid
+     * - all rows start from the same left X
+     * - full rows still have equal left/right spacing inside discard area
+     */
+    const fullRowWidth =
+      grid.columns * grid.tileWidth +
+      Math.max(0, grid.columns - 1) * grid.gapX;
+
+    const startX =
+      grid.x +
+      (grid.width - fullRowWidth) / 2 +
+      grid.tileWidth / 2;
+
+    return {
+      x: Math.round(startX + col * (grid.tileWidth + grid.gapX)),
+      y: Math.round(
+        grid.y +
+          grid.paddingY +
+          grid.tileHeight / 2 +
+          row * (grid.tileHeight + grid.gapY),
+      ),
+    };
+  }
+  private discardSlotForOLD(
     index: number,
     grid = this.discardGrid(),
   ): Point {
@@ -2542,88 +3166,179 @@ private animatePassedTiles(
         row * (grid.tileHeight + grid.gapY),
     };
   }
-  private discardGrid(): {
-    readonly x: number;
-    readonly y: number;
-    readonly width: number;
-    readonly height: number;
-    readonly tileWidth: number;
-    readonly tileHeight: number;
-    readonly paddingX: number;
-    readonly paddingY: number;
-    readonly gapX: number;
-    readonly gapY: number;
-    readonly columns: number;
-  } {
+  private discardGrid(): DiscardGrid {
     const area = this.layout.discardArea;
     const rackTile = this.layout.bottomTileLayout;
-    const metrics = this.layout.metrics;
+    const aspect = rackTile.height / rackTile.width;
 
-    const tileAspect = rackTile.height / rackTile.width;
+    const isPhonePortrait =
+      this.layout.canvas.height >= this.layout.canvas.width &&
+      this.layout.canvas.width <= 520;
+
+    const isPhoneLandscape =
+      this.layout.canvas.width > this.layout.canvas.height &&
+      this.layout.canvas.height <= 520 &&
+      this.layout.canvas.width <= 980;
+
+    const isTablet =
+      this.layout.metrics.isTablet;
+
+    const count = Math.max(1, this.discardedTileIds.length);
+
+    const paddingX = isPhonePortrait ? 5 : isPhoneLandscape ? 6 : isTablet ? 10 : 12;
+    const paddingY = isPhonePortrait ? 5 : isPhoneLandscape ? 6 : isTablet ? 10 : 12;
+
+    const gapX = isPhonePortrait ? 2 : isPhoneLandscape ? 3 : isTablet ? 5 : 6;
+    const gapY = isPhonePortrait ? 2 : isPhoneLandscape ? 3 : isTablet ? 5 : 6;
 
     /**
-     * IMPORTANT:
-     * discardArea is already below the HUD and above the pass button.
-     * Do not add hud.height here.
-     * Do not subtract instructionBar.height here.
+     * Mobile portrait:
+     * Use a dense grid so discarded tiles do not dominate the board.
      */
-    const paddingX = metrics.isMobile ? 6 : 10;
-    const paddingY = metrics.isMobile ? 4 : 6;
+    if (isPhonePortrait) {
+      const preferredColumns = Phaser.Math.Clamp(
+        Math.ceil(Math.sqrt(count * (area.width / Math.max(1, area.height)) * aspect)),
+        7,
+        10,
+      );
 
-    const gapX = metrics.isMobile ? 4 : 6;
-    const gapY = metrics.isMobile ? 4 : 6;
+      const rows = Math.max(1, Math.ceil(count / preferredColumns));
+
+      const widthByColumns =
+        (area.width - paddingX * 2 - gapX * (preferredColumns - 1)) /
+        preferredColumns;
+
+      const widthByRows =
+        (area.height - paddingY * 2 - gapY * (rows - 1)) /
+        rows /
+        aspect;
+
+      /* const tileWidth = Math.round(
+        Phaser.Math.Clamp(
+          Math.min(widthByColumns, widthByRows, rackTile.width * 0.42),
+          12,
+          22,
+        ),
+      ); */
+     const tileWidth = Math.round(
+      Phaser.Math.Clamp(
+        Math.min(widthByColumns, widthByRows, rackTile.width * 0.66),
+        22,
+        42,
+      ),
+    );
+
+      const tileHeight = Math.round(tileWidth * aspect);
+
+      const columns = Math.max(
+        1,
+        Math.floor((area.width - paddingX * 2 + gapX) / (tileWidth + gapX)),
+      );
+
+      return {
+        x: area.x,
+        y: area.y,
+        width: area.width,
+        height: area.height,
+        tileWidth,
+        tileHeight,
+        paddingX,
+        paddingY,
+        gapX,
+        gapY,
+        columns,
+      };
+    }
 
     /**
-     * Discard tiles should be smaller than rack tiles.
-     * This keeps rack readability unchanged while allowing many discards.
+     * Mobile landscape:
+     * Still compact, but can be slightly larger than portrait.
      */
-    const rackScale = metrics.isMobile
-      ? metrics.isPortrait
-        ? 0.48
-        : 0.52
-      : metrics.isTablet
-        ? 0.58
-        : 0.6;
+    if (isPhoneLandscape) {
+      const preferredColumns = Phaser.Math.Clamp(
+        Math.ceil(Math.sqrt(count * 1.9)),
+        10,
+        18,
+      );
 
-    const targetRows = metrics.isMobile
-      ? metrics.isPortrait
-        ? 6
-        : 4
-      : 5;
+      const rows = Math.max(1, Math.ceil(count / preferredColumns));
 
-    const targetColumns = metrics.isMobile
-      ? metrics.isPortrait
-        ? 8
-        : 12
-      : metrics.isTablet
-        ? 14
-        : 18;
+      const widthByColumns =
+        (area.width - paddingX * 2 - gapX * (preferredColumns - 1)) /
+        preferredColumns;
 
-    const widthFromRack = rackTile.width * rackScale;
+      const widthByRows =
+        (area.height - paddingY * 2 - gapY * (rows - 1)) /
+        rows /
+        aspect;
 
-    const widthFromRows =
-      (area.height - paddingY * 2 - gapY * (targetRows - 1)) /
-      targetRows /
-      tileAspect;
+      /* const tileWidth = Math.round(
+        Phaser.Math.Clamp(
+          Math.min(widthByColumns, widthByRows, rackTile.width * 0.48),
+          14,
+          26,
+        ),
+      ); */
+
+      const tileWidth = Math.round(
+        Phaser.Math.Clamp(
+          Math.min(widthByColumns, widthByRows, rackTile.width * 0.56),
+          17,
+          30,
+        ),
+      );
+
+      const tileHeight = Math.round(tileWidth * aspect);
+
+      const columns = Math.max(
+        1,
+        Math.floor((area.width - paddingX * 2 + gapX) / (tileWidth + gapX)),
+      );
+
+      return {
+        x: area.x,
+        y: area.y,
+        width: area.width,
+        height: area.height,
+        tileWidth,
+        tileHeight,
+        paddingX,
+        paddingY,
+        gapX,
+        gapY,
+        columns,
+      };
+    }
+
+    /**
+     * Tablet / desktop:
+     * Keep existing visual density but still scale by available area.
+     */
+    const targetColumns = isTablet ? 14 : 18;
+    const targetRows = isTablet ? 5 : 5;
 
     const widthFromColumns =
       (area.width - paddingX * 2 - gapX * (targetColumns - 1)) /
       targetColumns;
 
+    const widthFromRows =
+      (area.height - paddingY * 2 - gapY * (targetRows - 1)) /
+      targetRows /
+      aspect;
+
     const tileWidth = Math.round(
-      Math.max(
-        24,
-        Math.min(widthFromRack, widthFromRows, widthFromColumns),
+      Phaser.Math.Clamp(
+        Math.min(widthFromColumns, widthFromRows, rackTile.width * 0.58),
+        isTablet ? 22 : 26,
+        isTablet ? 38 : 46,
       ),
     );
 
-    const tileHeight = Math.round(tileWidth * tileAspect);
+    const tileHeight = Math.round(tileWidth * aspect);
 
     const columns = Math.max(
       1,
-      Math.floor(
-        (area.width - paddingX * 2 + gapX) / (tileWidth + gapX),
-      ),
+      Math.floor((area.width - paddingX * 2 + gapX) / (tileWidth + gapX)),
     );
 
     return {
@@ -2640,36 +3355,7 @@ private animatePassedTiles(
       columns,
     };
   }
-  private discardSlotForOLD(index: number): Point {
-    const tile = this.layout.bottomTileLayout;
-
-    const playable = new Phaser.Geom.Rectangle(
-      this.layout.discardArea.x,
-      this.layout.discardArea.y + this.layout.hud.height,
-      this.layout.discardArea.width,
-      this.layout.discardArea.height -
-        this.layout.hud.height -
-        this.layout.instructionBar.height,
-    );
-
-    const paddingX = Math.max(12, tile.width * 0.4);
-    const paddingY = Math.max(12, tile.height * 0.35);
-    const gapX = Math.max(8, tile.width * 0.22);
-    const gapY = Math.max(8, tile.height * 0.16);
-
-    const columns = Math.max(
-      1,
-      Math.floor((playable.width - paddingX * 2 + gapX) / (tile.width + gapX)),
-    );
-
-    const row = Math.floor(index / columns);
-    const col = index % columns;
-
-    return {
-      x: playable.x + paddingX + tile.width / 2 + col * (tile.width + gapX),
-      y: playable.y + paddingY + tile.height / 2 + row * (tile.height + gapY),
-    };
-  }
+  
   private rackIndexFromX(x: number): number {
     const slots = this.layout.bottomTileLayout.slots;
 
@@ -2748,16 +3434,7 @@ private animatePassedTiles(
   }
 
   private isInsideRackArea(x: number, y: number): boolean {
-    return Phaser.Geom.Rectangle.Contains(
-      new Phaser.Geom.Rectangle(
-        this.layout.bottomRack.x,
-        this.layout.bottomRack.y,
-        this.layout.bottomRack.width,
-        this.layout.bottomRack.height,
-      ),
-      x,
-      y,
-    );
+    return this.tileInteractionManager.isPointInsideRect(this.layout.bottomRack, x, y);
   }
   private snapTileToDiscard(runtime: TileRuntime): void {
     if (this.tablePhase !== "playing") {
@@ -2777,10 +3454,11 @@ private animatePassedTiles(
     runtime.selected = false;
     runtime.isDragging = false;
 
+
     this.selectedIds.delete(runtime.vm.id);
     runtime.image.clearTint();
-    runtime.image.setDepth(45);
-
+    
+    runtime.image.disableInteractive();
     const grid = this.discardGrid();
     const slot = this.discardSlotFor(
       this.discardedTileIds.indexOf(runtime.vm.id),
@@ -2788,16 +3466,15 @@ private animatePassedTiles(
     );
 
     runtime.image.setDisplaySize(grid.tileWidth, grid.tileHeight);
+    runtime.image.setDepth(this.discardTileDepth());
 
     this.tweens.killTweensOf(runtime.image);
-    this.tweens.add({
-      targets: runtime.image,
-      x: Math.round(slot.x),
-      y: Math.round(slot.y),
-      angle: 0,
-      duration: 160,
-      ease: "Sine.easeOut",
-    });
+
+    this.animationManager.animateDiscardDrop(
+      runtime.image,
+      Math.round(slot.x),
+      Math.round(slot.y),
+    );
 
     this.playHaptic("tile-discard");
     this.playTileDiscardVoice(runtime.vm);
@@ -2805,44 +3482,8 @@ private animatePassedTiles(
     this.layoutRackTiles(true);
     this.callbacks.onSelectionChanged([...this.selectedIds]);
   }
-  private snapTileToDiscardOLD(runtime: TileRuntime): void {
-    if (this.tablePhase !== "playing") {
-      this.returnTileToSlot(runtime);
-      return;
-    }
-    this.removeFromRackOrder(runtime.vm.id);
 
-    if (!this.discardedTileIds.includes(runtime.vm.id)) {
-      this.discardedTileIds.push(runtime.vm.id);
-    }
-
-    this.reindexRackRuntimeSlots();
-
-    runtime.zone = "discard";
-    runtime.selected = false;
-    runtime.isDragging = false;
-
-    this.selectedIds.delete(runtime.vm.id);
-    runtime.image.clearTint();
-    runtime.image.setDepth(45);
-
-    const slot = this.discardSlotFor(this.discardedTileIds.indexOf(runtime.vm.id));
-
-    this.tweens.killTweensOf(runtime.image);
-    console.log("snapTileToDiscard", runtime.vm.id, slot.x, slot.y, runtime.vm);
-    this.tweens.add({
-      targets: runtime.image,
-      x: Math.round(slot.x),
-      y: Math.round(slot.y),
-      angle: 0,
-      duration: 160,
-      ease: "Sine.easeOut",
-    });
-    this.playTileDiscardVoice(runtime.vm); // spoken tile name
-    this.layoutRackTiles(true);
-    this.callbacks.onSelectionChanged([...this.selectedIds]);
-  }
-
+  // now remove the single tap/click event from the tile when it in the rack
   private snapTileToRackEnd(runtime: TileRuntime): void {
     this.removeFromDiscardOrder(runtime.vm.id);
     this.removeFromRackOrder(runtime.vm.id);
@@ -2861,19 +3502,6 @@ private animatePassedTiles(
     this.layoutDiscardTiles(true);
   }
 
-  private destroyTileVoiceSounds(): void {
-    if (this.currentTileVoice?.isPlaying) {
-      this.currentTileVoice.stop();
-    }
-
-    this.currentTileVoice = undefined;
-
-    for (const sound of this.tileVoiceSounds.values()) {
-      sound.destroy();
-    }
-
-    this.tileVoiceSounds.clear();
-  }
   private applyTileTextureFilter(image: Phaser.GameObjects.Image): void {
     const tileWidth = this.layout.bottomTileLayout.width;
 
@@ -2910,60 +3538,14 @@ private animatePassedTiles(
         continue;
       }
 
-      runtime.image.setDisplaySize(tileWidth, tileHeight);
-
-      this.tweens.killTweensOf(runtime.image);
-
-      if (animate) {
-        this.tweens.add({
-          targets: runtime.image,
-          x: targetX,
-          y: targetY,
-          angle: 0,
-          duration: 140,
-          ease: "Sine.easeOut",
-        });
-      } else {
-        runtime.image.setPosition(targetX, targetY);
-        runtime.image.setAngle(0);
-      }
-    }
-
-    this.layoutDiscardTiles(animate);
-    this.layoutPassWaitingArea();
-    this.layoutPassWaitingTiles(animate);
-    this.updatePassButtonState();
-  }
-  private layoutRackTilesOLD(animate: boolean): void {
-    this.reindexRackRuntimeSlots();
-
-    const tileWidth = Math.round(this.layout.bottomTileLayout.width);
-    const tileHeight = Math.round(this.layout.bottomTileLayout.height);
-
-    for (const runtime of this.tileMap.values()) {
-      if (runtime.zone === "discard" || runtime.zone === "pass") continue;
-
-      runtime.image.setDisplaySize(tileWidth, tileHeight);
-
-      const slot = this.slotFor(runtime);
-      const selectedOffset = runtime.selected ? -tileHeight * 0.18 : 0;
-
-      const targetX = Math.round(slot.x);
-      const targetY = Math.round(slot.y + selectedOffset);
-
-      if (animate) {
-        this.tweens.add({
-          targets: runtime.image,
-          x: targetX,
-          y: targetY,
-          angle: 0,
-          duration: 140,
-          ease: "Sine.easeOut",
-        });
-      } else {
-        runtime.image.setPosition(targetX, targetY);
-        runtime.image.setAngle(0);
-      }
+      this.animationManager.layoutRackTile(
+        runtime.image,
+        tileWidth,
+        tileHeight,
+        targetX,
+        targetY,
+        animate,
+      );
     }
 
     this.layoutDiscardTiles(animate);
@@ -2980,9 +3562,11 @@ private animatePassedTiles(
 
       const slot = this.discardSlotFor(index, grid);
 
+      runtime.image.setDepth(this.discardTileDepth());
       runtime.image.setDisplaySize(grid.tileWidth, grid.tileHeight);
 
       if (animate) {
+        this.tweens.killTweensOf(runtime.image);
         this.tweens.add({
           targets: runtime.image,
           x: Math.round(slot.x),
@@ -2997,36 +3581,64 @@ private animatePassedTiles(
       }
     });
   }
-  private layoutDiscardTilesOLD(animate: boolean): void {
-    this.discardedTileIds.forEach((id, index) => {
-      const runtime = this.tileMap.get(id);
-      if (!runtime) return;
-
-      const slot = this.discardSlotFor(index);
-
-      runtime.image.setDisplaySize(
-        this.layout.bottomTileLayout.width,
-        this.layout.bottomTileLayout.height,
-      );
-
-      if (animate) {
-        this.tweens.add({
-          targets: runtime.image,
-          x: Math.round(slot.x),
-          y: Math.round(slot.y),
-          angle: 0,
-          duration: 140,
-          ease: "Sine.easeOut",
-        });
-      } else {
-        runtime.image.setPosition(Math.round(slot.x), Math.round(slot.y));
-        runtime.image.setAngle(0);
-      }
-    });
+  private discardTileDepth(): number {
+    /**
+     * Keep discarded tiles below interactive/pass/card UI.
+     * They should feel like board content, not overlay UI.
+     */
+    return 35;
   }
 
+  private playableDiscardDropRect(): Phaser.Geom.Rectangle {
+  const top =
+    this.layout.topExposure.y +
+    this.layout.topExposure.height +
+    this.layout.tableOuter.height * 0.025;
 
-  private isInsidePlayableDiscardArea(x: number, y: number): boolean {
+  const bottom =
+    this.layout.bottomExposure.y -
+    this.layout.tableOuter.height * 0.018;
+
+  const left =
+    this.layout.leftExposure.x +
+    this.layout.leftExposure.width +
+    this.layout.tableOuter.width * 0.025;
+
+  const right =
+    this.layout.rightExposure.x -
+    this.layout.tableOuter.width * 0.025;
+
+  return new Phaser.Geom.Rectangle(
+    left,
+    top,
+    Math.max(1, right - left),
+    Math.max(1, bottom - top),
+  );
+}
+
+private isInsidePlayableDiscardArea(x: number, y: number): boolean {
+  if (this.tablePhase !== "playing") {
+    return false;
+  }
+
+  return Phaser.Geom.Rectangle.Contains(
+    this.playableDiscardDropRect(),
+    x,
+    y,
+  );
+}
+private isInsidePlayablePassDropArea(x: number, y: number): boolean {
+  if (this.tablePhase !== "passing") {
+    return false;
+  }
+
+  return Phaser.Geom.Rectangle.Contains(
+    this.playableDiscardDropRect(),
+    x,
+    y,
+  );
+}
+  private isInsidePlayableDiscardAreaOLD(x: number, y: number): boolean {
     const playableDiscardArea = new Phaser.Geom.Rectangle(
       this.layout.discardArea.x,
       this.layout.discardArea.y + this.layout.hud.height,
@@ -3036,8 +3648,9 @@ private animatePassedTiles(
         this.layout.instructionBar.height,
     );
 
-    return Phaser.Geom.Rectangle.Contains(playableDiscardArea, x, y);
+    return this.tileInteractionManager.isPointInsideRect(playableDiscardArea, x, y);
   }
+
 
   /**
    * Plays one Charleston round.
@@ -3053,7 +3666,7 @@ private animatePassedTiles(
    * caller should update racks.
    */
   public playCharlestonRound(items: readonly PassAnimationItem[]): void {
-    this.passAnimation.play(
+    this.animationManager.playCharlestonRound(
       items,
       this.layout,
       () => {
@@ -3136,7 +3749,7 @@ private animatePassedTiles(
     runtime.image.setAlpha(1);
     runtime.image.setDepth(90);
 
-    this.passWaitingTileIds.push(runtime.vm.id);
+    this.passFlowManager.addPassWaitingTile(runtime.vm.id);
     this.ensurePassCloseButton(runtime.vm.id);
 
     this.playHaptic("tile-pass");
@@ -3148,7 +3761,6 @@ private animatePassedTiles(
 
 
   private returnPassTileToRack(tileId: string): void {
-    
     const runtime = this.tileMap.get(tileId);
     if (!runtime) return;
     console.log("RETURN START", {
@@ -3193,13 +3805,13 @@ private animatePassedTiles(
      */
     this.removeFromPassWaiting(tileId);
     
-    console.log("RETURN AFTER REMOVE", {
+    /* console.log("RETURN AFTER REMOVE", {
       tileId,
       zone: runtime.zone,
       passWaitingTileIds: [...this.passWaitingTileIds],
       rackOrder: [...this.rackOrder],
       hasCloseButton: this.passCloseButtons.has(tileId),
-    });
+    }); */
 
     runtime.zone = "rack";
     runtime.selected = false;
@@ -3215,9 +3827,6 @@ private animatePassedTiles(
     this.layoutPassWaitingTiles(true);
     this.updatePassButtonState();
     this.callbacks.onSelectionChanged([...this.selectedIds]);
-
-
-
 
     const targetIndex = this.rackOrder.length;
     const targetSlot =
@@ -3265,30 +3874,6 @@ private animatePassedTiles(
          * Now update source-of-truth state.
          * Until this point, the tile remained a PASS tile visually.
          */
-        /* this.removeFromPassWaiting(tileId);
-
-        runtime.zone = "rack";
-        runtime.selected = false;
-        runtime.isDragging = false;
-
-        runtime.image.setAlpha(1);
-        runtime.image.setDepth(30);
-        runtime.image.setAngle(0);
-        runtime.image.setDisplaySize(rackWidth, rackHeight);
-        runtime.image.setInteractive({
-          useHandCursor: true,
-          draggable: true,
-          pixelPerfect: false,
-        });
-
-        this.removeFromRackOrder(tileId);
-        this.rackOrder.push(tileId);
-        this.reindexRackRuntimeSlots();
-
-        this.layoutPassWaitingTiles(true);
-        this.layoutRackTiles(false);
-        this.updatePassButtonState();
-        this.callbacks.onSelectionChanged([...this.selectedIds]); */
         runtime.image.setAlpha(1);
         runtime.image.setDepth(30);
         runtime.image.setAngle(0);
@@ -3303,79 +3888,16 @@ private animatePassedTiles(
       },
     });
   }
-  /**
-   * Returns a tile from PASS waiting area back to the end of the rack.
-   */
-  private returnPassTileToRackOLD(tileId: string): void {
-    const runtime = this.tileMap.get(tileId);
-    if (!runtime) return;
-
-    this.removeFromPassWaiting(tileId);
-
-    runtime.zone = "rack";
-    runtime.selected = false;
-    runtime.isDragging = false;
-
-    runtime.image.setAngle(0);
-    runtime.image.setAlpha(1);
-    runtime.image.setDepth(30);
-    runtime.image.setInteractive({
-      useHandCursor: true,
-      draggable: true,
-      pixelPerfect: false,
-    });
-
-    this.removeFromRackOrder(tileId);
-    this.rackOrder.push(tileId);
-    this.reindexRackRuntimeSlots();
-
-    this.returnTileToSlot(runtime);
-    this.layoutPassWaitingTiles(true);
-    this.layoutRackTiles(true);
-    this.updatePassButtonState();
-  }
 
   /**
    * Removes tile id and close button from PASS waiting state.
    */
   private removeFromPassWaiting(tileId: string): void {
-    const index = this.passWaitingTileIds.indexOf(tileId);
-    if (index >= 0) this.passWaitingTileIds.splice(index, 1);
+    this.passFlowManager.removePassWaitingTile(tileId);
 
     const close = this.passCloseButtons.get(tileId);
     close?.destroy();
     this.passCloseButtons.delete(tileId);
-  }
-
-  /**
-   * Creates the red close button for a PASS waiting tile.
-   */
-  private ensurePassCloseButtonOLD(tileId: string): void {
-    if (this.passCloseButtons.has(tileId)) return;
-
-    const radius = Math.max(8, Math.round(this.layout.bottomTileLayout.width * 0.22));
-
-    const circle = this.add.circle(0, 0, radius, 0xff1f1f, 1);
-    const label = this.add.text(0, 0, "×", {
-      fontFamily: "Poppins, Arial",
-      fontSize: `${Math.round(radius * 1.5)}px`,
-      fontStyle: "700",
-      color: "#ffffff",
-    }).setOrigin(0.5);
-
-    const button = this.add.container(0, 0, [circle, label]).setDepth(130);
-
-    button.setInteractive(
-      new Phaser.Geom.Circle(0, 0, radius),
-      Phaser.Geom.Circle.Contains,
-    );
-
-    button.on("pointerdown", (event: Phaser.Input.Pointer) => {
-      event.event?.stopPropagation?.();
-      this.returnPassTileToRack(tileId);
-    });
-
-    this.passCloseButtons.set(tileId, button);
   }
 
   private ensurePassCloseButton(tileId: string): void {
@@ -3411,12 +3933,24 @@ private animatePassedTiles(
 
   private passCloseButtonRadius(): number {
     const size = this.passTileDisplaySize(this.currentPassDestination);
+    const minSide = Math.min(size.width, size.height);
+
+    return Phaser.Math.Clamp(
+      Math.round(minSide * 0.12),
+      5,
+      10,
+    );
+  }
+  private passCloseButtonRadiusOLD(): number {
+    const size = this.passTileDisplaySize(this.currentPassDestination);
 
     return Math.max(
       6,
       Math.round(Math.min(size.width, size.height) * 0.16),
     );
   }
+
+
 
   private resizePassCloseButton(button: Phaser.GameObjects.Container): void {
     const radius = this.passCloseButtonRadius();
@@ -3451,39 +3985,52 @@ private animatePassedTiles(
     const ids = [...this.passWaitingTileIds];
     const targets = this.passAreaTargets(this.currentPassDestination, ids.length);
     const angle = this.passTileAngle(this.currentPassDestination);
-
-    ids.forEach((tileId, index) => {
-      const runtime = this.tileMap.get(tileId);
-      if (!runtime) return;
-
-      const target = targets[index];
-      const size = this.passTileDisplaySize(this.currentPassDestination);
-
-      runtime.image.setDisplaySize(size.width, size.height);
-      runtime.image.setDepth(95);
-
-      if (animate) {
-        this.tweens.killTweensOf(runtime.image);
-
-        this.tweens.add({
-          targets: runtime.image,
-          x: target.x,
-          y: target.y,
-          angle,
-          duration: 180,
-          ease: "Sine.easeOut",
-          onUpdate: () => this.positionPassCloseButton(tileId),
-          onComplete: () => this.positionPassCloseButton(tileId),
-        });
-      } else {
-        runtime.image.setPosition(target.x, target.y);
-        runtime.image.setAngle(angle);
-        this.positionPassCloseButton(tileId);
-      }
-    });
+    const size = this.passTileDisplaySize(this.currentPassDestination);
+    this.animationManager.layoutPassWaitingTiles(
+      ids.map((id) => ({ id, image: this.tileMap.get(id)?.image })),
+      targets,
+      size,
+      angle,
+      animate,
+      (tileId) => this.positionPassCloseButton(tileId),
+    );
   }
 
+
   private positionPassCloseButton(tileId: string): void {
+    const runtime = this.tileMap.get(tileId);
+    const close = this.passCloseButtons.get(tileId);
+
+    if (!runtime || !close) return;
+
+    const size = this.passTileDisplaySize(this.currentPassDestination);
+    const closeRadius = this.passCloseButtonRadius();
+
+    const corner = this.rotatedTileCorner(
+      runtime.image.x,
+      runtime.image.y,
+      size.width,
+      size.height,
+      runtime.image.angle,
+      "top-right",
+    );
+
+    const outwardX = corner.x - runtime.image.x;
+    const outwardY = corner.y - runtime.image.y;
+    const length = Math.max(1, Math.hypot(outwardX, outwardY));
+
+    /* close.setPosition(
+      Math.round(corner.x + (outwardX / length) * closeRadius * 0.35),
+      Math.round(corner.y + (outwardY / length) * closeRadius * 0.35),
+    ); */
+    close.setPosition(
+    Math.round(corner.x),
+    Math.round(corner.y),
+  );
+
+    this.resizePassCloseButton(close);
+  }
+  private positionPassCloseButtonOLD(tileId: string): void {
     const runtime = this.tileMap.get(tileId);
     const close = this.passCloseButtons.get(tileId);
 
@@ -3513,33 +4060,6 @@ private animatePassedTiles(
   /**
    * Positions the close button near the visible corner of a rotated PASS tile.
    */
-  private positionPassCloseButtonOLD(tileId: string): void {
-    const runtime = this.tileMap.get(tileId);
-    const close = this.passCloseButtons.get(tileId);
-
-    if (!runtime || !close) return;
-
-    const size = this.passTileDisplaySize(this.currentPassDestination);
-    const closeRadius = Math.max(8, Math.round(this.layout.bottomTileLayout.width * 0.22));
-
-    const corner = this.rotatedTileCorner(
-      runtime.image.x,
-      runtime.image.y,
-      size.width,
-      size.height,
-      runtime.image.angle,
-      "top-right",
-    );
-
-    const outwardX = corner.x - runtime.image.x;
-    const outwardY = corner.y - runtime.image.y;
-    const length = Math.max(1, Math.hypot(outwardX, outwardY));
-
-    close.setPosition(
-      Math.round(corner.x + (outwardX / length) * closeRadius * 0.35),
-      Math.round(corner.y + (outwardY / length) * closeRadius * 0.35),
-    );
-  }
   private rotatedTileCorner(
     centerX: number,
     centerY: number,
@@ -3575,17 +4095,70 @@ private animatePassedTiles(
   }
 
   /**
-   * Checks if pointer is inside current PASS waiting drop zone.
+   * Checks if pointer is inside current PASS waiting drop zone. 
    */
-  private isInsidePassWaitingArea(x: number, y: number): boolean {
+  private isInsidePassWaitingAreaOLD(x: number, y: number): boolean {
     const rect = this.passWaitingAreaRect(this.currentPassDestination);
 
-    return (
-      x >= rect.x &&
-      x <= rect.x + rect.width &&
-      y >= rect.y &&
-      y <= rect.y + rect.height
+    return this.tileInteractionManager.isPointInsideRect(rect, x, y);
+  }
+
+  private isInsidePassWaitingArea(x: number, y: number): boolean {
+    const rect = this.passDropRectForSeat(this.currentPassDestination);
+
+    return this.tileInteractionManager.isPointInsideRect(rect, x, y);
+  }
+
+  private passDropRectForSeat(seat: TableSeat): Rect {
+    /**
+     * Use the same visual target positions as layoutPassWaitingTiles().
+     * This keeps drag/drop hit testing aligned with where the PASS tiles
+     * actually appear on screen.
+     */
+    const targets = this.passAreaTargets(seat, 3);
+    const size = this.passTileDisplaySize(seat);
+
+    if (targets.length === 0) {
+      return this.passWaitingAreaRect(seat);
+    }
+
+    const padding = Math.max(
+      14,
+      Math.round(Math.max(size.width, size.height) * 0.42),
     );
+
+    const halfWidth =
+      seat === "left" || seat === "right"
+        ? size.height / 2
+        : size.width / 2;
+
+    const halfHeight =
+      seat === "left" || seat === "right"
+        ? size.width / 2
+        : size.height / 2;
+
+    const minX =
+      Math.min(...targets.map((target) => target.x - halfWidth)) -
+      padding;
+
+    const maxX =
+      Math.max(...targets.map((target) => target.x + halfWidth)) +
+      padding;
+
+    const minY =
+      Math.min(...targets.map((target) => target.y - halfHeight)) -
+      padding;
+
+    const maxY =
+      Math.max(...targets.map((target) => target.y + halfHeight)) +
+      padding;
+
+    return {
+      x: Math.round(minX),
+      y: Math.round(minY),
+      width: Math.round(maxX - minX),
+      height: Math.round(maxY - minY),
+    };
   }
 
   private passWaitingAreaRect(seat: "top" | "right" | "bottom" | "left"): Rect {
@@ -3638,8 +4211,46 @@ private animatePassedTiles(
       height,
     };
   }
+  private relayoutPassWaitingTilesAfterResize(): void {
+    if (this.passWaitingTileIds.length === 0) return;
 
-  private passAreaTargets(
+    /**
+     * Do not tween during orientation/layout change.
+     * The old coordinates belong to the previous orientation,
+     * so directly place them into the new pass area.
+     */
+    this.layoutPassWaitingTiles(false);
+  }
+  private passAreaTargets(seat: TableSeat, count: number): readonly Point[] {
+    const rect = this.passWaitingAreaRect(seat);
+    const size = this.passTileDisplaySize(seat);
+    const step = size.width * 0.9;
+
+    if (seat === "right" || seat === "left") {
+      const x = rect.x + rect.width / 2;
+      const startY = rect.y + rect.height / 2 - step * (count - 1) / 2;
+
+      return Array.from({ length: count }, (_, index) => ({
+        x,
+        y: startY + index * step,
+      }));
+    }
+
+    const y =
+      seat === "top"
+        ? this.layout.topExposure.y +
+          this.layout.topExposure.height +
+          Math.round(size.height * 0.82)
+        : rect.y + rect.height / 2;
+
+    const startX = rect.x + rect.width / 2 - step * (count - 1) / 2;
+
+    return Array.from({ length: count }, (_, index) => ({
+      x: startX + index * step,
+      y,
+    }));
+  }
+  private passAreaTargetsOLDW(
     seat: "top" | "right" | "bottom" | "left",
     count: number,
   ): readonly Point[] {
@@ -3657,18 +4268,44 @@ private animatePassedTiles(
       }));
     }
 
-    /* const y = rect.y + rect.height / 2;
-    const startX = rect.x + rect.width / 2 - step * (count - 1) / 2;
+    /**
+     * TOP PASS TARGETS
+     *
+     * Selected pass tiles should appear above the instruction/PASS popup,
+     * not over the popup.
+     *
+     * Do this only for top so left/right/bottom behavior remains unchanged.
+     */
+    if (seat === "top") {
+      const card = this.layout.instructionBar;
 
-    return Array.from({ length: count }, (_, index) => ({
-      x: Math.round(startX + index * step),
-      y: Math.round(y),
-    })); */
-    const topPassYOffset = seat === "top"
-      ? Math.round(size.height * 0.55)
-      : 0;
+      const gapAboveCard = Math.max(
+        8,
+        Math.round(size.height * 0.22),
+      );
 
-    const y = rect.y + rect.height / 2 + topPassYOffset;
+      const minY =
+        this.layout.topExposure.y +
+        this.layout.topExposure.height +
+        size.height * 0.60;
+
+      const preferredY =
+        card.y - gapAboveCard - size.height / 2;
+
+      const y = Math.max(minY, preferredY);
+
+      const startX = card.x + card.width / 2 - step * (count - 1) / 2;
+
+      return Array.from({ length: count }, (_, index) => ({
+        x: Math.round(startX + index * step),
+        y: Math.round(y),
+      }));
+    }
+
+    /**
+     * BOTTOM / fallback behavior unchanged.
+     */
+    const y = rect.y + rect.height / 2;
     const startX = rect.x + rect.width / 2 - step * (count - 1) / 2;
 
     return Array.from({ length: count }, (_, index) => ({
@@ -3676,7 +4313,6 @@ private animatePassedTiles(
       y: Math.round(y),
     }));
   }
-
   private passTileDisplaySize(seat: "top" | "right" | "bottom" | "left"): {
     readonly width: number;
     readonly height: number;
@@ -3695,17 +4331,6 @@ private animatePassedTiles(
       ),
     );
 
-    const height = Math.round(width * this.config.rack.tileAspect);
-
-    return { width, height };
-  }
-  private passTileDisplaySizeOLD(seat: "top" | "right" | "bottom" | "left"): {
-    readonly width: number;
-    readonly height: number;
-  } {
-    const rackWidth = this.layout.bottomTileLayout.width;
-    
-    const width = Math.round(Phaser.Math.Clamp(rackWidth * 1.22, rackWidth, rackWidth * 1.55));
     const height = Math.round(width * this.config.rack.tileAspect);
 
     return { width, height };
@@ -3731,8 +4356,7 @@ private animatePassedTiles(
    * PASS button becomes active only when the waiting area has 3 tiles.
    */
   private canSubmitPassWaitingTiles(): boolean {
-    if (!this.isPassingPhase()) return false;
-    return this.passWaitingTileIds.length === 3;
+    return this.passFlowManager.canSubmitPassWaitingTiles();
   }
 
   /**
@@ -3749,27 +4373,9 @@ private animatePassedTiles(
    * - runs Charleston exchange animation
    * - applies server rack result
    */
-  private submitPassWaitingTilesOLD(): void {
-    if (!this.canSubmitPassWaitingTiles()) return;
-
-    this.isPassAnimating = true;
-
-    const ids = [...this.passWaitingTileIds];
-
-    ids.forEach((id) => {
-      const runtime = this.tileMap.get(id);
-      runtime?.image.disableInteractive();
-    });
-
-    this.time.delayedCall(220, () => {
-      this.applyPassWaitingResult(ids);
-    });
-  }
   private submitPassWaitingTiles(): void {
-    if (!this.canSubmitPassWaitingTiles()) return;
-    if (this.isPassAnimating) return;
-
-    this.isPassAnimating = true;
+    if (this.isBotPassVisualAnimating) return;
+    if (!this.passFlowManager.beginSubmission()) return;
 
     const ids = [...this.passWaitingTileIds];
 
@@ -3782,96 +4388,451 @@ private animatePassedTiles(
       close?.setVisible(false);
     });
 
-    this.updatePassButtonState();
+    this.passFlowManager.requestSubmissionUiUpdate();
     this.playSfx("pass");
-    this.animatePassWaitingTilesIntoSeatRack(ids, () => {
+
+    let selectedTilesFinished = false;
+    let botVisualsFinished = false;
+
+    const finishWhenBothAnimationsComplete = (): void => {
+      if (!selectedTilesFinished || !botVisualsFinished) return;
+
+      this.lastSubmittedPassDestination = this.currentPassDestination;
+      this.botAutoStagedDestination = undefined;
+
       this.applyPassWaitingResult(ids);
+
+      this.hasCompletedFirstCharlestonVisualPass = true;
+
+      /**
+       * If Angular/server updates the next pass direction asynchronously,
+       * setPassDirection() will stage bots. This delayed call is only a safety net.
+       */
+      this.time.delayedCall(260, () => {
+        this.tryAutoStageBotPassTilesForCurrentDirection();
+      });
+    };
+
+    /**
+     * Existing working animation:
+     * bottom selected front tiles flip to white backs and move to destination rack.
+     */
+    this.animatePassWaitingTilesIntoSeatRack(ids, () => {
+      selectedTilesFinished = true;
+      finishWhenBothAnimationsComplete();
+    });
+
+    /**
+     * New visual-only layer:
+     * bot/opponent white-back tiles either already sit in waiting areas
+     * for round 2+, or they animate waiting-area -> rack after first PASS.
+     */
+    this.animateBotPassVisualsForSubmit(() => {
+      botVisualsFinished = true;
+      finishWhenBothAnimationsComplete();
     });
   }
   private animatePassWaitingTilesIntoSeatRack(
     ids: readonly string[],
     onFinished: () => void,
   ): void {
-    if (!ids.length) {
+    const destination = this.currentPassDestination;
+    const endTargets = this.seatRackTargets(destination, ids.length);
+    const endAngle = this.passTileAngle(destination);
+    this.animationManager.animatePassWaitingTilesIntoSeatRack(
+      ids.map((id) => ({ id, image: this.tileMap.get(id)?.image })),
+      endTargets,
+      this.passTileDisplaySize(destination),
+      endAngle,
+      (clone) => this.passAnimationClones.push(clone),
+      onFinished,
+    );
+  }
+  private animateBotPassVisualsForSubmit(onFinished: () => void): void {
+    /**
+     * Round 2+:
+     * bot tiles are already staged in destination waiting areas.
+     * PASS only commits them into racks.
+     */
+    if (
+      this.botPassVisualTiles.length > 0 &&
+      this.botAutoStagedDestination === this.currentPassDestination
+    ) {
+      this.commitBotPassVisualTilesToRacks(onFinished);
+      return;
+    }
+
+    /**
+     * First round / fallback:
+     * bot tiles animate source -> destination waiting area,
+     * pause briefly, then destination waiting area -> rack.
+     */
+    this.animateOpponentPassToWaitingThenRack(onFinished);
+  }
+
+  private tryAutoStageBotPassTilesForCurrentDirection(): void {
+    if (this.tablePhase !== "passing") return;
+    if (!this.hasCompletedFirstCharlestonVisualPass) return;
+    if (this.isPassAnimating) return;
+    if (this.isBotPassVisualAnimating) return;
+
+    /**
+     * Do not auto-stage the same direction that was just submitted.
+     * Wait until Angular/server advances pass:direction.
+     */
+    if (this.currentPassDestination === this.lastSubmittedPassDestination) return;
+
+    /**
+     * Bottom player must manually select their own 3 tiles.
+     * If bottom already has selected pass tiles, do not disturb them.
+     */
+    if (this.passWaitingTileIds.length > 0) return;
+
+    if (
+      this.botPassVisualTiles.length > 0 &&
+      this.botAutoStagedDestination === this.currentPassDestination
+    ) {
+      return;
+    }
+
+    this.stageBotPassTilesToWaitingAreaForCurrentDirection();
+  }
+
+  private stageBotPassTilesToWaitingAreaForCurrentDirection(): void {
+    const transfers = this.charlestonTransfersForCurrentDirection()
+      .filter((transfer) => transfer.from !== "bottom");
+
+    if (transfers.length === 0) return;
+
+    this.clearBotPassVisualTiles();
+
+    this.isBotPassVisualAnimating = true;
+    this.botAutoStagedDestination = this.currentPassDestination;
+
+    let transfersFinished = 0;
+
+    const finishOneTransfer = (): void => {
+      transfersFinished += 1;
+
+      if (transfersFinished < transfers.length) return;
+
+      this.isBotPassVisualAnimating = false;
+      this.updatePassButtonState();
+    };
+
+    transfers.forEach((transfer) => {
+      this.animateBotTransferToWaitingArea(
+        transfer.from,
+        transfer.to,
+        finishOneTransfer,
+      );
+    });
+  }
+
+  private animateOpponentPassToWaitingThenRack(onFinished: () => void): void {
+    const transfers = this.charlestonTransfersForCurrentDirection()
+      .filter((transfer) => transfer.from !== "bottom");
+
+    if (transfers.length === 0) {
       onFinished();
       return;
     }
 
-    const destination = this.currentPassDestination;
-    const endTargets = this.seatRackTargets(destination, ids.length);
-    const endAngle = this.passTileAngle(destination);
+    this.clearBotPassVisualTiles();
+    this.isBotPassVisualAnimating = true;
 
-    let completed = 0;
+    let transfersFinished = 0;
 
-    const completeOne = (): void => {
-      completed++;
+    const finishOneTransfer = (): void => {
+      transfersFinished += 1;
 
-      if (completed === ids.length) {
+      if (transfersFinished < transfers.length) return;
+
+      this.time.delayedCall(this.botPassWaitingPauseMs, () => {
+        this.commitBotPassVisualTilesToRacks(() => {
+          this.isBotPassVisualAnimating = false;
+          onFinished();
+        });
+      });
+    };
+
+    transfers.forEach((transfer) => {
+      this.animateBotTransferToWaitingArea(
+        transfer.from,
+        transfer.to,
+        finishOneTransfer,
+      );
+    });
+  }
+
+  private animateBotTransferToWaitingArea(
+    from: TableSeat,
+    to: TableSeat,
+    onFinished: () => void,
+  ): void {
+    const count = 3;
+    const sourceTargets = this.passAreaTargets(from, count);
+    const targetPoints = this.passAreaTargets(to, count);
+    const size = this.passTileDisplaySize(to);
+    const startAngle = this.passTileAngle(from);
+    const endAngle = this.passTileAngle(to);
+
+    let completedTiles = 0;
+
+    const finishOneTile = (): void => {
+      completedTiles += 1;
+
+      if (completedTiles === count) {
         onFinished();
       }
     };
 
-    ids.forEach((id, index) => {
-      const runtime = this.tileMap.get(id);
+    targetPoints.forEach((target, index) => {
+      const source =
+        sourceTargets[index] ??
+        this.seatPassVisualSourcePoint(from);
 
-      if (!runtime) {
-        completeOne();
-        return;
-      }
-
-      const size = this.passTileDisplaySize(destination);
-      const startX = runtime.image.x;
-      const startY = runtime.image.y;
-      const startAngle = runtime.image.angle;
-      const target = endTargets[index];
-
-      const tileBack = this.createTileBackClone(
-        startX,
-        startY,
+      const tile = this.createTileBackClone(
+        Math.round(source.x),
+        Math.round(source.y),
         size.width,
         size.height,
         startAngle,
       );
 
-      this.passAnimationClones.push(tileBack);
+      tile.setScale(0.74);
+      tile.setAlpha(0);
+      tile.setDepth(178);
 
-      runtime.image.setDepth(181);
+      this.botPassVisualTiles.push({
+        id: `bot-pass-${this.botPassVisualSequence++}`,
+        from,
+        to,
+        image: tile,
+      });
+
+      this.passAnimationClones.push(tile);
 
       this.tweens.add({
-        targets: runtime.image,
-        scaleX: 0,
-        duration: 110,
-        ease: "Sine.easeIn",
-        onComplete: () => {
-          runtime.image.setVisible(false);
+        targets: tile,
+        alpha: 1,
+        scaleX: 1,
+        scaleY: 1,
+        duration: 160,
+        delay: index * 55,
+        ease: "Sine.easeOut",
+      });
 
-          this.tweens.add({
-            targets: tileBack,
-            scaleX: 1,
-            duration: 110,
-            ease: "Sine.easeOut",
-            onComplete: () => {
-              this.tweens.add({
-                targets: tileBack,
-                x: target.x,
-                y: target.y,
-                angle: endAngle,
-                alpha: 0,
-                scaleX: 0.82,
-                scaleY: 0.82,
-                duration: 520,
-                ease: "Cubic.easeInOut",
-                onComplete: () => {
-                  tileBack.destroy();
-                  completeOne();
-                },
-              });
-            },
-          });
-        },
+      this.tweens.add({
+        targets: tile,
+        x: Math.round(target.x),
+        y: Math.round(target.y),
+        angle: endAngle,
+        duration: this.botPassMoveDurationMs,
+        delay: index * 55,
+        ease: "Sine.easeInOut",
+        onComplete: finishOneTile,
       });
     });
   }
+
+  private commitBotPassVisualTilesToRacks(onFinished: () => void): void {
+    const tiles = [...this.botPassVisualTiles];
+
+    if (tiles.length === 0) {
+      onFinished();
+      return;
+    }
+
+    this.isBotPassVisualAnimating = true;
+
+    const byDestination = new Map<TableSeat, BotPassVisualTile[]>();
+
+    tiles.forEach((tile) => {
+      const group = byDestination.get(tile.to) ?? [];
+      group.push(tile);
+      byDestination.set(tile.to, group);
+    });
+
+    let groupsFinished = 0;
+
+    const finishOneGroup = (): void => {
+      groupsFinished += 1;
+
+      if (groupsFinished < byDestination.size) return;
+
+      this.clearBotPassVisualTiles();
+      this.isBotPassVisualAnimating = false;
+      onFinished();
+    };
+
+    byDestination.forEach((group, seat) => {
+      const targets = this.seatRackTargets(seat, group.length);
+      const endAngle = this.passTileAngle(seat);
+
+      let completedTiles = 0;
+
+      const finishOneTile = (): void => {
+        completedTiles += 1;
+
+        if (completedTiles === group.length) {
+          finishOneGroup();
+        }
+      };
+
+      group.forEach((tile, index) => {
+        const target = targets[index];
+
+        if (!target) {
+          tile.image.destroy();
+          finishOneTile();
+          return;
+        }
+
+        this.tweens.killTweensOf(tile.image);
+
+        this.tweens.add({
+          targets: tile.image,
+          x: Math.round(target.x),
+          y: Math.round(target.y),
+          angle: endAngle,
+          scaleX: 0.74,
+          scaleY: 0.74,
+          alpha: 0,
+          duration: this.botPassCommitDurationMs,
+          delay: index * 45,
+          ease: "Sine.easeInOut",
+          onComplete: () => {
+            tile.image.destroy();
+            finishOneTile();
+          },
+        });
+      });
+    });
+  }
+
+  private charlestonTransfersForCurrentDirection(): readonly CharlestonVisualTransfer[] {
+    const seats: readonly TableSeat[] = ["bottom", "right", "top", "left"];
+
+    return seats.map((from) => ({
+      from,
+      to: this.charlestonDestinationForSeat(from, this.currentPassDestination),
+      includeBottom: from === "bottom",
+    }));
+  }
+
+  private charlestonDestinationForSeat(
+    seat: TableSeat,
+    direction: TableSeat,
+  ): TableSeat {
+    if (direction === "right") {
+      switch (seat) {
+        case "bottom": return "right";
+        case "right": return "top";
+        case "top": return "left";
+        case "left": return "bottom";
+      }
+    }
+
+    if (direction === "left") {
+      switch (seat) {
+        case "bottom": return "left";
+        case "left": return "top";
+        case "top": return "right";
+        case "right": return "bottom";
+      }
+    }
+
+    /**
+     * Across. Your current destination mapping represents across as top.
+     */
+    switch (seat) {
+      case "bottom": return "top";
+      case "top": return "bottom";
+      case "left": return "right";
+      case "right": return "left";
+    }
+  }
+
+  private seatPassVisualSourcePoint(seat: TableSeat): Point {
+    const points = this.passAreaTargets(seat, 3);
+
+    return points[1] ?? {
+      x: this.layout.tableOuter.x + this.layout.tableOuter.width / 2,
+      y: this.layout.tableOuter.y + this.layout.tableOuter.height / 2,
+    };
+  }
+
+  private relayoutBotPassVisualTilesAfterResize(): void {
+    if (this.botPassVisualTiles.length === 0) return;
+
+    /**
+     * Bot/opponent Charleston pass backs are temporary visual clones.
+     *
+     * Do NOT destroy/recreate them on orientation change.
+     * Android can fire multiple resize events quickly, and clearing them can
+     * make already-staged waiting tiles disappear.
+     *
+     * Instead, keep the existing clone containers and move them to the new
+     * pass waiting targets for the current layout.
+     */
+    const groups = new Map<string, BotPassVisualTile[]>();
+
+    for (const tile of this.botPassVisualTiles) {
+      const key = `${tile.from}:${tile.to}`;
+      const group = groups.get(key) ?? [];
+
+      group.push(tile);
+      groups.set(key, group);
+    }
+
+    groups.forEach((group, key) => {
+      const [, to] = key.split(":") as [TableSeat, TableSeat];
+
+      const targets = this.passAreaTargets(to, group.length);
+      const angle = this.passTileAngle(to);
+
+      group.forEach((tile, index) => {
+        const target = targets[index];
+
+        if (!target) return;
+
+        this.tweens.killTweensOf(tile.image);
+
+        tile.image
+          .setVisible(true)
+          .setActive(true)
+          .setAlpha(1)
+          .setScale(1)
+          .setDepth(178)
+          .setAngle(angle)
+          .setPosition(
+            Math.round(target.x),
+            Math.round(target.y),
+          );
+      });
+    });
+  }
+  private clearBotPassVisualTiles(): void {
+    const images = new Set<Phaser.GameObjects.GameObject>(
+      this.botPassVisualTiles.map((tile) => tile.image),
+    );
+
+    this.botPassVisualTiles.forEach((tile) => {
+      this.tweens.killTweensOf(tile.image);
+
+      if (tile.image.scene) {
+        tile.image.destroy();
+      }
+    });
+
+    this.passAnimationClones = this.passAnimationClones.filter(
+      (clone) => !images.has(clone),
+    );
+
+    this.botPassVisualTiles.length = 0;
+  }
+
   private createTileBackClone(
     x: number,
     y: number,
@@ -3982,364 +4943,71 @@ private animatePassedTiles(
       y: Math.round(y),
     }));
   }
-  private seatRackTargetsOLD(
-    seat: "top" | "right" | "bottom" | "left",
-    count: number,
-  ): readonly Point[] {
-    const size = this.passTileDisplaySize(seat);
-    const step = size.width * 0.82;
-
-    if (seat === "right") {
-      const x = this.layout.rightExposure.x + this.layout.rightExposure.width / 2;
-      const startY = this.layout.rightExposure.y
-        + this.layout.rightExposure.height / 2
-        - step * (count - 1) / 2;
-
-      return Array.from({ length: count }, (_, index) => ({
-        x: Math.round(x),
-        y: Math.round(startY + index * step),
-      }));
-    }
-
-    if (seat === "left") {
-      const x = this.layout.leftExposure.x + this.layout.leftExposure.width / 2;
-      const startY = this.layout.leftExposure.y
-        + this.layout.leftExposure.height / 2
-        - step * (count - 1) / 2;
-
-      return Array.from({ length: count }, (_, index) => ({
-        x: Math.round(x),
-        y: Math.round(startY + index * step),
-      }));
-    }
-
-    if (seat === "top") {
-      const y = this.layout.topExposure.y + this.layout.topExposure.height / 2;
-      const startX = this.layout.topExposure.x
-        + this.layout.topExposure.width / 2
-        - step * (count - 1) / 2;
-
-      return Array.from({ length: count }, (_, index) => ({
-        x: Math.round(startX + index * step),
-        y: Math.round(y),
-      }));
-    }
-
-    const y = this.layout.bottomExposure.y + this.layout.bottomExposure.height / 2;
-    const startX = this.layout.bottomExposure.x
-      + this.layout.bottomExposure.width / 2
-      - step * (count - 1) / 2;
-
-    return Array.from({ length: count }, (_, index) => ({
-      x: Math.round(startX + index * step),
-      y: Math.round(y),
-    }));
-  }
-
   /**
    * Applies current local pass result.
    * In production this will be replaced by applying the server-authoritative rack.
    */
   private applyPassWaitingResult(ids: readonly string[]): void {
-    ids.forEach((id) => {
-      const runtime = this.tileMap.get(id);
-      if (!runtime) return;
-
-      runtime.image.destroy();
-      this.tileMap.delete(id);
-
-      const close = this.passCloseButtons.get(id);
-      close?.destroy();
-      this.passCloseButtons.delete(id);
+    this.passFlowManager.applyPassWaitingResult(ids, {
+      onTileRemoved: (runtime) => runtime.image.destroy(),
+      onCloseButtonRemoved: (tileId) => this.passCloseButtons.get(tileId)?.destroy(),
+      onSelectionChanged: () => this.callbacks.onSelectionChanged([]),
+      onPassCompleted: (payload) => this.callbacks.onPassCompleted(payload),
+      onLayoutRequested: () => this.resize(this.scale.width, this.scale.height),
     });
-
-    this.passWaitingTileIds.length = 0;
-    this.selectedIds.clear();
-
-    this.rackTiles = this.rackTiles.filter((tile) => !ids.includes(tile.id));
-
-    this.callbacks.onSelectionChanged([]);
-    this.callbacks.onPassCompleted({
-      tileIds: ids,
-      direction: this.passDirection,
-    });
-
-    this.isPassAnimating = false;
-
-    this.resize(this.scale.width, this.scale.height);
   }
 
   /**
    * Updates PASS button visual state.
    */
   private updatePassButtonState(): void {
-    if (!this.passButton) return;
+    this.uiLayoutManager.updatePassButtonState({
+      layout: this.layout,
+      tablePhase: this.tablePhase,
+      passWaitingCount: this.passWaitingTileIds.length,
+      canSubmitPass: this.canSubmitPassWaitingTiles(),
+      isPassAnimating: this.isPassAnimating,
+      isPickAnimating: this.isPickAnimating,
+      wallTileCount: this.wallTileCount,
+    });
 
-    const bg = this.passButton.list[0] as Phaser.GameObjects.Graphics;
-    const text = this.passButton.list[1] as Phaser.GameObjects.Text;
-
-    const button = this.layout.passButton;
-
-    bg.clear();
-
-    if (this.tablePhase === "playing") {
-      const enabled = this.wallTileCount > 0 && !this.isPickAnimating;
-
-      text.setText("PICK");
-      this.passButton.setAlpha(enabled ? 1 : 0.65);
-
-      bg.fillStyle(enabled ? this.config.colors.accent : 0x777777, 1);
-      bg.fillRoundedRect(
-        -button.width / 2,
-        -button.height / 2,
-        button.width,
-        button.height,
-        Math.min(12, button.height * 0.28),
-      );
-
-      this.layoutPickSeatSelector();
-      return;
-    }
-
-    const enabled = this.canSubmitPassWaitingTiles();
-
-    text.setText(enabled ? "PASS" : `${this.passWaitingTileIds.length}/3`);
-    this.passButton.setAlpha(enabled ? 1 : 0.65);
-
-    bg.fillStyle(enabled ? this.config.colors.accent : 0x777777, 1);
-    bg.fillRoundedRect(
-      -button.width / 2,
-      -button.height / 2,
-      button.width,
-      button.height,
-      Math.min(12, button.height * 0.28),
-    );
-
-    this.layoutPickSeatSelector();
-  }
-  private updatePassButtonStateOLD(): void {
-    if (!this.passButton) return;
-
-    const enabled = this.canSubmitPassWaitingTiles();
-
-    const bg = this.passButton.list[0] as Phaser.GameObjects.Graphics;
-    const text = this.passButton.list[1] as Phaser.GameObjects.Text;
-
-    text.setText(enabled ? "PASS" : `${this.passWaitingTileIds.length}/3`);
-
-    this.passButton.setAlpha(enabled ? 1 : 0.65);
-
-    bg.clear();
-    bg.fillStyle(enabled ? this.config.colors.accent : 0x777777, 1);
-
-    const button = this.layout.passButton;
-
-    bg.fillRoundedRect(
-      -button.width / 2,
-      -button.height / 2,
-      button.width,
-      button.height,
-      Math.min(12, button.height * 0.28),
+    this.uiLayoutManager.layoutPickSeatSelector(
+      this.layout,
+      this.tablePhase,
+      this.pickTargetSeat,
     );
   }
-
+  
 
 
   private passDestinationForDirection(direction: PassDirection): TableSeat {
-    switch (direction) {
-      case "right":
-        return "right";
-
-      case "left":
-        return "left";
-
-      case "across":
-        return "top";
-    }
-  }
-
-  private createSoundPools(): void {
-    if (this.sfxReady) return;
-
-    for (const [id, config] of Object.entries(this.sfxConfig) as [TableSfxId, TableSfxConfig][]) {
-      if (!this.cache.audio.exists(config.key)) continue;
-
-      const pool: Phaser.Sound.BaseSound[] = [];
-
-      for (let index = 0; index < config.poolSize; index += 1) {
-        pool.push(
-          this.sound.add(config.key, {
-            volume: config.volume,
-          }),
-        );
-      }
-
-      this.sfxPools.set(id, pool);
-      this.sfxPoolCursor.set(id, 0);
-    }
-
-    this.sfxReady = true;
+    return this.passFlowManager.destinationForDirection(direction);
   }
 
   private playHaptic(type: GameHapticType): void {
+    this.soundManager.playHaptic(type);
+    /* Legacy Scene implementation retained for reference:
     this.callbacks.onHaptic?.(type);
+    */
   }
 
   
   private playSfx(id: TableSfxId): void {
-    const config = this.sfxConfig[id];
-    const pool = this.sfxPools.get(id);
-
-    if (!pool?.length) return;
-
-    const now = this.time.now;
-    const lastPlayedAt = this.lastSfxAt.get(id) ?? 0;
-
-    if (config.throttleMs && now - lastPlayedAt < config.throttleMs) {
-      return;
-    }
-
-    this.lastSfxAt.set(id, now);
-
-    const cursor = this.sfxPoolCursor.get(id) ?? 0;
-    const sound = pool[cursor];
-
-    this.sfxPoolCursor.set(id, (cursor + 1) % pool.length);
-
-    if (sound.isPlaying) {
-      sound.stop();
-    }
-
-    sound.play({
-      volume: config.volume,
-    });
+    this.soundManager.playSfx(id);
   }
-  private createPickSeatSelector(): Phaser.GameObjects.Container {
-    const labels: readonly { readonly seat: TableSeat; readonly label: string }[] = [
-      { seat: "bottom", label: "Bottom" },
-      { seat: "left", label: "Left" },
-      { seat: "top", label: "Top" },
-      { seat: "right", label: "Right" },
-    ];
-
-    this.pickSeatButtons = labels.map((item) => {
-      const text = this.add
-        .text(0, 0, item.label, {
-          fontFamily: "Poppins, Arial",
-          fontSize: "11px",
-          fontStyle: "700",
-          color: this.config.colors.white,
-          backgroundColor: "#64748b",
-          padding: { x: 7, y: 4 },
-        })
-        .setOrigin(0.5)
-        .setDepth(22)
-        .setInteractive({ useHandCursor: true });
-
-      text.setData("seat", item.seat);
-
-      text.on("pointerdown", (pointer: Phaser.Input.Pointer) => {
-        pointer.event?.stopPropagation?.();
-
-        this.pickTargetSeat = item.seat;
-        this.setActiveSeat(item.seat);
-
-        this.updatePickSeatSelectorState();
-        this.updateInstructionText();
-      });
-
-      return text;
-    });
-
-    const container = this.add
-      .container(0, 0, this.pickSeatButtons)
-      .setDepth(22)
-      .setVisible(false);
-
-    this.updatePickSeatSelectorState();
-
-    return container;
-  }
+  
 
   private layoutPickSeatSelector(): void {
-    if (!this.pickSeatSelector || this.pickSeatButtons.length === 0 || !this.layout) {
-      return;
-    }
-
-    const visible = this.tablePhase === "playing";
-
-    this.pickSeatSelector.setVisible(visible);
-
-    for (const button of this.pickSeatButtons) {
-      button.setVisible(visible);
-    }
-
-    if (!visible) {
-      return;
-    }
-
-    const passButton = this.layout.passButton;
-    const gap = this.layout.metrics.isMobile ? 4 : 6;
-
-    let totalWidth = 0;
-
-    for (const button of this.pickSeatButtons) {
-      totalWidth += button.width;
-    }
-
-    totalWidth += gap * (this.pickSeatButtons.length - 1);
-
-    let x = -totalWidth / 2;
-
-    this.pickSeatButtons.forEach((button) => {
-      button.setPosition(
-        Math.round(x + button.width / 2),
-        0,
-      );
-
-      x += button.width + gap;
-    });
-
-    this.pickSeatSelector.setPosition(
-      Math.round(passButton.x + passButton.width / 2),
-      Math.round(passButton.y - Math.max(14, passButton.height * 0.42)),
+    this.uiLayoutManager.layoutPickSeatSelector(
+      this.layout,
+      this.tablePhase,
+      this.pickTargetSeat,
     );
-
-    this.updatePickSeatSelectorState();
   }
 
   private updatePickSeatSelectorState(): void {
-    for (const button of this.pickSeatButtons) {
-      const seat = button.getData("seat") as TableSeat;
-      const active = seat === this.pickTargetSeat;
-
-      button.setBackgroundColor(active ? "#cb2aa3" : "#64748b");
-      button.setAlpha(active ? 1 : 0.78);
-    }
+    this.uiLayoutManager.updatePickSeatSelectorState(this.pickTargetSeat);
   }
-  /* private pickTileForSeatOLD(seat: TableSeat): void {
-    if (this.tablePhase !== "playing") return;
-    if (this.isPickAnimating) return;
-    if (this.wallTileCount <= 0) return;
-
-    this.isPickAnimating = true;
-    this.wallTileCount -= 1;
-
-    this.updateWallCountText();
-    this.updatePassButtonState();
-
-    const pickedTile = seat === "bottom" ? this.createMockPickedTile() : undefined;
-
-    this.animateWallTileToSeat(seat, () => {
-      if (seat === "bottom" && pickedTile) {
-        this.addMockPickedTileToRack(pickedTile);
-      }
-
-      this.isPickAnimating = false;
-      this.updatePassButtonState();
-      this.updateInstructionText();
-    });
-  } */
 
 
   private pickTileForSeat(seat: TableSeat): void {
@@ -4399,114 +5067,102 @@ private animatePassedTiles(
             0,
           );
 
-    clone.setScale(startScale);
-    clone.setAlpha(1);
-    clone.setDepth(190);
-
-    const progress = { value: 0 };
-
-    this.tweens.add({
-      targets: progress,
-      value: 1,
-      duration: this.pickAnimationDurationForSeat(seat),
-      ease: "Cubic.easeInOut",
-      onUpdate: () => {
-        /**
-         * Bottom/current player:
-         * keep tile small while travelling from HUD,
-         * then grow only when it gets near the rack.
-         */
-        if (seat === "bottom") {
-          const growProgress = Phaser.Math.Clamp(
-            (progress.value - 0.62) / 0.38,
-            0,
-            1,
-          );
-
-          const easedGrow = Phaser.Math.Easing.Sine.Out(growProgress);
-          const scale = Phaser.Math.Linear(startScale, 1, easedGrow);
-
-          clone.setScale(scale);
-          return;
-        }
-
-        /**
-         * Other seats:
-         * keep normal grow behavior because the travel distance is shorter
-         * and the tile is a hidden back tile.
-         */
-        const easedGrow = Phaser.Math.Easing.Sine.Out(progress.value);
-        const scale = Phaser.Math.Linear(startScale, 1, easedGrow);
-
-        clone.setScale(scale);
-      },
-    });
-
-    this.tweens.add({
-      targets: clone,
-      x: Math.round(target.x),
-      y: Math.round(target.y),
-      angle: this.pickTileAngleForSeat(seat),
-      duration: this.pickAnimationDurationForSeat(seat),
-      ease: "Cubic.easeInOut",
-      onComplete: () => {
-        clone.destroy();
-        onComplete();
-      },
-    });
-  }
-  private animateWallTileToSeatOLDW(
-    seat: TableSeat,
-    pickedTile: TileVm | undefined,
-    onComplete: () => void,
-  ): void {
-    const source = this.wallTileSourcePoint();
-    const target = this.pickTargetPointForSeat(seat);
-    const size = this.pickAnimationTileSize(seat);
-    const startSize = this.wallTileBoxSize();
-
-    const startScale = Phaser.Math.Clamp(
-      startSize.height / size.height,
-      0.35,
-      0.72,
+    /* this.animationManager.animateWallPick(
+      clone,
+      target,
+      this.pickTileAngleForSeat(seat),
+      this.pickAnimationDurationForSeat(seat),
+      startScale,
+      seat === "bottom",
+      onComplete,
+    ); */
+    this.animationManager.animateWallPick(
+      clone,
+      target,
+      this.pickTileAngleForSeat(seat),
+      this.pickAnimationDurationForSeat(seat),
+      startScale,
+      seat === "bottom",
+      onComplete,
+      this.pickAnimationFinalScaleForDevice(seat),
+      this.pickAnimationGrowStartForDevice(),
     );
-
-    const clone =
-      seat === "bottom" && pickedTile
-        ? this.createTileFrontPickClone(
-            pickedTile,
-            source.x,
-            source.y,
-            size.width,
-            size.height,
-          )
-        : this.createTileBackClone(
-            source.x,
-            source.y,
-            size.width,
-            size.height,
-            0,
-          );
-
-    clone.setScale(startScale);
-    clone.setAlpha(1);
-    clone.setDepth(190);
-
-    this.tweens.add({
-      targets: clone,
-      x: Math.round(target.x),
-      y: Math.round(target.y),
-      angle: this.pickTileAngleForSeat(seat),
-      scaleX: 1,
-      scaleY: 1,
-      duration: this.pickAnimationDurationForSeat(seat),
-      ease: "Cubic.easeInOut",
-      onComplete: () => {
-        clone.destroy();
-        onComplete();
-      },
-    });
   }
+  private pickAnimationFinalScaleForDevice(seat: TableSeat): number {
+    const width = this.layout.canvas.width;
+    const height = this.layout.canvas.height;
+
+    const isPhonePortrait =
+      height >= width &&
+      width <= 520;
+
+    const isPhoneLandscape =
+      width > height &&
+      height <= 520 &&
+      width <= 980;
+
+    const isTabletPortrait =
+      height >= width &&
+      width > 520 &&
+      width <= 1180 &&
+      height <= 1400;
+
+    const isTabletLandscape =
+      width > height &&
+      width > 760 &&
+      width <= 1180 &&
+      height > 520 &&
+      height <= 900;
+
+    /**
+     * Bottom/current-user pick animation.
+     * This controls only the flying clone, not the final rack tile.
+     */
+    if (seat === "bottom") {
+      if (isPhonePortrait) return 0.46;
+      if (isPhoneLandscape) return 0.48;
+      if (isTabletPortrait) return 0.64;
+      if (isTabletLandscape) return 0.68;
+
+      return 1;
+    }
+
+    /**
+     * Opponent/back-tile pick animation.
+     */
+    if (isPhonePortrait) return 0.58;
+    if (isPhoneLandscape) return 0.60;
+    if (isTabletPortrait) return 0.74;
+    if (isTabletLandscape) return 0.78;
+
+    return 1;
+  }
+
+  private pickAnimationGrowStartForDevice(): number {
+    const width = this.layout.canvas.width;
+    const height = this.layout.canvas.height;
+
+    const isPhone =
+      (height >= width && width <= 520) ||
+      (width > height && height <= 520 && width <= 980);
+
+    const isTablet =
+      (height >= width && width > 520 && width <= 1180 && height <= 1400) ||
+      (width > height && width > 760 && width <= 1180 && height > 520 && height <= 900);
+
+    if (isPhone) {
+      return 0.84;
+    }
+
+    if (isTablet) {
+      return 0.70;
+    }
+
+    return 0.62;
+  }
+
+  
+  
 
   private createTileFrontPickClone(
     tile: TileVm,
@@ -4538,50 +5194,7 @@ private animatePassedTiles(
     return image;
   }
 
-  private animateWallTileToSeatOLD(
-    seat: TableSeat,
-    onComplete: () => void,
-  ): void {
-    const source = this.wallTileSourcePoint();
-    const target = this.pickTargetPointForSeat(seat);
-    const size = this.pickAnimationTileSize(seat);
-    /* const startSize = this.wallTileBoxSize();
-
-    const startScale = Phaser.Math.Clamp(
-      startSize.height / size.height,
-      0.35,
-      0.75,
-    ); */
-
-    const clone = this.createTileBackClone(
-      source.x,
-      source.y,
-      size.width,
-      size.height,
-      0,
-    );
-
-    //clone.setScale(startScale);
-    clone.setScale(1);
-    clone.setAlpha(1);
-    clone.setDepth(190);
-
-    this.tweens.add({
-      targets: clone,
-      x: Math.round(target.x),
-      y: Math.round(target.y),
-      //angle: this.passTileAngle(seat),
-      angle: this.pickTileAngleForSeat(seat),
-      //scaleX: 1,
-      //scaleY: 1,
-      duration: this.pickAnimationDurationForSeat(seat),
-      ease: "Cubic.easeInOut",
-      onComplete: () => {
-        clone.destroy(true);
-        onComplete();
-      },
-    });
-  }
+  
 
   private pickTileAngleForSeat(seat: TableSeat): number {
     if (seat === "right") return 90;
@@ -4609,12 +5222,11 @@ private animatePassedTiles(
 
     return this.passTileDisplaySize(seat);
   }
-
+  
   private pickTargetPointForSeat(seat: TableSeat): Point {
     if (seat === "bottom") {
       const nextLayout = this.layoutEngine.compute(
-        this.scale.width,
-        this.scale.height,
+        this.callbacks.getDeviceLayout(this.scale.width, this.scale.height),
         //this.rackTiles.length + 1,
         Math.max(14, this.rackOrder.length + 1),
         this.config,

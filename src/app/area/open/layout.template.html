@@ -3,20 +3,20 @@
     <div class="tw:w-full tw:max-w-md tw:text-center">
         <div class="tw:mb-8">
             <div class="tw:mb-4 tw:flex tw:justify-center">
-                <div class="tw:h-20 tw:w-20 tw:overflow-hidden tw:rounded-full tw:bg-primary-container tw:shadow-lg">
+                <div class="tw:overflow-hidden">
                     <img
                         src="{{ brandLogoSrc }}"
                         alt="Brand logo"
-                        class="tw:h-full tw:w-full tw:object-cover"
+                        class="tw:h-12 tw:w-auto md:tw:h-20"
                     />
                 </div>
             </div>
 
             <h1 class="tw:text-3xl tw:font-bold tw:text-primary">Welcome</h1>
-            <p class="tw:mt-2 tw:text-base tw:text-secondary">
+            <!-- <p class="tw:mt-2 tw:text-base tw:text-secondary">
                 Choose where you want to go
             </p>
-            <h1>Current DB Version: {{ dbVersion() }}</h1>
+            <h1>Current DB Version: {{ dbVersion() }}</h1> -->
         </div>
 
         <div class="tw:flex tw:flex-col tw:gap-4 tw:mb-8">
@@ -31,13 +31,13 @@
                 </a>
             }
         </div>
-        @if(session.state.st() !== null) {
-            <a matButton="text" class="tw:text-xs" [routerLink]=""signout>Sign out</a>
+        @if (ctxp.state.isAuthenticated()) {
+            <a matButton="text" class="tw:text-xs" [routerLink]="SignoutRoute.absolutePath()">Sign out</a>
         }
         
 
-        <app-theme></app-theme>
-        <app-internationalization></app-internationalization>
+        <!-- <app-theme></app-theme>
+        <app-internationalization></app-internationalization> -->
     </div>
 </div>
 <router-outlet></router-outlet>

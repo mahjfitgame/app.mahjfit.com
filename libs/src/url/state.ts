@@ -1,18 +1,28 @@
 // file: libs/src/url/state.ts
-import { inject, Service, signal } from '@angular/core';
+import { effect, inject, Service, signal } from '@angular/core';
 import { SignalStateService } from '@libs/signal-state/service';
+import { AppModuleStateType } from '@libs/utility/type';
 
 import { UrlParamsType } from './type';
 import { ConfService } from '@libs/conf/service';
 import { LogService } from '@libs/log/service';
 
 @Service({ autoProvided: false })
-export class UrlState extends SignalStateService {
+export class UrlState extends SignalStateService implements AppModuleStateType {
+
+    // ████ DEPENDENCIES ████████████████████████████████████████████████
+
     private readonly conf = inject(ConfService)
     private readonly log = inject(LogService)
 
-    // required for persisted state
-    protected override readonly storeKey = 'url';
+    // ████ CLASS PROPERTIES ████████████████████████████████████████████
+
+    public override readonly storeKey = 'url';
+
+    // ████ SIGNAL FORM PROPERTIES ██████████████████████████████████████
+    // n/a
+
+    // ████ SIGNAL PROPERTIES ███████████████████████████████████████████
 
     private readonly _urlSyncEnabled = signal<boolean>(false);
     public readonly urlSyncEnabled = this._urlSyncEnabled.asReadonly();
@@ -53,12 +63,33 @@ export class UrlState extends SignalStateService {
     private readonly _fragment = signal<string | null>(null);
     public readonly fragment = this._fragment.asReadonly();
 
+    // ████ STATE DEBUGGER ██████████████████████████████████████████████
+    // n/a
+
     constructor() {
         super();
 
         // Signal-state fields must be initialized before the base service is initialized.
         this.initializeSignalState();
     }
+
+    // ████ LISTENERS ███████████████████████████████████████████████████
+
+    public override onActivate(): void {
+        const registerEffect = effect(() => {
+            if (!this.ready()) {
+                return;
+            }
+        });
+
+        this.registerDeactivationCleanup(() => registerEffect.destroy());
+    }
+
+    public override onDeactivate(): void {
+
+    }
+
+    // ████ SIGNAL METHODS ██████████████████████████████████████████████
 
     public setUrlSyncEnabled(value: boolean): void {
         this._urlSyncEnabled.set(value);
@@ -123,4 +154,16 @@ export class UrlState extends SignalStateService {
     public setPassword(value: string | null): void {
         this._password.set(value);
     }
+
+    // ████ SIGNAL DATA VALIDATORS ██████████████████████████████████████
+    // n/a
+
+    // ████ REGISTRATION AND CALLBACKS ██████████████████████████████████
+    // n/a
+
+    // ████ API CALLS ███████████████████████████████████████████████████
+    // n/a
+
+    // ████ WEB SOCKET CALLS ████████████████████████████████████████████
+    // n/a
 }

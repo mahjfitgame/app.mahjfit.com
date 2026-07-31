@@ -5,7 +5,7 @@ import { ForgotPasswordService } from '@module/shared/onboarding/forgot-password
 @Component({
   imports: [],
   standalone: true,
-  selector: 'app-signup',
+  selector: 'app-forgot-password',
   templateUrl: './template.html',
   styleUrl: './style.scss',
   providers: [ForgotPasswordService],

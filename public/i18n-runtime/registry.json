@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-07-16T06:27:04.074Z",
+  "generated_at": "2026-07-31T05:03:54.710Z",
   "items": [
     {
       "key": "global",
@@ -75,6 +75,20 @@
       "key": "app.module.shared.onboarding.signin",
       "source": "src/app/module/shared/onboarding/signin/i18n",
       "path": "/i18n-runtime/app/module/shared/onboarding/signin",
+      "langs": [
+        "ar",
+        "en",
+        "es",
+        "fr",
+        "gu",
+        "hi"
+      ],
+      "global": false
+    },
+    {
+      "key": "app.module.shared.onboarding.signout",
+      "source": "src/app/module/shared/onboarding/signout/i18n",
+      "path": "/i18n-runtime/app/module/shared/onboarding/signout",
       "langs": [
         "ar",
         "en",

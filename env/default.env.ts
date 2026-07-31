@@ -7,6 +7,7 @@ export const defaultEnvironment: any = {
   NODE_ENV: 'production',
 
   // General
+  DEBUG: false,
   TZ: 'US/Eastern',
   PROJECT_NAME:'bfw.nestjs.microservice.api/web',
   GRAPHQL_ROOT_SLUG:'graphql',
@@ -114,7 +115,9 @@ export const defaultEnvironment: any = {
 
   // ████ INDEPENDENT env variables for this web app ████████████████████████████████████████████████████████
 
-  // Thats End API access
+  // BFW API SDK configuration
+  BFW_API_SDK_SIGNIN_USERNAME: '',
+  BFW_API_SDK_SIGNIN_IDENTIFY: '',
   BFW_API_SDK_JWT_ACCESS_TOKEN: '',
   BFW_API_SDK_JWT_REFRESH_TOKEN: '',
   BFW_API_SDK_GRAPHQL_URL: '',

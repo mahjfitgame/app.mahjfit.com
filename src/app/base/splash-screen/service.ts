@@ -1,10 +1,10 @@
-import { Injectable, computed, inject, signal } from '@angular/core';
+import { Injectable, Service, computed, inject, signal } from '@angular/core';
 import { SplashScreen } from '@capacitor/splash-screen';
 import { LogService } from '@libs/log/service';
 import { PlatformService } from '@libs/platform/service';
 import { ProgressBarService } from '@base/progress-bar/service';
 
-@Injectable({providedIn: 'root'})
+@Service()
 export class SplashScreenService {
     public readonly splashBrandLogo = '/assets/logo.png';
 

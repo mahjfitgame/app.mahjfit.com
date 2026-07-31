@@ -3,7 +3,7 @@ import { inject, Service } from "@angular/core";
 import { Country, CountryFindInputDto, CountryFindOutputDto, CountryFindOutputRowsDto, CountryFindOutputSelectionSchema } from "@bfw/api-sdk/graphql/endpoints/shared";
 import { RecordSortDirectionEnum, RecordSortNullPositionEnum } from "@bfw/api-sdk/graphql/libs/crud.enum";
 import { PrivateAreaLayoutSlotEnum } from "@area/private/enum";
-import { CrudSubType } from "@base/crud/sub";
+import { CrudServiceSubType } from "@base/crud/sub";
 import { CrudDataLoadTypeEnum, CrudFieldUiTypeEnum, CrudActionUiLayoutEnum } from "@base/crud/enum";
 import { CrudService } from "@base/crud/service";
 import { CrudStateMutationFieldObjType, CrudStateListingFieldObjType, CrudStateSearchFilterFieldObjType, CrudFindInputType, CrudStateViewOptionFieldObjType, CrudStateListOperationFieldObjType, CrudSearchFilterInputType, CrudViewOptionInputType, CrudListOperationInputType } from "@base/crud/type";
@@ -17,10 +17,15 @@ import { SLUG_GEO } from "@module/shared/geo/slug";
 import { SLUG_GEO_COUNTRY } from "@module/shared/geo/country/slug";
 import { I18nService } from "@base/internationalization/service";
 import { GEO_COUNTRY_I18N_KEY } from "@module/shared/geo/country/const";
+import { GeoCountryRoute } from "./route";
+import { AppModuleServiceType } from "@libs/utility/type";
+import { GeoCountryState } from "./state";
 
 @Service({ autoProvided: false })
-export class GeoCountryService implements CrudSubType {
+export class GeoCountryService implements AppModuleServiceType, CrudServiceSubType {
     public readonly crud = inject(CrudService);
+
+    public readonly state = inject(GeoCountryState);
 
     public readonly conf = inject(ConfService);
     public readonly log = inject(LogService);
@@ -386,7 +391,7 @@ export class GeoCountryService implements CrudSubType {
     public setModuleInfo(): void {
         this.crud.paLayout.state.setModuleInfo({
             icon: 'globe',
-            url: GeoCountryService.moduleUrlPath(),
+            url: GeoCountryRoute.absolutePath(),
             title: null, //'Geo Country',
             hint: null, //'Manage world country data.',
             i18n: {
@@ -484,7 +489,7 @@ export class GeoCountryService implements CrudSubType {
             SKIP: skip,
         }: CrudFindInputType = input;
         
-        const fetchData = async (
+        const fetch = async (
                 sfIn: CrudSearchFilterInputType, 
                 voIn: CrudViewOptionInputType, 
                 loIn: CrudListOperationInputType, 
@@ -565,7 +570,8 @@ export class GeoCountryService implements CrudSubType {
             });
         };
         
-        let data: CountryFindOutputDto = await fetchData(sfIn, voIn, loIn, skip);
+        const http = await fetch(sfIn, voIn, loIn, skip);
+        let data: CountryFindOutputDto = http.data;
 
         // ████ VERIFY THE RESPONSE  ██████████████████████████████████████
         /**
@@ -585,7 +591,8 @@ export class GeoCountryService implements CrudSubType {
 
         // if mismatch then place new call but do not intrrupt existing call
         if (nloIn?.current_page !== loIn?.current_page) {
-            data = await fetchData(nsfIn, nvfIn, nloIn, nskip);
+            const http = await fetch(nsfIn, nvfIn, nloIn, nskip);
+            data = http.data;
         }
 
         // ████ NEW STATE BEGINS FROM THIS LINE  ██████████████████████████████████████
@@ -615,36 +622,5 @@ export class GeoCountryService implements CrudSubType {
         this.crud.state.setRowsPerPageValue(Number(data.take));
 
         return true;
-    }
-    /**
-     * @param params An object like { ':id': 123, ':service': 'Ho' }
-     * @returns A clean string
-     */
-    public static moduleUrlPath(/*id: number, service: string*/): string {
-        // 1. Join the parent and child slugs
-        let fullPath = [SLUG_PRIVATE_AREA, SLUG_GEO, SLUG_GEO_COUNTRY].join('/');
-
-        // 2. Replace placeholders with actual values, all parameters stay in service only
-        const params: Record<string, string | number> = {
-            /*
-            ':id': 123, 
-            ':service': 'Ho'
-            */
-        };
-        Object.entries(params).forEach(([key, value]) => {
-            fullPath = fullPath.replace(key, value.toString());
-        });
-
-        return '/' + fullPath;
-    }
-    public static moduleRouterLink(/*id: number, service: string*/): string[] {
-        let fullPath = this.moduleUrlPath(/*id, service*/);
-        
-        // 3. Clean up and convert to array
-        // Splits by '/', removes empty strings, and removes leftover placeholders
-        const segments = fullPath.split('/') // removes empty strings
-            .filter(seg => seg && !seg.startsWith(':'));
-
-        return ['/', ...segments];
     }
 }

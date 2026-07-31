@@ -1,0 +1,12 @@
+{
+  "ONBOARDING_SIGNOUT": {
+    "MODULE": {
+      "TITLE": "Se déconnecter",
+      "HINT": "Déconnectez-vous de votre compte."
+    },
+    "HEADING": "Vous êtes déconnecté(e)",
+    "SUBHEADING": "Votre compte est sécurisé et votre session a été fermée.",
+    "GOODBYE_MESSAGE": "Prenez soin de vous et passez une excellente journée ! Nous espérons vous revoir bientôt.",
+    "FAILED_MESSAGE": "Échec de la déconnexion. Veuillez réessayer afin de préserver la sécurité de votre compte."
+  }
+}

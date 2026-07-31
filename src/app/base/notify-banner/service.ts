@@ -1,12 +1,12 @@
 // file: ./src/app/base/notify-banner/service.ts
-import { inject, Injectable } from "@angular/core";
+import { inject, Injectable, Service } from "@angular/core";
 import { ConfService } from "@libs/conf/service";
 import { LogService } from "@libs/log/service";
 import { NotifyBannerTypeEnum } from "@base/notify-banner/enum";
 import { NotifyBannerAlertType } from "@base/notify-banner/type";
 import { NotifyBannerState } from "@base/notify-banner/state";
 
-@Injectable({providedIn: 'root'})
+@Service()
 export class NotifyBannerService {
     private currentId = 0;
 

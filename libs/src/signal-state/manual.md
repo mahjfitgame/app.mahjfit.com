@@ -334,7 +334,7 @@ private readonly affiliateCodeStore = this.cookiePersistSignal<string | null>(
   null,
   {
     validate: (value): value is string | null => value === null || typeof value === 'string',
-    cookie: {
+    source: {
       path: '/',
       expires: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toUTCString(),
     },
@@ -540,15 +540,16 @@ interface PersistSignalOptionsBaseType<T> {
   validate: (value: unknown) => value is T;
   serialize?: (value: T) => unknown;
   deserialize?: (value: unknown) => T;
+  deleteOnNull?: boolean;
 }
 ```
 
 Local, session, and cookie options add `crossTab?: boolean`.
 
-Cookie options also accept an optional `cookie` object:
+Cookie options also accept an optional `source` object:
 
 ```ts
-interface SignalStateCookieOptionsType {
+interface SignalStateCookieSourceType {
   url?: string;
   path?: string;
   expires?: string;
@@ -571,17 +572,17 @@ interface SignalStateServerSyncSourceType {
 }
 ```
 
-| Option        | Required             | Default                                                              | Details                                                                                        |
-| ------------- | -------------------- | -------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
-| `validate`    | Yes                  | None                                                                 | Runtime type guard applied after optional deserialization.                                     |
-| `version`     | No                   | `1`                                                                  | Envelope version expected on load and written on save. Exact numeric match is required.        |
-| `debounceMs`  | No                   | `200`                                                                | Trailing-edge delay before saving a changed signal.                                            |
-| `scope`       | No                   | Global                                                               | Scope type whose active ID is inserted into the key. Empty strings throw when provided.        |
-| `serialize`   | No                   | Identity                                                             | Converts runtime `T` to a JSON-compatible persisted representation.                            |
-| `deserialize` | No                   | Identity                                                             | Converts loaded persisted data back to runtime `T`.                                            |
-| `crossTab`    | No                   | `false`                                                              | Publishes exact-key notifications after successful save/remove.                                |
-| `cookie`      | Cookie only          | Current runtime URL/path behavior from `CookieService`.              | Optional cookie options. `path`/`expires` are used on save; `url` is used on save/load/delete. |
-| `source`      | Local DB/server only | Local DB defaults to `AppStateRepository`; server defaults to no-op. | Custom load/save/delete backend.                                                               |
+| Option         | Required               | Default                   | Details                                                                                                               |
+| -------------- | ---------------------- | ------------------------- | --------------------------------------------------------------------------------------------------------------------- |
+| `validate`     | Yes                    | None                      | Runtime type guard applied after optional deserialization.                                                            |
+| `version`      | No                     | `1`                       | Envelope version expected on load and written on save. Exact numeric match is required.                               |
+| `debounceMs`   | No                     | `200`                     | Trailing-edge delay before saving a changed signal.                                                                   |
+| `scope`        | No                     | Global                    | Scope type whose active ID is inserted into the key. Empty strings throw when provided.                               |
+| `serialize`    | No                     | Identity                  | Converts runtime `T` to a JSON-compatible persisted representation.                                                   |
+| `deserialize`  | No                     | Identity                  | Converts loaded persisted data back to runtime `T`.                                                                   |
+| `deleteOnNull` | No                     | `false`                   | Removes the backend record when the persisted representation is `null`.                                               |
+| `crossTab`     | No                     | `false`                   | Publishes exact-key notifications after successful save/remove.                                                       |
+| `source`       | Local DB/server/cookie | Backend-specific default. | Custom DB/server adapter or cookie options. Cookie `path`/`expires` apply on save; `url` applies on save/load/delete. |
 
 ### 5.1 Validation
 
@@ -650,6 +651,7 @@ Save pipeline:
 runtime signal value
   -> serialize(value), if provided
   -> JSON serializability and duplicate snapshot check
+  -> remove the backend record when deleteOnNull is true and the value is null
   -> SignatureService.encryptJson(...)
   -> { v, u, s } envelope
   -> backend write
@@ -961,14 +963,14 @@ save<T>(
   key: string,
   state: T,
   version = 1,
-  options?: SignalStateCookieOptionsType,
+  options?: SignalStateCookieSourceType,
 ): Promise<void>;
 load<T>(
   key: string,
   expectedVersion = 1,
-  options?: SignalStateCookieOptionsType,
+  options?: SignalStateCookieSourceType,
 ): Promise<SignalStateCookieValueType<T> | null>;
-remove(key: string, options?: SignalStateCookieOptionsType): Promise<void>;
+remove(key: string, options?: SignalStateCookieSourceType): Promise<void>;
 ```
 
 Cookie limitations:

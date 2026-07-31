@@ -1,6 +1,6 @@
-import { inject, Injectable, Service } from "@angular/core";
+import { inject, Service } from "@angular/core";
 import { io } from 'socket.io-client';
-import { BfwApiSdk, DefaultHeaders } from "@bfw/api-sdk/core";
+import { BfwApiSdk } from "@bfw/api-sdk/core";
 import { GraphLoginOutputDto, GraphSignupOutputDto } from '@bfw/api-sdk/graphql/endpoints/shared';
 import { ConfService } from "@libs/conf/service";
 import { LogService } from "@libs/log/service";
@@ -54,6 +54,10 @@ export class BfwApiService {
                 graphql: {
                     baseUrl: this.conf.bfwApiSdkGraphqlUrl,
                     browserCookie: true,
+                    signinCredentials: {
+                        username: this.conf.bfwApiSdkSigninUsername,
+                        identify: this.conf.bfwApiSdkSigninIdentify,
+                    },
                     ws: {
                         baseUrl: this.conf.bfwApiSdkWsUrl,
                         eventPrefix: '',
@@ -84,17 +88,12 @@ export class BfwApiService {
                     tokenStore: {
                         persistentStorageStrategy: "browserLocalStorage"
                     },
-                    logRequest: true,
-                    logResponse: true,
+                    logRequest: this.conf.debug,
+                    logResponse: this.conf.debug,
                     headers: {
-                        // TODO: we can to add required headers as needed 
+                        // TODO: we can to add required common headers as needed 
                         // such as tenant id later on if its direct and no process required
-                        /**
-                         * there are some headers set from respective state list is as below
-                         * this is because it depends on the process required some input from client
-                         * - src/app/base/internationalization/state.ts
-                         * - libs/src/auth-session/state.ts
-                         */
+                        // there are some headers set from respective state list is as below
                     }
                 },
             });
@@ -104,8 +103,25 @@ export class BfwApiService {
                 jwt_refresh_token: this.conf.bfwApiSdkJwtRefreshToken,
             };
             
-            this.sdk.graphql.authSession.initializeTokens(jwt);
-            this.sdk.rest.authSession.initializeTokens(jwt);
+            this.sdk.graphql.jwtAuthorization.initializeTokens(jwt);
+            this.sdk.rest.jwtAuthorization.initializeTokens(jwt);
+
+            // ▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬
+            // EXTERNAL REGISTRATION
+            // There are many external registrations are availabe as below
+            // all of them are provided by specific module and that module controllers that process
+            // these has to stay in individual module not here, keep adding comments to keep watch on all implementations
+            // ----------------------------------------------------------
+            // ▬ setHeaderCtxs | jwtHostAuthorization | jwtStatefulAuthorization
+            // file: libs/src/context-profile/state.ts
+            //
+            // ▬ setHeaderAcceptLanguage | setHeaderCurrentBidi
+            // file: src/app/base/internationalization/state.ts
+            //
+            // ▬ appClientServerHandShake | registerAfterResponseInterceptor | registerBeforeRequestInterceptor
+            // file: src/app/app.service.ts
+            //
+            // ▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬
 
             // perform test call
             //const hello = await this.sdk.graphql.graph.hello();
@@ -115,7 +131,7 @@ export class BfwApiService {
         }
     }
     public async refreshJwt(refreshToken: string): Promise<GraphLoginOutputDto> {
-        const refreshJwt = await this.sdk.graphql.graph.refreshJWT({
+        const http = await this.sdk.graphql.graph.refreshJWT({
             input: {
                 jwtRefreshToken: refreshToken,
             },
@@ -124,10 +140,10 @@ export class BfwApiService {
                 jwt_refresh_token: true,
                 },
             });
-        return refreshJwt;
+        return http.data;
     }
     public async whoAmI(): Promise<GraphSignupOutputDto> {
-        const whoAmI = await this.sdk.graphql.graph.whoAmI({
+        const http = await this.sdk.graphql.graph.whoAmI({
             selection: {
                 username: true,
                 email: true,
@@ -136,6 +152,6 @@ export class BfwApiService {
                 jwt_refresh_token: true,
             }
         });
-        return whoAmI;
+        return http.data;
     }
 }

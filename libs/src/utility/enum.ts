@@ -1,2 +1,6 @@
 // file: libs/src/utility/enum.ts
-export {};
+export enum AppAreaEnum {
+    OPEN = 'open',
+    AUTH = 'auth',
+    PRIVATE = 'private',
+}

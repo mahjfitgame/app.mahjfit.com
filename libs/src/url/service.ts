@@ -202,7 +202,7 @@ export class UrlService {
     public setMatrixParams(params: UrlParamsType): void {
         this.state.patchMatrixParams(params);
     }
-//getCrudFieldGroupMatrixParamsFromState
+
     public setQueryParams(params: UrlParamsType): void {
         this.state.patchQueryParams(params);
     }
@@ -458,5 +458,67 @@ export class UrlService {
         }
 
         return aCount === bCount;
+    }
+
+    /**
+     * @getAbsolutePathArr 
+     * provide absolute route array
+     * do not provide domin or protocol
+     * 
+     * @param moduleLevel string[]
+     * do not include domin or protocol
+     * 
+     * @param params Record<string, string | number>
+     * 
+     * @returns string[]
+     * provide '/' as first/leading element 
+     */
+    public static getAbsolutePathArr(
+        moduleLevel: string[],
+        params: Record<string, string | number> = {}
+    ): string[] {
+        // 1. Join the slugs
+        let fullPath = moduleLevel.join('/');
+
+        // 2. Replace placeholders with actual values
+        Object.entries(params).forEach(([key, value]) => {
+            fullPath = fullPath.replace(key, value.toString());
+        });
+
+        // 3. Clean up unwated or not passed parameters
+        // Splits by '/', removes empty strings, and removes leftover placeholders
+        const segments = fullPath.split('/') // removes empty strings
+            .filter(seg => (seg && seg !== '' && !seg.startsWith(':')));
+
+        // must need '/' at the start for absolute route
+        return ['/', ...segments]; 
+    }
+
+    /**
+     * @getAbsolutePath
+     * provide absolute path string
+     * do not provide domin or protocol
+     * 
+     * @param moduleLevel string[]
+     * do not include domin or protocol
+     * 
+     * @param params Record<string, string | number>
+     * 
+     * @returns string
+     * string with leading '/' 
+     */
+    public static getAbsolutePath(
+        moduleLevel: string[],
+        params: Record<string, string | number> = {},
+    ): string {
+        const routerLink = this.getAbsolutePathArr(moduleLevel, params);
+        
+        // remove first '/'
+        delete routerLink[0];
+
+        const absolute = routerLink.join('/');
+
+        // must need '/' at the start for absolute route
+        return '/' + absolute;
     }
 }

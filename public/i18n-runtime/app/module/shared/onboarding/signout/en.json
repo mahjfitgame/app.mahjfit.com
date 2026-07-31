@@ -1,0 +1,12 @@
+{
+  "ONBOARDING_SIGNOUT": {
+    "MODULE": {
+      "TITLE": "Sign Out",
+      "HINT": "Sign out from your account."
+    },
+    "HEADING": "You're Signed Out",
+    "SUBHEADING": "Your account is secure, and your session has been closed.",
+    "GOODBYE_MESSAGE": "Take care, and have a nice day! We hope to see you soon.",
+    "FAILED_MESSAGE": "Sign out failed. Please try again to keep your account secure."
+  }
+}

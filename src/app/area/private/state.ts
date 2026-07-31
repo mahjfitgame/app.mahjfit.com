@@ -1,19 +1,29 @@
 // file: src/app/area/private/state.ts
-import { inject, Service, signal } from "@angular/core";
+import { effect, inject, Service, signal } from "@angular/core";
 import { ConfService } from "@libs/conf/service";
 import { LogService } from "@libs/log/service";
 import { SignalStateService } from "@libs/signal-state/service";
 import { EndSideBarOnCloseType, PrivateAreaModuleInfoType, SlotEndSideBarTabBodyType, SlotEndSideBarTabLabelType } from "@area/private/type";
 import { Portal } from "@angular/cdk/portal";
 import { PrivateAreaLayoutSlotEnum } from "@area/private/enum";
+import { AppModuleStateType } from "@libs/utility/type";
 
 @Service({ autoProvided: false })
-export class PrivateAreaLayoutState extends SignalStateService {
+export class PrivateAreaLayoutState extends SignalStateService implements AppModuleStateType {
+
+    // ████ DEPENDENCIES ████████████████████████████████████████████████
+
     private readonly conf = inject(ConfService);
     private readonly log = inject(LogService);
 
-    // required for persisted state
-    protected override readonly storeKey = 'pal';
+    // ████ CLASS PROPERTIES ████████████████████████████████████████████
+
+    public override readonly storeKey = 'pal';
+
+    // ████ SIGNAL FORM PROPERTIES ██████████████████████████████████████
+    // n/a
+
+    // ████ SIGNAL PROPERTIES ███████████████████████████████████████████
 
     private readonly _moduleInfo = signal<PrivateAreaModuleInfoType | null>(null);
     public readonly moduleInfo = this._moduleInfo.asReadonly();
@@ -23,7 +33,7 @@ export class PrivateAreaLayoutState extends SignalStateService {
 
     private readonly _endSideBarOnClose = signal<EndSideBarOnCloseType | null>(null);
     public readonly endSideBarOnClose = this._endSideBarOnClose.asReadonly();
-    
+
     private readonly _endSideBarOpenTabIndex = signal<number>(0);
     public readonly endSideBarOpenTabIndex = this._endSideBarOpenTabIndex.asReadonly();
 
@@ -50,10 +60,31 @@ export class PrivateAreaLayoutState extends SignalStateService {
 
     protected readonly endSideBarTabBodyLabelMap = new WeakMap<Portal<unknown>, string>();
 
+    // ████ STATE DEBUGGER ██████████████████████████████████████████████
+    // n/a
+
     constructor() {
         super();
         this.initializeSignalState();
     }
+
+    // ████ LISTENERS ███████████████████████████████████████████████████
+
+    public override onActivate(): void {
+        const registerEffect = effect(() => {
+            if (!this.ready()) {
+                return;
+            }
+        });
+
+        this.registerDeactivationCleanup(() => registerEffect.destroy());
+    }
+
+    public override onDeactivate(): void {
+
+    }
+
+    // ████ SIGNAL METHODS ██████████████████████████████████████████████
 
     public setModuleInfo(moduleInfo: PrivateAreaModuleInfoType | null): void {
         this._moduleInfo.set(moduleInfo);
@@ -237,4 +268,16 @@ export class PrivateAreaLayoutState extends SignalStateService {
         this.setSlotEndSideBarTabBody(null);
         this.setSlotEndSideBarFooter(null);
     }
+
+    // ████ SIGNAL DATA VALIDATORS ██████████████████████████████████████
+    // n/a
+
+    // ████ REGISTRATION AND CALLBACKS ██████████████████████████████████
+    // n/a
+
+    // ████ API CALLS ███████████████████████████████████████████████████
+    // n/a
+
+    // ████ WEB SOCKET CALLS ████████████████████████████████████████████
+    // n/a
 }

@@ -1,10 +1,10 @@
-import { Injectable } from "@angular/core";
+import { Service } from "@angular/core";
 import * as cnfconst from './const';
 import { ConfPublic } from "./public";
 import { ConfPrivate } from "./private";
 import { CONF } from "./setting";
 
-@Injectable({providedIn: 'root'})
+@Service()
 export class ConfService {
     private _conf: ConfPublic & ConfPrivate;
 
@@ -29,6 +29,10 @@ export class ConfService {
     }
     public get isProductionEnv(): boolean {
         return this.env === cnfconst.NODE_ENV_PRODUCTION;
+    }
+    public get debug(): boolean {
+        // enable disable debug with whatever logic is required
+        return this._conf.DEBUG;
     }
     public get tz(): string {
         return this._conf.TZ;
@@ -138,6 +142,12 @@ export class ConfService {
 
     // ████ PUBLIC █ INDEPENDENT █████████████████████████████████████████████
 
+    public get bfwApiSdkSigninUsername(): string {
+        return this._conf.BFW_API_SDK_SIGNIN_USERNAME;
+    }
+    public get bfwApiSdkSigninIdentify(): string {
+        return this._conf.BFW_API_SDK_SIGNIN_IDENTIFY;
+    }
     public get bfwApiSdkJwtAccessToken(): string {
         return this._conf.BFW_API_SDK_JWT_ACCESS_TOKEN;
     }

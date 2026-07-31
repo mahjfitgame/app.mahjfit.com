@@ -1,8 +1,8 @@
-import { Injectable, computed, inject, signal } from '@angular/core';
+import { Injectable, Service, computed, inject, signal } from '@angular/core';
 import { ProgressBarService } from '@base/progress-bar/service';
 import { GlobalProgressBarState } from '@base/global-progress-bar/state';
 
-@Injectable({providedIn: 'root'})
+@Service()
 export class GlobalProgressBarService {
     private readonly state = inject(GlobalProgressBarState);
     private readonly progressBarService = signal<ProgressBarService | null>(null);

@@ -29,6 +29,7 @@ import { CrudDefaultMutationPageComponent } from "@base/crud/default/mutation/pa
 import { I18nService } from "@base/internationalization/service";
 import { CRUD_I18N_KEY } from "@base/crud/const";
 import { CrudState } from "@base/crud/state";
+import { BfwApiSdkError } from "@bfw/api-sdk/core";
 
 @Service({ autoProvided: false })
 export class CrudService {
@@ -630,7 +631,7 @@ export class CrudService {
                 return true;
             }
             throw new Error('Data loading failed.');
-        } catch (e: any) {
+        } catch (e: any | BfwApiSdkError) {
             // if any error then need yo switch to previous state data
             // like page number, per page rcord number etc
 
@@ -639,7 +640,8 @@ export class CrudService {
             // module-notify
             
             this.log.error(`[FIND FAILED]`, e);
-            this.notify.error(`Data loading failed. ${e.message}.`);
+            const em: string = e.errors()[0];
+            this.notify.error(em);
 
             this.gpbs.stream = 100;
             this.gpbs.stop();

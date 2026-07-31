@@ -27,7 +27,7 @@ import {
   SessionStoragePersistSignalOptionsType,
   SignalStateServerSyncSourceType,
   SignalStateLocalDbSourceType,
-  SignalStateCookieOptionsType,
+  SignalStateCookieSourceType,
   SignalStateStorageType,
 } from './type';
 import { SignalStateUtility } from './utility';
@@ -232,8 +232,10 @@ export abstract class SignalStateService {
     initialValue: T,
     options: PersistSignalOptionsBaseType<T> & {
       crossTab?: boolean;
-      source?: SignalStateLocalDbSourceType | SignalStateServerSyncSourceType;
-      cookie?: SignalStateCookieOptionsType;
+      source?:
+        | SignalStateLocalDbSourceType
+        | SignalStateServerSyncSourceType
+        | SignalStateCookieSourceType;
     },
   ): WritableSignal<T> {
     const storageDescription = this.storageDescription(storage);
@@ -265,6 +267,8 @@ export abstract class SignalStateService {
       ready: false,
       loadSequence: 0,
       lastSavedSnapshot: '',
+      cookieWriteRevision: signal(0),
+      savedCookieWriteRevision: 0,
     };
 
     this.registrations.set(registrationKey, registration);
@@ -319,6 +323,30 @@ export abstract class SignalStateService {
 
     this.destroyRef.onDestroy(() => this.destroySignalState());
     this.onActivate();
+  }
+
+  /**
+   * Overrides the expiry for the next write of one registered cookie field.
+   * The registration's initialization-time cookie options remain unchanged.
+   */
+  protected setNextCookiePersistedExpiry(field: string, expires: string | Date): void {
+    const normalizedField = field?.trim();
+    if (!normalizedField) {
+      throw new Error('Cookie persisted signal field is required.');
+    }
+
+    const registration = this.registrations.get(this.registrationKey('cookie', normalizedField));
+    if (!registration || registration.storage !== 'cookie') {
+      throw new Error(`Cookie persisted signal "${normalizedField}" is not registered.`);
+    }
+
+    const date = expires instanceof Date ? expires : new Date(expires);
+    if (Number.isNaN(date.getTime())) {
+      throw new Error('Cookie expiry must be a valid Date or date string.');
+    }
+
+    registration.nextCookieExpires = date.toUTCString();
+    registration.cookieWriteRevision.update((revision) => revision + 1);
   }
 
   /**
@@ -534,8 +562,10 @@ export abstract class SignalStateService {
   private normalizeOptions<T>(
     options: PersistSignalOptionsBaseType<T> & {
       crossTab?: boolean;
-      source?: SignalStateLocalDbSourceType | SignalStateServerSyncSourceType;
-      cookie?: SignalStateCookieOptionsType;
+      source?:
+        | SignalStateLocalDbSourceType
+        | SignalStateServerSyncSourceType
+        | SignalStateCookieSourceType;
     },
     storageDescription: string,
   ): NormalizedPersistSignalOptionsType<T> {
@@ -552,8 +582,8 @@ export abstract class SignalStateService {
       validate: options.validate,
       serialize: options.serialize,
       deserialize: options.deserialize,
+      deleteOnNull: options.deleteOnNull ?? false,
       source: 'source' in options ? options.source : undefined,
-      cookie: 'cookie' in options ? options.cookie : undefined,
     };
   }
 
@@ -584,6 +614,7 @@ export abstract class SignalStateService {
         (onCleanup) => {
           const value = registration.state();
           const syncing = this.syncingStore();
+          const cookieWriteRevision = registration.cookieWriteRevision();
 
           if (!registration.ready || syncing || this.destroyed) {
             return;
@@ -600,7 +631,11 @@ export abstract class SignalStateService {
           }
 
           const snapshot = this.serializeSnapshot(persistedValue);
-          if (snapshot === registration.lastSavedSnapshot) {
+          const hasRuntimeCookieExpiry =
+            registration.storage === 'cookie' &&
+            cookieWriteRevision !== registration.savedCookieWriteRevision;
+
+          if (snapshot === registration.lastSavedSnapshot && !hasRuntimeCookieExpiry) {
             return;
           }
 
@@ -609,8 +644,16 @@ export abstract class SignalStateService {
             return;
           }
 
+          const cookieOptions = this.cookieOptionsForSave(registration, hasRuntimeCookieExpiry);
           const timer = setTimeout(() => {
-            void this.saveRegistration(registration, key, persistedValue, snapshot);
+            void this.saveRegistration(
+              registration,
+              key,
+              persistedValue,
+              snapshot,
+              cookieOptions,
+              cookieWriteRevision,
+            );
           }, registration.options.debounceMs);
 
           onCleanup(() => clearTimeout(timer));
@@ -732,11 +775,20 @@ export abstract class SignalStateService {
     key: string,
     persistedValue: unknown,
     snapshot: string,
+    cookieOptions?: SignalStateCookieSourceType,
+    cookieWriteRevision = registration.savedCookieWriteRevision,
   ): Promise<void> {
     try {
-      await this.saveToStorage(registration, key, persistedValue);
-      await this.saveServerCrossTabSessionRegistration(registration, key, persistedValue);
+      if (registration.options.deleteOnNull && persistedValue === null) {
+        await this.removeFromStorage(registration, key);
+        await this.removeServerCrossTabSessionRegistration(registration, key);
+      } else {
+        await this.saveToStorage(registration, key, persistedValue, cookieOptions);
+        await this.saveServerCrossTabSessionRegistration(registration, key, persistedValue);
+      }
+
       registration.lastSavedSnapshot = snapshot;
+      this.consumeCookieWriteOverride(registration, cookieWriteRevision);
 
       if (this.canCrossTabSync(registration) && registration.options.crossTab) {
         this.crossTabSync.publish(key);
@@ -759,6 +811,7 @@ export abstract class SignalStateService {
     await this.removeFromStorage(registration, key);
     await this.removeServerCrossTabSessionRegistration(registration, key);
     registration.lastSavedSnapshot = '';
+    this.consumeCookieWriteOverride(registration, registration.cookieWriteRevision());
 
     if (this.canCrossTabSync(registration) && registration.options.crossTab) {
       this.crossTabSync.publish(key);
@@ -905,7 +958,7 @@ export abstract class SignalStateService {
     return this.cookieStorage.load<unknown>(
       key,
       registration.options.version,
-      registration.options.cookie,
+      registration.options.source as SignalStateCookieSourceType | undefined,
     );
   }
 
@@ -916,6 +969,7 @@ export abstract class SignalStateService {
     registration: PersistRegistration,
     key: string,
     persistedValue: unknown,
+    cookieOptions?: SignalStateCookieSourceType,
   ): Promise<void> {
     if (registration.storage === 'local') {
       await this.localStorage.save(key, persistedValue, registration.options.version);
@@ -951,8 +1005,49 @@ export abstract class SignalStateService {
       key,
       persistedValue,
       registration.options.version,
-      registration.options.cookie,
+      cookieOptions ?? (registration.options.source as SignalStateCookieSourceType | undefined),
     );
+  }
+
+  /**
+   * Resolves cookie options for one scheduled write without changing registration defaults.
+   */
+  private cookieOptionsForSave(
+    registration: PersistRegistration,
+    hasRuntimeCookieExpiry: boolean,
+  ): SignalStateCookieSourceType | undefined {
+    if (registration.storage !== 'cookie') {
+      return undefined;
+    }
+
+    if (!hasRuntimeCookieExpiry) {
+      return registration.options.source as SignalStateCookieSourceType | undefined;
+    }
+
+    return {
+      ...(registration.options.source as SignalStateCookieSourceType | undefined),
+      expires: registration.nextCookieExpires,
+    };
+  }
+
+  /**
+   * Marks a matching cookie write override as consumed without clearing a newer override.
+   */
+  private consumeCookieWriteOverride(
+    registration: PersistRegistration,
+    cookieWriteRevision: number,
+  ): void {
+    if (
+      registration.storage !== 'cookie' ||
+      cookieWriteRevision <= registration.savedCookieWriteRevision
+    ) {
+      return;
+    }
+
+    registration.savedCookieWriteRevision = cookieWriteRevision;
+    if (registration.cookieWriteRevision() === cookieWriteRevision) {
+      registration.nextCookieExpires = undefined;
+    }
   }
 
   /**
@@ -985,7 +1080,10 @@ export abstract class SignalStateService {
       return;
     }
 
-    await this.cookieStorage.remove(key, registration.options.cookie);
+    await this.cookieStorage.remove(
+      key,
+      registration.options.source as SignalStateCookieSourceType | undefined,
+    );
   }
 
   /**

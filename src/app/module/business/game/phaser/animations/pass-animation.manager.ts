@@ -1,6 +1,6 @@
 import Phaser from "phaser";
 import { PassAnimationItem, PlayerSeat } from "../models/pass-animation.model";
-import { Rect, TableLayout } from "../game-layout.engine";
+import { Rect, TableLayout } from "../type";
 
 /**
  * Visual-only manager for Charleston / Courtesy pass movement.

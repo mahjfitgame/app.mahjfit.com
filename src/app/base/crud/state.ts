@@ -1,6 +1,6 @@
 // file: ./src/app/base/crud/state.ts
 
-import { computed, inject, linkedSignal, Service, signal, Type } from "@angular/core";
+import { computed, effect, inject, linkedSignal, Service, signal, Type } from "@angular/core";
 import { ConfService } from "@libs/conf/service";
 import { LogService } from "@libs/log/service";
 import { SignalStateService } from "@libs/signal-state/service";
@@ -9,13 +9,16 @@ import { CrudActionEnum, CrudActionUiLayoutEnum, CrudFieldNormalizeModeEnum, Cru
 import { SelectionModel } from "@angular/cdk/collections";
 import { MatTableDataSource } from "@angular/material/table";
 import { CRUD_RECYCLE_BIN_STATUS } from "@base/crud/const";
+import { AppModuleStateType } from "@libs/utility/type";
 @Service({ autoProvided: false })
-export class CrudState extends SignalStateService {
+export class CrudState extends SignalStateService implements AppModuleStateType {
+    // ████ DEPENDENCIES ████████████████████████████████████████████████
+
     private readonly conf = inject(ConfService);
     private readonly log = inject(LogService);
-    
-    // required for persisted state
-    public override storeKey = 'crud';
+
+    // ████ CLASS PROPERTIES ████████████████████████████████████████████
+    public override readonly storeKey = 'crud';
 
     private readonly DEF_LIST_OPERATION_FIELD_OBJ: CrudStateListOperationFieldObjType = {
         quick_search: {
@@ -113,7 +116,7 @@ export class CrudState extends SignalStateService {
                  * State -> URL:
                  * Runtime value is SelectionModel rows.
                  * Return raw IDs; apply_enc=true will encrypt them after normalize_val.
-                 * 
+                 *
                  * On first browser load / pasted URL, listingData is still null, so keep
                  * primitive pending IDs until the API response arrives. Once listing data
                  * is available, primitive pending IDs are allowed only when they still
@@ -259,7 +262,7 @@ export class CrudState extends SignalStateService {
             },
         }
     };
-    
+
     private readonly DEF_VIEW_OPTION_FIELD_OBJ: CrudStateViewOptionFieldObjType = {
         view_option: {
             label: 'View Option',
@@ -311,6 +314,11 @@ export class CrudState extends SignalStateService {
         },
     };
 
+    // ████ SIGNAL FORM PROPERTIES ██████████████████████████████████████
+    // n/a
+
+
+    // ████ SIGNAL PROPERTIES ███████████████████████████████████████████
     private readonly _slotFields = signal<CrudSlotFieldsType | null>(null);
     public readonly slotFields = this._slotFields.asReadonly();
 
@@ -370,14 +378,38 @@ export class CrudState extends SignalStateService {
     public pageSkipIndex = computed(() => this.getStatePageSkipIndex());
 
 
+    // ████ STATE DEBUGGER ██████████████████████████████████████████████
+    public readonly debugState = computed(() => ({
+
+    }));
+
     constructor() {
         super();
-        
+
         // have to call in child as signal state fileds must be initialized, can call in parent constructor will create error
         this.initializeSignalState();
     }
 
-    // ███ SLOT FIELDS ███████████████████████████████████████████████████████
+    // ████ LISTENERS ███████████████████████████████████████████████████
+    public override onActivate(): void {
+        const registerEffect = effect(() => {
+            if (!this.ready()) {
+                return;
+            }
+
+
+        });
+
+        this.registerDeactivationCleanup(() => registerEffect.destroy());
+    }
+    public override onDeactivate(): void {
+
+    }
+
+    // ████ SIGNAL METHODS ██████████████████████████████████████████████
+
+
+    // ███ SLOT FIELDS ██████████████████████████████████████████████████
     public setSlotFields(slotFields: CrudSlotFieldsType): void {
         this._slotFields.set(slotFields);
     }
@@ -409,21 +441,21 @@ export class CrudState extends SignalStateService {
     }
 
 
-    // ███ PRIMARY KEY ███████████████████████████████████████████████████████
+    // ███ PRIMARY KEY ████████████████████████████████████████████████████
     public setPrimaryKey(key: string): void {
         this._primaryKey.set(key);
     }
 
 
 
-    // ███ UNIQUE KEY ███████████████████████████████████████████████████████
+    // ███ UNIQUE KEY █████████████████████████████████████████████████████
     public setUniqueKey(arr: CrudUniqueKeyType | null): void {
         this._uniqueKey.set(arr);
     }
 
 
 
-    // ███ CRUD ACTION ███████████████████████████████████████████████████████
+    // ███ CRUD ACTION █████████████████████████████████████████████████████
     public setCrudAction(action: CrudActionEnum | null): void {
         this._crudAction.set(action);
     }
@@ -435,7 +467,7 @@ export class CrudState extends SignalStateService {
     public clearCrudAction(): void {
         this._crudAction.set(null);
     }
-    
+
     public clearCrudActionRecordId(): void {
         this._crudActionRecordId.set(null);
     }
@@ -447,7 +479,7 @@ export class CrudState extends SignalStateService {
 
 
 
-    // ███ LISTING FIELD OBJ ████████████████████████████████████████████████████
+    // ███ LISTING FIELD OBJ ██████████████████████████████████████████████████
     public setListingFieldObj(finfo: CrudStateListingFieldObjType): void {
         this._listingFieldObj.set(finfo);
     }
@@ -459,7 +491,7 @@ export class CrudState extends SignalStateService {
             sortable: {}, // field_key => label (but only where sort is true)
             columns: {} // field_key => label (but only 1st level of fields as columns)
         };
-        
+
         // add record selection columns
         result.columns[CrudListingAdditionalColumnsEnum.RECORD_SELECT] = 'Select';
         // 1. Capture Top-Level Columns immediately
@@ -473,7 +505,7 @@ export class CrudState extends SignalStateService {
         }
         // add record action column
         result.columns[CrudListingAdditionalColumnsEnum.RECORD_ACTION] = 'Action';
-        
+
 
         // 2. Define recursive traversal for flattened maps
         const traverse = (obj: any) => {
@@ -485,7 +517,7 @@ export class CrudState extends SignalStateService {
 
                 // 3. Process fields that have a valid UI type
                 if (val.type && val.type !== CrudFieldUiTypeEnum.NONE) {
-                    
+
                     // Schema Map: field_key => field_info
                     result.schema[key] = val;
 
@@ -512,13 +544,13 @@ export class CrudState extends SignalStateService {
     }
 
 
-    // ███ SEARCH FILTER FIELD OBJ ██████████████████████████████████████████████
+    // ███ SEARCH FILTER FIELD OBJ ████████████████████████████████████████████
     public setSearchFilterFieldObj(finfo: CrudStateSearchFilterFieldObjType): void {
         this._searchFilterFieldObj.set(finfo);
     }
 
     public updateSearchFilterFieldObj(
-        key: any, 
+        key: any,
         updates: Partial<CrudFormFieldInfoType>
     ): void {
         this._searchFilterFieldObj.update((finfo) => {
@@ -534,19 +566,19 @@ export class CrudState extends SignalStateService {
                     ...updates
                 }
             };
-        });        
+        });
     }
-    
 
 
 
-    // ███ MUTATION FIELD OBJ ███████████████████████████████████████████████████
+
+    // ███ MUTATION FIELD OBJ █████████████████████████████████████████████████
     public setMutationFieldObj(finfo: CrudStateMutationFieldObjType): void {
         this._mutationFieldObj.set(finfo);
     }
 
     public updateMutationFieldObj(
-        key: any, 
+        key: any,
         updates: Partial<CrudFormFieldInfoType>
     ): void {
         this._mutationFieldObj.update((finfo) => {
@@ -562,11 +594,11 @@ export class CrudState extends SignalStateService {
                     ...updates
                 }
             };
-        });        
+        });
     }
 
 
-    // ███ VIEW OPTION FIELD OBJ ████████████████████████████████████████████████
+    // ███ VIEW OPTION FIELD OBJ ██████████████████████████████████████████████
     public setViewOptionFieldObj(finfo: CrudStateViewOptionFieldObjType): void {
         this._viewOptionFieldObj.set(finfo);
     }
@@ -592,7 +624,7 @@ export class CrudState extends SignalStateService {
     }
 
     public updateViewOptionFieldObj(
-        key: CrudViewOptionFieldsEnum, 
+        key: CrudViewOptionFieldsEnum,
         updates: Partial<CrudFormFieldInfoType>
     ): void {
         this._viewOptionFieldObj.update((finfo) => {
@@ -608,7 +640,7 @@ export class CrudState extends SignalStateService {
                     ...updates
                 }
             };
-        });        
+        });
     }
 
     // DISPLAY_FIELDS
@@ -616,7 +648,7 @@ export class CrudState extends SignalStateService {
         if(!option) {
             option = this.formattedListingFields().labels;
         }
-        
+
         this.updateViewOptionFieldObj(CrudViewOptionFieldsEnum.DISPLAY_FIELDS, {
             option: option
         });
@@ -727,7 +759,7 @@ export class CrudState extends SignalStateService {
 
 
 
-    // ███ LIST OPERATION FIELD OBJ ████████████████████████████████████████████████████
+    // ███ LIST OPERATION FIELD OBJ █████████████████████████████████████████████████
     public setListOperationFieldObj(finfo: CrudStateListOperationFieldObjType): void {
         this._listOperationFieldObj.set(finfo);
     }
@@ -760,7 +792,7 @@ export class CrudState extends SignalStateService {
     }
 
     public updateListOperationFieldObj(
-            key: CrudListOperationFieldsEnum, 
+            key: CrudListOperationFieldsEnum,
             updates: Partial<CrudFormFieldInfoType>
         ): void {
             this._listOperationFieldObj.update((finfo) => {
@@ -785,7 +817,7 @@ export class CrudState extends SignalStateService {
         const key = CrudListOperationFieldsEnum.QUICK_SEARCH;
 
 
-        // not in use just for reference of how to update specific field in state 
+        // not in use just for reference of how to update specific field in state
         // with new option without losing other properties of that field
 
         // There are 2 different behaviour to update state for specific field
@@ -795,7 +827,7 @@ export class CrudState extends SignalStateService {
          * VERY PRECISE
          */
         /*
-        // To perform that "Very Precise" update (where you keep sibling properties like field but replace static), 
+        // To perform that "Very Precise" update (where you keep sibling properties like field but replace static),
         // you must retrieve the existing object from the [first layer] before calling the update method.
         const currentField = this.listOperationFields()[key]; // Get the current state
         this.updateListOperationField(key, {
@@ -803,7 +835,7 @@ export class CrudState extends SignalStateService {
                 // to keep copy existing option other properties need to pass otherwise they will be lost
                 // if you will not pass [...currentField?.option] entire [option] will be replaced
                 // so, use as per desire behaviour
-                ...currentField?.option, 
+                ...currentField?.option,
                 static: option // replace the 'static' property only not entire [option]
             }
         });
@@ -818,7 +850,7 @@ export class CrudState extends SignalStateService {
         });
     }
     public setQuickSearchDefault(def: string | null = null): void {
-        // not in use just for reference of how to update specific field in state 
+        // not in use just for reference of how to update specific field in state
         // with new option without losing other properties of that field
 
         this.updateListOperationFieldObj(CrudListOperationFieldsEnum.QUICK_SEARCH, {
@@ -865,7 +897,7 @@ export class CrudState extends SignalStateService {
             if (!this.grantRecordActionColumn()) {
                 delete moduleColumns[CrudListingAdditionalColumnsEnum.RECORD_ACTION];
             }
-            
+
             // as object is ready get all keys for options of column position
             columns.push(...Object.keys(moduleColumns));
             def = columns;
@@ -912,7 +944,7 @@ export class CrudState extends SignalStateService {
     public setRowsPerPageOption(option?: object): void {
         if(!option) {
             option = CrudListingItemPerPageOptionEnum;
-            
+
             // This creates the clean { "KEY": value } object from enum
             option = Object.fromEntries(
                 Object.entries(option).filter(([key, val]) => typeof val === 'number')
@@ -921,7 +953,7 @@ export class CrudState extends SignalStateService {
 
         // convert object to array with all possible page numbers
         const arr = Object.values(option);
-        
+
         this.updateListOperationFieldObj(CrudListOperationFieldsEnum.ROWS_PER_PAGE, {
             option: arr
         });
@@ -1066,11 +1098,11 @@ export class CrudState extends SignalStateService {
 
 
 
-    // ████████████████████████████████████████████████████████████████████████████
+    // ██████████████████████████████████████████████████████████████████████████
 
 
 
-    // ████ COMPUTED AND LINKEDSIGNAL FIELDS ██████████████████████████████████████
+    // ████ COMPUTED AND LINKEDSIGNAL FIELDS ████████████████████████████████████
     public getPageSkipIndex(page: number, pageSize: number): number {
         return (page - 1) * pageSize;
     }
@@ -1078,7 +1110,7 @@ export class CrudState extends SignalStateService {
         return this.getPageSkipIndex(this.getCurrentPageValue(), this.getRowsPerPageValue());
     }
 
-    // ████ ACCESS PERMISSION █████████████████████████████████████████████████████
+    // ████ ACCESS PERMISSION ███████████████████████████████████████████████████
     public grantRecordSelectionColumn(): boolean {
         if(this.primaryKey()) {
             // TODO: need to check user permissions and draft logic here
@@ -1099,7 +1131,7 @@ export class CrudState extends SignalStateService {
     public getRecordId(row: any, rowIdField?: string): string | null {
         // get primary key field name from state
         const pkf = this.primaryKey();
-        
+
         // check for rowIdKey fields name, default to state
         if(!rowIdField && pkf) {
             rowIdField = pkf;
@@ -1119,4 +1151,17 @@ export class CrudState extends SignalStateService {
         }
         return String(value);
     }
+
+
+    // ████ SIGNAL DATA VALIDATORS ██████████████████████████████████████
+    // n/a
+
+    // ████ REGISTRATION AND CALLBACKS ██████████████████████████████████
+    // n/a
+
+    // ████ API CALLS ███████████████████████████████████████████████████
+    // n/a
+
+    // ████ WEB SOCKET CALLS ████████████████████████████████████████████
+    // n/a
 }

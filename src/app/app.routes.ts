@@ -1,7 +1,7 @@
 // ./src/app/app.routes.ts
 import { Routes } from '@angular/router';
-import { openAreaRoutes } from '@area/open/route';
+import { OpenAreaRoute } from '@area/open/route';
 
 export const routes: Routes = [
-     ...openAreaRoutes
+     ...OpenAreaRoute.routes(),
 ];

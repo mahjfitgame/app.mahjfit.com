@@ -19,8 +19,8 @@ function buildLoggerConfig(conf: ConfService): INGXLoggerConfig {
     disableFileDetails: !sourceMap,
     proxiedSteps: 1,
     serverLogLevel: NgxLoggerLevel.ERROR,
-    serverLoggingUrl: conf.backofficeServerSideLogUrl,
-    disableConsoleLogging: conf.isProductionEnv ? true : false,
+    serverLoggingUrl: conf.isProductionEnv ? conf.backofficeServerSideLogUrl : undefined,
+    disableConsoleLogging: !conf.debug,
     withCredentials: false,
     customHttpHeaders: token
       ? new HttpHeaders({

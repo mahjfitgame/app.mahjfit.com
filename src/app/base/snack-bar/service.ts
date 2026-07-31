@@ -1,11 +1,11 @@
-import { inject, Injectable } from "@angular/core";
+import { inject, Injectable, Service } from "@angular/core";
 import { MatSnackBar, MatSnackBarHorizontalPosition, MatSnackBarVerticalPosition } from "@angular/material/snack-bar";
 import { SnackBarComponent } from "@base/snack-bar/component";
 import { SnackBarTypeEnum } from "@base/snack-bar/enum";
 import { I18nBidiEnum } from "@base/internationalization/enum";
 import { I18nService } from "@base/internationalization/service";
 
-@Injectable({ providedIn: "root" })
+@Service()
 export class SnackBarService {
     private snackbar = inject(MatSnackBar);
     private i18n = inject(I18nService);

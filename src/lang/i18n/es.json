@@ -18,8 +18,37 @@
       "UPDATE": "Actualizar",
       "SEARCH": "Buscar",
       "RESET": "Restablecer",
+      "TRY_AGAIN": "Intentar de nuevo",
+      "NEXT": "Siguiente",
+      "BACK": "Atrás",
+      "CONTINUE": "Continuar",
+      "PREVIOUS": "Anterior",
       "LOADING": "Cargando...",
-      "NO_RECORDS": "No se encontraron registros"
+      "NO_RECORDS": "No se encontraron registros",
+      "STEP": "Paso"
+    },
+    "DEBUG": {
+      "DEBUG_INFO": "Información de depuración"
+    },
+    "ACTION": {
+      "CREATE": "Añadir",
+      "UPDATE": "Actualizar",
+      "SEARCH": "Buscar",
+      "TRASH": "Papelera",
+      "DELETE": "Eliminar",
+      "RESTORE": "Restaurar"
+    },
+    "NUMBER": {
+      "0": "0",
+      "1": "1",
+      "2": "2",
+      "3": "3",
+      "4": "4",
+      "5": "5",
+      "6": "6",
+      "7": "7",
+      "8": "8",
+      "9": "9"
     },
 
     "VALIDATION": {
@@ -42,6 +71,18 @@
       "EXTENSION": "Formato de archivo no válido. Tipos permitidos: {{allowed}}.",
       "OPTION_RANGE": "El valor seleccionado para {{field}} está fuera de rango.",
       "FN": "El valor proporcionado para {{field}} no es válido."
+    },
+    "MODULE": {
+      "HOME": "Inicio",
+      "ONBOARDING": {
+        "SIGNUP": "Registrarse",
+        "SIGNIN": "Iniciar sesión",
+        "SIGNOUT": "Cerrar sesión",
+        "FORGOT_PASSWORD": "Olvidé mi contraseña",
+        "MY_ACCOUNT": "Mi cuenta",
+        "MY_PROFILE": "Mi perfil",
+        "DASHBOARD": "Panel"
+      }
     }
   }
 }

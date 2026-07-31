@@ -10,6 +10,9 @@ import { LOCAL_MIGRATION_REGISTRY } from "./registry";
 import { prepareSqliteQuery } from "../utility";
 import { _AppStateRepository } from "../module/app-state/repository";
 import { sql } from "drizzle-orm";
+import { LogService } from "@libs/log/service";
+import { inject } from "@angular/core";
+import { ConfService } from "@libs/conf/service";
 
 export class SqliteMigrationRunner {
   private readonly appConfigRepository: _AppConfigRepository;
@@ -17,7 +20,9 @@ export class SqliteMigrationRunner {
   private readonly appStateRepository: _AppStateRepository;
 
   public constructor(
-    private readonly driver: SqliteDriverType
+    private readonly driver: SqliteDriverType,
+    private readonly conf: ConfService,
+    private readonly log: LogService,
   ) {
     this.appConfigRepository = new _AppConfigRepository(this.driver);
     this.localMigrationsRepository = new _LocalMigrationsRepository(this.driver);
@@ -25,7 +30,7 @@ export class SqliteMigrationRunner {
   }
 
   public async run(): Promise<void> {
-    console.log('[MIGRATION] Start:'+ Date.now());
+    this.log.info('[SQLITE MIGRATION] Start:'+ Date.now());
     const hasConfigTable =
       await this.tableExists('te_app_config');
 
@@ -37,11 +42,11 @@ export class SqliteMigrationRunner {
 
     // db is already found for process any upgrades
     await this.runUpgradeMigrations();
-    console.log('[MIGRATION] End:'+ Date.now());
+    this.log.info('[SQLITE MIGRATION] End:'+ Date.now());
   }
 
   private async runFreshInstall(): Promise<void> {
-    console.log('[MIGRATION] No db found, running fresh install.');
+    this.log.info('[SQLITE MIGRATION] No db found, running fresh install.');
     const schemaSql = await this.loadSchemaSql();
     const statements = this.splitSqlStatements(schemaSql);
 
@@ -65,11 +70,11 @@ export class SqliteMigrationRunner {
         SQLITE_CURRENT_DB_VERSION
       );
     });
-    console.log('[MIGRATION] Fresh install completed.');
+    this.log.info('[SQLITE MIGRATION] Fresh install completed.');
   }
 
   private async runUpgradeMigrations(): Promise<void> {
-    console.log('[MIGRATION] Previous db found, running upgrade migration.');
+    this.log.info('[SQLITE MIGRATION] Previous db found, running upgrade migration.');
     await this.ensureSystemTables();
 
     const storedDbVersion =
@@ -116,7 +121,7 @@ export class SqliteMigrationRunner {
       activeDbVersion
     );
 
-    console.log('[MIGRATION] Upgrade migrations completed.');
+    this.log.info('[SQLITE MIGRATION] Upgrade migrations completed.');
   }
 
   private async runOneMigration(

@@ -1,0 +1,82 @@
+<!-- file: src/app/module/shared/onboarding/signout/template.html -->
+<div class="tw:flex tw:min-h-[75dvh] tw:md:min-h-[80dvh] tw:items-center tw:justify-center">
+    <div class="tw:w-full tw:max-w-110">
+        <mat-card class="tw:bg-transparent! tw:md:bfw-bg-gradient-b tw:mb-6 tw:rounded-4xl! tw:overflow-hidden tw:shadow-none! tw:md:shadow-sm!">
+            <mat-card-header>
+                <div class="tw:p-2 tw:w-100 tw:text-center tw:lg:text-start">
+                    <!-- ██████████ HEADING AREA ██████████████████████████████████████ -->
+                    @defer (on idle) {
+                        <h1 class="tw:mb-1 tw:text-4xl tw:font-normal! tw:tracking-tight tw:text-primary">
+                            {{ service.heading | transloco }}
+                        </h1>
+                        <small>{{ service.subHeading | transloco }}</small>
+                    } @placeholder (minimum 200ms) {
+                        <div class="tw:animate-pulse">
+                            <div class="tw:h-10 tw:w-3/4 tw:bg-gray-200 tw:rounded-lg tw:mb-2 tw:mx-auto tw:lg:mx-0"></div>
+                            <div class="tw:h-4 tw:w-1/2 tw:bg-gray-100 tw:rounded-lg tw:mx-auto tw:lg:mx-0"></div>
+                        </div>
+                    }
+                </div>
+            </mat-card-header>
+            <mat-card-content class="tw:p-6!">
+                <app-notify-banner></app-notify-banner>
+                <div class="tw:flex tw:items-center tw:justify-center tw:text-center">
+                    @if (service.ctxp.state.isAuthenticated()) {
+                        <div class="tw:text-red-700">
+                            <mat-icon class="material-symbols-rounded tw:text-7xl! tw:h-18! tw:w-18!">
+                                gpp_bad
+                            </mat-icon>
+                            <p class="tw:text-sm">{{ service.failedMessage | transloco }}</p>
+                        </div>
+                    } 
+                    @else {
+                        <div class="tw:text-green-700">
+                            <mat-icon class="material-symbols-rounded tw:text-7xl! tw:h-18! tw:w-18!">
+                                verified_user
+                            </mat-icon>
+                            <p class="tw:text-sm">{{ service.goodbyeMessage | transloco }}</p>
+                        </div>
+                    }
+                </div>
+                <mat-divider class="tw:my-4!"></mat-divider>
+                <!-- ██████████ BUTTONS AREA ██████████████████████████████████████ -->
+                <div class="tw:flex tw:items-center tw:justify-center tw:gap-3">
+                    <a matButton="text" class="tw:text-xs" [routerLink]="service.OpenAreaRoute.absolutePath()">
+                        <mat-icon class="material-symbols-rounded tw:text-xs! tw:h-4! tw:w-4! tw:shrink-0!"> home </mat-icon>
+                        {{ service.home | transloco }}
+                    </a>
+                    @if (service.ctxp.state.isAuthenticated()) {
+                        <a matButton="text" class="tw:text-xs" [routerLink]="service.SignoutRoute.absolutePath()">{{ service.tryAgain | transloco }}</a>
+                    }
+                    @else {
+                        <a matButton="text" class="tw:text-xs" [routerLink]="service.SigninRoute.absolutePath()">{{ service.signin | transloco }}</a>
+                    }
+                </div>
+                <!-- ██████████ DEBUG AREA ██████████████████████████████████████ -->
+                @if(service.conf.debug === true) {
+                    <div class="tw:mt-4 tw:rounded-2xl tw:bg-black/5 tw:p-3 tw:text-xs tw:leading-relaxed tw:dark:bg-white/5">
+                        <div class="tw:font-semibold">{{ 'GL.DEBUG.DEBUG_INFO' | transloco }}</div>
+                        <pre class="tw:mt-1 tw:whitespace-pre-wrap tw:wrap-break-word">{{ service.ctxp.state.debugState() | json }}</pre>
+                    </div>
+                }
+            </mat-card-content>
+        </mat-card>
+    </div>
+</div>
+<!-- inject into auth area layout -->
+<!--
+<ng-template cdkPortal [authAreaLayout]="service.AuthAreaLayoutStateRuntimeEnum.SLOT_START_SIDE">
+    <img
+    src="assets/space.webp"
+    alt="side-banner"
+    class="tw:h-full tw:w-full tw:object-cover"
+    />
+</ng-template>
+
+<ng-template cdkPortal [authAreaLayout]="service.AuthAreaLayoutStateRuntimeEnum.SLOT_END_SIDE_HEADER">
+
+</ng-template>
+<ng-template cdkPortal [authAreaLayout]="service.AuthAreaLayoutStateRuntimeEnum.SLOT_END_SIDE_FOOTER">
+
+</ng-template>
+-->

@@ -1,0 +1,60 @@
+{
+  "ONBOARDING_SIGNIN": {
+    "MODULE": {
+      "TITLE": "Se connecter",
+      "HINT": "Connectez-vous à votre compte."
+    },
+    "STEP": {
+      "USERNAME": { 
+        "HEADING": "Se connecter", 
+        "SUBHEADING": "Ravi de vous revoir ! C'est un plaisir de vous retrouver." 
+      },
+      "PASSWORD": { 
+        "HEADING": "Saisir le mot de passe", 
+        "SUBHEADING": "Veuillez vérifier votre identité pour continuer." 
+      },
+      "MFA_OPTION": { 
+        "HEADING": "Vérification 2FA", 
+        "SUBHEADING": "Sélectionnez une méthode de vérification." 
+      },
+      "VERIFY": { 
+        "HEADING": "Vérifier votre accès", 
+        "SUBHEADING": "Saisissez votre code de vérification de sécurité." 
+      },
+      "FINISH": { 
+        "HEADING": "Bienvenue à bord", 
+        "SUBHEADING": "Vous vous êtes connecté avec succès." 
+      }
+    },
+    "FIELD_LABEL": {
+      "USERNAME": "Identifiant, e-mail ou mobile",
+      "PASSWORD": "Mot de passe",
+      "OTP": "OTP",
+      "KEEP_SIGNED_IN": "Rester connecté",
+      "CREATE_ACCOUNT": "Créer un nouveau compte",
+      "FORGOT_PASSWORD": "Mot de passe oublié ?",
+      "RESEND_OTP": "Renvoyer l'OTP"
+    },
+    "FIELD_PLACEHOLDER": {
+      "USERNAME": "Saisissez votre identifiant, e-mail ou mobile",
+      "PASSWORD": "Saisissez votre mot de passe",
+      "OTP": "Saisissez votre code de vérification"
+    },
+    "MFA": {
+      "APP": { 
+        "HEADING": "Application d'authentification", 
+        "SUBHEADING": "Obtenez un code depuis votre application 2FA enregistrée." 
+      },
+      "EMAIL": { 
+        "HEADING": "Vérification par e-mail", 
+        "SUBHEADING": "Recevez un code de vérification à usage unique par e-mail." 
+      }
+    },
+    "OAUTH_OPTION": {
+      "CONTINUE_WITH": "Ou continuer avec"
+    },
+    "VALIDATION": {
+      "USER_NOT_FOUND": "Désolé, utilisateur introuvable."
+    }
+  }
+}

@@ -3,7 +3,7 @@ import { ConfService } from '@libs/conf/service';
 
 @Service()
 export class SignatureService {
-  private readonly pslug = 'enc';
+  private readonly pslug = 'ec'; // EnCryption
   private readonly version: number = 1;
 
   private readonly conf = inject(ConfService);

@@ -1,0 +1,12 @@
+{
+  "ONBOARDING_SIGNOUT": {
+    "MODULE": {
+      "TITLE": "Cerrar sesión",
+      "HINT": "Cierre sesión en su cuenta."
+    },
+    "HEADING": "Ha cerrado sesión",
+    "SUBHEADING": "Su cuenta está segura y su sesión se ha cerrado.",
+    "GOODBYE_MESSAGE": "¡Cuídese y que tenga un buen día! Esperamos verle pronto.",
+    "FAILED_MESSAGE": "Error al cerrar sesión. Inténtelo de nuevo para mantener su cuenta segura."
+  }
+}

@@ -17,11 +17,24 @@ import { TileVm, PassDirection } from "../model/tile";
 import { TableScene } from "./scenes/scene";
 import { TablePhase } from "../model/table-phase";
 import { GameHapticsService, GameHapticType } from "../platform/haptics.service";
+import { DeviceLayoutService } from "./device-layout.service";
 
 @Component({
   selector: "app-phaser-board",
   standalone: true,
-  template: `<div #host class="phaser-host"></div>`,
+  template: `<div #host class="phaser-host"></div>
+  <img
+    class="hud-logo"
+    src="assets/majhfit-logo@2x.png"
+    srcset="
+      assets/majhfit-logo@1x.png 1x,
+      assets/majhfit-logo@2x.png 2x,
+      assets/majhfit-logo@3x.png 3x
+    "
+    alt="MAJHFIT"
+    draggable="false"
+  />
+  `,
   styles: [
     `
        :host {
@@ -47,6 +60,42 @@ import { GameHapticsService, GameHapticType } from "../platform/haptics.service"
         overflow: hidden;
         touch-action: none;
       }
+
+      .hud-logo {
+        position: absolute;
+        z-index: 20;
+        pointer-events: none;
+        user-select: none;
+
+        left: max(56px, calc(env(safe-area-inset-left, 0px) + 56px));
+        top: max(11px, calc(env(safe-area-inset-top, 0px) + 11px));
+
+        width: clamp(86px, 7.2vw, 142px);
+        height: auto;
+
+        image-rendering: auto;
+        transform: translateZ(0);
+        backface-visibility: hidden;
+      }
+
+      /* Compact mobile portrait */
+      @media (max-width: 680px) and (orientation: portrait) {
+        .hud-logo {
+          left: max(30px, calc(env(safe-area-inset-left, 0px) + 30px));
+          top: max(11px, calc(env(safe-area-inset-top, 0px) + 11px));
+          width: clamp(58px, 17vw, 76px);
+        }
+      }
+
+      /* Small landscape phones */
+      @media (max-height: 520px) and (orientation: landscape) {
+        .hud-logo {
+          left: max(46px, calc(env(safe-area-inset-left, 0px) + 46px));
+          top: max(8px, calc(env(safe-area-inset-top, 0px) + 8px));
+          width: clamp(74px, 8vw, 110px);
+        }
+      }
+
     `,
   ],
 })
@@ -67,6 +116,7 @@ export class PhaserBoardComponent implements AfterViewInit {
   private sceneReady = false;
 
   readonly tablePhase = input<TablePhase>("playing");
+  private readonly deviceLayout = inject(DeviceLayoutService);
 
   /*constructor() {
     effect(() => {
@@ -115,6 +165,8 @@ export class PhaserBoardComponent implements AfterViewInit {
         onHaptic: (type: GameHapticType) => {
           void this.haptics.play(type);
         },
+        getDeviceLayout: (width, height) =>
+          this.deviceLayout.forViewport(width, height),
       });
 
       this.game = new Phaser.Game({
@@ -142,7 +194,6 @@ export class PhaserBoardComponent implements AfterViewInit {
 
         scene: [scene],
       });
-
 
       this.game.events.once("table:ready", () => {
         this.sceneReady = true;

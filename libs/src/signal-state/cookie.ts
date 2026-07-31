@@ -5,7 +5,7 @@ import { SignatureService } from '../signature/service';
 import { SignalStateUtility } from './utility';
 import {
   SignalStateCookieEnvelopeType,
-  SignalStateCookieOptionsType,
+  SignalStateCookieSourceType,
   SignalStateCookieValueType,
   SignalStateScopeType,
 } from './type';
@@ -44,7 +44,7 @@ export class SignalStateCookie {
     key: string,
     state: T,
     version = 1,
-    options?: SignalStateCookieOptionsType,
+    options?: SignalStateCookieSourceType,
   ): Promise<void> {
     const normalizedKey = this.utility.normalizeStorageKey(key);
 
@@ -72,7 +72,7 @@ export class SignalStateCookie {
   public async load<T>(
     key: string,
     expectedVersion = 1,
-    options?: SignalStateCookieOptionsType,
+    options?: SignalStateCookieSourceType,
   ): Promise<SignalStateCookieValueType<T> | null> {
     const normalizedKey = this.utility.maybeNormalizeStorageKey(key);
     if (!normalizedKey) {
@@ -105,7 +105,7 @@ export class SignalStateCookie {
    * Handles the remove operation for signal-state persistence.
    * The method keeps callers on a single safe path for this behavior.
    */
-  public async remove(key: string, options?: SignalStateCookieOptionsType): Promise<void> {
+  public async remove(key: string, options?: SignalStateCookieSourceType): Promise<void> {
     const normalizedKey = this.utility.maybeNormalizeStorageKey(key);
     if (normalizedKey) {
       await this.cookie.delete(normalizedKey, { url: options?.url });

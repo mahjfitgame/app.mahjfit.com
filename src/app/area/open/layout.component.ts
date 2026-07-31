@@ -10,7 +10,10 @@ import { MatButtonModule } from "@angular/material/button";
 import { FormsModule } from "@angular/forms";
 import { InternationalizationComponent } from "@base/internationalization/component";
 import { ThemeComponent } from "@base/theme/component";
-import { ClientSessionService } from "@libs/client-session/service";
+import { ContextProfileService } from "@libs/context-profile/service";
+import { SignoutService } from "src/app/module/shared/onboarding/signout/service";
+import { SignoutRoute } from "src/app/module/shared/onboarding/signout/route";
+import { GameRoute } from "src/app/module/business/game/route";
 @Component({
   selector: 'app-open-area-layout',
   standalone: true,
@@ -24,8 +27,8 @@ import { ClientSessionService } from "@libs/client-session/service";
     MatButtonModule,
     FormsModule,
 
-    ThemeComponent,
-    InternationalizationComponent,
+    /* ThemeComponent,
+    InternationalizationComponent, */
   ],
   providers: [
     
@@ -37,12 +40,14 @@ export class OpenAreaLayoutComponent implements OnInit, OnDestroy {
     public readonly appConfigRepository = inject(AppConfigRepository)
 
     protected readonly navLinks = [
-        { label: "Sign In", path: "/auth/signin", icon: "lock_open" },
-        { label: "Already signed in? Go to Geo Country", path: "/account/geo/country", icon: "dashboard" },
-        { label: "Start Game", path: "/buss/game-start", icon: "gamepad" },
+        //{ label: "Sign In", path: "/auth/signin", icon: "lock_open" },
+        //{ label: "Already signed in? Go to Geo Country", path: "/account/geo/country", icon: "dashboard" },
+        { label: "Start Game", path: GameRoute.absolutePath(), icon: "gamepad" },
     ];
 
     protected readonly brandLogoSrc = "assets/logo.png";
+
+    protected readonly SignoutRoute = SignoutRoute;
 
     // framework
     private router = inject(Router);
@@ -53,7 +58,7 @@ export class OpenAreaLayoutComponent implements OnInit, OnDestroy {
     // libs
     private readonly conf = inject(ConfService);
     private readonly log = inject(LogService);
-    public readonly session = inject(ClientSessionService);
+    public readonly ctxp = inject(ContextProfileService);
 
     // third party
 

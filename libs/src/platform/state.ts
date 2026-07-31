@@ -12,6 +12,7 @@ import {
   PLATFORM_ORIENTATION_NATURAL,
 } from './const';
 import { PlatformKeyboardResizeEnum } from './enum';
+import { AppModuleStateType } from '@libs/utility/type';
 import type {
   PlatformKeyboardPhase,
   PlatformNetworkConnectionType,
@@ -23,15 +24,25 @@ import type {
 import { PLATFORM_ADAPTER } from './provider';
 
 @Service()
-export class PlatformState extends SignalStateService {
-  protected override readonly storeKey = 'p';
+export class PlatformState extends SignalStateService implements AppModuleStateType {
+
+  // ████ DEPENDENCIES ████████████████████████████████████████████████
 
   private readonly adapter: PlatformAdapter = inject(PLATFORM_ADAPTER);
   private readonly log = inject(LogService);
 
+  // ████ CLASS PROPERTIES ████████████████████████████████████████████
+
+  public override readonly storeKey = 'p';
+
   private initPromise: Promise<void> | null = null;
   private runtimeActive = false;
   private runtimeInitialized = false;
+
+  // ████ SIGNAL FORM PROPERTIES ██████████████████████████████████████
+  // n/a
+
+  // ████ SIGNAL PROPERTIES ███████████████████████████████████████████
 
   // for persistent storage params for security reasons keep names unpredictable obfuscated, such as dtoken becomes token
   private readonly _batteryLevel = signal<number | null>(null);
@@ -72,7 +83,8 @@ export class PlatformState extends SignalStateService {
   private readonly _runtimeReady = signal(false);
   public readonly runtimeReady = this._runtimeReady.asReadonly();
 
-  // comment this in production mode to reduce memory usage and browser load
+  // ████ STATE DEBUGGER ██████████████████████████████████████████████
+
   public readonly debugState = computed(() => ({
       batteryLevel: this.batteryLevel(),
       isCharging: this.isCharging(),
@@ -91,15 +103,20 @@ export class PlatformState extends SignalStateService {
     super();
     this.initializeSignalState();
   }
-  protected override onActivate(): void {
+
+  // ████ LISTENERS ███████████████████████████████████████████████████
+
+  public override onActivate(): void {
     this.runtimeActive = true;
     void this.init();
   }
 
-  protected override onDeactivate(): void {
+  public override onDeactivate(): void {
     this.runtimeActive = false;
     this._runtimeReady.set(false);
   }
+
+  // ████ SIGNAL METHODS ██████████████████████████████████████████████
 
   /** Resolves after the initial runtime snapshot and listeners have been initialized. */
   public async init(): Promise<void> {
@@ -303,6 +320,11 @@ export class PlatformState extends SignalStateService {
     this._kbdPhase.set(PLATFORM_KBD_EVENT_DID_HIDE);
   }
 
+  // ████ SIGNAL DATA VALIDATORS ██████████████████████████████████████
+  // n/a
+
+  // ████ REGISTRATION AND CALLBACKS ██████████████████████████████████
+
   private registerPluginListenerCleanup(listener: PlatformPluginListenerHandleType): void {
     this.registerAsyncCleanup(() => listener.remove(), 'plugin listener');
   }
@@ -326,4 +348,10 @@ export class PlatformState extends SignalStateService {
       return null;
     }
   }
+
+  // ████ API CALLS ███████████████████████████████████████████████████
+  // n/a
+
+  // ████ WEB SOCKET CALLS ████████████████████████████████████████████
+  // n/a
 }

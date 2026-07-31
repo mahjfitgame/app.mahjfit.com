@@ -2,13 +2,12 @@
 /* You can add global styles to this file, and also import other style files */
 @use './theme/active/main.scss';
 
-@import "material-icons/iconfont/material-icons.css";
 @import "@fontsource/poppins/400.css";
 @import "@fontsource/poppins/500.css";
 @import "@fontsource/poppins/700.css";
 
-@source "./**/*.{html,ts}";
-@source "../node_modules/@material-tailwind/html/**/*.js";
+//@source "./**/*.{html,ts}";
+//@source "../node_modules/@material-tailwind/html/**/*.js";
 
 @theme {
   --font-sans: "Poppins", ui-sans-serif, system-ui, sans-serif;

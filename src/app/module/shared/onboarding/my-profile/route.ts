@@ -1,23 +1,51 @@
 // ./src/app/module/shared/onboarding/my-profile/route.ts
 
 import { Routes } from '@angular/router';
+import { UrlService } from '@libs/url/service';
 import { SLUG_MY_PROFILE } from '@module/shared/onboarding/my-profile/slug';
+import { SLUG_PRIVATE_AREA } from 'src/app/area/private/slug';
 
-// need to merge with app routes [src/app/app.routes.ts] 
-export const myProfileRoutes: Routes = [
-     {
-        path: SLUG_MY_PROFILE,
-        title: 'My Profile',
-        loadComponent: () => import('@module/shared/onboarding/my-profile/component').then((c) => c.MyProfileComponent),
-        data: {
-            breadcrumb: {
-                label: 'My Profile',
-                alias: 'myProfile',
-                info: '',
-                routeInterceptor: (routeLink: any, breadcrumb: any)=> {
-                    return routeLink;
-                }
+export class MyProfileRoute {
+    public static readonly moduleLevel = [SLUG_PRIVATE_AREA, SLUG_MY_PROFILE];
+
+    // ROUTES ▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬
+    /**
+     * @routes()
+     * need to merge with app routes [src/app/area/private/route.ts]
+     */
+    public static routes(): Routes {
+        
+        const routes: Routes = [
+            {
+                path: SLUG_MY_PROFILE,
+                title: 'My Profile',
+                loadComponent: () => import('@module/shared/onboarding/my-profile/component').then((c) => c.MyProfileComponent),
+                data: {
+                    breadcrumb: {
+                        label: 'My Profile',
+                        alias: 'myProfile',
+                        info: '',
+                        routeInterceptor: (routeLink: any, breadcrumb: any)=> {
+                            return routeLink;
+                        }
+                    },
+                },
             },
-        },
-    },
-];
+        ];
+
+        return routes;
+    }
+
+    // ABSOLUTE PATH ▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬
+    public static absolutePathArr(): string[] {
+        const moduleLevel = this.moduleLevel;
+        const params = {};
+
+        return UrlService.getAbsolutePathArr(this.moduleLevel, params);
+    }
+    public static absolutePath(): string {
+        const moduleLevel = this.moduleLevel;
+        const params = {};
+        return UrlService.getAbsolutePath(moduleLevel, params);
+    }
+}

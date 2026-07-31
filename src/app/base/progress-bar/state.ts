@@ -1,23 +1,33 @@
 // file: src/app/base/progress-bar/state.ts
-import { computed, inject, Injectable, signal } from "@angular/core";
+import { computed, effect, inject, Injectable, Service, signal } from "@angular/core";
 import { ConfService } from "@libs/conf/service";
 import { LogService } from "@libs/log/service";
 import { SignalStateService } from "@libs/signal-state/service";
 import { ProgressBarStatusEnum } from "@base/progress-bar/enum";
+import { AppModuleStateType } from "@libs/utility/type";
 
-@Injectable({providedIn: 'root'})
-export class ProgressBarState extends SignalStateService {
+@Service()
+export class ProgressBarState extends SignalStateService implements AppModuleStateType {
+
+    // ████ DEPENDENCIES ████████████████████████████████████████████████
+
     private readonly conf = inject(ConfService);
     private readonly log = inject(LogService);
 
-    // required for persisted state
-    protected override readonly storeKey = 'pbs';
-    
+    // ████ CLASS PROPERTIES ████████████████████████████████████████████
+
+    public override readonly storeKey = 'pbs';
+
     // Keep the completed state visible long enough for the material bar animation to reach 100%. This is because animation takes time
     private readonly completeVisibleMs = 350;
     private stopFrame: number | null = null;
     private stopTimeout: ReturnType<typeof setTimeout> | null = null;
-    
+
+    // ████ SIGNAL FORM PROPERTIES ██████████████████████████████████████
+    // n/a
+
+    // ████ SIGNAL PROPERTIES ███████████████████████████████████████████
+
     private readonly _processing = signal<false | number>(false);
     public readonly processing = this._processing.asReadonly();
 
@@ -28,6 +38,9 @@ export class ProgressBarState extends SignalStateService {
     private readonly _stream = signal<number>(0);
     public readonly stream = this._stream.asReadonly();
 
+    // ████ STATE DEBUGGER ██████████████████████████████████████████████
+    // n/a
+
     constructor() {
         super();
 
@@ -35,9 +48,23 @@ export class ProgressBarState extends SignalStateService {
         this.initializeSignalState();
     }
 
-    protected override onDeactivate(): void {
+    // ████ LISTENERS ███████████████████████████████████████████████████
+
+    public override onActivate(): void {
+        const registerEffect = effect(() => {
+            if (!this.ready()) {
+                return;
+            }
+        });
+
+        this.registerDeactivationCleanup(() => registerEffect.destroy());
+    }
+
+    public override onDeactivate(): void {
         this.clearStopSchedule();
     }
+
+    // ████ SIGNAL METHODS ██████████████████████████████████████████████
 
     public setProcessing(processing: false | number): void {
         this._processing.set(processing);
@@ -60,7 +87,7 @@ export class ProgressBarState extends SignalStateService {
         this.setProcessing(now);
         this.setStatus(ProgressBarStatusEnum.RUNNING);
         this.setStream(0);
-        
+
         return now;
     }
     public stop(): [number, number, number] {
@@ -71,7 +98,7 @@ export class ProgressBarState extends SignalStateService {
         }
 
         this.clearStopSchedule();
-        
+
         this.setStatus(ProgressBarStatusEnum.COMPLETING);
         this.setStream(100);
 
@@ -86,6 +113,11 @@ export class ProgressBarState extends SignalStateService {
     public get isProcessing(): boolean {
         return this.visible();
     }
+
+    // ████ SIGNAL DATA VALIDATORS ██████████████████████████████████████
+    // n/a
+
+    // ████ REGISTRATION AND CALLBACKS ██████████████████████████████████
 
     private scheduleCompleteHide(): void {
         const hide = () => {
@@ -121,4 +153,10 @@ export class ProgressBarState extends SignalStateService {
             this.stopTimeout = null;
         }
     }
+
+    // ████ API CALLS ███████████████████████████████████████████████████
+    // n/a
+
+    // ████ WEB SOCKET CALLS ████████████████████████████████████████████
+    // n/a
 }

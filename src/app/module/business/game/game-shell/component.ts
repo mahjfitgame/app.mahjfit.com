@@ -1,10 +1,12 @@
 // file: src/app/module/business/game/game-shell/component.ts
-import { Component, signal } from "@angular/core";
+import { Component, inject, signal } from "@angular/core";
 import { PhaserBoardComponent } from "../phaser/component";
 import { PassDirection, TileSoundKey, TileSuit, TileVm } from "../model/tile";
 import { resolveTileSoundKey } from "../model/tile-sound.resolver";
 import { TablePhase } from "../model/table-phase";
 import { Haptics, ImpactStyle, NotificationType } from "@capacitor/haptics";
+import { GameService } from "../service";
+
 
 interface TileVmInput {
   readonly id: string;
@@ -42,11 +44,11 @@ function createTileVm(input: TileVmInput): TileVm {
         </select>
       </label>
     </div>
-    <button class="haptic-test-button"
+    <!-- <button class="haptic-test-button"
       (click)="testHaptic()"
     >
       Test Haptic
-    </button>
+    </button> -->
     <app-phaser-board
       [rack]="rack()"
       [passDirection]="passDirection()"
@@ -67,7 +69,7 @@ function createTileVm(input: TileVmInput): TileVm {
       .phase-debug-panel {
         position: fixed;
         z-index: 9999;
-        top: max(12px, env(safe-area-inset-top));
+        top: max(64px, env(safe-area-inset-top));
         left: max(12px, env(safe-area-inset-left));
         padding: 8px 10px;
         border-radius: 10px;
@@ -112,6 +114,10 @@ function createTileVm(input: TileVmInput): TileVm {
   ],
 })
 export class GameShellComponent {
+
+  protected readonly service = inject(GameService);
+
+
   readonly selectedTileIds = signal<readonly string[]>([]);
   readonly passDirection = signal<PassDirection>("right");
   readonly tablePhase = signal<TablePhase>("playing");
@@ -134,6 +140,13 @@ export class GameShellComponent {
     createTileVm({ id: "t14", code:'WS', label: "South", suit: "wind", asset: "assets/game/tiles/wind_s.svg" }),
   ]);
 
+  public async ngAfterViewInit(): Promise<void> {
+      await this.init();
+  }
+
+  async init(){
+    await this.service.startGame();
+  }
   async testHaptic(): Promise<void> {
     console.log("TEST HAPTIC CLICKED");
 

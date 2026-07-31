@@ -1,19 +1,29 @@
 // file: ./src/app/area/auth/state.ts
 import { Portal } from "@angular/cdk/portal";
-import { inject, Service, signal, WritableSignal } from "@angular/core";
+import { effect, inject, Service, signal, WritableSignal } from "@angular/core";
 import { ConfService } from "@libs/conf/service";
 import { LogService } from "@libs/log/service";
 import { SignalStateService } from "@libs/signal-state/service";
 import { AuthSlotPortalType } from "@area/auth/type";
 import { AuthAreaLayoutStateRuntimeEnum } from "@area/auth/enum";
+import { AppModuleStateType } from "@libs/utility/type";
 
 @Service({ autoProvided: false })
-export class AuthAreaLayoutState extends SignalStateService {
+export class AuthAreaLayoutState extends SignalStateService implements AppModuleStateType {
+
+    // ████ DEPENDENCIES ████████████████████████████████████████████████
+
     private readonly conf = inject(ConfService)
     private readonly log = inject(LogService)
 
-    // required for persisted state
-    protected override readonly storeKey = "aal";
+    // ████ CLASS PROPERTIES ████████████████████████████████████████████
+
+    public override readonly storeKey = "aal";
+
+    // ████ SIGNAL FORM PROPERTIES ██████████████████████████████████████
+    // n/a
+
+    // ████ SIGNAL PROPERTIES ███████████████████████████████████████████
 
     private readonly _slotStartSide = signal<AuthSlotPortalType | null>(null);
     public readonly slotStartSide = this._slotStartSide.asReadonly();
@@ -24,12 +34,33 @@ export class AuthAreaLayoutState extends SignalStateService {
     private readonly _slotEndSideFooter = signal<AuthSlotPortalType | null>(null);
     public readonly slotEndSideFooter = this._slotEndSideFooter.asReadonly();
 
+    // ████ STATE DEBUGGER ██████████████████████████████████████████████
+    // n/a
+
     constructor() {
         super();
 
         // Signal-state fields must be initialized before the base service is initialized.
         this.initializeSignalState();
     }
+
+    // ████ LISTENERS ███████████████████████████████████████████████████
+
+    public override onActivate(): void {
+        const registerEffect = effect(() => {
+            if (!this.ready()) {
+                return;
+            }
+        });
+
+        this.registerDeactivationCleanup(() => registerEffect.destroy());
+    }
+
+    public override onDeactivate(): void {
+
+    }
+
+    // ████ SIGNAL METHODS ██████████████████████████████████████████████
 
     /**
      * This is kind of getter method but we want to keep it as a regular method to allow dynamic access based on the enum value
@@ -87,4 +118,16 @@ export class AuthAreaLayoutState extends SignalStateService {
         this.clearSlotEndSideHeader();
         this.clearSlotEndSideFooter();
     }
+
+    // ████ SIGNAL DATA VALIDATORS ██████████████████████████████████████
+    // n/a
+
+    // ████ REGISTRATION AND CALLBACKS ██████████████████████████████████
+    // n/a
+
+    // ████ API CALLS ███████████████████████████████████████████████████
+    // n/a
+
+    // ████ WEB SOCKET CALLS ████████████████████████████████████████████
+    // n/a
 }

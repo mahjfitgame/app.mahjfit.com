@@ -7,6 +7,7 @@ export class ConfPublic {
   public NODE_ENV: string = 'production';
 
   // General
+  public DEBUG: boolean = false;
   public TZ: string =  'US/Eastern';
   public PROJECT_NAME: string = 'bfw.nestjs.microservice.api/web';
   public GRAPHQL_ROOT_SLUG: string = 'graphql';
@@ -115,6 +116,8 @@ export class ConfPublic {
   
   // ████ PUBLIC █ INDEPENDENT █ env variables for this web app █████████████████████████████████████████████
   // Thats End API access
+  public BFW_API_SDK_SIGNIN_USERNAME: string = '';
+  public BFW_API_SDK_SIGNIN_IDENTIFY: string = '';
   public BFW_API_SDK_JWT_ACCESS_TOKEN: string = '';
   public BFW_API_SDK_JWT_REFRESH_TOKEN: string = '';
   public BFW_API_SDK_GRAPHQL_URL: string = '';
@@ -123,13 +126,13 @@ export class ConfPublic {
 
   // NOTIFICATION AND FIREBASE
   public ENABLE_WEB_PUSH: boolean = false;
-  FIREBASE_WEB_API_KEY: string = '';
-  FIREBASE_WEB_AUTH_DOMAIN: string = '';
-  FIREBASE_WEB_PROJECT_ID: string = '';
-  FIREBASE_WEB_STORAGE_BUCKET: string = '';
-  FIREBASE_WEB_MESSAGING_SENDER_ID: string = '';
-  FIREBASE_WEB_APP_ID: string = '';
-  FIREBASE_WEB_MEASUREMENT_ID: string = '';
-  FIREBASE_WEB_VAPID_KEY: string = '';
-  FIREBASE_PUSH_NOTIFICATION_SW_PATH: string = '';
+  public FIREBASE_WEB_API_KEY: string = '';
+  public FIREBASE_WEB_AUTH_DOMAIN: string = '';
+  public FIREBASE_WEB_PROJECT_ID: string = '';
+  public FIREBASE_WEB_STORAGE_BUCKET: string = '';
+  public FIREBASE_WEB_MESSAGING_SENDER_ID: string = '';
+  public FIREBASE_WEB_APP_ID: string = '';
+  public FIREBASE_WEB_MEASUREMENT_ID: string = '';
+  public FIREBASE_WEB_VAPID_KEY: string = '';
+  public FIREBASE_PUSH_NOTIFICATION_SW_PATH: string = '';
 }

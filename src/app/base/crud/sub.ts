@@ -1,33 +1,40 @@
 import { PrivateAreaLayoutSlotEnum } from "@area/private/enum";
 import { CrudService } from "@base/crud/service";
-import { CrudFindInputType, CrudStateListingFieldObjType, CrudStateMutationFieldObjType, CrudStateSearchFilterFieldObjType } from "@base/crud/type";
+import { CrudFindInputType, CrudStateListingFieldObjType, CrudStateListOperationFieldObjType, CrudStateMutationFieldObjType, CrudStateSearchFilterFieldObjType, CrudStateViewOptionFieldObjType } from "@base/crud/type";
 import { ConfService } from "@libs/conf/service";
 import { LogService } from "@libs/log/service";
 import { CrudDataLoadTypeEnum } from "@base/crud/enum";
+import { Signal, WritableSignal } from "@angular/core";
+import { FieldTree } from "@angular/forms/signals";
 
-export interface CrudSubType {
+export interface CrudStateSubType {
+    // CLASS PROPERTIES ▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬
+    LISTING_FIELD_OBJ: CrudStateListingFieldObjType;
+    LIST_OPERATION_FIELD_OBJ: CrudStateListOperationFieldObjType;
+    MUTATION_FIELD_OBJ: CrudStateMutationFieldObjType;
+
+    VIEW_OPTION_FIELD_OBJ?: CrudStateViewOptionFieldObjType;
+    SEARCH_QUERY_FIELD_OBJ?: CrudStateSearchFilterFieldObjType;
+
+    // SIGNAL FORM PROPERTIES ▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬
+    _mutationFieldObj: WritableSignal<CrudStateMutationFieldObjType>;
+    mutationFieldObj: Signal<CrudStateMutationFieldObjType>;
+
+    _mutationFormError: WritableSignal<Record<string, any>>;
+    mutationFormError: Signal<Record<string, any>>;
+
+    _mutationFormModel: WritableSignal<Record<string, any>>;
+    mutationFormModel: Signal<Record<string, any>>;
+
+    mutationForm: FieldTree<unknown>;
+}
+export interface CrudServiceSubType {
     crud: CrudService;
 
     conf: ConfService;
     log: LogService;
 
     PrivateAreaLayoutSlotEnum: typeof PrivateAreaLayoutSlotEnum;
-
-    LISTING_FIELD_OBJ: CrudStateListingFieldObjType;
-    SEARCH_QUERY_FIELD_OBJ: CrudStateSearchFilterFieldObjType;
-    MUTATION_FIELD_OBJ: CrudStateMutationFieldObjType;
-
-    /**
-     * Call to this method in the constructor
-     * Priority: 1
-     */
-    setModuleInfo(): void;
-
-    /**
-     * Call to this method in the constructor
-     * Priority: 2
-     */
-    alterBreadcrumb(): void;
 
     /**
      * Call to this method in the constructor, otherwise included in crudInit()

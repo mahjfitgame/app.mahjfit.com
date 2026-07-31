@@ -1,3 +1,370 @@
+[tech][Frontend development][D1] Convert final PSD/PDF layout to HTML design of game board table, tile rack is small in mobile device so manage the spacing as per the niravraj suggestion
+Meeting Points
+1]
+As per the meeting discussin niravraj suggested few points releated with design in mobile device.
+Worked on manage the tile rack and make proper spacing around the table. 
+
+2]
+
+
+
+
+
+
+
+
+=========================================================
+FOR CLIENT]
+Today, I worked on to manage the spacing and sizing of the game boards and its components for all devices as per the niravraj guidence.
+
+I will keep you posted on work progress.
+Thank you!
+
+
+#####################
+MEETING DISCUSSION 
+
+Progress meeting: 29 JULY 2026 5 PM PDT
+https://meet.google.com/oco-bpje-utn
+
+
+1]
+As explained in previous meeting during last week we worked on responsive layout and test in mobile and tablet.
+We expected 3 days to get done but it took 2 more days and as per UI, developer has also updated some functional requirements in backend.
+So, last work was mix of frontend and backend.
+
+2]
+Here are some responsive layout images,
+https://drive.google.com/drive/folders/1EUlfdKnCadyB1b2EGB2be55wjgm06PVm?usp=drive_link
+
+We were not able to provide test app for ios and android for now as responsive UI is not 100% ready.
+Some adjustment required like in mobile landscape mode due to header area, working area become very small/shrink which is inappropriate in terms of user experience.
+So, correction are going on, in this week we will finish it and willcontinue with function integration.
+
+3]
+In mobile device, load full size table to show proper layout and cover device screen and change the header to collapsible.
+This is because mobile screen are small and if we keep header same as in web it takes fixed top area, then in landscape mode usabe area become very small.
+Developer is still workingon this part and will finish it today.
+
+4]
+Responsive layout setup includes...
+Set up the size of the table area and other components like 
+rack size, 
+exposure panel, 
+discarad area,
+tiles size,
+font size, 
+menus, 
+fixed header area (we ares still working on it),
+toggle buttons,
+game action (like sort by, dead hand settings etc)
+
+5]
+Challenging part is animation as per screen size.
+As layout change we need to adjust animation for various actions such as pass tiles.
+This took more them then expected. 
+
+6]
+Integreated some API calls, started with the game start. With this use case modified API and client wrapper side logic to match with frontend.
+During this week, user session will be implemented as its required for game area.
+
+7]
+Entire game board design is in Phaser now, design is controlled by Phaser, and we have already started with Phaser + API connection.
+
+8]
+So, overall 80% of design work with responsive is finished and already started functional things.
+When we will have Siamese mode design ready, we will have to adjust the design in all layout web, mobile and tablet.
+
+9]
+During this week our mahjor work area will cover functional process and this include work on both side frontend and backend.
++
+We will also release the initial STATIC design MOCKUP app to check how it works.
+
+FOR DEVELOPER]
+Try to find some way if we can reduce sound file size.
+Spencer will check in their purchase account if sound provide has less size files available or not. So, basically if we can fin some solution for size reduction.
+
+END OF UPDATE
+=========================================================
+========================= 29 July 2026
+=========================================================
+
+1]
+Arrange the tile inside the rack.
+2]
+PASS tiles with sound and animation for the specific seat.
+3]
+Change PASS tile.
+4]
+Pick tile for selected seat with the animation from the wall and update counts. 
+NOTE: For now, The seat selection is just for testing.
+5]
+Discard tile with the sound.
+
+
+6]
+While working with frontend part we also have to work on backend side as per the required things. So basically work going simultaneously.
+
+
+
+VIDEO LINK:
+https://drive.google.com/file/d/1OH9GMLRM-e1cqN93ZC7FJ1mHYFQyL2G9/view?usp=sharing
+
+
+FOR CLIENT]
+
+
+
+I have setup new computer for backend and due to some miss configuration of taking softwere it didnn't log the mouse and keyboard activeity and took all screenshots of desktop.
+Actually, I have set up the backedn api repository in that new computer and do some required modificaions. The work memo is [tech][Backend development][D1] Required changes for frontend game start.
+
+I just want to let you know so there is no confusion.
+
+Thank you!
+
+
+FOR CLIENT]
+Today, I have worked on backend and frontend both side to start the game.
+
+I will keep you posted on work progress.
+Thank you!
+
+
+
+
+######################
+Progress meeting: 22 JULY 2026 5 PM PDT
+https://meet.google.com/dtb-xrvf-jtj
+
+As discussed in previous meeting we started with point [6]  and our task was related with design. 
+Work memo was like, convert provided image layout into working static HTML webpage.
+
+1]
+We have completed the major part of HTML conversion.
+
+Here is the working static HTML template layout you can check in video.
+https://drive.google.com/file/d/1OH9GMLRM-e1cqN93ZC7FJ1mHYFQyL2G9/view?usp=sharing
+
+
+2]
+Base game board implemented, you can see the overall look and feel.
+
+3]
+Arrange the tile inside the rack.
+
+4]
+PASS tiles with 
+animation and
+sound 
+for the specific seat.
+
+5]
+Change PASS tile. (this is for design pupose)
+The section in middle of the game board is for temporary purpose.
+Will be adjusted as per space arrangement.
+
+6]
+Switch the seat. Active sheat will have yellow highlight.
+NOTE: For now, The seat selection is just for testing. It will be connected with API and controlled by server.
+
+7]
+Pick tile action, how it will work for selected seat with the animation from the wall and update counts. You can see in video.
+
+8]
+Discard tile action with the sound. Sound is with the tile name.
+
+9]
+If you see in game play area at top right corner, we still need icons.
+
+10]
+What we going to next?
+As layout is converted in HTML, first stpe is to make it responsive and test layout in mobile tablet.
+Considering thatit will take 2-3 days not sure at this moment. Once design is ready with all device we will start with functionlity.
+
+11]
+Once design is ready our working pattern will chnage.
+Soon we will not work only with frontend or backend continuously, but it will be hybrid process.
+
+As we will start functional things, we will also work on API, API Client Wrapper and Frontend all together.
+
+This is because we have to tune the process on server API as we continue with frontend functionality implementation. What we have developed on backend is as per requirement and logical flow and what we going to tune is as per real time use cases.
+
+So, we will make a small API change as needed on backend API, update the API client wrapper, check the frontend impact, and then continue the frontend work.
+
+So, developer will work with 2 computers at a time, 1 running with backend API and 1 with frontend.
+
+
+*]
+Promo related things for marketing - how it will managed form our side or Stripe. If it is stripe then how?
+
+THIS IS THE END OF UPDATE
+
+
+
+
+Hello Team,
+
+Have you think anything for siamess game play design? Is there any communication on going with your designer?
+Please let me know.
+
+
+
+Today, I continued work on to setup the responsive layout of game play area and set the layout of exposure meald panel for all devices.
+
+I think I still need a couple of days to complete the design parts.
+
+One more important update: Due to the heavy rainfall, we have been experiencing frequent power fluctuations, which have disrupted our work. We expect this situation may continue for the next 2–3 days. Agian we might have flud situation.
+
+I will keep you posted on work progress.
+Thank you!
+
+
+
+Related with stipe promtion code, the stripe is provided the feature that we can create promo code from the stripe dashboard and using that promocode user can get the banifits when they checkout.
+
+
+===========
+
+call
+last-right
+pass-tile
+pick-tile
+
+pass-tile-select (If want )
+
+
+
+
+
+
+
+When phase is playing on double click or double tap tile should be discard
+
+
+
+
+
+
+
+
+
+
+
+Okay, now I want to upgrade the pass tile functionality and animation
+
+When start charlestone, I passed the tile to the right and when I tap PASS button that tile goes to the right seat rack. Now, that time all seat have to pass the tile to the right of their seat so need animation for all seat that all seat has passed the tile to each other, it shows the tile back "white" tile ractangle of 3 tiles and show the animation that all seat pass the tile. 
+
+Once the first PASS complete after that all player have to add the tiles to the pass waiting area as per the chatlestone stage, suppose its across, the all player pass the tile to the across and that animation and all seat pass area should be displayed like if I passed the tile to my across it shows to the top that 3 tiles front side and for other all seats pass waiting area shows the 3 tiles backside (White tile).
+The main thing is show passing animation to specific seat same like "realmahjongg.com". It shows the smooth animation when pass tile to specific seat, show the animation as per the below
+Suppose, my seat is bottom and charlestone round is pass tile to the left
+So when I select and pass tile to the left it show the animation from my bottom seat to my left seat, and it works fine. But what I seen other
+1]
+I got the 3 tiles form my right seat with the animation to right seat to my seat pass waiting area.
+2]
+My top seat pass 3 tiles to my right seat and 3 tiles goes from the top seat to my right side seat pass waiting area.
+3]
+My left side seat pass 3 tiles to top seat and 3 tiles goes from left seat to top seat pass waiting area.
+
+
+First let me know what you undestand before suggesting the code, because if we are not on same page we faced massive different so before moving forward first we are on same page and then move forward to implement the robust and without error solution and painless features.
+
+
+
+
+
+
+
+
+
+Example: bottom player, pass right
+Selecting state
+right seat pass area:
+  your selected 3 tile fronts
+
+my(bottom)/top/right pass areas:
+  blank there is no pass area at first charleston init
+
+First PASS click animation
+Bottom get 3 tiles white back from LEFT seat
+Left get 3 tiles white back from TOP seat
+Top get 3 tiles white back from the right seat
+left front    → move 3 tiles to rack 
+
+At 2nd time (This will change later when the all players are real player it shows the animation to get the single selected tile animation to the destination seat)
+But if other players are boat the animation should be work automatically
+
+I mentioned in the attached screenshot image of reference website. 
+
+my(bottom)/top/right pass areas:
+  white backs
+
+After animation:
+
+bottom pass area:
+  3 white backs from right
+
+left/top/right pass areas:
+  3 white backs
+Second PASS click
+bottom white backs → bottom rack
+left white backs   → left rack area
+top white backs    → top rack area
+right white backs  → right rack area
+
+Then:
+
+bottom rack shows actual received 3 front tiles
+next Charleston stage starts
+
+
+
+
+
+
+
+
+
+
+
+First PASS click animation for pass RIGHT
+left  → bottom   white back tiles
+top   → left     white back tiles
+right → top      white back tiles
+bottom selected front tiles are already at right destination area
+
+So bottom receives 3 white back tiles from the left seat.
+ANS]
+Yes, this is right but tile shows to the pass waiting area just for a second and then automatically moved to the specific seat rack.
+And within 1 second that tile move to the rack for all seat and get the front actual 3 tile to the rack. 
+
+Like it shows the all seat waiting area and directly move to the rack. So this just for the user experience, as it show all seat passing area temporary and directly move tile to the rack there is no need to press the PASS button again.
+
+
+Now for 2nd round the behaviour is different. 
+All boat seat pass the tile to the destination seat pass waiting area automatically and when bottom seat select tiles and add to pass waiting area to the destination seat and press PASS then move all seat tile to the rack. 
+So here automatically get the tile to the pass waiting area with the animation and as per the charleston round. Exclude bottom seat as it select tile manually.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 I do not want my own backend/frontend team to manually build and maintain all low-level APNs/FCM delivery behavior when vendors already provide that through SDKs, APIs, dashboards, retries, analytics, segmentation, and provider-specific handling.
 Manage notification business logic from your side.
@@ -49,56 +416,111 @@ created_uri_id
 
 [tech][Frontend development][D1] Convert final PSD/PDF layout to HTML design of game board table
 
+#############################
+1]
+Updated game engine api from now and onward frequent changes will happen.
+Started work on Convert final PSD/PDF layout to HTML design for game board table and changed the UI of table.
 
 
-Today, I have started work on convert final PSD/PDF layout to HTML design for game board table.
 
-I attached the sound files of game play.
-CHECK TC: 2026-07-16
 
-Below are the game play actions/events
-lobbay
-serving
-Charleston-st1-right
-Charleston-st1-across
-Charleston-st1-left
-Charleston-st2-left
-Charleston-st2-across
-Charleston-st2- right
-Charleston-st3-left
-Charleston-st3-across
-Charleston-st3- right
-CourtesyPass
-Discard
-Pick (from Wall)
-Call (from discarded)/ CANCEL CALL
-Make: PUNG/KONG/QUINT/SEXTET
-JockerReplace
-DeclairDead
-MahJong
-OrderInRackOne
-OrderInRackTwo
-OrderInExposerOne
-OrderInExposerTwo
-OrderBySuitRackOne
-OrderBySuitRackTwo
-OrderByRankRackOne
-OrderByRankRackTwo
-MoveToRackOne
-MoveToRackTwo
-DeadHand
-TileStyleChane
-SoundSettingChange
-EndGame/ExitGame
-SaimeseFirstMahjong
-SaimeseSecondMahjong
-RemovePlayer (if away)
-Joined
-Decline
-SecondCharlestoneSubmitVotes
+#############################
+#############################
+#############################
 
-I will keep you posted on work progress.
-Thank you!
+Progress meeting: 15 JULY 2026 5 PM PDT
+https://meet.google.com/fjj-ccfm-qtz
+
+
+MILESTONES:
+1) Set up frontend with angular, capacitor, API sdk and utility. [approx. 10-12 days]
+This part might get complete in 2 phases 5+7.
+2) Convert Figma layout to HTML design [minimum 10 days - depends on layout and as needed throughout development]
+This is so important for further development.
+3) Setup static app and web demo for prototype [6-7 days]
+Need to include basic home page features related to the join game and game play area.
+This task is kind of pulling future work at initial time. (As per discussion during meeting)
+4) Develop user FREE signup/signin/forgot password for game play [3-4 days]
+(We have membership related things also that will be get done later on)
+5) Start game [4-5 days]
+6) Setup game play area [minimum 5-7 days]
+7) Integrate Charleston [approx. 2-3 days]
+8) Integrate Discard, Claim and Pick [minimum 10 days]
+9) Player personalisation, connection/disconnection related functionality [minimum 7 days]
+10] (added later point) Development apart from Game Play area such as third party service integration (this point will be executed as per requirement and need)
+
+
+As discussed in previous meeting we continue with point [10]  and we have worked on below points during last week.
+
+1]
+Started implementing API with Phaser. Install client side API wrapper as separate node package  to place API call to server. Now, real time API call are possible from front end.
+
+2]
+Implemented Haptic gesture along with Phaser action/event.At this moment implemented on tile discard. When user discard the time small vibration will occur and produce the real time feeling. Now, we can use it where ever we want.
+
+3]
+As per confirmation, started to with Stripe Payment Gateway. At this moment analysed the API integration for, 
+How to manage Webhooks (used for payment gateway to our website communication)
+How to manage Subscription (for payment plan management)
+For this we will work in backend API. There will be a payment gateway module in API where we will perform integration. We started initial part what is possible for now and remain part will get done during purchase process development.
+
+4]
+We also worked on GAMIFICATION process as per Tech Doc.
+Want to confirm below mental model.
+A user start the game
+User can invite his friends or start with self + 3 or 1 player.
+privat mode. INVISIBLE
+public mode. LIVE
+
+Game FINAL WINNING POINTS = HAND points + BONUS points + BETTING points (if choosen)
+
+Hand points will be along with winning hand rule.
+
+BONUS points will have 4 main rules.  Player pick tile from wall OR Player pick tile from discard area.  In both cases we have 2 options: hand with Jockers or without Jockers.  BONUS rule does not apply to hands in the “Singles and Pairs Section of the card because they have to be Jokerless.
+
+Game start with Charleston and at the end of it there will be a kind of popup alert for BETTING 1x, 2x, 3x, 4x (1x is typo remove it)
+BETTING options will be available with the available minimum points balance of player and points will be locked as game will start. 
+
+
+[MEETING DECISION]
+- from betting remove 1x no meaning of it
+- 2 time only if its jocker less other wise normal no 3x.
+- minimum balance is maximum bet
+- point deduction for only bet (bet mode and non betting mode)
+- winning points will be provided by BANK, so lock points will only for betting sum. Then how 2x will be paid.
+QUESTION is If BANK 🏦 is going to pay points to winner then whats the deduction? I think we need to provide some option to earn bonus after charelsto it its enabled then bonues points will be locked from all player. This is pending and asked on WhatsApp group.
+
+5]
+Is there any time limit to allow join after game start? Because if game stage is at end of the game and someone want to join the game then how to manage that things.
+
+6]
+What if game stated and no invited or no user is join upto the Charleston, so 1x,2x option should appear or not. Because I think if minimum 2 human players are there, then only 1x. 2x, 3x, 4x option will come.
+
+7]
+Suppose, player start the game with 3 bot players, The user point will be locked for that game play and if user not end the game then will have to deduct the user point and if finish then refund all points.
+
+8]
+WORKOUT CHALLENGES OR HOW TO GET MORE POINTS
+There are variety of things will come up so, I would like to clearify few things as below. 
+For this we have to change the code if required to add new one challenge. You can activate or deactivate and modify the parameters for this but do not add it, because if new rule add then have to update the code accordingly. 
+
+9]
+We are considering that the all reward point will be applied on Game End.  If we have different area then we have to update the code accordingly. So, need to decide this part properly.
+
+10]
+As per your previous email we going to start with game play area integration as per final design. First we will start with HTML layout and after functional things. So, during this week we will stop new point number [10] and will start with those provided [9] points. As we have design for Game Play area we will start with point [6] directly and as we will keep finalising the design we will lineup all provided points step by step as possible.
+
+11]
+HOW TO GET MORE POINTS
+This part is still under process will update you more as we will find things.
+
+
+DOC
+https://docs.google.com/document/d/1oYDHHtSRrNoc3l_Q9TO8nIqfG_R74WKqlV-ji82F3CA/edit
+
+PROVIDE IN THIS WEEK]
+- Subscription detials need to provide to decide plans
+- Sound files and game play event names
 
 
 #############################
@@ -211,6 +633,61 @@ DOC
 https://docs.google.com/document/d/1oYDHHtSRrNoc3l_Q9TO8nIqfG_R74WKqlV-ji82F3CA/edit?usp=sharing
 
 #############################
+
+
++++++++ 16 July 2026 +++++++
+FOR CLIENT]
+
+Today, I have started work on convert final PSD/PDF layout to HTML design for game board table.
+
+I attached the sound files of game play.
+CHECK TC: 2026-07-16
+
+Below are the game play actions/events
+lobbay
+serving
+Charleston-st1-right
+Charleston-st1-across
+Charleston-st1-left
+Charleston-st2-left
+Charleston-st2-across
+Charleston-st2- right
+Charleston-st3-left
+Charleston-st3-across
+Charleston-st3- right
+CourtesyPass
+Discard
+Pick (from Wall)
+Call (from discarded)/ CANCEL CALL
+Make: PUNG/KONG/QUINT/SEXTET
+JockerReplace
+DeclairDead
+MahJong
+OrderInRackOne
+OrderInRackTwo
+OrderInExposerOne
+OrderInExposerTwo
+OrderBySuitRackOne
+OrderBySuitRackTwo
+OrderByRankRackOne
+OrderByRankRackTwo
+MoveToRackOne
+MoveToRackTwo
+DeadHand
+TileStyleChane
+SoundSettingChange
+EndGame/ExitGame
+SaimeseFirstMahjong
+SaimeseSecondMahjong
+RemovePlayer (if away)
+Joined
+Decline
+SecondCharlestoneSubmitVotes
+
+I will keep you posted on work progress.
+Thank you!
+
+
 in tiles atlas have to remove the spacing between tile.
 I have attached the reference image, please check it and do required adjustment.
 
@@ -250,6 +727,147 @@ Today, I worked on setting up the animation for the PICK tile from the wall. I a
 I will keep you posted on work progress.
 Thank you!
 
+
+
+
+
+
+Today, I have continued work on convert final PSD/PDF layout to HTML design for game board table and done some progres. 
+
+I will keep you posted on work progress.
+Thank you!
+
+
+
+
+Hello Team, 
+Today, I will work for 4 hours as I need leave.
+
+
+Give Screenshot to client of the game board layout
+
+
+
+Today, I have continued work on the convert final PSD/PDF layout to HTML design for game board table. Continue this work on tomorrow
+
+I have attached the screenshot for you reference.
+
+I will keep you posted on work progress.
+Thank you!
+
+CHECK TC: 2026-07-20 
+
+
+
+
+Today, I continued working on converting the final PSD/PDF layout into an HTML design for the game board table. I also completed the Exposure Rack design and the Active Exposure design. Next, I will focus on implementing the responsive design for the gameplay area.
+
+I will keep you posted on work progress.
+Thank you!
+
+
+
+Completed analysis of stripe payment gateway, completed planing of GAMIFICATION and Started work on Convert final PSD/PDF layout to HTML design of game board table and continue working on it. 
+
+
+
+
+Today, I continued working on converting the final PSD/PDF layout into an HTML design for the game board table. And working to setup the responsive layout and set the layout of exposure meald panel for all devices.
+
+I will keep you posted on work progress.
+Thank you!
+
+
+
+Today, I continued working on converting the final PSD/PDF layout into an HTML design for the game board table. And completed responsive layout changes now need to test it with real devices and also set the animation for the charlestone round and that animation took time to set up.
+
+I will keep you posted on work progress.
+Thank you!
+
+
+
+
+Today, I continued working on converting the final PSD/PDF layout into an HTML design and setup the game action menu with reponsive layout.
+Probably next week I will share the static mobile app design and after that I will start functional development. 
+
+This is to inform you that developmet is progressing a bit slowly because there are many use cases and multiple interfaces to implement.. I am trying m,y best to speed up.
+
+I will keep you posted on work progress.
+Thank you!
+
+
+
+
+
+I am starting with API related works so do required change in the API and client side wrapper.
+
+
+
+1]
+Converting final PSD/PDF layout to HTML design for game board table.
+Taking the reference of PSD layous set up the color combinations and fonts for the game board table.
+2]
+Set up responsive layout (Mobile, Tablet and Web)
+Set up the size of the table and other components like rack size, exposure meald size, tiles size and font size, mobile menu, and set the toggle button similar to main menu for game action (sort by, dead hand, setting, etc...)
+Adjust exposure panel layout in responsive mode, to looks proper in all devices.
+Adjust discarad area for all devices with all discarded tiles
+3]
+Implement animation for pass tiles to all seats, this tooks much time.
+4]
+Started API call implementation, start with the game start. With this required some API side changes as well as in client side wrapper.
+5]
+Modification in API and client wrapper.
+6]
+Change UI in mobile device to give batter user experience.
+In mobile device, load full size table to show proper layout and change the header to collapsable.
+
+
+
+
+
+
+
+
+
+FOR CAROLYN]
+Okay thanks for the providing details and accessable dropbox urls.
+
+Hopefully this is helpful, but please let me know if there are any additional specs or details that would be useful for your workflow.
+REPLY]
+Yes, this helpful. I checked the logo into dropbox Logos folders and there I didn't find any logo that you mentioned in the provided document. The all logos are with the slogans, I need logo without slogans same as you added in the docs. 
+Also if possibile then provide the logos with below size
+The App Icon Master (Mobile & PWA)'
+Dimensions: 
+Exactly 1024 × 1024 px.
+Format: 32-bit PNG (with transparency if needed) or high-quality JPG.
+
+We can either stack the text (MAJH on top, FIT on bottom) or isolate a singular mark (like the stylized letter M or F) inside the 1024 × 1024 px canvas.
+
+Design Rule: Keep the icon square with completely straight corners. 
+Both Apple and Google automatically apply their own rounded-corner masks. 
+Keep the main logo mark centered inside a "safe zone" (the middle 60-70% of the canvas) so it doesn't get cut off.
+
+Foreground Layer: 
+1024 × 1024 px transparent PNG containing only the logo graphic.
+
+Background Layer: 
+1024 × 1024 px solid color or background pattern image (no logo text).
+
+Dimensions: 
+Exactly 2732 × 2732 px.
+Format: PNG or JPG.
+
+Design Rule: This massive square canvas accounts for both vertical phones and horizontal tablets. 
+Center logo tightly in the absolute middle 1000 × 1000 px region, leaving the rest as a bleeding background color so it safely crops across all aspect ratios without stretching.
+
+
+Web-Specific Assets (Angular Web App)
+For the web browser deployment, have them save:
+Favicon: 32 × 32 px or 16 × 16 px .ico or .png file.
+
+Web Header Logo: A vector SVG file (preferable) or a transparent PNG scaled. We can use the current blue logo but need logo without slogan text.
+
+Thank you!
 #############################
 
 
@@ -301,6 +919,27 @@ Thank you!
 
 
 
+
+Today, I have run the app with the real device to chek the layout and continue work on game play logic.
+
+I will keep you updated on the progress.
+
+Thank you!
+
+
+
+Today, I have continue work on game start logic and also change some UI for which gives good user experience for mobile device.
+
+I will keep you updated on the progress.
+
+Thank you!
+
+
+
+Today, Due to power flactuation I did work for 4 to 5 hours only.
+
+
+Can you set this that when we toggle that the table size is same just toggle the header its on top. Like we set something eith position absulute. So that canvas header is optional and it toggle when required to user. Its overlap on the table when open.
 
 #################################
 

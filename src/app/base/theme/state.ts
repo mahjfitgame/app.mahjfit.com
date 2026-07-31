@@ -5,18 +5,32 @@ import { LogService } from '@libs/log/service';
 import { SignalStateService } from '@libs/signal-state/service';
 
 import { ThemeEnum, ThemeModeEnum, ThemePreferenceEnum } from '@base/theme/type';
+import { AppModuleStateType } from '@libs/utility/type';
 
 @Service()
-export class ThemeState extends SignalStateService {
+export class ThemeState extends SignalStateService implements AppModuleStateType {
+
+    // ████ DEPENDENCIES ████████████████████████████████████████████████
 
     private readonly conf = inject(ConfService);
     private readonly log = inject(LogService);
 
-    // required for persisted state
-    protected override readonly storeKey = 'theme';
+    // ████ CLASS PROPERTIES ████████████████████████████████████████████
+
+    public override readonly storeKey = 'theme';
 
     private readonly systemThemeMediaQuery: MediaQueryList | null =
         typeof window !== 'undefined' ? window.matchMedia('(prefers-color-scheme: dark)') : null;
+
+    private readonly attrTheme = 'data-bfw-theme';
+    private readonly attrThemeMode = 'data-bfw-theme-mode';
+    private readonly attrThemePreference = 'data-bfw-theme-preference';
+
+    // ████ SIGNAL FORM PROPERTIES ██████████████████████████████████████
+    // n/a
+
+    // ████ SIGNAL PROPERTIES ███████████████████████████████████████████
+
     private readonly systemThemeMode = signal(
         this.systemThemeMediaQuery?.matches ? ThemeModeEnum.DARK : ThemeModeEnum.LIGHT,
     );
@@ -51,9 +65,8 @@ export class ThemeState extends SignalStateService {
     });
     public readonly theme = this._theme.asReadonly();
 
-    private readonly attrTheme = 'data-bfw-theme';
-    private readonly attrThemeMode = 'data-bfw-theme-mode';
-    private readonly attrThemePreference = 'data-bfw-theme-preference';
+    // ████ STATE DEBUGGER ██████████████████████████████████████████████
+    // n/a
 
     constructor() {
         super();
@@ -62,7 +75,9 @@ export class ThemeState extends SignalStateService {
         this.initializeSignalState();
     }
 
-    protected override onActivate(): void {
+    // ████ LISTENERS ███████████████████████████████████████████████████
+
+    public override onActivate(): void {
         this.listenSystemThemeChanges();
 
         const themeEffect = effect(() => {
@@ -84,20 +99,13 @@ export class ThemeState extends SignalStateService {
 
         this.registerDeactivationCleanup(() => themeEffect.destroy());
     }
-    private listenSystemThemeChanges(): void {
-        if (!this.systemThemeMediaQuery) {
-        return;
-        }
 
-        const handleSystemThemeChange = (event: MediaQueryListEvent): void => {
-        this.systemThemeMode.set(event.matches ? ThemeModeEnum.DARK : ThemeModeEnum.LIGHT);
-        };
+    public override onDeactivate(): void {
 
-        this.systemThemeMediaQuery.addEventListener('change', handleSystemThemeChange);
-        this.registerDeactivationCleanup(() => {
-            this.systemThemeMediaQuery?.removeEventListener('change', handleSystemThemeChange);
-        });
     }
+
+    // ████ SIGNAL METHODS ██████████████████████████████████████████████
+
     public setTheme(theme: ThemeEnum): void {
         this._theme.set(theme);
     }
@@ -114,7 +122,8 @@ export class ThemeState extends SignalStateService {
         this.setThemePreference(nextThemePreference);
     }
 
-    // VALIDATION METHODS
+    // ████ SIGNAL DATA VALIDATORS ██████████████████████████████████████
+
     public isTheme(value: unknown): value is ThemeEnum {
         return Object.values(ThemeEnum).includes(value as ThemeEnum);
     }
@@ -124,4 +133,27 @@ export class ThemeState extends SignalStateService {
     public isThemeMode(value: unknown): value is ThemeModeEnum {
         return Object.values(ThemeModeEnum).includes(value as ThemeModeEnum);
     }
+
+    // ████ REGISTRATION AND CALLBACKS ██████████████████████████████████
+
+    private listenSystemThemeChanges(): void {
+        if (!this.systemThemeMediaQuery) {
+        return;
+        }
+
+        const handleSystemThemeChange = (event: MediaQueryListEvent): void => {
+        this.systemThemeMode.set(event.matches ? ThemeModeEnum.DARK : ThemeModeEnum.LIGHT);
+        };
+
+        this.systemThemeMediaQuery.addEventListener('change', handleSystemThemeChange);
+        this.registerDeactivationCleanup(() => {
+            this.systemThemeMediaQuery?.removeEventListener('change', handleSystemThemeChange);
+        });
+    }
+
+    // ████ API CALLS ███████████████████████████████████████████████████
+    // n/a
+
+    // ████ WEB SOCKET CALLS ████████████████████████████████████████████
+    // n/a
 }

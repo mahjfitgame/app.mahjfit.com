@@ -9,8 +9,9 @@ import { I18nService } from "@base/internationalization/service";
 import { SplashScreenService } from "@base/splash-screen/service";
 import { GlobalProgressBarService } from "@base/global-progress-bar/service";
 import { Router } from "@angular/router";
-import { AppClientServerHandShakeOutputDto, UserAuthentication, UserDevice, UserDeviceHandShakeInputDto, UserDeviceHandShakeOutputDto, UserDeviceHandShakeOutputSelectionSchema, UserWsToken } from "@bfw/api-sdk/graphql/endpoints/shared";
-import { ClientSessionService } from "@libs/client-session/service";
+import { UserAuthentication, UserDeviceHandShakeInputDto } from "@bfw/api-sdk/graphql/endpoints/shared";
+import { ContextProfileService } from "@libs/context-profile/service";
+import { BfwApiSdkDefaultRequestHeaders, BfwApiSdkError, BfwApiSdkErrorInterceptor, BfwApiSdkRequest, BfwApiSdkRequestInterceptor, BfwApiSdkResponse, BfwApiSdkResponseInterceptor, checkFailureSignal, TRIGGER_GRAPHQL_STATEFUL_AUTHORISATION_FAILURE, TRIGGER_REST_STATEFUL_AUTHORISATION_FAILURE } from "@bfw/api-sdk/core";
 
 @Service()
 export class AppService {
@@ -25,13 +26,11 @@ export class AppService {
     public readonly ps = inject(PlatformService);
     public readonly splash = inject(SplashScreenService);
     public readonly gpbs = inject(GlobalProgressBarService);
-    public readonly session = inject(ClientSessionService);
+    public readonly ctxp = inject(ContextProfileService);
 
     public readonly i18n = inject(I18nService);
     public readonly api = inject(BfwApiService);
 
-    // state
-    
     constructor() {}
 
     public onWindowScroll(): void {
@@ -44,6 +43,11 @@ export class AppService {
         // TODO: need to add or setup logic when user logged in or already logged in we might need to update token with logged in user id
         // need to find some way and work around for this
         try {
+            // wait for context state to sync and ready
+            while (!this.ctxp.state.ready()) {
+                await new Promise<void>((resolve) => setTimeout(resolve, 10));
+            }
+
             // load api service
             this.api.sdk.graphql.use(UserAuthentication);
 
@@ -76,53 +80,61 @@ export class AppService {
             };
 
             // if token is alreadu exist
-            if(this.session.state.dtoken() && this.session.state.dtoken() !== null && this.session.state.dtoken() !== ''){
-                this.log.info('[AppService] Client/Server Handshake Token Found.');
-                // set input for found token hand shake
-                clientInput.dtoken = this.session.state.dtoken() as string;
-                clientInput.dpid = this.session.state.dpid() as string;
-                clientInput.keyid = this.session.state.dkeyid() ?? undefined
+            if(this.ctxp.state.hostToken() && this.ctxp.state.hostToken() !== null && this.ctxp.state.hostToken() !== ''){
+                this.log.info('[AppService] Host Token Found.');
             }
             
-            // set api headers, as its sartup need to make sure the headers are set for initial api call
-            this.session.state.configureBfwApiHeaders();
-
             // api handshake: check if existing or add new both in one request
-            const resp: AppClientServerHandShakeOutputDto = await this.api.sdk.graphql.userAuthentication.appClientServerHandShake({
+            const http = await this.api.sdk.graphql.userAuthentication.appClientServerHandShake({
                 selection: {
-                    server: {
-                        //id: true,
-                        //u_id: true,
-                        //device_id: true,
+                    /*client: {
+                        id: true,
+                        u_id: true,
+                        device_id: true,
                         keyid: true,
                         dtoken: true,
                         dpid: true,
-                    },
-                    skeyid: true
+                    },*/
+                    htoken: true,
+                    ctxs: true,
+                    stoken: true,
+                    logged_in: true,
+                    keep_logged: true,
                 },
                 input: {
                     client: clientInput,
                 }
             });
 
-            const server = resp.server;
-            const skeyid = resp.skeyid;
+            const resp = http.data;
+
+            const client = resp.client;
+            const htoken = resp.htoken ?? null;
+            const ctxs = resp.ctxs ?? null;
+            const stoken = resp.stoken ?? null;
+            const logged_in = resp.logged_in ?? null;
+            const keep_logged = resp.keep_logged ?? null;
 
             // set hand shake identity
-            if (server && Object.keys(server).length > 0 && server.dtoken) {
-                // set verified client info by server in state
-                this.session.state.setDtoken(server.dtoken);
-                this.session.state.setDpid(server.dpid ?? null);
-                this.session.state.setDkeyid(server.keyid ?? null);
+            if ((client && Object.keys(client).length > 0 && client.dtoken) || (htoken && ctxs)) {
+                // set state host authorization
+                this.ctxp.state.setHostToken(htoken);
 
-                // set user session info in state
-                this.session.state.setSkeyid(skeyid ?? null);
+                // set user session ctxs in state
+                this.ctxp.state.setCtxs(ctxs);
 
-                return server?.dtoken ?? null;
+                // set or clear stateful token in state
+                if(logged_in && stoken) {
+                    this.ctxp.state.setSessionToken(stoken);
+                } else {
+                    this.ctxp.state.clearSessionToken();
+                }
+
+                return ctxs ?? false;
             }
 
             // handshake failed so do not allow app to run
-            this.log.error('Client/Server hand shake failed.');
+            this.log.error('App client/server hand shake failed.');
         } catch (e: any) {
             this.log.error(e);
         }
@@ -138,5 +150,78 @@ export class AppService {
     public async afterClientServerHandShake(): Promise<void> {
         // connect to web socket
         //await this.api.sdk.graphql.ws.connect();
+    }
+    public registerAfterResponseInterceptor(): void {
+        // make sure do not add any error related logic
+        // it will go inside registerAfterResponseErrorInterceptor()
+        const interceptor: BfwApiSdkResponseInterceptor = 
+            async <T>(res: BfwApiSdkResponse<T>): Promise<BfwApiSdkResponse<T>>  => {
+
+                // update host token after response
+                const hostToken = res.getResHeaderHostAuthorization();
+                if(hostToken) {
+                    this.ctxp.state.setHostToken(hostToken);
+                } 
+
+                // update ctxs after response
+                const ctxs = res.getResHeaderCtxs();
+                if(ctxs) {
+                    this.ctxp.state.setCtxs(ctxs);
+                }
+
+                this.log.info(`[RES INTERCEPTOR] Completed ${res.getResHeaderReqResId()}`);
+
+                return res;
+            };
+
+        this.api.sdk.graphql.registerAfterResponseInterceptor(interceptor);
+        this.api.sdk.rest.registerAfterResponseInterceptor(interceptor);
+    }
+    public registerAfterResponseErrorInterceptor(): void {
+        // make sure that if its error then also registerAfterResponseInterceptor() will execute
+        // so do not duplicate same process in error interceptor
+
+        const interceptor: BfwApiSdkErrorInterceptor = 
+            async (err: BfwApiSdkError): Promise<BfwApiSdkError>  => {
+                const messages = err.errors();
+
+                // if server throw 401, and has failure signal message in error clear session token
+                if (err.status === 401) {
+                    const messages = err.errors();
+
+                    const triggers: string[] = [
+                        ...new Set([
+                            ...TRIGGER_GRAPHQL_STATEFUL_AUTHORISATION_FAILURE,
+                            ...TRIGGER_REST_STATEFUL_AUTHORISATION_FAILURE,
+                        ])
+                    ];
+
+                    const hasFailureSignal = checkFailureSignal(triggers, messages);
+
+                    if(hasFailureSignal) {
+                        this.ctxp.state.clearSessionToken();    
+                    }
+                }
+
+                if(err.response) {
+                    // make sure err.response is readonly in error interceptor
+                    const res = err.response;
+
+                    this.log.info(`[RES ERR INTERCEPTOR] Completed ${res.getResHeaderReqResId()}`);
+                }
+                return err;
+            };
+        this.api.sdk.graphql.registerAfterResponseErrorInterceptor(interceptor);
+        this.api.sdk.rest.registerAfterResponseErrorInterceptor(interceptor);
+    }
+    public registerBeforeRequestInterceptor(): void {
+        const interceptor: BfwApiSdkRequestInterceptor = 
+            async <T>(req: BfwApiSdkRequest<T>): Promise<BfwApiSdkRequest<T>>  => {
+                // add logic to mofify request
+                this.log.info(`[REQ INTERCEPTOR] Started ${req.headers[BfwApiSdkDefaultRequestHeaders.REQ_RES_ID] ?? '0'}`);
+                return req;
+        }
+        this.api.sdk.graphql.registerBeforeRequestInterceptor(interceptor);
+        this.api.sdk.rest.registerBeforeRequestInterceptor(interceptor);
     }
 }

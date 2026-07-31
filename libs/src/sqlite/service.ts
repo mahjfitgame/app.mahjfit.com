@@ -6,9 +6,14 @@ import { drizzle } from 'drizzle-orm/sqlite-proxy';
 import { SqliteDriverFactory } from './driver/factory';
 import { SqliteDriverType, SqliteTransactionType } from './type';
 import { SqliteMigrationRunner } from './migration/runner';
+import { LogService } from '@libs/log/service';
+import { ConfService } from '@libs/conf/service';
 
 @Service()
 export class SqliteService {
+  private readonly conf = inject(ConfService);
+  private readonly log = inject(LogService);
+
   private readonly driverFactory = inject(SqliteDriverFactory);
 
   private initialized = false;
@@ -78,7 +83,11 @@ export class SqliteService {
   private async initCurrentDriver(): Promise<void> {
     await this.driver.init();
 
-    const migrationRunner = new SqliteMigrationRunner(this.driver);
+    const migrationRunner = new SqliteMigrationRunner(
+      this.driver,
+      this.conf,
+      this.log
+    );
     await migrationRunner.run();
   }
 

@@ -1,8 +1,7 @@
 // file: app/base/notification/component.ts
+import { Service } from "@angular/core";
 
-import { Injectable } from "@angular/core";
-
-@Injectable({ providedIn: "root" })
+@Service()
 export class NotificationService {
     constructor() {}
 }
