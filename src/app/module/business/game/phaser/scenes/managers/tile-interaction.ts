@@ -1,25 +1,6 @@
 // file: src/app/module/business/game/phaser/scenes/managers/tile-interaction.ts
 import Phaser from "phaser";
-import type { TileRuntime } from "./state";
-
-export interface TileInteractionCallbacks {
-  readonly canSelectTile: (runtime: TileRuntime) => boolean;
-  readonly canStartDrag: (runtime: TileRuntime) => boolean;
-  readonly canDropTile: (runtime: TileRuntime, x: number, y: number) => boolean;
-  readonly canDiscard: (runtime: TileRuntime, x: number, y: number) => boolean;
-  readonly canPass: (runtime: TileRuntime, x: number, y: number) => boolean;
-  readonly onTileSelected: (runtime: TileRuntime) => void;
-  readonly onTileDropped: (runtime: TileRuntime, x: number, y: number) => void;
-  readonly onDragFinished: (runtime: TileRuntime) => void;
-  readonly requestAnimation: (runtime: TileRuntime) => void;
-}
-
-export interface InteractionRect {
-  readonly x: number;
-  readonly y: number;
-  readonly width: number;
-  readonly height: number;
-}
+import { InteractionRect, TileInteractionCallbacks, TileRuntime } from "../type";
 
 /**
  * Phaser-input boundary. It tracks generic pointer motion only; all gameplay

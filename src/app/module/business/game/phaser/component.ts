@@ -18,12 +18,14 @@ import { TableScene } from "./scenes/scene";
 import { TablePhase } from "../model/table-phase";
 import { GameHapticsService, GameHapticType } from "../platform/haptics.service";
 import { DeviceLayoutService } from "./device-layout.service";
+import { COLOR_BLUE } from "./const";
 
 @Component({
   selector: "app-phaser-board",
   standalone: true,
   template: `<div #host class="phaser-host"></div>
   <img
+    #headerLogo
     class="hud-logo"
     src="assets/majhfit-logo@2x.png"
     srcset="
@@ -68,22 +70,30 @@ import { DeviceLayoutService } from "./device-layout.service";
         user-select: none;
 
         left: max(56px, calc(env(safe-area-inset-left, 0px) + 56px));
-        top: max(11px, calc(env(safe-area-inset-top, 0px) + 11px));
+        top: max(6px, calc(env(safe-area-inset-top, 0px) + 6px));
 
-        width: clamp(86px, 7.2vw, 142px);
-        height: auto;
+        /* The desktop/tablet HUD is at least 54px tall. */
+        width: auto;
+        height: 46px;
 
         image-rendering: auto;
         transform: translateZ(0);
         backface-visibility: hidden;
+        transition: opacity 160ms ease, transform 160ms ease, visibility 160ms;
+      }
+
+      :host(.mobile-header-collapsed) .hud-logo {
+        opacity: 0;
+        visibility: hidden;
+        transform: translateY(-12px) translateZ(0);
       }
 
       /* Compact mobile portrait */
       @media (max-width: 680px) and (orientation: portrait) {
         .hud-logo {
           left: max(30px, calc(env(safe-area-inset-left, 0px) + 30px));
-          top: max(11px, calc(env(safe-area-inset-top, 0px) + 11px));
-          width: clamp(58px, 17vw, 76px);
+          top: max(4px, calc(env(safe-area-inset-top, 0px) + 4px));
+          height: 34px;
         }
       }
 
@@ -91,8 +101,8 @@ import { DeviceLayoutService } from "./device-layout.service";
       @media (max-height: 520px) and (orientation: landscape) {
         .hud-logo {
           left: max(46px, calc(env(safe-area-inset-left, 0px) + 46px));
-          top: max(8px, calc(env(safe-area-inset-top, 0px) + 8px));
-          width: clamp(74px, 8vw, 110px);
+          top: max(4px, calc(env(safe-area-inset-top, 0px) + 4px));
+          height: 28px;
         }
       }
 
@@ -102,6 +112,9 @@ import { DeviceLayoutService } from "./device-layout.service";
 export class PhaserBoardComponent implements AfterViewInit {
   @ViewChild("host", { static: true })
   private readonly hostRef!: ElementRef<HTMLDivElement>;
+
+  @ViewChild("headerLogo", { static: true })
+  private readonly headerLogoRef!: ElementRef<HTMLImageElement>;
 
   readonly rack = input.required<readonly TileVm[]>();
   readonly passDirection = input<PassDirection>("right");
@@ -157,6 +170,13 @@ export class PhaserBoardComponent implements AfterViewInit {
 
   ngAfterViewInit(): void {
     const host = this.hostRef.nativeElement;
+    const initialLayout = this.deviceLayout.forViewport(
+      host.clientWidth,
+      host.clientHeight,
+    ).layout;
+    this.setMobileHeaderCollapsed(
+      initialLayout === "phone-portrait" || initialLayout === "phone-landscape",
+    );
 
     this.zone.runOutsideAngular(() => {
       const scene = new TableScene({
@@ -167,6 +187,8 @@ export class PhaserBoardComponent implements AfterViewInit {
         },
         getDeviceLayout: (width, height) =>
           this.deviceLayout.forViewport(width, height),
+        onMobileHeaderChanged: (collapsed) =>
+          this.setMobileHeaderCollapsed(collapsed),
       });
 
       this.game = new Phaser.Game({
@@ -174,7 +196,7 @@ export class PhaserBoardComponent implements AfterViewInit {
         parent: host,
         width: Math.max(1, host.clientWidth),
         height: Math.max(1, host.clientHeight),
-        backgroundColor: "#2f4d99",
+        backgroundColor: COLOR_BLUE,
 
         scale: {
           mode: Phaser.Scale.RESIZE,
@@ -256,6 +278,14 @@ export class PhaserBoardComponent implements AfterViewInit {
       bottom: this.readCssPx(styles.getPropertyValue("--safe-area-bottom")),
       left: this.readCssPx(styles.getPropertyValue("--safe-area-left")),
     };
+  }
+
+  private setMobileHeaderCollapsed(collapsed: boolean): void {
+    this.hostRef.nativeElement.classList.toggle(
+      "mobile-header-collapsed",
+      collapsed,
+    );
+    this.headerLogoRef.nativeElement.hidden = collapsed;
   }
 
   private readCssPx(value: string): number {

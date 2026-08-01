@@ -3,17 +3,7 @@ import Phaser from "phaser";
 import type { PassDirection, TileVm } from "../../../model/tile";
 import type { TablePhase } from "../../../model/table-phase";
 import { TableLayout } from "../../type";
-
-export type TableSeat = "top" | "right" | "bottom" | "left";
-
-export interface TileRuntime {
-  readonly vm: TileVm;
-  readonly image: Phaser.GameObjects.Image;
-  slotIndex: number;
-  selected: boolean;
-  isDragging: boolean;
-  zone: "rack" | "discard" | "pass";
-}
+import { TableSeat, TileRuntime } from "../type";
 
 /**
  * Owns mutable table, rack, pass, and interaction state.

@@ -56,7 +56,8 @@ export class AppComponent implements OnInit, OnDestroy, AfterViewInit {
       this.service.splash.stream = 40;
 
       // hand shake with api to wake it up and check if it's responsive, also can be used to fetch some critical data for app initialization
-      const hs = await this.service.clientServerHandShake();
+      //const hs = await this.service.clientServerHandShake();
+      const hs=true;
       this.service.splash.stream = 60;
       
 

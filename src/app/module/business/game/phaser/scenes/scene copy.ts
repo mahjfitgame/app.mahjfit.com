@@ -12,14 +12,19 @@ import type { GameHapticType } from "../../platform/haptics.service";
 import { AnimationManager } from "./managers/animation";
 import { PassFlowManager } from "./managers/pass-flow";
 import { SoundManager } from "./managers/sound";
-import { StateManager, type TableSeat, type TileRuntime } from "./managers/state";
+/* import { StateManager, type TableSeat, type TileRuntime } from "./managers/state";
 import { TileInteractionManager } from "./managers/tile-interaction";
-import { HudActionKey, UiLayoutManager, HamburgerMenuActionKey } from "./managers/ui-layout";
+import { HudActionKey, UiLayoutManager, HamburgerMenuActionKey } from "./managers/ui-layout"; */
+
+import { StateManager} from "./managers/state";
+import { TileInteractionManager } from "./managers/tile-interaction";
+import { UiLayoutManager } from "./managers/ui-layout";
 import {
   type ExposurePanelMode,
   exposureLipRatio,
   exposureNameStripRatio,
 } from "../exposure-panel.tokens";
+import { HamburgerMenuActionKey, HudActionKey, TableSeat, TileRuntime } from "./type";
 //import { AssetTextureLoader } from "../asset-texture.loader";
 
 

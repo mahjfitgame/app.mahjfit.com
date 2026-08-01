@@ -5,10 +5,16 @@ As per the meeting discussin niravraj suggested few points releated with design 
 Worked on manage the tile rack and make proper spacing around the table. 
 
 2]
+Game board design and improved the layout for mobile and tablet devices. 
+Adjusted the position of some areas on mobile to provide a better user experience. 
+Reduced the space outside the blue area to increase the game table width, 
+made the header collapsible to provide more space for the game board, and slightly increased the rack tile size for better visibility.
 
 
 
 
+
+In mobile move bottom exposure and rack tile to littlebit down (Bottom), so we get the more space for discard area.
 
 
 
@@ -20,6 +26,19 @@ Today, I worked on to manage the spacing and sizing of the game boards and its c
 I will keep you posted on work progress.
 Thank you!
 
+
+FOR CLIENT]
+Today, I continued working on the game board design and improved the layout for mobile and tablet devices. I also adjusted the position of some areas on mobile to provide a better user experience. I reduced the space outside the blue area to increase the game table width, made the header collapsible to provide more space for the game board, and slightly increased the rack tile size for better visibility.
+
+I will keep you posted on work progress.
+Thank you!
+
+
+
+
+what is the size of audio files that would work
+REPLY]
+Generally, we prefer files to be as small as possible. There isn't a specific size limit, but we keep them small for better performance. Ideally, the file size should be in KB rather than MB.
 
 #####################
 MEETING DISCUSSION 

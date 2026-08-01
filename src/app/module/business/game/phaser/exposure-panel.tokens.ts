@@ -17,8 +17,11 @@ export function exposureNameStripRatio(mode: ExposurePanelMode): number {
    * Desktop currently looks good with 0.225.
    * Mobile needs smaller strip so the exposure tile area is not consumed.
    */
-  if (mode === "mobile-portrait") return 0.12;
-  if (mode === "mobile-landscape") return 0.14;
+  // Reserve a little more strip width/height around the rotated player name.
+  // The layout engine compensates panel thickness, so the exposed-tile area
+  // remains rack-tile sized.
+  if (mode === "mobile-portrait") return 0.18;
+  if (mode === "mobile-landscape") return 0.18;
   if (mode === "tablet") return 0.17;
 
   return 0.225;

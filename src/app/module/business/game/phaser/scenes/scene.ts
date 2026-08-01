@@ -9,84 +9,19 @@ import { selectTileAtlas, TILE_ATLAS_1X_KEY, TILE_ATLAS_2X_KEY } from "../../til
 import { PassAnimationItem } from "../models/pass-animation.model";
 import { TablePhase } from "../../model/table-phase";
 import type { GameHapticType } from "../../platform/haptics.service";
-import type { DeviceLayoutState } from "../device-layout.service";
 import { AnimationManager } from "./managers/animation";
 import { PassFlowManager } from "./managers/pass-flow";
 import { SoundManager } from "./managers/sound";
-import { StateManager, type TableSeat, type TileRuntime } from "./managers/state";
+import { StateManager } from "./managers/state";
 import { TileInteractionManager } from "./managers/tile-interaction";
-import { HudActionKey, UiLayoutManager, HamburgerMenuActionKey } from "./managers/ui-layout";
+import { UiLayoutManager } from "./managers/ui-layout";
 import {
   type ExposurePanelMode,
   exposureLipRatio,
   exposureNameStripRatio,
 } from "../exposure-panel.tokens";
-import { COLOR_AVOCADO_NUM, COLOR_BLUE_NUM, COLOR_GRAY_NUM, COLOR_LAVENDER_NUM, ICON_DEADHAND_HOVER, ICON_DEADHAND_NORMAL, ICON_DEADHAND_PRESSED, ICON_HELP_HOVER, ICON_HELP_NORMAL, ICON_HELP_PRESSED, ICON_HINT_HOVER, ICON_HINT_NORMAL, ICON_HINT_PRESSED, ICON_SETTINGS_HOVER, ICON_SETTINGS_NORMAL, ICON_SETTINGS_PRESSED, ICON_SORT_HOVER, ICON_SORT_NORMAL, ICON_SORT_PRESSED } from "../const";
-//import { AssetTextureLoader } from "../asset-texture.loader";
-
-
-interface TableSceneCallbacks {
-  readonly onSelectionChanged: (ids: readonly string[]) => void;
-  readonly onPassCompleted: (payload: { readonly tileIds: readonly string[]; readonly direction: PassDirection }) => void;
-  onHaptic?: (type: GameHapticType) => void;
-  readonly getDeviceLayout: (width: number, height: number) => DeviceLayoutState;
-}
-
-interface SeatPassMove {
-  readonly from: TableSeat;
-  readonly to: TableSeat;
-}
-
-type TableSfxId =
-  | "tile-select"
-  | "tile-pass-waiting"
-  | "tile-return"
-  | "tile-drop"
-  | "pass";
-
-type TableSfxConfig = {
-  key: string;
-  urls: string[];
-  volume: number;
-  poolSize: number;
-  throttleMs?: number;
-};
-
-interface DiscardGrid {
-  readonly x: number;
-  readonly y: number;
-  readonly width: number;
-  readonly height: number;
-  readonly tileWidth: number;
-  readonly tileHeight: number;
-  readonly paddingX: number;
-  readonly paddingY: number;
-  readonly gapX: number;
-  readonly gapY: number;
-  readonly columns: number;
-}
-
-
-type CharlestonVisualPhase =
-  | "idle"
-  | "selecting"
-  | "bot-staging"
-  | "committing";
-
-interface CharlestonVisualTransfer {
-  readonly from: TableSeat;
-  readonly to: TableSeat;
-  readonly includeBottom: boolean;
-}
-
-interface BotPassVisualTile {
-  readonly id: string;
-  readonly from: TableSeat;
-  readonly to: TableSeat;
-  readonly image: Phaser.GameObjects.Container;
-}
-
-
+import { COLOR_AVOCADO_NUM, COLOR_BLUE_NUM, COLOR_FUSHIA, COLOR_GRAY_NUM, COLOR_LAVENDER_NUM, FONT_FAMILY, ICON_DEADHAND_HOVER, ICON_DEADHAND_NORMAL, ICON_DEADHAND_PRESSED, ICON_HELP_HOVER, ICON_HELP_NORMAL, ICON_HELP_PRESSED, ICON_HINT_HOVER, ICON_HINT_NORMAL, ICON_HINT_PRESSED, ICON_SETTINGS_HOVER, ICON_SETTINGS_NORMAL, ICON_SETTINGS_PRESSED, ICON_SORT_HOVER, ICON_SORT_NORMAL, ICON_SORT_PRESSED } from "../const";
+import { HudActionKey, HamburgerMenuActionKey, TableSeat, TileRuntime, BotPassVisualTile, TableSceneCallbacks, TableSfxId, TableSfxConfig, DiscardGrid, CharlestonVisualTransfer } from "./type";
 
 export class TableScene extends Phaser.Scene {
   private readonly callbacks: TableSceneCallbacks;
@@ -103,54 +38,6 @@ export class TableScene extends Phaser.Scene {
   private readonly stateManager = new StateManager();
 
   private readonly logoTextureKey = "majhfit-logo";
-
-  private readonly tileVoiceVolume = 0.85;
-
-  private readonly tileVoiceKeys = [
-    "1-bam",
-    "2-bam",
-    "3-bam",
-    "4-bam",
-    "5-bam",
-    "6-bam",
-    "7-bam",
-    "8-bam",
-    "9-bam",
-
-    "1-crack",
-    "2-crack",
-    "3-crack",
-    "4-crack",
-    "5-crack",
-    "6-crack",
-    "7-crack",
-    "8-crack",
-    "9-crack",
-
-    "1-dot",
-    "2-dot",
-    "3-dot",
-    "4-dot",
-    "5-dot",
-    "6-dot",
-    "7-dot",
-    "8-dot",
-    "9-dot",
-
-    "east",
-    "south",
-    "west",
-    "north",
-    "red",
-    "green",
-    "soap",
-    "joker",
-    "flower",
-  ] as const;
-
-  private readonly tileVoiceSounds = new Map<string, Phaser.Sound.BaseSound>();
-  private currentTileVoice?: Phaser.Sound.BaseSound;
-  private lastTileVoiceAt = 0;
 
   //private assetLoader!: AssetTextureLoader;
 
@@ -210,6 +97,13 @@ export class TableScene extends Phaser.Scene {
   private set dragPointerId(value: number | undefined) { this.stateManager.dragPointerId = value; }
 
   private renderDpr = 1;
+  private mobileHeaderCollapsed = true;
+  private mobileHeaderToggle?: Phaser.GameObjects.Container;
+  private mobileHeaderToggleLabel?: Phaser.GameObjects.Text;
+
+  private readableRenderDpr(): number {
+    return Phaser.Math.Clamp(window.devicePixelRatio || 1, 1, 2);
+  }
 
   private get hudMenuOpen(): boolean { return this.uiLayoutManager.hudMenuOpen; }
   private set hudMenuOpen(value: boolean) { this.uiLayoutManager.hudMenuOpen = value; }
@@ -246,78 +140,18 @@ export class TableScene extends Phaser.Scene {
   private set activeRackAtlasKey(value: string | undefined) { this.stateManager.activeRackAtlasKey = value; }
   private get pendingAtlasRefresh(): boolean { return this.stateManager.pendingAtlasRefresh; }
   private set pendingAtlasRefresh(value: boolean) { this.stateManager.pendingAtlasRefresh = value; }
-
-  /* private readonly sfxConfig: Record<TableSfxId, TableSfxConfig> = {
-    "tile-select": {
-      key: "sfx-tile-select",
-      urls: ["assets/sounds/tile-select.mp3"],
-      volume: 0.45,
-      poolSize: 3,
-      throttleMs: 35,
-    },
-    "tile-pass-waiting": {
-      key: "sfx-tile-pass-waiting",
-      urls: ["assets/sounds/tile-drop.mp3"],
-      volume: 0.5,
-      poolSize: 3,
-      throttleMs: 35,
-    },
-    "tile-return": {
-      key: "sfx-tile-return",
-      urls: ["assets/sounds/tile-drop.mp3"],
-      volume: 0.45,
-      poolSize: 2,
-      throttleMs: 45,
-    },
-    "tile-drop": {
-      key: "sfx-tile-drop",
-      urls: ["assets/sounds/tile-drop.mp3"],
-      volume: 0.5,
-      poolSize: 2,
-      throttleMs: 45,
-    },
-    pass: {
-      key: "sfx-pass",
-      urls: ["assets/sounds/pass.mp3"],
-      volume: 0.65,
-      poolSize: 1,
-      throttleMs: 150,
-    },
-  };
-
-  private readonly sfxPools = new Map<TableSfxId, Phaser.Sound.BaseSound[]>();
-  private readonly sfxPoolCursor = new Map<TableSfxId, number>();
-  private readonly lastSfxAt = new Map<TableSfxId, number>();
-  private sfxReady = false; */
-
   private safeAreaInsets: SafeAreaInsets = {
     top: 0,
     right: 0,
     bottom: 0,
     left: 0,
   };
-
-  
-
-  /**
-   * Visual-only Charleston bot/opponent pass tiles.
-   *
-   * These objects are temporary Phaser clones only.
-   * They never enter rackOrder, tileMap, passWaitingTileIds, or scoring/rules state.
-   */
   private readonly botPassVisualTiles: BotPassVisualTile[] = [];
   private botPassVisualSequence = 0;
   private isBotPassVisualAnimating = false;
-
-  /**
-   * The first Charleston round should NOT auto-stage bot tiles before the user presses PASS.
-   * After the first successful local PASS, later rounds auto-stage non-bottom seats.
-   */
+  
   private hasCompletedFirstCharlestonVisualPass = false;
 
-  /**
-   * Prevents auto-staging again for the same pass direction after a submit.
-   */
   private lastSubmittedPassDestination?: TableSeat;
   private botAutoStagedDestination?: TableSeat;
 
@@ -375,27 +209,17 @@ export class TableScene extends Phaser.Scene {
 
   create(): void {
     this.graphics = this.add.graphics();
-    //this.assetLoader = new AssetTextureLoader(this);
-
     this.input.setTopOnly(true);
-
     this.input.dragDistanceThreshold = 4;
     this.input.dragTimeThreshold = 60;
-
     this.game.events.on("rack:set", this.setRack, this);
     this.game.events.on("pass:direction", this.setPassDirection, this);
     this.game.events.on("table:resize", this.resize, this);
     this.game.events.on("table:phase", this.setTablePhase, this);
     this.game.events.on("table:safe-area", this.setSafeAreaInsets, this);
     this.game.events.on("table:active-seat", this.setActiveSeat, this);
-    /* this.game.events.on("table:resize", (width: number, height: number, dpr = 1) => {
-      this.resize(width, height);
-    }); */
-    /**
-     * Charleston animation completed.
-     *
-     * Apply the visual/game result.
-     */
+    
+    
     this.game.events.on(
       "charleston:animation-complete",
       () => {
@@ -405,9 +229,7 @@ export class TableScene extends Phaser.Scene {
 
     this.resize(this.scale.width, this.scale.height);
     this.createStaticUi();
-
     this.game.events.emit("table:ready");
-
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
       console.log("Table scene shutdown");
       this.game.events.off("rack:set", this.setRack, this);
@@ -419,8 +241,6 @@ export class TableScene extends Phaser.Scene {
 
       this.clearBotPassVisualTiles();
       this.isBotPassVisualAnimating = false;
-
-
       this.soundManager.destroy();
     });
     this.events.once(Phaser.Scenes.Events.DESTROY, () => {
@@ -428,7 +248,6 @@ export class TableScene extends Phaser.Scene {
     });
 
     this.soundManager.create();
-  
   }
   public preload(): void {
     this.soundManager.preload();
@@ -441,16 +260,6 @@ export class TableScene extends Phaser.Scene {
       );
     }
 
-    /* if (!this.textures.exists(this.logoTextureKey)) {
-      this.load.svg(
-        this.logoTextureKey,
-        "assets/Logo_white.svg",
-        {
-          width: 360,
-          height: 110,
-        },
-      );
-    } */
     // Hud action ICONS
     this.load.image(ICON_SORT_NORMAL, "assets/game/icons/icon_sort_default.png");
     this.load.image(ICON_SORT_HOVER, "assets/game/icons/icon_sort_hover.png");
@@ -479,10 +288,6 @@ export class TableScene extends Phaser.Scene {
   private playTileDiscardVoice(vm: TileVm): void {
     this.soundManager.playTileDiscardVoice(vm);
   }
-  private playWebFallback(type: GameHapticType): void {
-    this.soundManager.playWebFallback(type);
-  }
-
   private handleHamburgerMenuAction(action: HamburgerMenuActionKey): void {
     switch (action) {
       case "gameplay-settings":
@@ -612,7 +417,7 @@ export class TableScene extends Phaser.Scene {
     return this.passFlowManager.isPassingPhase();
   }
   private resize(width: number, height: number): void {
-    this.renderDpr = 1;
+    this.renderDpr = this.readableRenderDpr();
 
     this.cameras.main.setViewport(0, 0, width, height);
     this.cameras.main.setZoom(1);
@@ -624,77 +429,27 @@ export class TableScene extends Phaser.Scene {
       this.config,
       this.safeAreaInsets,
     );
+    this.callbacks.onMobileHeaderChanged(
+      this.layout.metrics.isMobile && this.mobileHeaderCollapsed,
+    );
 
     this.drawTable();
     this.layoutStaticUi();
+    this.layoutMobileHeaderToggle();
     this.layoutRackTiles(false);
     this.layoutPassWaitingArea();
-
-    /**
-     * Real bottom selected pass tiles.
-     * These are TileRuntime objects from passWaitingTileIds.
-     */
     this.layoutPassWaitingTiles(false);
-
-    /**
-     * Bot/opponent Charleston pass backs.
-     *
-     * These are temporary visual clones, not TileRuntime objects.
-     * On orientation change, keep them alive and only reposition them
-     * into the new pass waiting area targets.
-     */
     this.relayoutBotPassVisualTilesAfterResize();
-
     this.updatePassButtonState();
-
     this.refreshRackTexturesIfAtlasChanged();
   }
-  private resizeOLDW(width: number, height: number): void {
-    this.renderDpr = 1;
 
-    this.cameras.main.setViewport(0, 0, width, height);
-    this.cameras.main.setZoom(1);
-    this.cameras.main.setScroll(0, 0);
-
-    this.layout = this.layoutEngine.compute(
-      this.callbacks.getDeviceLayout(width, height),
-      //this.rackTiles.length || 14,
-      this.activeRackLayoutTileCount(),
-      this.config,
-      this.safeAreaInsets,
-    );
-
-    this.drawTable();
-    this.layoutStaticUi();
-    this.layoutRackTiles(false);
-    this.layoutPassWaitingArea();
-    this.layoutPassWaitingTiles(false);
-    this.updatePassButtonState();
-
-    this.refreshRackTexturesIfAtlasChanged();
-
-    /**
-     * Important after orientation change.
-     * PASS waiting tiles must use the new passAreaTargets().
-     */
-    this.relayoutPassWaitingTilesAfterResize();
-  }
-
-  private activeRackLayoutTileCount(): number {
-    /**
-     * Use rackOrder, not rackTiles.
-     *
-     * rackTiles contains all known tile VMs, including discarded tiles.
-     * rackOrder contains only tiles currently in the player's rack.
-     *
-     * Keep minimum 14 so the rack/discard tile size does not shrink/grow
-     * when the hand temporarily has fewer tiles after discarding.
-     */
+  private activeRackLayoutTileCount(): number {    
     return Math.max(14, this.rackOrder.length);
   }
 
   private resizeW(width: number, height: number): void {
-    this.renderDpr = 1;
+    this.renderDpr = this.readableRenderDpr();
 
     this.cameras.main.setViewport(0, 0, width, height);
     this.cameras.main.setZoom(1);
@@ -709,7 +464,6 @@ export class TableScene extends Phaser.Scene {
     this.drawTable();
     this.layoutStaticUi();
     this.layoutRackTiles(false);
-
     this.layoutPassWaitingArea();
     this.layoutPassWaitingTiles(false);
     this.updatePassButtonState();
@@ -728,11 +482,6 @@ export class TableScene extends Phaser.Scene {
     this.layoutPassWaitingArea();
     this.layoutPassWaitingTiles(false);
     this.updatePassButtonState();
-
-    /**
-     * After the first Charleston pass, bot/opponent seats auto-stage their
-     * next pass tiles to the destination waiting areas.
-     */
     this.time.delayedCall(120, () => {
       this.tryAutoStageBotPassTilesForCurrentDirection();
     });
@@ -741,7 +490,6 @@ export class TableScene extends Phaser.Scene {
   private setRack(tiles: readonly TileVm[]): void {
     //this.validateTiles(tiles);
     this.rackTiles = [...tiles];
-
     const needs1xAtlas = !this.textures.exists(TILE_ATLAS_1X_KEY);
     const needs2xAtlas = !this.textures.exists(TILE_ATLAS_2X_KEY);
 
@@ -877,39 +625,11 @@ export class TableScene extends Phaser.Scene {
       this.refreshRackTileTextures();
       this.layoutRackTiles(false);
       this.layoutPassWaitingArea();
-
-      /**
-       * Real bottom selected pass tiles may change size after atlas/layout update.
-       */
       this.layoutPassWaitingTiles(false);
-
-      /**
-       * Bot/opponent staged Charleston backs are temporary clones.
-       * They also need to follow the updated pass waiting positions.
-       */
       this.relayoutBotPassVisualTilesAfterResize();
-
       this.updatePassButtonState();
     });
   }
-  private refreshRackTexturesIfAtlasChangedOLD(): void {
-    const tileWidth = Math.round(this.layout.bottomTileLayout.width);
-    const atlas = selectTileAtlas(tileWidth);
-
-    if (this.activeRackAtlasKey === atlas.atlasKey) {
-      return;       
-    }
-
-    this.ensureTileAtlasLoaded(() => {
-      this.activeRackAtlasKey = atlas.atlasKey;
-      this.refreshRackTileTextures();
-      this.layoutRackTiles(false);
-      this.layoutPassWaitingArea();
-      this.layoutPassWaitingTiles(false);
-      this.updatePassButtonState();
-    });
-  }
-
   private ensureTileAtlasLoaded(onReady: () => void): void {
     const tileWidth = Math.round(this.layout.bottomTileLayout.width);
     const atlas = selectTileAtlas(tileWidth);
@@ -979,14 +699,6 @@ export class TableScene extends Phaser.Scene {
     this.input.setDraggable(runtime.image);
 
     this.tileInteractionManager.onPointerDown(runtime.image, (pointer: Phaser.Input.Pointer) => {
-      /**
-       * PASS TILE TAP
-       *
-       * Keep this behavior identical to the close button.
-       * Close button uses pointerdown, so pass tile image should also use pointerdown.
-       *
-       * This must happen before drag setup and before suppressTap logic.
-       */
       if (runtime.zone === "pass") {
         pointer.event?.stopPropagation?.();
         this.playHaptic("tile-return");
@@ -1030,34 +742,18 @@ export class TableScene extends Phaser.Scene {
       runtime.image.setPosition(Math.round(dragX), Math.round(dragY));
 
      if (runtime.zone === "rack") {
-        /* const isPassingDropTarget =
-          this.tablePhase === "passing" &&
-          (
-            this.isInsidePassWaitingArea(pointer.worldX, pointer.worldY) ||
-            this.isInsidePlayableDiscardArea(pointer.worldX, pointer.worldY)
-          ); */
-        
           const isPassingDropTarget =
             this.tablePhase === "passing" &&
             (
               this.isInsidePassWaitingArea(pointer.worldX, pointer.worldY) ||
               this.isInsidePlayablePassDropArea(pointer.worldX, pointer.worldY)
             );
-
-        /**
-         * During PASSING phase, pass/drop targets still win.
-         * So dragging into pass waiting area or playable discard area
-         * should not reorder the rack.
-         */
+        
         if (isPassingDropTarget) {
           return;
         }
 
-        /**
-         * Rack rearrange should work in both:
-         * - passing phase
-         * - playing phase
-         */
+        
         if (this.isInsideRackArea(pointer.worldX, pointer.worldY)) {
           const newIndex = this.rackIndexFromDragX(runtime.vm.id, pointer.worldX);
           const currentIndex = this.rackOrder.indexOf(runtime.vm.id);
@@ -1082,19 +778,7 @@ export class TableScene extends Phaser.Scene {
 
         this.suppressTapByTileId.add(runtime.vm.id);
         runtime.isDragging = false;
-     
-      /* if (
-          this.tablePhase === "passing" &&
-          runtime.zone === "rack" &&
-          (
-            this.isInsidePassWaitingArea(pointer.worldX, pointer.worldY) ||
-            this.isInsidePlayableDiscardArea(pointer.worldX, pointer.worldY)
-          )
-        ) {
-          this.tileInteractionManager.cleanupDrop(runtime.vm.id);
-          this.snapTileToPassWaiting(runtime);
-          return;
-        } */
+      
        if (
         this.tablePhase === "passing" &&
         runtime.zone === "rack" &&
@@ -1130,16 +814,7 @@ export class TableScene extends Phaser.Scene {
 
       if (shouldSuppressTap) return;
       if (runtime.isDragging) return;
-
-      /**
-       * Discarded tiles are final.
-       * No tap, no select, no return to rack.
-       */
       if (runtime.zone === "discard") return;
-
-      /**
-       * Pass tile return remains handled in pointerdown.
-       */
       if (runtime.zone !== "rack") return;
 
       const now = this.time.now;
@@ -1147,10 +822,6 @@ export class TableScene extends Phaser.Scene {
       const isDoubleTap = now - previous <= this.doubleTapMs;
 
       this.lastTapAtByTileId.set(runtime.vm.id, now);
-
-      /**
-       * Single tap/click on rack tile intentionally does nothing.
-       */
       if (!isDoubleTap) return;
 
       if (this.tablePhase === "passing") {
@@ -1163,26 +834,10 @@ export class TableScene extends Phaser.Scene {
         runtime.selected = false;
         this.selectedIds.delete(runtime.vm.id);
         runtime.image.clearTint();
-
-        //this.playHaptic("tile-tap");
         this.snapTileToDiscard(runtime);
       }
     });
   }
-  private toggleTile(runtime: TileRuntime): void {
-    this.tileInteractionManager.toggleSelection(
-      runtime,
-      this.selectedIds,
-      (tile, selecting) =>
-        tile.zone === "rack" && (!selecting || this.selectedIds.size < 3),
-      (tile) => this.applyTileSelection(tile),
-      () => {
-        this.playSfx("tile-select");
-        this.callbacks.onSelectionChanged([...this.selectedIds]);
-      },
-    );
-  }
-
   private applyTileSelection(runtime: TileRuntime): void {
     const slot = this.slotFor(runtime);
     const selectedOffset = runtime.selected ? -this.layout.bottomTileLayout.height * 0.18 : 0;
@@ -1220,462 +875,6 @@ export class TableScene extends Phaser.Scene {
       this.config.animation.dragReturnMs,
     );
   }
-
-  /**
-   * First Charleston RIGHT pass animation.
-   *
-   * Required flow:
-   * bottom -> right
-   * right  -> top
-   * top    -> left
-   * left   -> bottom
-   */
-  private playRightCharlestonRound(
-    selectedBottomTileIds: readonly string[],
-    onFinished: () => void,
-  ): void {
-    this.destroyPassAnimationClones();
-
-    const moves: readonly SeatPassMove[] = [
-      { from: "bottom", to: "right" },
-      { from: "right", to: "top" },
-      { from: "top", to: "left" },
-      { from: "left", to: "bottom" },
-    ];
-
-    let completed = 0;
-
-    const finishOne = (): void => {
-      completed++;
-
-      if (completed === moves.length) {
-        onFinished();
-      }
-    };
-
-    for (const move of moves) {
-      if (move.from === "bottom") {
-        this.animateSelectedRackTilesToSeat(selectedBottomTileIds, move.to, finishOne);
-      } else {
-        this.animatePlaceholderPassGroup(move.from, move.to, 3, finishOne);
-      }
-    }
-  }
-
-  /**
-   * Animates the real selected bottom rack tile faces to the destination pass area.
-   *
-   * We animate clones, not the original rack sprites.
-   * This keeps drag/drop/rack ordering safe during the pass animation.
-   */
-  private animateSelectedRackTilesToSeat(
-    ids: readonly string[],
-    destination: TableSeat,
-    onFinished: () => void,
-  ): void {
-    const targets = this.passAreaTargets(destination, ids.length);
-    let completed = 0;
-
-    ids.forEach((id, index) => {
-      const runtime = this.tileMap.get(id);
-
-      if (!runtime) {
-        completed++;
-        if (completed === ids.length) onFinished();
-        return;
-      }
-
-      runtime.image.disableInteractive();
-      runtime.image.clearTint();
-      runtime.image.setAlpha(0.3);
-
-      const clone = this.add.image(
-        runtime.image.x,
-        runtime.image.y,
-        runtime.image.texture.key,
-        runtime.image.frame.name,
-      );
-
-      clone
-        .setOrigin(0.5)
-        .setDisplaySize(
-          Math.round(this.layout.bottomTileLayout.width),
-          Math.round(this.layout.bottomTileLayout.height),
-        )
-        .setDepth(180);
-
-      this.passAnimationClones.push(clone);
-
-      this.tweens.add({
-        targets: clone,
-        x: targets[index].x,
-        y: targets[index].y,
-        angle: 0,
-        alpha: 1,
-        duration: 520,
-        ease: "Cubic.easeInOut",
-        onComplete: () => {
-          completed++;
-
-          if (completed === ids.length) {
-            onFinished();
-          }
-        },
-      });
-    });
-  }
-
-  /**
-   * Animates remote players' pass groups using temporary white placeholders.
-   *
-   * Later, when remote player tile data exists, this can use real tile faces too.
-   */
-  private animatePlaceholderPassGroup(
-    from: TableSeat,
-    to: TableSeat,
-    count: number,
-    onFinished: () => void,
-  ): void {
-    const startTargets = this.passAreaTargets(from, count);
-    const endTargets = this.passAreaTargets(to, count);
-
-    const group = this.add.container(0, 0).setDepth(170);
-    this.passAnimationClones.push(group);
-
-    const tileWidth = Math.round(this.layout.bottomTileLayout.width);
-    const tileHeight = Math.round(this.layout.bottomTileLayout.height);
-
-    const children: Phaser.GameObjects.Rectangle[] = [];
-
-    for (let index = 0; index < count; index++) {
-      const tile = this.add.rectangle(
-        startTargets[index].x,
-        startTargets[index].y,
-        tileWidth,
-        tileHeight,
-        0xffffff,
-        1,
-      );
-
-      tile.setStrokeStyle(2, 0xd9d9d9, 1);
-      tile.setOrigin(0.5);
-
-      children.push(tile);
-      group.add(tile);
-    }
-
-    let completed = 0;
-
-    children.forEach((tile, index) => {
-      this.tweens.add({
-        targets: tile,
-        x: endTargets[index].x,
-        y: endTargets[index].y,
-        duration: 520,
-        ease: "Cubic.easeInOut",
-        onComplete: () => {
-          completed++;
-
-          if (completed === children.length) {
-            onFinished();
-          }
-        },
-      });
-    });
-  }
-  /**
-   * Applies local debug pass result after animation.
-   *
-   * Production version should replace rack from server payload instead.
-   */
-  private applyPassResult(ids: readonly string[]): void {
-    ids.forEach((id) => {
-      const runtime = this.tileMap.get(id);
-      if (!runtime) return;
-
-      runtime.image.destroy();
-      this.tileMap.delete(id);
-    });
-
-    this.rackTiles = this.rackTiles.filter((tile) => !ids.includes(tile.id));
-    this.selectedIds.clear();
-
-    this.destroyPassAnimationClones();
-
-    this.callbacks.onSelectionChanged([]);
-    this.callbacks.onPassCompleted({
-      tileIds: ids,
-      direction: this.passDirection,
-    });
-
-    this.isPassAnimating = false;
-
-    this.resize(this.scale.width, this.scale.height);
-  }
-
-  /**
-   * Removes all temporary pass animation objects.
-   */
-  private destroyPassAnimationClones(): void {
-    this.passAnimationClones.forEach((item) => item.destroy());
-    this.passAnimationClones = [];
-  }
-  // Instead of Moves actual selected rack tile images into the bottom player's pass tray. We have to move that tile to the  which seat we have to pass front of the exposure meald
-  /**
-   * Moves actual selected rack tile images into the bottom player's pass tray.
-   *
-   * These are visual clones, not real rack state changes.
-   * The real rack is updated only after Charleston animation completes.
-   */
-  private moveSelectedTilesToPassTray(
-    ids: readonly string[],
-    onFinished: () => void,
-  ): void {
-    this.destroyPassTrayClones();
-
-    const trayTargets = this.bottomPassTrayTargets(ids.length);
-    let completed = 0;
-
-    ids.forEach((id, index) => {
-      const runtime = this.tileMap.get(id);
-      if (!runtime) {
-        completed++;
-        if (completed === ids.length) onFinished();
-        return;
-      }
-
-      runtime.image.disableInteractive();
-      runtime.image.clearTint();
-      runtime.image.setAlpha(0.35);
-
-      const clone = this.add.image(
-        runtime.image.x,
-        runtime.image.y,
-        runtime.image.texture.key,
-        runtime.image.frame.name,
-      );
-
-      clone
-        .setOrigin(0.5)
-        .setDisplaySize(
-          Math.round(this.layout.bottomTileLayout.width),
-          Math.round(this.layout.bottomTileLayout.height),
-        )
-        .setDepth(180);
-
-      this.passTrayClones.push(clone);
-
-      this.tweens.add({
-        targets: clone,
-        x: trayTargets[index].x,
-        y: trayTargets[index].y,
-        angle: 0,
-        duration: 260,
-        ease: "Sine.easeOut",
-        onComplete: () => {
-          completed++;
-          if (completed === ids.length) onFinished();
-        },
-      });
-    });
-  }
-
-  /**
-   * Bottom player pass tray position.
-   * Tray appears to the right side of the local/bottom seat.
-   */
-  private bottomPassTrayTargets(count: number): readonly Point[] {
-    const tileWidth = Math.round(this.layout.bottomTileLayout.width);
-    const tileHeight = Math.round(this.layout.bottomTileLayout.height);
-    const overlap = tileWidth * 0.72;
-
-    const startX =
-      this.layout.bottomExposure.x +
-      this.layout.bottomExposure.width -
-      tileWidth * 0.8 -
-      overlap * (count - 1);
-
-    const y =
-      this.layout.bottomExposure.y +
-      this.layout.bottomExposure.height / 2;
-
-    return Array.from({ length: count }, (_, index) => ({
-      x: Math.round(startX + index * overlap),
-      y: Math.round(y),
-    }));
-  }
-
-  /**
-   * Animates local bottom pass tray to destination seat.
-   *
-   * Current debug direction:
-   * bottom -> left
-   */
-  private animatePassTrayToSeat(
-    destination: "top" | "right" | "bottom" | "left",
-    onFinished: () => void,
-  ): void {
-    if (!this.passTrayClones.length) {
-      onFinished();
-      return;
-    }
-
-    const targets = this.passTraySeatTargets(destination, this.passTrayClones.length);
-    let completed = 0;
-
-    this.passTrayClones.forEach((clone, index) => {
-      this.tweens.add({
-        targets: clone,
-        x: targets[index].x,
-        y: targets[index].y,
-        alpha: 0.9,
-        duration: 650,
-        ease: "Cubic.easeInOut",
-        onComplete: () => {
-          completed++;
-          if (completed === this.passTrayClones.length) {
-            onFinished();
-          }
-        },
-      });
-    });
-  }
-
-  /**
-   * Destination tray positions for Charleston transfer animation.
-   */
-  private passTraySeatTargets(
-    seat: "top" | "right" | "bottom" | "left",
-    count: number,
-  ): readonly Point[] {
-    const tileWidth = Math.round(this.layout.bottomTileLayout.width);
-    const tileHeight = Math.round(this.layout.bottomTileLayout.height);
-    const overlap = tileWidth * 0.72;
-
-    if (seat === "left") {
-      const x = this.layout.leftExposure.x + this.layout.leftExposure.width + tileWidth * 0.65;
-      const startY =
-        this.layout.leftExposure.y +
-        this.layout.leftExposure.height / 2 -
-        overlap * (count - 1) / 2;
-
-      return Array.from({ length: count }, (_, index) => ({
-        x: Math.round(x),
-        y: Math.round(startY + index * overlap),
-      }));
-    }
-
-    if (seat === "right") {
-      const x = this.layout.rightExposure.x - tileWidth * 0.65;
-      const startY =
-        this.layout.rightExposure.y +
-        this.layout.rightExposure.height / 2 -
-        overlap * (count - 1) / 2;
-
-      return Array.from({ length: count }, (_, index) => ({
-        x: Math.round(x),
-        y: Math.round(startY + index * overlap),
-      }));
-    }
-
-    if (seat === "top") {
-      const startX =
-        this.layout.topExposure.x +
-        this.layout.topExposure.width / 2 -
-        overlap * (count - 1) / 2;
-
-      const y = this.layout.topExposure.y + this.layout.topExposure.height + tileHeight * 0.65;
-
-      return Array.from({ length: count }, (_, index) => ({
-        x: Math.round(startX + index * overlap),
-        y: Math.round(y),
-      }));
-    }
-
-    return this.bottomPassTrayTargets(count);
-  }
-  /**
-   * Clears temporary pass tray clone images.
-   */
-  private destroyPassTrayClones(): void {
-    this.passTrayClones.forEach((clone) => clone.destroy());
-    this.passTrayClones = [];
-  }
-  /**
-  * -------------------------------------------------------------------------
-  * Animates the local player's selected tiles.
-  *
-  * These tiles visually leave the rack.
-  *
-  * No game state is modified here.
-  * -------------------------------------------------------------------------
-  */
-  private animatePassedTiles(
-    ids: readonly string[],
-    onFinished: () => void,
-  ): void {
-
-    const targets = this.passTargets(ids.length);
-    let completed = 0;
-
-    ids.forEach((id, index) => {
-      const runtime = this.tileMap.get(id);
-      if (!runtime) {
-        completed++;
-        if (completed === ids.length) {
-          onFinished();
-        }
-        return;
-      }
-
-      runtime.image.disableInteractive();
-      runtime.image.clearTint();
-      runtime.image.setDepth(120);
-
-      this.tweens.killTweensOf(runtime.image);
-
-      this.tweens.add({
-        targets: runtime.image,
-        x: targets[index].x,
-        y: targets[index].y,
-        angle: 0,
-        scale: 0.78,
-        alpha: 0.92,
-        duration: this.config.animation.passDurationMs,
-        ease: "Cubic.easeInOut",
-        onComplete: () => {
-          completed++;
-          if (completed === ids.length) {
-            onFinished();
-          }
-        }
-      });
-    });
-  }
-  private passTargets(count: number): readonly Point[] {
-    const spacing = this.layout.bottomTileLayout.width * 0.85;
-    const discard = this.layout.discardArea;
-
-    if (this.passDirection === "right") {
-      return Array.from({ length: count }, (_, i) => ({
-        x: this.layout.rightExposure.x + this.layout.rightExposure.width / 2,
-        y: discard.y + discard.height * 0.5 + (i - 1) * spacing,
-      }));
-    }
-
-    if (this.passDirection === "left") {
-      return Array.from({ length: count }, (_, i) => ({
-        x: this.layout.leftExposure.x + this.layout.leftExposure.width / 2,
-        y: discard.y + discard.height * 0.5 + (i - 1) * spacing,
-      }));
-    }
-
-    return Array.from({ length: count }, (_, i) => ({
-      x: discard.x + discard.width * 0.5 + (i - 1) * spacing,
-      y: this.layout.topExposure.y + this.layout.topExposure.height / 2,
-    }));
-  }
-
   private slotFor(runtime: TileRuntime): Point {
     const index = this.rackOrder.indexOf(runtime.vm.id);
     const slot = this.layout.bottomTileLayout.slots[index];
@@ -1712,10 +911,7 @@ export class TableScene extends Phaser.Scene {
     g.fillRect(hud.x, hud.y, hud.width, hud.height);
 
 
-    /**
-     * Outer board border.
-     * Single solid black border.
-     */
+    
     const borderSize = Math.max(
       6,
       Math.round(Math.min(table.width, table.height) * 0.009),
@@ -1730,9 +926,7 @@ export class TableScene extends Phaser.Scene {
       0,
     );
 
-    /**
-     * Felt area inside the black border.
-     */
+    
     const feltX = table.x + borderSize;
     const feltY = table.y + borderSize;
     const feltWidth = table.width - borderSize * 2;
@@ -1747,20 +941,8 @@ export class TableScene extends Phaser.Scene {
       0,
     );
 
-    /**
-     * Small inset depth shadow.
-     *
-     * Only draw a soft shadow on the inside top and left edges.
-     * This keeps the black border tight and avoids creating empty space
-     * around every corner.
-     */
-    /**
-     * Small inset shadow on all 4 sides.
-     *
-     * Use a single thin inner stroke.
-     * This gives depth on every side without creating multiple gray boxes
-     * or taking too much space from the corners.
-     */
+    
+    
     const insetShadowWidth = Math.max(
       2,
       Math.round(borderSize * 0.26),
@@ -1780,10 +962,7 @@ export class TableScene extends Phaser.Scene {
       0,
     );
 
-    /**
-     * Very soft inner lift so the felt does not look flat.
-     * Keep this extremely subtle.
-     */
+    
     const liftWidth = Math.max(1, Math.round(borderSize * 0.10));
 
     g.lineStyle(
@@ -1800,14 +979,6 @@ export class TableScene extends Phaser.Scene {
       0,
     );
 
-
-
-
-
-    
-    /**
-     * Very subtle center felt panel.
-     */
     g.fillStyle(0xffffff, 0.035);
     g.fillRoundedRect(
       this.layout.discardArea.x,
@@ -1816,12 +987,6 @@ export class TableScene extends Phaser.Scene {
       this.layout.discardArea.height,
       14,
     );
-
-    /* this.drawPsdSideRackPanel(this.layout.leftExposure, "left");
-    this.drawPsdSideRackPanel(this.layout.rightExposure, "right");
-
-    this.drawPsdHorizontalRackPanel(this.layout.topExposure, 'horizontal');
-    this.drawPsdHorizontalRackPanel(this.layout.bottomExposure, 'bottom'); */
 
     this.drawPsdRackPanel(
       this.layout.leftExposure,
@@ -1853,29 +1018,12 @@ export class TableScene extends Phaser.Scene {
 
     this.drawActiveSeatExposureHighlight();
 
-    /**
-     * Center card.
-     */
-    /* const card = this.layout.instructionBar;
-
-    g.fillStyle(0x000000, 0.22);
-    g.fillRoundedRect(card.x + 5, card.y + 7, card.width, card.height, 20);
-
-    g.fillStyle(0xffffff, 1);
-    g.fillRoundedRect(card.x, card.y, card.width, card.height, 20);
-
-    g.lineStyle(3, 0xb0b751, 0.8);
-    g.strokeRoundedRect(card.x, card.y, card.width, card.height, 20); */
-
     const card = this.layout.instructionBar;
 
     const cardRadius = Math.round(
       Phaser.Math.Clamp(card.height * 0.22, 16, 34),
     );
 
-    /**
-     * Instruction card shadow.
-     */
     g.fillStyle(0x000000, 0.18);
     g.fillRoundedRect(
       card.x + Math.max(4, card.width * 0.012),
@@ -1894,9 +1042,6 @@ export class TableScene extends Phaser.Scene {
       cardRadius,
     );
 
-    /**
-     * White card body.
-     */
     g.fillStyle(0xffffff, 0.98);
     g.fillRoundedRect(
       card.x,
@@ -1906,9 +1051,6 @@ export class TableScene extends Phaser.Scene {
       cardRadius,
     );
 
-    /**
-     * Subtle inner cream overlay
-     */
     g.fillStyle(0xfffbf2, 0.20);
     g.fillRoundedRect(
       card.x + 2,
@@ -1918,9 +1060,6 @@ export class TableScene extends Phaser.Scene {
       Math.max(10, cardRadius - 2),
     );
 
-    /**
-     * Olive/yellow border.
-     */
     g.lineStyle(
       Math.max(2, Math.round(card.height * 0.018)),
       COLOR_AVOCADO_NUM,
@@ -1934,250 +1073,7 @@ export class TableScene extends Phaser.Scene {
       cardRadius,
     );
   }
-  private drawTableOLDDEsign(): void {
-    const g = this.graphics;
-
-    g.clear();
-
-    const canvas = this.layout.canvas;
-    const table = this.layout.tableOuter;
-    const hud = this.layout.hud;
-
-    const pageColor = 0x121a36;
-    const hudColor = 0x121a36;
-    const tableBorderDark = 0x0b1228;
-    const tableBorderMid = 0x27314f;
-    const tableBorderPink = 0xd64abf;
-    const feltColor = 0xc783b8;
-    const panelColor = 0x162449;
-    const panelInner = 0x253a78;
-
-    g.fillStyle(pageColor, 1);
-    g.fillRect(0, 0, canvas.width, canvas.height);
-
-    /**
-     * Header.
-     */
-    g.fillStyle(hudColor, 1);
-    g.fillRect(hud.x, hud.y, hud.width, hud.height);
-
-    /**
-     * Outer board shadow/border.
-     */
-    g.fillStyle(tableBorderDark, 1);
-    g.fillRoundedRect(
-      table.x,
-      table.y,
-      table.width,
-      table.height,
-      20,
-    );
-
-    g.fillStyle(tableBorderMid, 1);
-    g.fillRoundedRect(
-      table.x + 5,
-      table.y + 5,
-      table.width - 10,
-      table.height - 10,
-      18,
-    );
-
-    g.fillStyle(tableBorderPink, 1);
-    g.fillRoundedRect(
-      table.x + 9,
-      table.y + 9,
-      table.width - 18,
-      table.height - 18,
-      16,
-    );
-
-    /**
-     * Felt area.
-     */
-    g.fillStyle(feltColor, 1);
-    g.fillRoundedRect(
-      table.x + 16,
-      table.y + 16,
-      table.width - 32,
-      table.height - 32,
-      12,
-    );
-
-    /**
-     * Very subtle center felt panel.
-     */
-    g.fillStyle(0xffffff, 0.035);
-    g.fillRoundedRect(
-      this.layout.discardArea.x,
-      this.layout.discardArea.y,
-      this.layout.discardArea.width,
-      this.layout.discardArea.height,
-      14,
-    );
-
-    /* this.drawPsdSideRackPanel(this.layout.leftExposure, "left");
-    this.drawPsdSideRackPanel(this.layout.rightExposure, "right");
-
-    this.drawPsdHorizontalRackPanel(this.layout.topExposure, 'horizontal');
-    this.drawPsdHorizontalRackPanel(this.layout.bottomExposure, 'bottom'); */
-
-    this.drawPsdRackPanel(
-      this.layout.leftExposure,
-      0,
-      0,
-      "vertical-left",
-    );
-
-    this.drawPsdRackPanel(
-      this.layout.rightExposure,
-      0,
-      0,
-      "vertical-right",
-    );
-
-    this.drawPsdRackPanel(
-      this.layout.topExposure,
-      0,
-      0,
-      "horizontal",
-    );
-
-    this.drawPsdRackPanel(
-      this.layout.bottomExposure,
-      0,
-      0,
-      "bottom",
-    );
-
-    this.drawActiveSeatExposureHighlight();
-
-    /**
-     * Center card.
-     */
-    /* const card = this.layout.instructionBar;
-
-    g.fillStyle(0x000000, 0.22);
-    g.fillRoundedRect(card.x + 5, card.y + 7, card.width, card.height, 20);
-
-    g.fillStyle(0xffffff, 1);
-    g.fillRoundedRect(card.x, card.y, card.width, card.height, 20);
-
-    g.lineStyle(3, 0xb0b751, 0.8);
-    g.strokeRoundedRect(card.x, card.y, card.width, card.height, 20); */
-
-    const card = this.layout.instructionBar;
-
-    const cardRadius = Math.round(
-      Phaser.Math.Clamp(card.height * 0.22, 16, 34),
-    );
-
-    /**
-     * PSD-style instruction card shadow.
-     */
-    g.fillStyle(0x000000, 0.18);
-    g.fillRoundedRect(
-      card.x + Math.max(4, card.width * 0.012),
-      card.y + Math.max(6, card.height * 0.045),
-      card.width,
-      card.height,
-      cardRadius,
-    );
-
-    g.fillStyle(0x000000, 0.08);
-    g.fillRoundedRect(
-      card.x + Math.max(8, card.width * 0.020),
-      card.y + Math.max(10, card.height * 0.065),
-      card.width,
-      card.height,
-      cardRadius,
-    );
-
-    /**
-     * White card body.
-     */
-    g.fillStyle(0xffffff, 0.98);
-    g.fillRoundedRect(
-      card.x,
-      card.y,
-      card.width,
-      card.height,
-      cardRadius,
-    );
-
-    /**
-     * Subtle inner cream overlay, closer to PSD.
-     */
-    g.fillStyle(0xfffbf2, 0.20);
-    g.fillRoundedRect(
-      card.x + 2,
-      card.y + 2,
-      card.width - 4,
-      card.height - 4,
-      Math.max(10, cardRadius - 2),
-    );
-
-    /**
-     * Olive/yellow border.
-     */
-    g.lineStyle(
-      Math.max(2, Math.round(card.height * 0.018)),
-      0xb4ba4a,
-      0.95,
-    );
-    g.strokeRoundedRect(
-      card.x,
-      card.y,
-      card.width,
-      card.height,
-      cardRadius,
-    );
-  }
-  private exposureLipRatio(): number {
-    /**
-     * Shared lip/bevel ratio for all exposure panels.
-     */
-    return 0.14;
-  }
-
-  private exposureNameStripRatio(): number {
-    /**
-     * Shared player-name strip ratio for all exposure panels.
-     * This keeps top, bottom, left, and right visually consistent.
-     */
-    return 0.125;
-  }
-
-  private horizontalExposureNameStripRatio(): number {
-    /**
-     * Top/bottom label strip height.
-     *
-     * Desktop already looks good, so keep it unchanged.
-     * Mobile uses a slightly smaller strip to avoid stealing tile area.
-     */
-    if (this.layout.metrics.isMobile) {
-      return 0.105;
-    }
-
-    return 0.225;
-  }
-
-  private verticalExposureNameStripRatio(): number {
-    /**
-     * Left/right label strip width.
-     *
-     * Side panels are narrow on mobile, so use smaller ratio
-     * than top/bottom.
-     */
-    if (this.layout.metrics.isMobile && this.layout.metrics.isPortrait) {
-      return 0.075;
-    }
-
-    if (this.layout.metrics.isMobile && !this.layout.metrics.isPortrait) {
-      return 0.080;
-    }
-
-    return 0.225;
-  }
+  
   private exposurePanelMode(): ExposurePanelMode {
     const width = this.layout.canvas.width;
     const height = this.layout.canvas.height;
@@ -2242,19 +1138,10 @@ export class TableScene extends Phaser.Scene {
 
     const compactMobile = this.layout.metrics.isMobile;
 
-    /**
-     * In mobile portrait, reduce label strip width
-     * so the exposure tile area becomes larger.
-     */
+    
     const modeKey = this.exposurePanelMode();
 
-    /**
-     * Landscape side exposure:
-     * Keep the whole panel size unchanged, but make its inner structure
-     * closer to top/bottom exposure proportions.
-     *
-     * This reduces the over-large inner tile channel only for landscape side panels.
-     */
+    
     const lipRatio = exposureLipRatio(modeKey);
 
     const nameStripRatio =  exposureNameStripRatio(modeKey);
@@ -2275,9 +1162,7 @@ export class TableScene extends Phaser.Scene {
     const stripHighlight = active ? 0xf0eb78 : 0x3c63bb;
     const dividerFill = active ? 0x9b9722 : 0x8ea4d0;
 
-    /**
-     * Soft separated outside shadow.
-     */
+    
     const shadowOffsetX = 2;
     const shadowOffsetY = 3;
     const shadowSpread = 2;
@@ -2316,23 +1201,16 @@ export class TableScene extends Phaser.Scene {
       h + 2
     );
     
-    /**
-     * Main outer tray.
-     */
+    
     g.fillStyle(0x17336f, 1);
     g.fillRect(x, y, w, h);
 
-    /**
-     * Soft outer border.
-     */
+    
     g.lineStyle(1, 0x07142f, 0.45);
     g.strokeRect(x, y, w, h);
 
     if (side === "left") {
-      /**
-       * LEFT PANEL:
-       * small left lip -> center tray -> divider -> right player strip
-       */
+      
       const contentX = x + lipW;
       const contentW = w - lipW - nameStripW - dividerW;
       const dividerX = contentX + contentW;
@@ -2379,13 +1257,7 @@ export class TableScene extends Phaser.Scene {
       g.fillStyle(stripFill, 1);
       g.fillRect(stripX, y, nameStripW, h);
 
-      /* g.fillStyle(stripHighlight, active ? 0.34 : 0.24);
-      g.fillRect(
-        stripX + Math.max(2, Math.round(nameStripW * 0.15)),
-        y + Math.max(4, Math.round(h * 0.01)),
-        Math.max(2, Math.round(nameStripW * 0.12)),
-        h - Math.max(8, Math.round(h * 0.02)),
-      ); */
+      
 
       g.fillStyle(stripHighlight, active ? 0.34 : 0.24);
       g.fillRect(
@@ -2398,10 +1270,7 @@ export class TableScene extends Phaser.Scene {
       return;
     }
 
-    /**
-     * RIGHT PANEL:
-     * left player strip -> divider -> center tray -> small right lip
-     */
+    
     const stripX = x;
     const dividerX = stripX + nameStripW;
     const contentX = dividerX + dividerW;
@@ -2411,13 +1280,7 @@ export class TableScene extends Phaser.Scene {
     g.fillStyle(stripFill, 1);
     g.fillRect(stripX, y, nameStripW, h);
 
-    /* g.fillStyle(stripHighlight, active ? 0.34 : 0.24);
-    g.fillRect(
-      stripX + Math.max(2, Math.round(nameStripW * 0.15)),
-      y + Math.max(4, Math.round(h * 0.01)),
-      Math.max(2, Math.round(nameStripW * 0.12)),
-      h - Math.max(8, Math.round(h * 0.02)),
-    ); */
+    
     if (nameStripW >= 6) {
       g.fillStyle(stripHighlight, active ? 0.22 : 0.16);
       g.fillRect(
@@ -2466,349 +1329,6 @@ export class TableScene extends Phaser.Scene {
       h - Math.max(8, Math.round(h * 0.02)),
     );
   }
-  private drawPsdSideRackPanelW(rect: Rect, side: "left" | "right"): void {
-    const g = this.graphics;
-
-    const x = Math.round(rect.x);
-    const y = Math.round(rect.y);
-    const w = Math.round(rect.width);
-    const h = Math.round(rect.height);
-
-    const shadowX = Math.max(4, Math.round(w * 0.045));
-    const shadowY = Math.max(5, Math.round(w * 0.055));
-
-    /* const lipW = Math.max(10, Math.round(w * 0.16));
-    const nameStripW = Math.max(18, Math.round(w * 0.27)); */
-    const lipW = Math.max(8, Math.round(w * 0.105));
-    const nameStripW = Math.max(24, Math.round(w * 0.315));
-    const dividerW = 1;
-
-    /**
-     * Outside shadow.
-     */
-    g.fillStyle(0x05091a, 0.12);
-    g.fillRect(
-      x + shadowX * 0.45,
-      y + shadowY * 0.45,
-      w,
-      h,
-    );
-
-    g.fillStyle(0x05091a, 0.10);
-    g.fillRect(
-      x + shadowX * 0.85,
-      y + shadowY * 0.85,
-      w,
-      h,
-    );
-
-    g.fillStyle(0x05091a, 0.08);
-    g.fillRect(
-      x + shadowX * 1.25,
-      y + shadowY * 1.25,
-      w,
-      h,
-    );
-
-    /**
-     * Main outer tray.
-     */
-    g.fillStyle(0x17336f, 1);
-    g.fillRect(x, y, w, h);
-
-    /**
-     * Dark outer border.
-     */
-    g.lineStyle(1, 0x07142f, 0.45);
-    g.strokeRect(x, y, w, h);
-
-    if (side === "left") {
-      /**
-       * LEFT PANEL
-       * left lip -> center -> divider -> right name strip
-       */
-
-      const contentX = x + lipW;
-      const contentY = y;
-      const contentW = w - lipW - nameStripW - dividerW;
-      const contentH = h;
-
-      const dividerX = contentX + contentW;
-      const stripX = dividerX + dividerW;
-
-      /**
-       * Left bevel/lip.
-       */
-      g.fillStyle(0x3159aa, 1);
-      g.fillRect(x, y, lipW, h);
-
-      g.fillStyle(0x5e82d5, 0.42);
-      g.fillRect(
-        x + Math.max(2, Math.round(lipW * 0.18)),
-        y + Math.max(4, Math.round(h * 0.01)),
-        Math.max(2, Math.round(lipW * 0.16)),
-        h - Math.max(8, Math.round(h * 0.02)),
-      );
-
-      /**
-       * Recessed center tray.
-       */
-      g.fillStyle(0x172c61, 1);
-      g.fillRect(contentX, contentY, contentW, contentH);
-
-      g.fillStyle(0x1f3b83, 0.76);
-      g.fillRect(
-        contentX + Math.max(2, Math.round(contentW * 0.035)),
-        contentY + Math.max(4, Math.round(h * 0.01)),
-        contentW - Math.max(4, Math.round(contentW * 0.07)),
-        contentH - Math.max(8, Math.round(h * 0.02)),
-      );
-
-      g.fillStyle(0x07122d, 0.14);
-      g.fillRect(
-        contentX,
-        contentY,
-        Math.max(3, Math.round(contentW * 0.045)),
-        contentH,
-      );
-
-      /**
-       * Divider.
-       */
-      g.fillStyle(0x8ea4d0, 0.58);
-      g.fillRect(
-        dividerX,
-        y + Math.max(4, Math.round(h * 0.012)),
-        dividerW,
-        h - Math.max(8, Math.round(h * 0.024)),
-      );
-
-      /**
-       * Right-side player strip.
-       */
-      g.fillStyle(0x22488f, 1);
-      g.fillRect(stripX, y, nameStripW, h);
-
-      g.fillStyle(0x3c63bb, 0.24);
-      g.fillRect(
-        stripX + Math.max(2, Math.round(nameStripW * 0.15)),
-        y + Math.max(4, Math.round(h * 0.01)),
-        Math.max(2, Math.round(nameStripW * 0.12)),
-        h - Math.max(8, Math.round(h * 0.02)),
-      );
-    } else {
-      /**
-       * RIGHT PANEL
-       * left name strip (big) -> divider -> center -> right lip (small)
-       */
-
-      const stripX = x;
-      const dividerX = stripX + nameStripW;
-      const contentX = dividerX + dividerW;
-      const contentY = y;
-      const contentW = w - nameStripW - dividerW - lipW;
-      const contentH = h;
-      const rightLipX = contentX + contentW;
-
-      /**
-       * Left-side player strip (big).
-       */
-      g.fillStyle(0x22488f, 1);
-      g.fillRect(stripX, y, nameStripW, h);
-
-      g.fillStyle(0x3c63bb, 0.24);
-      g.fillRect(
-        stripX + Math.max(2, Math.round(nameStripW * 0.15)),
-        y + Math.max(4, Math.round(h * 0.01)),
-        Math.max(2, Math.round(nameStripW * 0.12)),
-        h - Math.max(8, Math.round(h * 0.02)),
-      );
-
-      /**
-       * Divider.
-       */
-      g.fillStyle(0x8ea4d0, 0.58);
-      g.fillRect(
-        dividerX,
-        y + Math.max(4, Math.round(h * 0.012)),
-        dividerW,
-        h - Math.max(8, Math.round(h * 0.024)),
-      );
-
-      /**
-       * Recessed center tray.
-       */
-      g.fillStyle(0x172c61, 1);
-      g.fillRect(contentX, contentY, contentW, contentH);
-
-      g.fillStyle(0x1f3b83, 0.76);
-      g.fillRect(
-        contentX + Math.max(2, Math.round(contentW * 0.035)),
-        contentY + Math.max(4, Math.round(h * 0.01)),
-        contentW - Math.max(4, Math.round(contentW * 0.07)),
-        contentH - Math.max(8, Math.round(h * 0.02)),
-      );
-
-      g.fillStyle(0x07122d, 0.10);
-      g.fillRect(
-        contentX + contentW - Math.max(3, Math.round(contentW * 0.045)),
-        contentY,
-        Math.max(3, Math.round(contentW * 0.045)),
-        contentH,
-      );
-
-      /**
-       * Small right bevel/lip.
-       */
-      g.fillStyle(0x3159aa, 1);
-      g.fillRect(rightLipX, y, lipW, h);
-
-      g.fillStyle(0x5e82d5, 0.42);
-      g.fillRect(
-        rightLipX + Math.max(2, Math.round(lipW * 0.66)),
-        y + Math.max(4, Math.round(h * 0.01)),
-        Math.max(2, Math.round(lipW * 0.16)),
-        h - Math.max(8, Math.round(h * 0.02)),
-      );
-    }
-
-    /**
-     * Far-right depth.
-     */
-    g.fillStyle(0x07122d, 0.30);
-    g.fillRect(
-      x + w - Math.max(3, Math.round(w * 0.025)),
-      y,
-      Math.max(3, Math.round(w * 0.025)),
-      h,
-    );
-  }
-  private drawPsdSideRackPanelWW(rect: Rect): void {
-    const g = this.graphics;
-
-    const x = Math.round(rect.x);
-    const y = Math.round(rect.y);
-    const w = Math.round(rect.width);
-    const h = Math.round(rect.height);
-
-    const shadowX = Math.max(4, Math.round(w * 0.045));
-    const shadowY = Math.max(5, Math.round(w * 0.055));
-
-    const leftLipW = Math.max(10, Math.round(w * 0.16));
-    const nameStripW = Math.max(18, Math.round(w * 0.27));
-    const dividerW = 1;
-
-    const contentX = x + leftLipW;
-    const contentY = y;
-    const contentW = w - leftLipW - nameStripW - dividerW;
-    const contentH = h;
-
-    const dividerX = contentX + contentW;
-    const stripX = dividerX + dividerW;
-
-    /**
-     * Outside shadow.
-     */
-    g.fillStyle(0x05091a, 0.42);
-    g.fillRect(x + shadowX, y + shadowY, w, h);
-
-    /**
-     * Main outer tray.
-     */
-    g.fillStyle(0x17336f, 1);
-    g.fillRect(x, y, w, h);
-
-    /**
-     * Dark outer border.
-     */
-    g.lineStyle(1, 0x07142f, 0.95);
-    g.strokeRect(x, y, w, h);
-
-    /**
-     * Left bevel/lip.
-     * This now matches the top rack lip style, without a black line.
-     */
-    g.fillStyle(0x3159aa, 1);
-    g.fillRect(x, y, leftLipW, h);
-
-    /**
-     * Bright lip highlight.
-     */
-    g.fillStyle(0x5e82d5, 0.42);
-    g.fillRect(
-      x + Math.max(2, Math.round(leftLipW * 0.18)),
-      y + Math.max(4, Math.round(h * 0.01)),
-      Math.max(2, Math.round(leftLipW * 0.16)),
-      h - Math.max(8, Math.round(h * 0.02)),
-    );
-
-    /**
-     * Recessed main center tray.
-     */
-    g.fillStyle(0x172c61, 1);
-    g.fillRect(contentX, contentY, contentW, contentH);
-
-    /**
-     * Soft center fill.
-     */
-    g.fillStyle(0x1f3b83, 0.76);
-    g.fillRect(
-      contentX + Math.max(2, Math.round(contentW * 0.035)),
-      contentY + Math.max(4, Math.round(h * 0.01)),
-      contentW - Math.max(4, Math.round(contentW * 0.07)),
-      contentH - Math.max(8, Math.round(h * 0.02)),
-    );
-
-    /**
-     * Very soft inner left shadow.
-     */
-    g.fillStyle(0x07122d, 0.14);
-    g.fillRect(
-      contentX,
-      contentY,
-      Math.max(3, Math.round(contentW * 0.045)),
-      contentH,
-    );
-
-    /**
-     * Thin divider before name strip.
-     */
-    g.fillStyle(0x8ea4d0, 0.58);
-    g.fillRect(
-      dividerX,
-      y + Math.max(4, Math.round(h * 0.012)),
-      dividerW,
-      h - Math.max(8, Math.round(h * 0.024)),
-    );
-
-    /**
-     * Player name strip.
-     */
-    g.fillStyle(0x22488f, 1);
-    g.fillRect(stripX, y, nameStripW, h);
-
-    /**
-     * Subtle strip highlight.
-     */
-    g.fillStyle(0x3c63bb, 0.24);
-    g.fillRect(
-      stripX + Math.max(2, Math.round(nameStripW * 0.15)),
-      y + Math.max(4, Math.round(h * 0.01)),
-      Math.max(2, Math.round(nameStripW * 0.12)),
-      h - Math.max(8, Math.round(h * 0.02)),
-    );
-
-    /**
-     * Right depth.
-     */
-    g.fillStyle(0x07122d, 0.30);
-    g.fillRect(
-      x + w - Math.max(3, Math.round(w * 0.025)),
-      y,
-      Math.max(3, Math.round(w * 0.025)),
-      h,
-    );
-  }
   private drawPsdHorizontalRackPanel(
     rect: Rect,
     mode: "horizontal" | "bottom",
@@ -2847,17 +1367,12 @@ export class TableScene extends Phaser.Scene {
 
     const isBottom = mode === "bottom";
 
-    /**
-     * Bottom/current user strip becomes yellow instead of using
-     * an outer yellow rounded border.
-     */
+    
     const stripFill = active ? 0xd7d33a : 0x22488f;
     const stripHighlight = active ? 0xf0eb78 : 0x3c63bb;
     const dividerFill = active ? 0x9b9722 : 0x8ea4d0;
 
-    /**
-     * Soft separated outside shadow.
-     */
+    
     const shadowOffsetX = 2;
     const shadowOffsetY = 3;
     const shadowSpread = 2;
@@ -2892,27 +1407,19 @@ export class TableScene extends Phaser.Scene {
       h + 2
     );
 
-    /**
-     * Main outer tray.
-     */
+    
     g.fillStyle(0x17336f, 1);
     g.fillRect(x, y, w, h);
 
-    /**
-     * Softer outer border.
-     */
+    
     g.lineStyle(1, 0x07142f, 0.45);
     g.strokeRect(x, y, w, h);
 
-    /**
-     * Top bevel/lip.
-     */
+    
     g.fillStyle(0x3159aa, 1);
     g.fillRect(x, y, w, topLipH);
 
-    /**
-     * Bright highlight inside top lip.
-     */
+    
     g.fillStyle(0x5e82d5, 0.42);
     g.fillRect(
       x + Math.max(4, Math.round(w * 0.01)),
@@ -2921,15 +1428,11 @@ export class TableScene extends Phaser.Scene {
       Math.max(2, Math.round(topLipH * 0.16)),
     );
 
-    /**
-     * Recessed main center tray.
-     */
+    
     g.fillStyle(0x172c61, 1);
     g.fillRect(contentX, contentY, contentW, contentH);
 
-    /**
-     * Soft center fill.
-     */
+    
     g.fillStyle(0x1f3b83, 0.76);
     g.fillRect(
       contentX + Math.max(4, Math.round(w * 0.01)),
@@ -2938,9 +1441,7 @@ export class TableScene extends Phaser.Scene {
       contentH - Math.max(6, Math.round(contentH * 0.09)),
     );
 
-    /**
-     * Very soft inner top shadow.
-     */
+    
     g.fillStyle(0x07122d, 0.18);
     g.fillRect(
       contentX,
@@ -2949,15 +1450,11 @@ export class TableScene extends Phaser.Scene {
       Math.max(3, Math.round(contentH * 0.06)),
     );
 
-    /**
-     * Thin divider above name strip.
-     */
+    
     g.fillStyle(dividerFill, isBottom ? 0.72 : 0.58);
     g.fillRect(x, dividerY, w, dividerH);
 
-    /**
-     * Name strip.
-     */
+    
     g.fillStyle(stripFill, 1);
     g.fillRect(x, stripY, w, nameStripH);
 
@@ -2971,9 +1468,7 @@ export class TableScene extends Phaser.Scene {
       );
     }
 
-    /**
-     * Bottom depth.
-     */
+    
     g.fillStyle(0x07122d, 0.22);
     g.fillRect(
       x,
@@ -2991,45 +1486,7 @@ export class TableScene extends Phaser.Scene {
     const radius = Phaser.Math.Clamp(shortest * 0.18, 8, 18);
 
     const lineWidth = this.layout.metrics.isMobile ? 3 : 4;
-
-    /**
-     * Soft outer glow.
-     * Multiple strokes are cheaper than a separate blurred object
-     * and only redraw when layout/active seat changes.
-     */
-    /* g.lineStyle(lineWidth + 5, 0xffd166, 0.16);
-    g.strokeRoundedRect(
-      rect.x + 2,
-      rect.y + 2,
-      rect.width - 4,
-      rect.height - 4,
-      radius,
-    );
-
-    g.lineStyle(lineWidth + 2, 0xffd166, 0.28);
-    g.strokeRoundedRect(
-      rect.x + 3,
-      rect.y + 3,
-      rect.width - 6,
-      rect.height - 6,
-      radius,
-    ); */
-
-    /**
-     * Main active border.
-     */
-    /* g.lineStyle(lineWidth, 0xfff3a3, 0.95);
-    g.strokeRoundedRect(
-      rect.x + 5,
-      rect.y + 5,
-      rect.width - 10,
-      rect.height - 10,
-      radius,
-    );
- */
-    /**
-     * Very subtle inner overlay so the active exposure feels selected.
-     */
+    
     g.fillStyle(0xffd166, 0.08);
     g.fillRoundedRect(
       rect.x + 6,
@@ -3058,6 +1515,7 @@ export class TableScene extends Phaser.Scene {
   
   private createStaticUi(): void {
     this.uiLayoutManager.createStaticUi(this);
+    this.createMobileHeaderToggle();
     this.layoutStaticUi();
   }
   private layoutStaticUi(): void {
@@ -3076,9 +1534,62 @@ export class TableScene extends Phaser.Scene {
       isPickAnimating: this.isPickAnimating,
       activeSeat: this.activeSeat,
     });
+    this.uiLayoutManager.setMobileHeaderVisible(
+      !this.mobileHeaderCollapsed || !this.layout.metrics.isMobile,
+    );
   }
-  private layoutMobileHudMenu(): void {
-    this.uiLayoutManager.layoutMobileHud(this.layout);
+
+  private createMobileHeaderToggle(): void {
+    const label = this.add
+      .text(0, 0, "keyboard_arrow_up", {
+        // This web font is loaded globally in index.html. Its ligature names
+        // render the rounded Material keyboard-arrow icons in Phaser canvas.
+        fontFamily: "Material Symbols Rounded",
+        fontSize: "28px",
+        fontStyle: "normal",
+        color: COLOR_FUSHIA,
+      })
+      .setOrigin(0.5);
+
+    this.mobileHeaderToggleLabel = label;
+    this.mobileHeaderToggle = this.add
+      .container(0, 0, [label])
+      .setDepth(300)
+      .setSize(38, 38)
+      .setInteractive({ useHandCursor: true });
+
+    this.mobileHeaderToggle.on("pointerup", () => {
+      if (!this.layout?.metrics.isMobile) return;
+
+      this.mobileHeaderCollapsed = !this.mobileHeaderCollapsed;
+      this.callbacks.onMobileHeaderChanged(this.mobileHeaderCollapsed);
+      this.resize(this.scale.width, this.scale.height);
+    });
+  }
+
+  private layoutMobileHeaderToggle(): void {
+    if (!this.mobileHeaderToggle || !this.layout) return;
+
+    const isMobile = this.layout.metrics.isMobile;
+    this.mobileHeaderToggle.setVisible(isMobile);
+
+    if (!isMobile) return;
+
+    const table = this.layout.tableOuter;
+    const topExposure = this.layout.topExposure;
+    const toggleX = Math.round(Math.max(table.x + 22, topExposure.x - 24));
+    // The up-arrow belongs below the expanded header, not over its controls.
+    // Keep the collapsed down-arrow aligned to the top exposure.
+    const toggleY = this.mobileHeaderCollapsed
+      ? topExposure.y + topExposure.height / 2
+      : this.layout.hud.y + this.layout.hud.height + 14;
+    this.mobileHeaderToggle.setPosition(
+      toggleX,
+      Math.round(toggleY),
+    );
+    this.mobileHeaderToggleLabel?.setText(
+      this.mobileHeaderCollapsed ? "keyboard_arrow_down" : "keyboard_arrow_up",
+    );
   }
   
   private wallTileBoxSize(): { readonly width: number; readonly height: number } {
@@ -3093,12 +1604,6 @@ export class TableScene extends Phaser.Scene {
     this.uiLayoutManager.updateWallTiles(this.wallTileCount);
   }
   
-
-  private layoutPassButton(): void {
-    this.uiLayoutManager.layoutPassButton(this.layout);
-  }
-  
-
   private updateInstructionText(): void {
     this.uiLayoutManager.updateInstruction(
       this.tablePhase,
@@ -3118,15 +1623,7 @@ export class TableScene extends Phaser.Scene {
     const row = Math.floor(index / grid.columns);
     const col = index % grid.columns;
 
-    /**
-     * Center the FULL discard grid inside the discard area,
-     * but do NOT center each individual row.
-     *
-     * This means:
-     * - first discarded tile starts from the left side of the grid
-     * - all rows start from the same left X
-     * - full rows still have equal left/right spacing inside discard area
-     */
+    
     const fullRowWidth =
       grid.columns * grid.tileWidth +
       Math.max(0, grid.columns - 1) * grid.gapX;
@@ -3144,26 +1641,6 @@ export class TableScene extends Phaser.Scene {
           grid.tileHeight / 2 +
           row * (grid.tileHeight + grid.gapY),
       ),
-    };
-  }
-  private discardSlotForOLD(
-    index: number,
-    grid = this.discardGrid(),
-  ): Point {
-    const row = Math.floor(index / grid.columns);
-    const col = index % grid.columns;
-
-    return {
-      x:
-        grid.x +
-        grid.paddingX +
-        grid.tileWidth / 2 +
-        col * (grid.tileWidth + grid.gapX),
-      y:
-        grid.y +
-        grid.paddingY +
-        grid.tileHeight / 2 +
-        row * (grid.tileHeight + grid.gapY),
     };
   }
   private discardGrid(): DiscardGrid {
@@ -3191,10 +1668,7 @@ export class TableScene extends Phaser.Scene {
     const gapX = isPhonePortrait ? 2 : isPhoneLandscape ? 3 : isTablet ? 5 : 6;
     const gapY = isPhonePortrait ? 2 : isPhoneLandscape ? 3 : isTablet ? 5 : 6;
 
-    /**
-     * Mobile portrait:
-     * Use a dense grid so discarded tiles do not dominate the board.
-     */
+    
     if (isPhonePortrait) {
       const preferredColumns = Phaser.Math.Clamp(
         Math.ceil(Math.sqrt(count * (area.width / Math.max(1, area.height)) * aspect)),
@@ -3213,13 +1687,7 @@ export class TableScene extends Phaser.Scene {
         rows /
         aspect;
 
-      /* const tileWidth = Math.round(
-        Phaser.Math.Clamp(
-          Math.min(widthByColumns, widthByRows, rackTile.width * 0.42),
-          12,
-          22,
-        ),
-      ); */
+      
      const tileWidth = Math.round(
       Phaser.Math.Clamp(
         Math.min(widthByColumns, widthByRows, rackTile.width * 0.66),
@@ -3250,10 +1718,7 @@ export class TableScene extends Phaser.Scene {
       };
     }
 
-    /**
-     * Mobile landscape:
-     * Still compact, but can be slightly larger than portrait.
-     */
+    
     if (isPhoneLandscape) {
       const preferredColumns = Phaser.Math.Clamp(
         Math.ceil(Math.sqrt(count * 1.9)),
@@ -3272,13 +1737,7 @@ export class TableScene extends Phaser.Scene {
         rows /
         aspect;
 
-      /* const tileWidth = Math.round(
-        Phaser.Math.Clamp(
-          Math.min(widthByColumns, widthByRows, rackTile.width * 0.48),
-          14,
-          26,
-        ),
-      ); */
+      
 
       const tileWidth = Math.round(
         Phaser.Math.Clamp(
@@ -3310,10 +1769,7 @@ export class TableScene extends Phaser.Scene {
       };
     }
 
-    /**
-     * Tablet / desktop:
-     * Keep existing visual density but still scale by available area.
-     */
+    
     const targetColumns = isTablet ? 14 : 18;
     const targetRows = isTablet ? 5 : 5;
 
@@ -3355,18 +1811,6 @@ export class TableScene extends Phaser.Scene {
       columns,
     };
   }
-  
-  private rackIndexFromX(x: number): number {
-    const slots = this.layout.bottomTileLayout.slots;
-
-    if (slots.length === 0) return 0;
-
-    for (let i = 0; i < slots.length; i++) {
-      if (x < slots[i].x) return i;
-    }
-
-    return slots.length - 1;
-  }
   private rackIndexFromDragX(tileId: string, pointerX: number): number {
     const currentIndex = this.rackOrder.indexOf(tileId);
 
@@ -3380,22 +1824,9 @@ export class TableScene extends Phaser.Scene {
     if (!slots.length) {
       return currentIndex;
     }
-
-    /**
-     * Higher value = less sensitive reorder.
-     *
-     * 0.35 means:
-     * - moving right: pointer must cross around 85% of the next tile
-     * - moving left: pointer must cross around 15% of the previous tile
-     */
+    
     const farSideThreshold = tileWidth * 0.35;
-
     let targetIndex = currentIndex;
-
-    /**
-     * Dragging to the right.
-     * Only move after the pointer reaches near the far side of the next slot.
-     */
     for (let index = currentIndex + 1; index < this.rackOrder.length; index++) {
       const slot = slots[index];
 
@@ -3407,14 +1838,9 @@ export class TableScene extends Phaser.Scene {
         targetIndex = index;
         continue;
       }
-
       break;
     }
 
-    /**
-     * Dragging to the left.
-     * Only move after the pointer reaches near the far side of the previous slot.
-     */
     for (let index = currentIndex - 1; index >= 0; index--) {
       const slot = slots[index];
 
@@ -3426,10 +1852,8 @@ export class TableScene extends Phaser.Scene {
         targetIndex = index;
         continue;
       }
-
       break;
     }
-
     return targetIndex;
   }
 
@@ -3453,18 +1877,14 @@ export class TableScene extends Phaser.Scene {
     runtime.zone = "discard";
     runtime.selected = false;
     runtime.isDragging = false;
-
-
     this.selectedIds.delete(runtime.vm.id);
     runtime.image.clearTint();
-    
     runtime.image.disableInteractive();
     const grid = this.discardGrid();
     const slot = this.discardSlotFor(
       this.discardedTileIds.indexOf(runtime.vm.id),
       grid,
     );
-
     runtime.image.setDisplaySize(grid.tileWidth, grid.tileHeight);
     runtime.image.setDepth(this.discardTileDepth());
 
@@ -3504,12 +1924,6 @@ export class TableScene extends Phaser.Scene {
 
   private applyTileTextureFilter(image: Phaser.GameObjects.Image): void {
     const tileWidth = this.layout.bottomTileLayout.width;
-
-    /* image.texture.setFilter(
-      tileWidth <= 34
-        ? Phaser.Textures.FilterMode.NEAREST
-        : Phaser.Textures.FilterMode.LINEAR,
-    ); */
     image.texture.setFilter(Phaser.Textures.FilterMode.LINEAR);
   }
 
@@ -3528,10 +1942,6 @@ export class TableScene extends Phaser.Scene {
       const targetX = Math.round(slot.x);
       const targetY = Math.round(slot.y + selectedOffset);
 
-      /**
-       * Keep the actively dragged tile under the pointer.
-       * Do not resize or tween it while rack neighbors rearrange.
-       */
       if (runtime.isDragging) {
         runtime.slotIndex = this.rackOrder.indexOf(runtime.vm.id);
         runtime.image.setDepth(100);
@@ -3582,10 +1992,6 @@ export class TableScene extends Phaser.Scene {
     });
   }
   private discardTileDepth(): number {
-    /**
-     * Keep discarded tiles below interactive/pass/card UI.
-     * They should feel like board content, not overlay UI.
-     */
     return 35;
   }
 
@@ -3638,33 +2044,6 @@ private isInsidePlayablePassDropArea(x: number, y: number): boolean {
     y,
   );
 }
-  private isInsidePlayableDiscardAreaOLD(x: number, y: number): boolean {
-    const playableDiscardArea = new Phaser.Geom.Rectangle(
-      this.layout.discardArea.x,
-      this.layout.discardArea.y + this.layout.hud.height,
-      this.layout.discardArea.width,
-      this.layout.discardArea.height -
-        this.layout.hud.height -
-        this.layout.instructionBar.height,
-    );
-
-    return this.tileInteractionManager.isPointInsideRect(playableDiscardArea, x, y);
-  }
-
-
-  /**
-   * Plays one Charleston round.
-   *
-   * Example
-   *
-   * Top -> Right
-   * Right -> Bottom
-   * Bottom -> Left
-   * Left -> Top
-   *
-   * After animation finishes,
-   * caller should update racks.
-   */
   public playCharlestonRound(items: readonly PassAnimationItem[]): void {
     this.animationManager.playCharlestonRound(
       items,
@@ -3678,54 +2057,15 @@ private isInsidePlayablePassDropArea(x: number, y: number): boolean {
     );
   }
 
-  /**
-   * ---------------------------------------------------------
-   * DEVELOPMENT ONLY
-   *
-   * Simulates the server telling us that every player
-   * has submitted their Charleston tiles.
-   *
-   * REMOVE this method when multiplayer is connected.
-   * ---------------------------------------------------------
-   */
   public debugPlayCharleston(): void {
-
       this.playCharlestonRound([
-
-          {
-              from: "top",
-              to: "right",
-              tileCount: 3,
-          },
-
-          {
-              from: "right",
-              to: "bottom",
-              tileCount: 3,
-          },
-
-          {
-              from: "bottom",
-              to: "left",
-              tileCount: 3,
-          },
-
-          {
-              from: "left",
-              to: "top",
-              tileCount: 3,
-          }
+          { from: "top", to: "right", tileCount: 3, },
+          { from: "right", to: "bottom", tileCount: 3,},
+          { from: "bottom", to: "left", tileCount: 3,},
+          { from: "left", to: "top", tileCount: 3, }
       ]);
   }
 
-
-
-  /**
-   * Moves one rack tile into the destination player's PASS waiting area.
-   *
-   * During Charleston, this is the preferred mobile UX:
-   * drag/drop or double-tap a tile instead of selecting 3 first.
-   */
   private snapTileToPassWaiting(runtime: TileRuntime): void {
     if (!this.isPassingPhase()) return;
     if (runtime.zone !== "rack") return;
@@ -3758,7 +2098,6 @@ private isInsidePlayablePassDropArea(x: number, y: number): boolean {
     this.layoutPassWaitingTiles(true);
     this.callbacks.onSelectionChanged([...this.selectedIds]);
   }
-
 
   private returnPassTileToRack(tileId: string): void {
     const runtime = this.tileMap.get(tileId);
@@ -3797,22 +2136,8 @@ private isInsidePlayablePassDropArea(x: number, y: number): boolean {
     const rackWidth = Math.round(this.layout.bottomTileLayout.width);
     const rackHeight = Math.round(this.layout.bottomTileLayout.height);
 
-
-    /**
-     * Update source-of-truth immediately.
-     * Do not wait until animation complete, otherwise this tile can be pulled
-     * back into pass area by layoutPassWaitingTiles().
-     */
     this.removeFromPassWaiting(tileId);
-    
-    /* console.log("RETURN AFTER REMOVE", {
-      tileId,
-      zone: runtime.zone,
-      passWaitingTileIds: [...this.passWaitingTileIds],
-      rackOrder: [...this.rackOrder],
-      hasCloseButton: this.passCloseButtons.has(tileId),
-    }); */
-
+  
     runtime.zone = "rack";
     runtime.selected = false;
     runtime.isDragging = false;
@@ -3848,10 +2173,7 @@ private isInsidePlayablePassDropArea(x: number, y: number): boolean {
       duration: 320,
       ease: "Cubic.easeInOut",
       onUpdate: () => {
-        /**
-         * Keep the tile small for the first part of travel,
-         * then grow it near the rack. This avoids the current jump.
-         */
+        
         const growProgress = Phaser.Math.Clamp((progress.value - 0.55) / 0.45, 0, 1);
         const easedGrow = Phaser.Math.Easing.Sine.Out(growProgress);
 
@@ -3870,10 +2192,7 @@ private isInsidePlayablePassDropArea(x: number, y: number): boolean {
       duration: 320,
       ease: "Cubic.easeInOut",
       onComplete: () => {
-        /**
-         * Now update source-of-truth state.
-         * Until this point, the tile remained a PASS tile visually.
-         */
+        
         runtime.image.setAlpha(1);
         runtime.image.setDepth(30);
         runtime.image.setAngle(0);
@@ -3889,9 +2208,7 @@ private isInsidePlayablePassDropArea(x: number, y: number): boolean {
     });
   }
 
-  /**
-   * Removes tile id and close button from PASS waiting state.
-   */
+  
   private removeFromPassWaiting(tileId: string): void {
     this.passFlowManager.removePassWaitingTile(tileId);
 
@@ -3909,7 +2226,7 @@ private isInsidePlayablePassDropArea(x: number, y: number): boolean {
 
     const label = this.add
       .text(0, 0, "×", {
-        fontFamily: "Poppins, Arial",
+        fontFamily: FONT_FAMILY,
         fontSize: `${Math.round(radius * 1.45)}px`,
         fontStyle: "700",
         color: "#ffffff",
@@ -3941,17 +2258,7 @@ private isInsidePlayablePassDropArea(x: number, y: number): boolean {
       10,
     );
   }
-  private passCloseButtonRadiusOLD(): number {
-    const size = this.passTileDisplaySize(this.currentPassDestination);
-
-    return Math.max(
-      6,
-      Math.round(Math.min(size.width, size.height) * 0.16),
-    );
-  }
-
-
-
+  
   private resizePassCloseButton(button: Phaser.GameObjects.Container): void {
     const radius = this.passCloseButtonRadius();
 
@@ -3967,13 +2274,6 @@ private isInsidePlayablePassDropArea(x: number, y: number): boolean {
     );
   }
 
-  /**
-   * Draws a subtle PASS waiting drop zone in front of the destination exposure.
-   * Keeps PASS waiting area logic alive without drawing visible background/border.
-   * 
-   * The area is still used for drag/drop hit detection through
-   * passWaitingAreaRect(), but nothing is rendered on screen.
-  */
   private layoutPassWaitingArea(): void {
     if (this.passWaitingAreaGraphics) {
       this.passWaitingAreaGraphics.clear();
@@ -3995,8 +2295,6 @@ private isInsidePlayablePassDropArea(x: number, y: number): boolean {
       (tileId) => this.positionPassCloseButton(tileId),
     );
   }
-
-
   private positionPassCloseButton(tileId: string): void {
     const runtime = this.tileMap.get(tileId);
     const close = this.passCloseButtons.get(tileId);
@@ -4019,47 +2317,14 @@ private isInsidePlayablePassDropArea(x: number, y: number): boolean {
     const outwardY = corner.y - runtime.image.y;
     const length = Math.max(1, Math.hypot(outwardX, outwardY));
 
-    /* close.setPosition(
-      Math.round(corner.x + (outwardX / length) * closeRadius * 0.35),
-      Math.round(corner.y + (outwardY / length) * closeRadius * 0.35),
-    ); */
     close.setPosition(
-    Math.round(corner.x),
-    Math.round(corner.y),
-  );
+      Math.round(corner.x),
+      Math.round(corner.y),
+    );
 
     this.resizePassCloseButton(close);
   }
-  private positionPassCloseButtonOLD(tileId: string): void {
-    const runtime = this.tileMap.get(tileId);
-    const close = this.passCloseButtons.get(tileId);
-
-    if (!runtime || !close) return;
-
-    const size = this.passTileDisplaySize(this.currentPassDestination);
-    const closeRadius = this.passCloseButtonRadius();
-
-    const corner = this.rotatedTileCorner(
-      runtime.image.x,
-      runtime.image.y,
-      size.width,
-      size.height,
-      runtime.image.angle,
-      "top-right",
-    );
-
-    const outwardX = corner.x - runtime.image.x;
-    const outwardY = corner.y - runtime.image.y;
-    const length = Math.max(1, Math.hypot(outwardX, outwardY));
-
-    close.setPosition(
-      Math.round(corner.x + (outwardX / length) * closeRadius * 0.35),
-      Math.round(corner.y + (outwardY / length) * closeRadius * 0.35),
-    );
-  }
-  /**
-   * Positions the close button near the visible corner of a rotated PASS tile.
-   */
+  
   private rotatedTileCorner(
     centerX: number,
     centerY: number,
@@ -4093,16 +2358,6 @@ private isInsidePlayablePassDropArea(x: number, y: number): boolean {
       y: centerY + local.x * sin + local.y * cos,
     };
   }
-
-  /**
-   * Checks if pointer is inside current PASS waiting drop zone. 
-   */
-  private isInsidePassWaitingAreaOLD(x: number, y: number): boolean {
-    const rect = this.passWaitingAreaRect(this.currentPassDestination);
-
-    return this.tileInteractionManager.isPointInsideRect(rect, x, y);
-  }
-
   private isInsidePassWaitingArea(x: number, y: number): boolean {
     const rect = this.passDropRectForSeat(this.currentPassDestination);
 
@@ -4110,11 +2365,7 @@ private isInsidePlayablePassDropArea(x: number, y: number): boolean {
   }
 
   private passDropRectForSeat(seat: TableSeat): Rect {
-    /**
-     * Use the same visual target positions as layoutPassWaitingTiles().
-     * This keeps drag/drop hit testing aligned with where the PASS tiles
-     * actually appear on screen.
-     */
+    
     const targets = this.passAreaTargets(seat, 3);
     const size = this.passTileDisplaySize(seat);
 
@@ -4211,16 +2462,6 @@ private isInsidePlayablePassDropArea(x: number, y: number): boolean {
       height,
     };
   }
-  private relayoutPassWaitingTilesAfterResize(): void {
-    if (this.passWaitingTileIds.length === 0) return;
-
-    /**
-     * Do not tween during orientation/layout change.
-     * The old coordinates belong to the previous orientation,
-     * so directly place them into the new pass area.
-     */
-    this.layoutPassWaitingTiles(false);
-  }
   private passAreaTargets(seat: TableSeat, count: number): readonly Point[] {
     const rect = this.passWaitingAreaRect(seat);
     const size = this.passTileDisplaySize(seat);
@@ -4250,79 +2491,14 @@ private isInsidePlayablePassDropArea(x: number, y: number): boolean {
       y,
     }));
   }
-  private passAreaTargetsOLDW(
-    seat: "top" | "right" | "bottom" | "left",
-    count: number,
-  ): readonly Point[] {
-    const rect = this.passWaitingAreaRect(seat);
-    const size = this.passTileDisplaySize(seat);
-    const step = size.width * 0.9;
 
-    if (seat === "right" || seat === "left") {
-      const x = rect.x + rect.width / 2;
-      const startY = rect.y + rect.height / 2 - step * (count - 1) / 2;
-
-      return Array.from({ length: count }, (_, index) => ({
-        x: Math.round(x),
-        y: Math.round(startY + index * step),
-      }));
-    }
-
-    /**
-     * TOP PASS TARGETS
-     *
-     * Selected pass tiles should appear above the instruction/PASS popup,
-     * not over the popup.
-     *
-     * Do this only for top so left/right/bottom behavior remains unchanged.
-     */
-    if (seat === "top") {
-      const card = this.layout.instructionBar;
-
-      const gapAboveCard = Math.max(
-        8,
-        Math.round(size.height * 0.22),
-      );
-
-      const minY =
-        this.layout.topExposure.y +
-        this.layout.topExposure.height +
-        size.height * 0.60;
-
-      const preferredY =
-        card.y - gapAboveCard - size.height / 2;
-
-      const y = Math.max(minY, preferredY);
-
-      const startX = card.x + card.width / 2 - step * (count - 1) / 2;
-
-      return Array.from({ length: count }, (_, index) => ({
-        x: Math.round(startX + index * step),
-        y: Math.round(y),
-      }));
-    }
-
-    /**
-     * BOTTOM / fallback behavior unchanged.
-     */
-    const y = rect.y + rect.height / 2;
-    const startX = rect.x + rect.width / 2 - step * (count - 1) / 2;
-
-    return Array.from({ length: count }, (_, index) => ({
-      x: Math.round(startX + index * step),
-      y: Math.round(y),
-    }));
-  }
   private passTileDisplaySize(seat: "top" | "right" | "bottom" | "left"): {
     readonly width: number;
     readonly height: number;
   } {
     const rackWidth = this.layout.bottomTileLayout.width;
 
-    /**
-     * Current size was rackWidth * 1.22.
-     * This makes PASS waiting tiles clearly smaller than rack tiles.
-     */
+    
     const width = Math.round(
       Phaser.Math.Clamp(
         rackWidth * 0.82,
@@ -4352,27 +2528,9 @@ private isInsidePlayablePassDropArea(x: number, y: number): boolean {
     }
   }
 
-  /**
-   * PASS button becomes active only when the waiting area has 3 tiles.
-   */
   private canSubmitPassWaitingTiles(): boolean {
     return this.passFlowManager.canSubmitPassWaitingTiles();
   }
-
-  /**
-   * Final submit after 3 tiles are placed in PASS waiting area.
-   *
-   * Current local implementation:
-   * - disables the PASS area
-   * - removes passed tiles from local rack
-   * - notifies Angular
-   *
-   * Later multiplayer version:
-   * - sends tile ids to server
-   * - waits for all players
-   * - runs Charleston exchange animation
-   * - applies server rack result
-   */
   private submitPassWaitingTiles(): void {
     if (this.isBotPassVisualAnimating) return;
     if (!this.passFlowManager.beginSubmission()) return;
@@ -4404,29 +2562,18 @@ private isInsidePlayablePassDropArea(x: number, y: number): boolean {
 
       this.hasCompletedFirstCharlestonVisualPass = true;
 
-      /**
-       * If Angular/server updates the next pass direction asynchronously,
-       * setPassDirection() will stage bots. This delayed call is only a safety net.
-       */
       this.time.delayedCall(260, () => {
         this.tryAutoStageBotPassTilesForCurrentDirection();
       });
     };
 
-    /**
-     * Existing working animation:
-     * bottom selected front tiles flip to white backs and move to destination rack.
-     */
+    
     this.animatePassWaitingTilesIntoSeatRack(ids, () => {
       selectedTilesFinished = true;
       finishWhenBothAnimationsComplete();
     });
 
-    /**
-     * New visual-only layer:
-     * bot/opponent white-back tiles either already sit in waiting areas
-     * for round 2+, or they animate waiting-area -> rack after first PASS.
-     */
+    
     this.animateBotPassVisualsForSubmit(() => {
       botVisualsFinished = true;
       finishWhenBothAnimationsComplete();
@@ -4449,11 +2596,6 @@ private isInsidePlayablePassDropArea(x: number, y: number): boolean {
     );
   }
   private animateBotPassVisualsForSubmit(onFinished: () => void): void {
-    /**
-     * Round 2+:
-     * bot tiles are already staged in destination waiting areas.
-     * PASS only commits them into racks.
-     */
     if (
       this.botPassVisualTiles.length > 0 &&
       this.botAutoStagedDestination === this.currentPassDestination
@@ -4461,12 +2603,6 @@ private isInsidePlayablePassDropArea(x: number, y: number): boolean {
       this.commitBotPassVisualTilesToRacks(onFinished);
       return;
     }
-
-    /**
-     * First round / fallback:
-     * bot tiles animate source -> destination waiting area,
-     * pause briefly, then destination waiting area -> rack.
-     */
     this.animateOpponentPassToWaitingThenRack(onFinished);
   }
 
@@ -4476,16 +2612,8 @@ private isInsidePlayablePassDropArea(x: number, y: number): boolean {
     if (this.isPassAnimating) return;
     if (this.isBotPassVisualAnimating) return;
 
-    /**
-     * Do not auto-stage the same direction that was just submitted.
-     * Wait until Angular/server advances pass:direction.
-     */
     if (this.currentPassDestination === this.lastSubmittedPassDestination) return;
 
-    /**
-     * Bottom player must manually select their own 3 tiles.
-     * If bottom already has selected pass tiles, do not disturb them.
-     */
     if (this.passWaitingTileIds.length > 0) return;
 
     if (
@@ -4741,11 +2869,7 @@ private isInsidePlayablePassDropArea(x: number, y: number): boolean {
         case "top": return "right";
         case "right": return "bottom";
       }
-    }
-
-    /**
-     * Across. Your current destination mapping represents across as top.
-     */
+    } 
     switch (seat) {
       case "bottom": return "top";
       case "top": return "bottom";
@@ -4756,7 +2880,6 @@ private isInsidePlayablePassDropArea(x: number, y: number): boolean {
 
   private seatPassVisualSourcePoint(seat: TableSeat): Point {
     const points = this.passAreaTargets(seat, 3);
-
     return points[1] ?? {
       x: this.layout.tableOuter.x + this.layout.tableOuter.width / 2,
       y: this.layout.tableOuter.y + this.layout.tableOuter.height / 2,
@@ -4765,17 +2888,6 @@ private isInsidePlayablePassDropArea(x: number, y: number): boolean {
 
   private relayoutBotPassVisualTilesAfterResize(): void {
     if (this.botPassVisualTiles.length === 0) return;
-
-    /**
-     * Bot/opponent Charleston pass backs are temporary visual clones.
-     *
-     * Do NOT destroy/recreate them on orientation change.
-     * Android can fire multiple resize events quickly, and clearing them can
-     * make already-staged waiting tiles disappear.
-     *
-     * Instead, keep the existing clone containers and move them to the new
-     * pass waiting targets for the current layout.
-     */
     const groups = new Map<string, BotPassVisualTile[]>();
 
     for (const tile of this.botPassVisualTiles) {
@@ -4943,10 +3055,7 @@ private isInsidePlayablePassDropArea(x: number, y: number): boolean {
       y: Math.round(y),
     }));
   }
-  /**
-   * Applies current local pass result.
-   * In production this will be replaced by applying the server-authoritative rack.
-   */
+  
   private applyPassWaitingResult(ids: readonly string[]): void {
     this.passFlowManager.applyPassWaitingResult(ids, {
       onTileRemoved: (runtime) => runtime.image.destroy(),
@@ -4957,9 +3066,7 @@ private isInsidePlayablePassDropArea(x: number, y: number): boolean {
     });
   }
 
-  /**
-   * Updates PASS button visual state.
-   */
+  
   private updatePassButtonState(): void {
     this.uiLayoutManager.updatePassButtonState({
       layout: this.layout,
@@ -4977,18 +3084,8 @@ private isInsidePlayablePassDropArea(x: number, y: number): boolean {
       this.pickTargetSeat,
     );
   }
-  
-
-
-  private passDestinationForDirection(direction: PassDirection): TableSeat {
-    return this.passFlowManager.destinationForDirection(direction);
-  }
-
   private playHaptic(type: GameHapticType): void {
     this.soundManager.playHaptic(type);
-    /* Legacy Scene implementation retained for reference:
-    this.callbacks.onHaptic?.(type);
-    */
   }
 
   
@@ -4996,17 +3093,12 @@ private isInsidePlayablePassDropArea(x: number, y: number): boolean {
     this.soundManager.playSfx(id);
   }
   
-
   private layoutPickSeatSelector(): void {
     this.uiLayoutManager.layoutPickSeatSelector(
       this.layout,
       this.tablePhase,
       this.pickTargetSeat,
     );
-  }
-
-  private updatePickSeatSelectorState(): void {
-    this.uiLayoutManager.updatePickSeatSelectorState(this.pickTargetSeat);
   }
 
 
@@ -5067,15 +3159,6 @@ private isInsidePlayablePassDropArea(x: number, y: number): boolean {
             0,
           );
 
-    /* this.animationManager.animateWallPick(
-      clone,
-      target,
-      this.pickTileAngleForSeat(seat),
-      this.pickAnimationDurationForSeat(seat),
-      startScale,
-      seat === "bottom",
-      onComplete,
-    ); */
     this.animationManager.animateWallPick(
       clone,
       target,
@@ -5114,10 +3197,6 @@ private isInsidePlayablePassDropArea(x: number, y: number): boolean {
       height > 520 &&
       height <= 900;
 
-    /**
-     * Bottom/current-user pick animation.
-     * This controls only the flying clone, not the final rack tile.
-     */
     if (seat === "bottom") {
       if (isPhonePortrait) return 0.46;
       if (isPhoneLandscape) return 0.48;
@@ -5127,9 +3206,6 @@ private isInsidePlayablePassDropArea(x: number, y: number): boolean {
       return 1;
     }
 
-    /**
-     * Opponent/back-tile pick animation.
-     */
     if (isPhonePortrait) return 0.58;
     if (isPhoneLandscape) return 0.60;
     if (isTabletPortrait) return 0.74;
@@ -5162,7 +3238,6 @@ private isInsidePlayablePassDropArea(x: number, y: number): boolean {
   }
 
   
-  
 
   private createTileFrontPickClone(
     tile: TileVm,
@@ -5177,9 +3252,7 @@ private isInsidePlayablePassDropArea(x: number, y: number): boolean {
       !this.textures.exists(texture.atlasKey) ||
       !this.textures.get(texture.atlasKey).has(texture.frameKey)
     ) {
-      /**
-       * Fallback only. In normal flow the atlas is already loaded by setRack().
-       */
+      
       const fallback = this.add.image(x, y, TILE_ATLAS_1X_KEY);
       fallback.setOrigin(0.5);
       fallback.setDisplaySize(width, height);
@@ -5264,13 +3337,7 @@ private isInsidePlayablePassDropArea(x: number, y: number): boolean {
     const topRack = this.layout.topExposure;
     const size = this.pickAnimationTileSize("top");
 
-    /**
-     * Top seat PICK animation target:
-     * End at the left corner of the top seat rack/exposure area.
-     *
-     * Source is still the wall tile box.
-     * This only changes the final destination.
-     */
+    
     return {
       x: Math.round(topRack.x + size.width / 2),
       y: Math.round(topRack.y + topRack.height / 2),
@@ -5290,10 +3357,7 @@ private isInsidePlayablePassDropArea(x: number, y: number): boolean {
   }
 
   private addMockPickedTileToRack(tile: TileVm): void {
-    /**
-     * Temporary local-only testing path.
-     * Later replace this with game-engine/server draw result.
-     */
+    
     this.setRack([...this.rackTiles, tile]);
   }
 }

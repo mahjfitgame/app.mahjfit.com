@@ -70,7 +70,7 @@ function createTileVm(input: TileVmInput): TileVm {
         position: fixed;
         z-index: 9999;
         top: max(64px, env(safe-area-inset-top));
-        left: max(12px, env(safe-area-inset-left));
+        right: max(12px, env(safe-area-inset-left));
         padding: 8px 10px;
         border-radius: 10px;
         background: rgba(255, 255, 255, 0.92);

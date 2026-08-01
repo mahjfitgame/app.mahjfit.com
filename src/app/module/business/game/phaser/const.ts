@@ -42,6 +42,8 @@ export const COLOR_RED_NUM = 0xF04846;
 export const COLOR_GREEN = "#11B364";
 export const COLOR_GREEN_NUM = 0x11B364;
 
+export const FONT_FAMILY = "Poppins, Arial";
+
 
 
 

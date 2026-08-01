@@ -11,18 +11,18 @@ import { Rect, ResponsiveMetrics, SafeAreaInsets, TableLayout, TileLayout } from
 
 import {
   resolveDeviceLayout,
-  type DeviceLayoutState,
+  DeviceLayoutState,
 } from "./device-layout.service";
 
 // Keep the layout engine as the public entry point for its related layout types.
-export type {
+/* export type {
   Point,
   Rect,
   ResponsiveMetrics,
   SafeAreaInsets,
   TableLayout,
   TileLayout,
-} from "./type";
+} from "./type"; */
 
 
 
@@ -71,6 +71,7 @@ export class GameLayoutEngine {
           viewport.height,
           tileCount,
           config,
+          viewport,
           safeArea,
         );
 
@@ -80,6 +81,7 @@ export class GameLayoutEngine {
           viewport.height,
           tileCount,
           config,
+          viewport,
           safeArea,
       );
 
@@ -89,6 +91,7 @@ export class GameLayoutEngine {
           viewport.height,
           tileCount,
           config,
+          viewport,
           safeArea,
         );
 
@@ -98,126 +101,27 @@ export class GameLayoutEngine {
           viewport.height,
           tileCount,
           config,
+          viewport,
           safeArea,
         );
 
       default:
-        return this.computeDesktopLandscapePsd(
+        return this.computeDesktopLandscape(
           viewport.width,
           viewport.height,
           tileCount,
           config,
+          viewport,
           safeArea,
         );
     }
   }
-  computeOLDOrientation(
+  computeDesktopLandscape(
     width: number,
     height: number,
     tileCount: number,
     config: GameTableConfig,
-    safeArea: SafeAreaInsets = ZERO_SAFE_AREA,
-  ): TableLayout {
-    if (!Number.isFinite(width) || !Number.isFinite(height) || width <= 0 || height <= 0) {
-      throw new Error(`Invalid canvas size ${width}x${height}`);
-    }
-
-    const safeTop = Math.max(0, safeArea.top);
-    const safeRight = Math.max(0, safeArea.right);
-    const safeBottom = Math.max(0, safeArea.bottom);
-    const safeLeft = Math.max(0, safeArea.left);
-
-    const safeWidth = Math.max(1, width - safeLeft - safeRight);
-    const safeHeight = Math.max(1, height - safeTop - safeBottom);
-
-    const metrics = this.computeResponsiveMetrics(safeWidth, safeHeight);
-    const isPortrait = safeHeight >= safeWidth;
-
-    const isPhoneLandscape =
-      !isPortrait &&
-      safeHeight <= 520 &&
-      safeWidth <= 980;
-
-    const isPhonePortrait =
-      isPortrait &&
-      safeWidth <= 520;
-
-    const isTabletPortrait =
-      isPortrait &&
-      !isPhonePortrait &&
-      safeWidth > 520 &&
-      safeWidth <= 1180 &&
-      safeHeight <= 1400;
-
-    /**
-     * Tablet landscape:
-     * iPad Mini landscape example: 1024 x 768.
-     *
-     * This must not go to desktop PSD layout because desktop exposure
-     * panels are too large for tablet landscape height.
-     */
-    const isTabletLandscape =
-      !isPortrait &&
-      !isPhoneLandscape &&
-      safeWidth > 760 &&
-      safeWidth <= 1180 &&
-      safeHeight > 520 &&
-      safeHeight <= 900;
-
-    if (isPhonePortrait || (metrics.isMobile && metrics.isPortrait)) {
-      return this.computeMobilePortrait(
-        width,
-        height,
-        tileCount,
-        config,
-        safeArea,
-      );
-    }
-
-    if (isPhoneLandscape) {
-      return this.computeMobileLandscape(
-        width,
-        height,
-        tileCount,
-        config,
-        safeArea,
-      );
-    }
-
-    if (isTabletPortrait) {
-      return this.computeTabletPortrait(
-        width,
-        height,
-        tileCount,
-        config,
-        safeArea,
-      );
-    }
-
-    if (isTabletLandscape) {
-      return this.computeTabletLandscape(
-        width,
-        height,
-        tileCount,
-        config,
-        safeArea,
-      );
-    }
-
-    return this.computeDesktopLandscapePsd(
-      width,
-      height,
-      tileCount,
-      config,
-      safeArea,
-    );
-  }
-  
-  computeDesktopLandscapePsd(
-    width: number,
-    height: number,
-    tileCount: number,
-    config: GameTableConfig,
+    viewport: DeviceLayoutState,
     safeArea: SafeAreaInsets = ZERO_SAFE_AREA,
   ): TableLayout {
     if (!Number.isFinite(width) || !Number.isFinite(height) || width <= 0 || height <= 0) {
@@ -234,7 +138,7 @@ export class GameLayoutEngine {
     const safeCenterX = safeLeft + safeWidth / 2;
 
     const count = Math.max(tileCount, 14);
-    const metrics = this.computeResponsiveMetrics(safeWidth, safeHeight);
+    const metrics = this.computeResponsiveMetrics(safeWidth, safeHeight, viewport);
 
     /**
      * PSD reference is landscape 1920x1080.
@@ -484,6 +388,7 @@ export class GameLayoutEngine {
     height: number,
     tileCount: number,
     config: GameTableConfig,
+    viewport: DeviceLayoutState,
     safeArea: SafeAreaInsets = ZERO_SAFE_AREA,
   ): TableLayout {
     const safeTop = Math.max(0, safeArea.top);
@@ -496,7 +401,7 @@ export class GameLayoutEngine {
     const safeCenterX = safeLeft + safeWidth / 2;
 
     const count = Math.max(tileCount, 14);
-    const metrics = this.computeResponsiveMetrics(safeWidth, safeHeight);
+    const metrics = this.computeResponsiveMetrics(safeWidth, safeHeight, viewport);
 
     /**
      * Tablet portrait:
@@ -739,6 +644,7 @@ export class GameLayoutEngine {
     height: number,
     tileCount: number,
     config: GameTableConfig,
+    viewport: DeviceLayoutState,
     safeArea: SafeAreaInsets = ZERO_SAFE_AREA,
   ): TableLayout {
     const safeTop = Math.max(0, safeArea.top);
@@ -751,7 +657,7 @@ export class GameLayoutEngine {
     const safeCenterX = safeLeft + safeWidth / 2;
 
     const count = Math.max(tileCount, 14);
-    const metrics = this.computeResponsiveMetrics(safeWidth, safeHeight);
+    const metrics = this.computeResponsiveMetrics(safeWidth, safeHeight, viewport);
 
     /**
      * Tablet landscape:
@@ -819,8 +725,9 @@ const tableOuter: Rect = {
      * Wider than phone landscape, smaller than desktop.
      */
     const topExposureWidth = this.clamp(
-      tableOuter.width * 0.500,
-      420,
+      // Leave a dedicated wall-indicator lane before the full-height right rail.
+      tableOuter.width * 0.460,
+      390,
       620,
     );
 
@@ -1028,6 +935,7 @@ const tableOuter: Rect = {
     height: number,
     tileCount: number,
     config: GameTableConfig,
+    viewport: DeviceLayoutState,
     safeArea: SafeAreaInsets = ZERO_SAFE_AREA,
   ): TableLayout {
     const safeTop = Math.max(0, safeArea.top);
@@ -1040,7 +948,7 @@ const tableOuter: Rect = {
     const safeCenterX = safeLeft + safeWidth / 2;
 
     const count = Math.max(tileCount, 14);
-    const metrics = this.computeResponsiveMetrics(safeWidth, safeHeight);
+    const metrics = this.computeResponsiveMetrics(safeWidth, safeHeight, viewport);
 
     // TEMP: remove after verifying
   //console.log("USING MOBILE LANDSCAPE LAYOUT", width, height);
@@ -1053,12 +961,15 @@ const tableOuter: Rect = {
 
 
 
-    const tableOuterInset = safeHeight * 0.030;
+    // Match the mobile page-blue gutter to the table's black edge thickness.
+    // Use the shorter viewport side so portrait and landscape stay consistent.
+    const tableOuterInset = this.clamp(Math.min(safeWidth, safeHeight) * 0.018, 8, 18);
     const tableOuter: Rect = {
       x: safeLeft + tableOuterInset,
-      y: safeTop + hudHeight,
+      // The mobile header overlays the table; it never reserves table height.
+      y: safeTop,
       width: safeWidth - tableOuterInset * 2,
-      height: safeHeight - hudHeight - tableOuterInset,
+      height: safeHeight - tableOuterInset,
     };
     /*
     const tableOuter: Rect = {
@@ -1072,11 +983,12 @@ const tableOuter: Rect = {
     const tablePadX = this.tableEdgeInset(tableOuter);
     const tablePadTop = tablePadX;
     const tablePadBottom = tablePadX;
+    const mobileRackBottomInset = Math.max(4, tablePadBottom - 4);
 
     const rackHeight = this.clamp(safeHeight * 0.135, 44, 58);
     const bottomRack: Rect = {
       x: tableOuter.x + tableOuter.width * 0.180,
-      y: tableOuter.y + tableOuter.height - rackHeight - tablePadBottom,
+      y: tableOuter.y + tableOuter.height - rackHeight - mobileRackBottomInset,
       width: tableOuter.width * 0.640,
       height: rackHeight,
     };
@@ -1367,6 +1279,7 @@ const rightExposure: Rect = {
     height: number,
     tileCount: number,
     config: GameTableConfig,
+    viewport: DeviceLayoutState,
     safeArea: SafeAreaInsets,
   ): TableLayout {
     const safeTop = Math.max(0, safeArea.top);
@@ -1379,7 +1292,7 @@ const rightExposure: Rect = {
     const safeCenterX = safeLeft + safeWidth / 2;
 
     const count = Math.max(tileCount, 14);
-    const metrics = this.computeResponsiveMetrics(safeWidth, safeHeight);
+    const metrics = this.computeResponsiveMetrics(safeWidth, safeHeight, viewport);
 
     /**
      * Mobile portrait is not a scaled desktop PSD.
@@ -1392,12 +1305,16 @@ const rightExposure: Rect = {
 
     const hudHeight = this.clamp(safeHeight * 0.062, 42, 54);
 
-    const tableOuterInset = safeHeight * 0.018;
+    // Keep the outer blue gutter no larger than the visible black table edge.
+    const tableOuterInset = this.clamp(Math.min(safeWidth, safeHeight) * 0.018, 8, 18);
     const tableOuter: Rect = {
       x: safeLeft + tableOuterInset,
-      y: safeTop + hudHeight,
+      //y: safeTop + tableOuterInset, // For top boarder 
+      //height: safeHeight - tableOuterInset * 2,  // For top boarder 
+      // The mobile header overlays the table; it never reserves table height.
+      y: safeTop,
       width: safeWidth - tableOuterInset * 2,
-      height: safeHeight - hudHeight - tableOuterInset,
+      height: safeHeight - tableOuterInset,
     };
 
     /*
@@ -1415,14 +1332,23 @@ const rightExposure: Rect = {
     const tablePaddingBottom = tablePaddingTop;
 
     const rackHeight = this.clamp(safeHeight * 0.086, 54, 70);
-    const bottomRackBottomInset = this.tableEdgeInset(tableOuter);
+    const bottomRackBottomInset = Math.max(
+      4,
+      this.tableEdgeInset(tableOuter) - 4,
+    );
     const bottomRack: Rect = {
       x: tableOuter.x + tableOuter.width * 0.055,
       y: tableOuter.y + tableOuter.height - rackHeight - bottomRackBottomInset,
       width: tableOuter.width * 0.890,
       height: rackHeight,
     };
-    const bottomTileLayout = this.computeTileLayout(bottomRack, count, width, config);
+    const bottomTileLayout = this.computeTileLayout(
+      bottomRack,
+      count,
+      width,
+      config,
+      true,
+    );
     const panelRatios =
       exposureLipRatio("mobile-portrait") +
       exposureNameStripRatio("mobile-portrait");
@@ -1650,11 +1576,19 @@ const rightExposure: Rect = {
       metrics,
     };
   }
-  private computeResponsiveMetrics(width: number, height: number): ResponsiveMetrics {
+  private computeResponsiveMetrics(
+    width: number,
+    height: number,
+    viewport: DeviceLayoutState,
+  ): ResponsiveMetrics {
     const shortest = Math.min(width, height);
-    const isPortrait = height > width;
-    const isMobile = shortest < 430 || width < 640;
-    const isTablet = !isMobile && width < 1024;
+    const isPortrait = viewport.orientation === "portrait";
+    const isMobile =
+      viewport.layout === "phone-portrait" ||
+      viewport.layout === "phone-landscape";
+    const isTablet =
+      viewport.layout === "tablet-portrait" ||
+      viewport.layout === "tablet-landscape";
 
     const uiScale = this.clamp(
       shortest / 768,
@@ -1780,6 +1714,7 @@ const rightExposure: Rect = {
     count: number,
     canvasWidth: number,
     config: GameTableConfig,
+    mobilePortrait = false,
   ): TileLayout {
     const isMobile = canvasWidth < 640;
     const isTablet = canvasWidth >= 640 && canvasWidth < 1024;
@@ -1788,7 +1723,9 @@ const rightExposure: Rect = {
      * Mobile portrait needs the largest readable tile possible.
      * We use small negative overlap on mobile only.
      */
-    const overlapRatio = isMobile ? 0.14 : 0;
+    // Portrait keeps a modest overlap: larger than the original tile size,
+    // while leaving a clearer gap between adjacent rack tiles.
+    const overlapRatio = isMobile ? (mobilePortrait ? 0.15 : 0.14) : 0;
 
     const gap = isMobile
       ? -0.75 // 0

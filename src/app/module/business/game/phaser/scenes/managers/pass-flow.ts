@@ -1,8 +1,8 @@
 // file: src/app/module/business/game/phaser/scenes/managers/pass-flow.ts
 import type { PassDirection } from "../../../model/tile";
-import type { TileRuntime } from "./state";
+import { TableSeat, TileRuntime } from "../type";
 import { AnimationManager } from "./animation";
-import { StateManager, type TableSeat } from "./state";
+import { StateManager } from "./state";
 import { UiLayoutManager } from "./ui-layout";
 
 /**
