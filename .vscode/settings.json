@@ -1,4 +1,4 @@
 {
-    "webnative.defaultPort": 20155,
+    "webnative.defaultPort": 20180,
     "debug.javascript.autoAttachFilter": "onlyWithFlag"
 }

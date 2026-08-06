@@ -2,10 +2,10 @@
 
 vars:
   APP_NAME:
-    default: Bfw PWA
+    default: Mahjfit
 
   APP_ID:
-    default: com.thatsend.bfwpwa
+    default: com.thatsend.mahjfit
 
 platforms:
   android:

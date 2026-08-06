@@ -20,7 +20,7 @@ export class GameRoute {
         const routes: Routes = [
             {
                 path: SLUG_GAME,
-                title: 'Game',
+                title: 'Mahjfit Online - Play with your Mah Jongg Card',
                 loadComponent: () => import('./game-shell/component').then((c) => c.GameShellComponent),
             },
         ];

@@ -12,7 +12,7 @@
       "args": [
         "serve", 
         "--host=0.0.0.0", 
-        "--port=20155", 
+        "--port=20180", 
         "--open=false",
         "--configuration=debug",
         //"--proxy-config=proxy.conf.json"
@@ -24,9 +24,9 @@
       "console": "integratedTerminal",
       "autoAttachChildProcesses": true,
       "serverReadyAction": {
-        "pattern": "https://(?:localhost|0\\.0\\.0\\.0|192\\.168\\.0\\.98):20155",
-        //"uriFormat": "https://localhost:20155",
-        "uriFormat": "https://0.0.0.0:20155",
+        "pattern": "https://(?:localhost|0\\.0\\.0\\.0|192\\.168\\.0\\.98):20180",
+        //"uriFormat": "https://localhost:20180",
+        "uriFormat": "https://0.0.0.0:20180",
         //"pattern": "Local:\\s+(https?://\\S+)",
         //"uriFormat": "%s",
         "action": "debugWithChrome",
@@ -54,8 +54,8 @@
       "console": "integratedTerminal",
       "autoAttachChildProcesses": true,
       "serverReadyAction": {
-        "pattern": "https://(?:localhost|0\\.0\\.0\\.0|192\\.168\\.0\\.98):20155",
-        "uriFormat": "https://0.0.0.0:20155",
+        "pattern": "https://(?:localhost|0\\.0\\.0\\.0|192\\.168\\.0\\.98):20180",
+        "uriFormat": "https://0.0.0.0:20180",
         "action": "debugWithChrome",
         "webRoot": "${workspaceFolder}"
       },

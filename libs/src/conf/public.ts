@@ -21,7 +21,7 @@ export class ConfPublic {
   public APP_HOST_AI_DOMAIN: string = 'http://localhost:20156'; // Python AI app port
 
   public APP_LISTEN_HOST: string = 'localhost';
-  public APP_LISTEN_PORT: number = 20155;
+  public APP_LISTEN_PORT: number = 20180;
 
   public WEBSITE_SERVER_SIDE_LOG_URL_PATH: string = '/wlog/webiste';
   public BACKOFFICE_SERVER_SIDE_LOG_URL_PATH: string = '/wlog/backoffice';

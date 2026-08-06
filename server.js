@@ -30,7 +30,7 @@ try {
 // --- SERVER CONFIGURATION ---
 const CONFIG = {
   host: '0.0.0.0',
-  port: 20155,
+  port: 20180,
   
   // relative path to your compiled Angular browser build folder
   distDir,

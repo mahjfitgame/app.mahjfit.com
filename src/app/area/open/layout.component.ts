@@ -45,7 +45,7 @@ export class OpenAreaLayoutComponent implements OnInit, OnDestroy {
         { label: "Start Game", path: GameRoute.absolutePath(), icon: "gamepad" },
     ];
 
-    protected readonly brandLogoSrc = "assets/logo.png";
+    protected readonly brandLogoSrc = "assets/majhfit-logo-blue.png";
 
     protected readonly SignoutRoute = SignoutRoute;
 

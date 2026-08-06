@@ -1,3 +1,115 @@
+Progress meeting: 5 AUG 2026 5 PM PDT
+
+This is is prototype (semi-functional) design demo meeting.
+
+1]
+As per the meeting discussin niravraj suggested few points releated with design in mobile device. Worked to manage the tile rack and make proper spacing around the table.
+
+2]
+Game board design and improved the layout for mobile and tablet devices. 
+Adjusted the position of some areas on mobile to provide a better user experience. 
+
+3]
+Reduced the space outside the blue area to increase the game table width, made the header collapsible to provide more space for the game board, and slightly increased the rack tile size for better visibility.
+
+4]
+Create UI Design for the CALL action. 
+Moving tiles to the exposure panel and moving tiles from the rack to the exposure panel. 
+
+5]
+Joker swap feature and tile animation during the swap action. 
+
+6]
+Designed the discard tile view for each seat, the Dead Hand popup, and the Win Mahjong screen.
+
+7]
+Added more Haptic effect on Discard and Call actions.
+Test Haptic with the real device.
+
+8]
+Modified some text layout in mobile and table device. 
+Add design for the DeadHand.
+
+9]
+Run app design with the real devices.
+Configured for iOS build.
+Prepare APK for android and build archieve for iOS to upload build on the apple developer TestFlight.
+I have 
+https://testflight.apple.com/join/AY14KUmN
+
+
+10]
+We also worked on upgrade layout and run app with the real device and test the design.
+I also have setup the build for web and deploy it on our demo server.
+Prepare build for iOS test flight and deploy It
+Prepare and build android APK file.
+
+
+WEB Demo
+https://mahjfit-com.thatsend.dev/
+
+IOS TestFkight Demo
+https://testflight.apple.com/join/AY14KUmN
+
+Android check APK file.
+In WhatsApp Group chat. Download from there.
+
+FOR DEVELOPER]
+We have an issue in apple test flight access for app download. 
+If required you need to add below emails to access list.
+imtiazrazzak@gmail.com
+jtyler28@gmail.com
+email@spencertyler.com
+Test it before fresh user same situation client is going to face, make sure it works and reply back with instructions. This is ASAP task.
+
+END OF UPDATE.
+
+FOR CLIENT]
+The TestFlight url is now available for public usage. You can install app through the below URL.
+https://testflight.apple.com/join/AY14KUmN
+
+I also added all team members email, please check your email inbox you got the invitation email.
+
+How to Access the App Using TestFlight (External Tester)
+
+- Open the invitation email sent by TestFlight to the email address that was added as an external tester.
+
+- Accept the invitation by tapping the "View in TestFlight" or "Start Testing" button in the email.
+
+- Install TestFlight from the App Store if it isn't already installed.
+
+- Sign in with your Apple ID (the same Apple ID used on your iPhone).
+
+- Open TestFlight. The invited app should appear automatically.
+
+- Tap Accept (if prompted), then tap Install.
+
+- Wait for the installation to complete, then tap Open to launch the app.
+
+If the app doesn't appear:
+Make sure you're signed in with the same email/Apple ID that received the invitation.
+Check that you've accepted the invitation from the email.
+If needed, close and reopen the TestFlight app.
+
+Please let me know if you face any trouble.
+
+Thank you!
+
+
+==============================================
+
+
+==============================================
+Phaser but due to blurry and unclear fonts, I replace that with the HTML direct.
+Also I added font for all text and uses both fonts Poppins and Outfit.
+For both load Google Fonts, remove the Poppins package.
+
+
+
+
+###############################################
+###############################################
+###############################################
 [tech][Frontend development][D1] Convert final PSD/PDF layout to HTML design of game board table, tile rack is small in mobile device so manage the spacing as per the niravraj suggestion
 Meeting Points
 1]
@@ -10,7 +122,135 @@ Adjusted the position of some areas on mobile to provide a better user experienc
 Reduced the space outside the blue area to increase the game table width, 
 made the header collapsible to provide more space for the game board, and slightly increased the rack tile size for better visibility.
 
+3]
+Create UI 
+Design for the CALL action. 
+Moving tiles to the exposure panel and moving tiles from the rack to the exposure panel.
+Joker swap feature and tile animation during the swap action. 
+Designed the discard tile view for each seat, the Dead Hand popup, and the Win Mahjong screen.
 
+4]
+Added more Haptic effect on Discard and Call actions.
+Test Haptic with the real device.
+Modified some text layout in mobile and table device. 
+Add design for the DeadHand.
+
+5]
+Run app design with the real devices.
+Configured for iOS build.
+Prepare APK for android and build archieve for iOS to upload build on the apple developer TestFlight.
+I have 
+https://testflight.apple.com/join/AY14KUmN
+
+
+6]
+Today, I worked on upgrade layout and run app with the real device and test the design. 
+I also have setup the build for web and deploy it on our demo server.
+Prepare build for iOS test flight and deploy It
+Prepare and build android APK file.
+
+
+WEB Demo
+https://mahjfit-com.thatsend.dev/
+
+IOS TestFkight Demo
+https://testflight.apple.com/join/AY14KUmN
+
+Android check APK file.
+
+
+
+
+
+
+# Design Testing Instructions
+
+1. Popup Testing
+
+A "Phase Selection" popup is available along with three buttons for testing different popup layouts and actions:
+
+Test Mahjong – Displays the **Winning Mahjong** popup design.
+Test Away Player – Displays the popup shown when a player is away from the game.
+Test Join Request – Displays the popup shown when a player requests to join the game.
+
+
+2. Phase Selection
+
+The "Phase" selector allows you to switch to different game phases for testing various UI layouts and interactions.
+
+2.1] 
+Playing 
+- Standard gameplay phase to play the game.
+
+2.2] 
+Passing
+- Used to test the Charleston round layout.
+- Used to test tile passing animations.
+
+2.3] 
+Discard
+- Used to test the discard action for specific player seats.
+- Select a seat using the Left, Top, or Right seat buttons to test discard actions for those players.
+- To test the Bottom player's discard, simply drag and drop a tile from the rack into the discard area, or double-click a tile to discard it.
+
+
+3] 
+Pick Action
+
+Use this section to test the Pick action.
+
+- Bottom Seat: The Pickaction is enabled only when the bottom player's rack contains fewer than 14 tiles.
+- Other Seats: Select the desired seat (Left, Top, or Right) using the seat buttons, then click Pick to test the action.
+
+
+4] 
+Seat Selection
+
+Available seats:
+* Bottom
+* Left
+* Top
+* Right
+
+Select a specific seat to test the Pick and Discard actions.
+
+Note:
+- The Bottom seat does not need to be selected for discard testing.
+- To discard from the bottom seat:
+
+  - Drag and drop a tile from the rack into the discard area, 
+  OR
+  - Double-click a tile to discard it.
+
+
+5] 
+Dead Hand
+Use the Dead Hand action to test the Dead Hand popup and layout design.
+
+6]
+Test CALL action
+- Select Discard phase and select seat (Left or Top or Right) any if matching tile discarded, popup will be open to call/skip the tile.
+- Clock CALL button the discaraded area tile comes to the bottom seat exposure, we can move matched tile or joker tile to the exposure panel. 
+
+7]
+Sort tiles
+Sort tiles by rack or suit. This shows how sort action arrange the tiles in the rack.
+
+Note: 
+Testing is still pending on multiple real devices.
+
+
+
+
+
+
+
+
+
+
+
+I will keep you posted on work progress.
+Thank you!
 
 
 
@@ -19,9 +259,101 @@ In mobile move bottom exposure and rack tile to littlebit down (Bottom), so we g
 
 
 
+
+Convert final PSD/PDF layout to HTML design of game board table
+
+
+
+Made the HTML game board table responsive based on the PSD/PDF design, and added more design elements and animations. 
+
+
+IOS Bundle ID
+com.thatsend.mahjfitgame
+
+
+Yes, both the MP3 and WAV files are suitable for the background sound. The main concern is the file size. Ideally, the file size should be in KB rather than MB.
+I will use this file for now and see how it works. If we need to reduce the file size later, we can look into it.
+
+
+
+
+In ios real device when we change the orientation to landscap, it not take the safe area like android, in android if we change orientation to landscape it take the top bar at top but in ios it's not like that, we the game table looks not proper as we removed the top blue area of the table outside, so we consider in android it works fine even we removed the area of top but in ios it didn't work proper 
+
+
+
+Change animation of pick tole to center, right now it goes at the left corner.
+
+Make all fonts sharpen
+Make popup font smaller and if in new line then new line in mobile device its out side the popup
+Make all button size same in the popup
+Mahjong fonts are blurry in mobile device
+Increase player name panel size so it looks
+
+Change Action icon 
+
+
+
+in mobile device action hamburger icon is still there even the collapsable heade is closed
+Remove the "Action" text from the action menu 
 =========================================================
+
+SPENCER NEW MSG 
+
+
+1. Jen just requested even smaller audio files, will send when we get them
+REPLY]
+Okay, if we get smaller files then it will be good for performance.
+
+2. I just emailed you feedback on game board developer design
+REPLY]
+Yes, I will check and do possibile required changes.
+
+3. ⁠Carolyn sent over the start screen (to me and Jen) we are reviewing and can update on call tomorrow
+REPLY]
+Okay, no problem. We will discuss in meeting.
+
+
+
+
+
+
+
+Please see attached for comments on matching Carolyn’s game board design more closely with the developer’s mock-up.
+
+PFA: MahjFit Game Board Comments\
+REPLY]
+Okay, I will check and do possible required changes.
+
+
+
+
+
+
 FOR CLIENT]
-Today, I worked on to manage the spacing and sizing of the game boards and its components for all devices as per the niravraj guidence.
+Today, I worked on upgrade layout and run app with the real device and test the design and do requreid modification for mobile, tablet and desktop devices.
+
+I will keep you posted on work progress.
+Thank you!
+
+
+
+FOR CLIENT]
+Today, I have worked to perpare the build of design app and started process to make it live for testing and modified design as required as per the device.
+
+I will keep you posted on work progress.
+Thank you!
+
+
+FOR CLIENT]
+Today, I have add Haptic effect on some actions and tested in the real device. Also upgrade some text UI for better visuals.
+
+I will keep you posted on work progress.
+Thank you!
+
+
+FOR CLIENT]
+Today, I continued implementing the design for the CALL action. I also worked on moving tiles to the exposure panel and moving tiles from the rack to the exposure panel.
+I added the design for the joker swap feature and tile animation during the swap action. I also designed the discard tile view for each seat, the Dead Hand popup, and the Win Mahjong screen.
 
 I will keep you posted on work progress.
 Thank you!
@@ -32,6 +364,13 @@ Today, I continued working on the game board design and improved the layout for 
 
 I will keep you posted on work progress.
 Thank you!
+
+FOR CLIENT]
+Today, I worked on to manage the spacing and sizing of the game boards and its components for all devices as per the niravraj guidence.
+
+I will keep you posted on work progress.
+Thank you!
+
 
 
 
@@ -495,7 +834,7 @@ Game FINAL WINNING POINTS = HAND points + BONUS points + BETTING points (if choo
 
 Hand points will be along with winning hand rule.
 
-BONUS points will have 4 main rules.  Player pick tile from wall OR Player pick tile from discard area.  In both cases we have 2 options: hand with Jockers or without Jockers.  BONUS rule does not apply to hands in the “Singles and Pairs Section of the card because they have to be Jokerless.
+BONUS points will have 4 main rules. Player pick tile from wall OR Player pick tile from discard area. In both cases we have 2 options: hand with Jockers or without Jockers. BONUS rule does not apply to hands in the “Singles and Pairs Section of the card because they have to be Jokerless.
 
 Game start with Charleston and at the end of it there will be a kind of popup alert for BETTING 1x, 2x, 3x, 4x (1x is typo remove it)
 BETTING options will be available with the available minimum points balance of player and points will be locked as game will start. 
@@ -524,7 +863,7 @@ There are variety of things will come up so, I would like to clearify few things
 For this we have to change the code if required to add new one challenge. You can activate or deactivate and modify the parameters for this but do not add it, because if new rule add then have to update the code accordingly. 
 
 9]
-We are considering that the all reward point will be applied on Game End.  If we have different area then we have to update the code accordingly. So, need to decide this part properly.
+We are considering that the all reward point will be applied on Game End. If we have different area then we have to update the code accordingly. So, need to decide this part properly.
 
 10]
 As per your previous email we going to start with game play area integration as per final design. First we will start with HTML layout and after functional things. So, during this week we will stop new point number [10] and will start with those provided [9] points. As we have design for Game Play area we will start with point [6] directly and as we will keep finalising the design we will lineup all provided points step by step as possible.

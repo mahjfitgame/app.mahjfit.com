@@ -1,8 +1,8 @@
 <?xml version='1.0' encoding='utf-8' ?>
 <resources>
-    <string name="app_name">Bfw PWA</string>
-    <string name="title_activity_main">Bfw PWA</string>
-    <string name="package_name">com.thatsend.bfwpwa</string>
-    <string name="custom_url_scheme">com.thatsend.bfwpwa</string>
+    <string name="app_name">Mahjfit</string>
+    <string name="title_activity_main">Mahjfit</string>
+    <string name="package_name">com.thatsend.mahjfit</string>
+    <string name="custom_url_scheme">com.thatsend.mahjfit</string>
     <string name="default_notification_channel_id">default_channel_id</string>
 </resources>

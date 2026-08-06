@@ -1,15 +1,15 @@
 import type { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
-  appId: 'com.thatsend.bfwpwa',
-  appName: 'Bfw PWA',
+  appId: 'com.thatsend.mahjfit',
+  appName: 'Mahjfit',
   webDir: 'dist/bfw-angular-pwa/browser',
   zoomEnabled: false,
   //overrideUserAgent: "Bfw Angular PWA/1.0.0 (iOS; Android)",
   appendUserAgent: "BFW-NATIVE-PROGRESSIVE-WEB-APP",
   server: {
     /**
-     * @hostname: 'localhost:20155'
+     * @hostname: 'localhost:20180'
      * 
      * This is used if you are loading local files out of webDir 
      * but your application relies heavily on cookies, local storage tracking architectures, 
@@ -20,10 +20,10 @@ const config: CapacitorConfig = {
      * framework instead. For normal LAN testing, sticking with the dynamic network url parameter 
      * string is what you want.
      */
-    //hostname: 'localhost:20155',//required to run on local backoffice port number
+    //hostname: 'localhost:20180',//required to run on local backoffice port number
     androidScheme: 'https', // Required for Android release build
     iosScheme: 'https', // Required for ios release build Archieve
-    //url: 'https://192.168.0.230:20155/', // FOR TESTING PURPOSE: Network URL for "Live Reload" or "External Server"
+    //url: 'https://192.168.0.230:20180/', // FOR TESTING PURPOSE: Network URL for "Live Reload" or "External Server"
     cleartext: true
   },
   ios: {

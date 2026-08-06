@@ -8,7 +8,7 @@ import { TileTextureResolver } from "../../tiles/tile-texture.resolver";
 import { selectTileAtlas, TILE_ATLAS_1X_KEY, TILE_ATLAS_2X_KEY } from "../../tiles/tile-atlas.config";
 import { PassAnimationItem } from "../models/pass-animation.model";
 import { TablePhase } from "../../model/table-phase";
-import type { GameHapticType } from "../../platform/haptics.service";
+import { GameHapticType } from "../../platform/haptics.service";
 import { AnimationManager } from "./managers/animation";
 import { PassFlowManager } from "./managers/pass-flow";
 import { SoundManager } from "./managers/sound";
@@ -16,12 +16,12 @@ import { StateManager } from "./managers/state";
 import { TileInteractionManager } from "./managers/tile-interaction";
 import { UiLayoutManager } from "./managers/ui-layout";
 import {
-  type ExposurePanelMode,
+  ExposurePanelMode,
   exposureLipRatio,
   exposureNameStripRatio,
 } from "../exposure-panel.tokens";
-import { COLOR_AVOCADO_NUM, COLOR_BLUE_NUM, COLOR_FUSHIA, COLOR_GRAY_NUM, COLOR_LAVENDER_NUM, FONT_FAMILY, ICON_DEADHAND_HOVER, ICON_DEADHAND_NORMAL, ICON_DEADHAND_PRESSED, ICON_HELP_HOVER, ICON_HELP_NORMAL, ICON_HELP_PRESSED, ICON_HINT_HOVER, ICON_HINT_NORMAL, ICON_HINT_PRESSED, ICON_SETTINGS_HOVER, ICON_SETTINGS_NORMAL, ICON_SETTINGS_PRESSED, ICON_SORT_HOVER, ICON_SORT_NORMAL, ICON_SORT_PRESSED } from "../const";
-import { HudActionKey, HamburgerMenuActionKey, TableSeat, TileRuntime, BotPassVisualTile, TableSceneCallbacks, TableSfxId, TableSfxConfig, DiscardGrid, CharlestonVisualTransfer } from "./type";
+import { COLOR_AVOCADO_NUM, COLOR_BLUE, COLOR_BLUE_NUM, COLOR_FUSHIA, COLOR_FUSHIA_NUM, COLOR_GRAY_NUM, COLOR_LAVENDER_NUM, FONT_FAMILY, ICON_DEADHAND_HOVER, ICON_DEADHAND_NORMAL, ICON_DEADHAND_PRESSED, ICON_HELP_HOVER, ICON_HELP_NORMAL, ICON_HELP_PRESSED, ICON_HINT_HOVER, ICON_HINT_NORMAL, ICON_HINT_PRESSED, ICON_SETTINGS_HOVER, ICON_SETTINGS_NORMAL, ICON_SETTINGS_PRESSED, ICON_SORT_HOVER, ICON_SORT_NORMAL, ICON_SORT_PRESSED } from "../const";
+import { BotPassVisualTile, CharlestonVisualTransfer, DemoDiscardRequest, DiscardGrid, HamburgerMenuActionKey, HudActionKey, MahjongWinCelebration, TableSceneCallbacks, TableSeat, TileCallOffer, TileRuntime, TableSfxConfig, TableSfxId } from "./type";
 
 export class TableScene extends Phaser.Scene {
   private readonly callbacks: TableSceneCallbacks;
@@ -98,8 +98,26 @@ export class TableScene extends Phaser.Scene {
 
   private renderDpr = 1;
   private mobileHeaderCollapsed = true;
+  private mobileDrawerOpen = false;
   private mobileHeaderToggle?: Phaser.GameObjects.Container;
   private mobileHeaderToggleLabel?: Phaser.GameObjects.Text;
+  private pendingTileCallOffer?: TileCallOffer;
+  private tileCallWindow?: Phaser.GameObjects.Container;
+  private pendingTileCallImage?: Phaser.GameObjects.Image;
+  private readonly opponentDiscardTiles: Phaser.GameObjects.Image[] = [];
+  private readonly discardSlotOrder: string[] = [];
+  private readonly calledBottomExposureTiles: Phaser.GameObjects.Image[] = [];
+  private exposureBuildAsset?: string;
+  private jokerSwapWindow?: Phaser.GameObjects.Container;
+  private pendingJokerSwap?: {
+    readonly joker: TileRuntime;
+    readonly replacement: TileRuntime;
+  };
+  private mahjongWinOverlay?: Phaser.GameObjects.Container;
+  private mahjongWinTimer?: Phaser.Time.TimerEvent;
+  private deadHandSeatSelection?: Phaser.GameObjects.Container;
+  private demoDiscardSequence = 0;
+  private demoDiscardRequestId = 0;
 
   private readableRenderDpr(): number {
     return Phaser.Math.Clamp(window.devicePixelRatio || 1, 1, 2);
@@ -167,6 +185,7 @@ export class TableScene extends Phaser.Scene {
     this.uiLayoutManager = new UiLayoutManager({
       logoTextureKey: this.logoTextureKey,
       onHudAction: (action) => this.handleHudAction(action),
+      onSortRequested: (mode) => this.sortRackTilesForDebug(mode),
       onPrimaryAction: () => this.handlePrimaryAction(),
       onPickSeatChange: (seat) => {
         this.pickTargetSeat = seat;
@@ -174,6 +193,18 @@ export class TableScene extends Phaser.Scene {
         this.updateInstructionText();
       },
       onHamburgerMenuAction: (action) => this.handleHamburgerMenuAction(action),
+      onWallCountOverlay: (state) => this.callbacks.onWallCountOverlay(state),
+      onPlayerLabelOverlay: (states) => this.callbacks.onPlayerLabelOverlay(states),
+      onPointsOverlay: (state) => this.callbacks.onPointsOverlay(state),
+      onMobileDrawerVisibilityChanged: (open) => {
+        this.mobileDrawerOpen = open;
+        // Draw below the 260-depth drawer when open, so the close button
+        // remains the topmost target only where the two controls overlap.
+        this.mobileHeaderToggle?.setDepth(open ? 240 : 300);
+        this.layoutMobileHeaderToggle();
+        this.callbacks.onMobileDrawerVisibilityChanged(open);
+      },
+      onMobileDrawerOverlay: (state) => this.callbacks.onMobileDrawerOverlay(state),
     });
 
     this.tileInteractionManager = new TileInteractionManager({
@@ -218,6 +249,12 @@ export class TableScene extends Phaser.Scene {
     this.game.events.on("table:phase", this.setTablePhase, this);
     this.game.events.on("table:safe-area", this.setSafeAreaInsets, this);
     this.game.events.on("table:active-seat", this.setActiveSeat, this);
+    this.game.events.on("tile-call:offer", this.setTileCallOffer, this);
+    this.game.events.on("tile-call:demo-discard", this.triggerDemoSeatDiscard, this);
+    this.game.events.on("mahjong:win", this.showMahjongWinCelebration, this);
+    this.game.events.on("hamburger:html-action", (label: string) => {
+      this.uiLayoutManager.handleHtmlDrawerItem(label);
+    });
     
     
     this.game.events.on(
@@ -238,6 +275,12 @@ export class TableScene extends Phaser.Scene {
       this.game.events.off("table:phase", this.setTablePhase, this);
       this.game.events.off("table:safe-area", this.setSafeAreaInsets, this);
       this.game.events.off("table:active-seat", this.setActiveSeat, this);
+      this.game.events.off("tile-call:offer", this.setTileCallOffer, this);
+      this.game.events.off("tile-call:demo-discard", this.triggerDemoSeatDiscard, this);
+      this.game.events.off("mahjong:win", this.showMahjongWinCelebration, this);
+
+      this.closeTileCallWindow();
+      this.closeMahjongWinCelebration();
 
       this.clearBotPassVisualTiles();
       this.isBotPassVisualAnimating = false;
@@ -300,10 +343,12 @@ export class TableScene extends Phaser.Scene {
         // open account/billing
         return;
       case "restart-game":
-        // restart flow
+        // Angular recreates the board and starts a fresh local/backend game.
+        this.callbacks.onRestartGame();
         return;
       case "quit-exit":
-        // quit/exit flow
+        // Angular owns routing, so the scene only requests the navigation.
+        this.callbacks.onQuitGame();
         return;
       case "log-out":
         // logout flow
@@ -312,7 +357,32 @@ export class TableScene extends Phaser.Scene {
   }
   
   private handlePrimaryAction(): void {
+    // Temporary QA flow: the existing PICK control becomes the confirmation
+    // action for the currently selected opponent seat while Phase is Discard.
+    if (this.tablePhase === "discard") {
+      if (this.pickTargetSeat !== "bottom") {
+        this.triggerDemoSeatDiscard({
+          seat: this.pickTargetSeat,
+          requestId: ++this.demoDiscardRequestId,
+        });
+        // The temporary discard is complete. Resume the normal local turn so
+        // the resulting CALL window and Joker Swap remain available.
+        this.pickTargetSeat = "bottom";
+        this.setActiveSeat("bottom");
+        this.setTablePhase("playing");
+        this.callbacks.onTemporaryDiscardCompleted();
+      }
+      return;
+    }
+
     if (this.tablePhase === "playing") {
+      // Only the local Bottom seat uses the 13-tile hand rule. Opponent seats
+      // remain available to the temporary Pick test controls.
+      if (!this.canPickFromWall()) return;
+
+      // Picking from the wall closes the opponent-discard call window. A tile
+      // may only be called before the next player racks their pick.
+      this.expireTileCallWindow();
       this.playHaptic("pick");
       this.pickTileForSeat(this.pickTargetSeat);
       return;
@@ -326,9 +396,21 @@ export class TableScene extends Phaser.Scene {
     this.submitPassWaitingTiles();
   }
 
+  /**
+   * Enforces the 13-tile rule only for the local Bottom seat. The other seats
+   * are test controls and can always receive a wall tile while one remains.
+   */
+  private canPickFromWall(): boolean {
+    if (this.pickTargetSeat !== "bottom") return true;
+
+    const exposedTileCount = this.calledBottomExposureTiles.filter((tile) => tile.active).length;
+    return this.rackOrder.length + exposedTileCount === 13;
+  }
+
   private handleHudAction(action: HudActionKey): void {
     if (action === "sort") {
-      this.sortRackTilesForDebug();
+      // The Sort icon opens its mode picker. Sorting starts only after the
+      // player chooses either Sort by Rank or Sort by Suit.
       return;
     }
 
@@ -338,7 +420,7 @@ export class TableScene extends Phaser.Scene {
     }
 
     if (action === "dead-hand") {
-      // TODO: connect dead-hand flow.
+      this.showDeadHandSeatSelection();
       return;
     }
 
@@ -352,7 +434,7 @@ export class TableScene extends Phaser.Scene {
       return;
     }
   }
-  private sortRackTilesForDebug(): void {
+  private sortRackTilesForDebug(mode: "rank" | "suit"): void {
     if (this.rackOrder.length <= 1) return;
 
     const tileRank = (tileId: string): number => {
@@ -362,11 +444,12 @@ export class TableScene extends Phaser.Scene {
       const soundKey = runtime.vm.soundKey ?? "";
       const rank = Number.parseInt(soundKey, 10) || 0;
 
-      if (runtime.vm.suit === "dot") return 100 + rank;
-      if (runtime.vm.suit === "bam") return 200 + rank;
-      if (runtime.vm.suit === "char") return 300 + rank;
-      if (runtime.vm.suit === "flower") return 800;
-      if (runtime.vm.suit === "joker") return 900;
+      const suitOrder: Record<string, number> = {
+        dot: 1, bam: 2, char: 3, flower: 8, joker: 9,
+      };
+      const suit = suitOrder[runtime.vm.suit] ?? 99;
+      if (mode === "rank") return rank * 100 + suit;
+      return suit * 100 + rank;
 
       return 9999;
     };
@@ -382,6 +465,11 @@ export class TableScene extends Phaser.Scene {
 
     this.tablePhase = phase;
     console.log("setTablePhase", phase);
+
+    if (phase !== "playing") {
+      this.pendingTileCallOffer = undefined;
+      this.closeTileCallWindow();
+    }
 
     if (phase !== "passing") {
       this.clearBotPassVisualTiles();
@@ -432,10 +520,30 @@ export class TableScene extends Phaser.Scene {
     this.callbacks.onMobileHeaderChanged(
       this.layout.metrics.isMobile && this.mobileHeaderCollapsed,
     );
+    const logoHeight = this.layout.metrics.isMobile
+      ? this.layout.metrics.isPortrait ? 32 : 28
+      : 46;
+    const logoCenterY = this.layout.metrics.isMobile
+      ? this.layout.hud.y + (this.layout.metrics.isPortrait ? 21 : 18)
+      : this.layout.hud.y + this.layout.hud.height / 2;
+    this.callbacks.onHeaderLogoLayout({
+      top: Math.round(logoCenterY - logoHeight / 2),
+      height: logoHeight,
+    });
 
     this.drawTable();
     this.layoutStaticUi();
+    // A rotation rebuilds the normal mobile layout, which hides Phaser text
+    // in favour of native overlays. If a drawer is still open, restore the
+    // Phaser copies so they remain visible outside the drawer after resize.
     this.layoutMobileHeaderToggle();
+    this.layoutCalledBottomExposureTiles();
+    this.layoutOpponentDiscardTiles();
+    this.renderTileCallWindow();
+    this.renderJokerSwapWindow();
+    if (this.deadHandSeatSelection) {
+      this.showDeadHandSeatSelection();
+    }
     this.layoutRackTiles(false);
     this.layoutPassWaitingArea();
     this.layoutPassWaitingTiles(false);
@@ -535,6 +643,14 @@ export class TableScene extends Phaser.Scene {
   private reconcileRackTiles(): void {
     const incomingIds = new Set(this.rackTiles.map((tile) => tile.id));
 
+    // Remove any stale rack slots created before a tile was moved to an
+    // exposure. This keeps the next picked tile beside the last rack tile.
+    for (const runtime of this.tileMap.values()) {
+      if (runtime.zone === "exposure") {
+        this.removeFromRackOrder(runtime.vm.id);
+      }
+    }
+
     for (const [id, runtime] of this.tileMap.entries()) {
       if (!incomingIds.has(id)) {
         runtime.image.destroy();
@@ -546,11 +662,19 @@ export class TableScene extends Phaser.Scene {
     }
 
     for (const tile of this.rackTiles) {
-      if (!this.rackOrder.includes(tile.id) && !this.discardedTileIds.includes(tile.id)) {
+      const existingRuntime = this.tileMap.get(tile.id);
+      // `rackTiles` is the source hand and still contains tiles that have
+      // moved to an exposure. Never add those IDs back as invisible rack
+      // slots when a later Pick refreshes the hand.
+      if (
+        !this.rackOrder.includes(tile.id) &&
+        !this.discardedTileIds.includes(tile.id) &&
+        existingRuntime?.zone !== "exposure"
+      ) {
         this.rackOrder.push(tile.id);
       }
 
-      if (this.tileMap.has(tile.id)) continue;
+      if (existingRuntime) continue;
 
       const tileWidth = Math.round(this.layout.bottomTileLayout.width);
       const tileHeight = Math.round(this.layout.bottomTileLayout.height);
@@ -671,6 +795,23 @@ export class TableScene extends Phaser.Scene {
   private removeFromDiscardOrder(tileId: string): void {
     const index = this.discardedTileIds.indexOf(tileId);
     if (index >= 0) this.discardedTileIds.splice(index, 1);
+    this.removeDiscardSlot(tileId);
+  }
+
+  private addDiscardSlot(tileId: string): void {
+    if (!this.discardSlotOrder.includes(tileId)) {
+      this.discardSlotOrder.push(tileId);
+    }
+  }
+
+  private removeDiscardSlot(tileId: string): void {
+    const index = this.discardSlotOrder.indexOf(tileId);
+    if (index >= 0) this.discardSlotOrder.splice(index, 1);
+  }
+
+  private discardSlotIndex(tileId: string, fallback: number): number {
+    const index = this.discardSlotOrder.indexOf(tileId);
+    return index >= 0 ? index : fallback;
   }
 
   private reindexRackRuntimeSlots(): void {
@@ -779,8 +920,8 @@ export class TableScene extends Phaser.Scene {
         this.suppressTapByTileId.add(runtime.vm.id);
         runtime.isDragging = false;
       
-       if (
-        this.tablePhase === "passing" &&
+        if (
+          this.tablePhase === "passing" &&
         runtime.zone === "rack" &&
         (
           this.isInsidePassWaitingArea(pointer.worldX, pointer.worldY) ||
@@ -789,8 +930,18 @@ export class TableScene extends Phaser.Scene {
       ) {
         this.tileInteractionManager.cleanupDrop(runtime.vm.id);
         this.snapTileToPassWaiting(runtime);
-        return;
-      }
+          return;
+        }
+
+        if (
+          runtime.zone === "rack" &&
+          this.canAddTileToBottomExposure(runtime.vm) &&
+          this.isInsideBottomExposure(pointer.worldX, pointer.worldY)
+        ) {
+          this.tileInteractionManager.cleanupDrop(runtime.vm.id);
+          this.moveRackTileToBottomExposure(runtime);
+          return;
+        }
 
         if (
           this.tablePhase !== "passing" &&
@@ -831,6 +982,11 @@ export class TableScene extends Phaser.Scene {
       }
 
       if (this.tablePhase === "playing") {
+        if (this.canAddTileToBottomExposure(runtime.vm)) {
+          this.moveRackTileToBottomExposure(runtime);
+          return;
+        }
+
         runtime.selected = false;
         this.selectedIds.delete(runtime.vm.id);
         runtime.image.clearTint();
@@ -912,10 +1068,13 @@ export class TableScene extends Phaser.Scene {
 
 
     
-    const borderSize = Math.max(
-      6,
-      Math.round(Math.min(table.width, table.height) * 0.009),
-    );
+    const borderSize = this.layout.metrics.isMobile
+      ? Math.max(3, Math.round(Math.min(table.width, table.height) * 0.006))
+      : Math.max(6, Math.round(Math.min(table.width, table.height) * 0.009));
+    // Every inset layer reduces its radius by the same inset. This keeps the
+    // black frame, felt and subtle inner shadow on one continuous curve.
+    const tableCornerRadius = 14;
+    const feltCornerRadius = Math.max(0, tableCornerRadius - borderSize);
 
     g.fillStyle(tableBorderDark, 1);
     g.fillRoundedRect(
@@ -923,7 +1082,7 @@ export class TableScene extends Phaser.Scene {
       table.y,
       table.width,
       table.height,
-      0,
+      tableCornerRadius,
     );
 
     
@@ -938,7 +1097,7 @@ export class TableScene extends Phaser.Scene {
       feltY,
       feltWidth,
       feltHeight,
-      0,
+      feltCornerRadius,
     );
 
     
@@ -959,7 +1118,7 @@ export class TableScene extends Phaser.Scene {
       feltY + insetShadowWidth / 2,
       feltWidth - insetShadowWidth,
       feltHeight - insetShadowWidth,
-      0,
+      Math.max(0, feltCornerRadius - insetShadowWidth / 2),
     );
 
     
@@ -976,7 +1135,7 @@ export class TableScene extends Phaser.Scene {
       feltY + liftWidth / 2,
       feltWidth - liftWidth,
       feltHeight - liftWidth,
-      0,
+      Math.max(0, feltCornerRadius - liftWidth / 2),
     );
 
     g.fillStyle(0xffffff, 0.035);
@@ -1515,6 +1674,7 @@ export class TableScene extends Phaser.Scene {
   
   private createStaticUi(): void {
     this.uiLayoutManager.createStaticUi(this);
+    this.game.events.on("mobile-drawer:close", () => this.uiLayoutManager.closeMobileDrawers());
     this.createMobileHeaderToggle();
     this.layoutStaticUi();
   }
@@ -1540,28 +1700,38 @@ export class TableScene extends Phaser.Scene {
   }
 
   private createMobileHeaderToggle(): void {
+    const background = this.add.graphics();
+    // Keep an empty Graphics child for the transparent touch target; the
+    // Material arrow intentionally has no coloured button background.
+
     const label = this.add
       .text(0, 0, "keyboard_arrow_up", {
         // This web font is loaded globally in index.html. Its ligature names
         // render the rounded Material keyboard-arrow icons in Phaser canvas.
         fontFamily: "Material Symbols Rounded",
-        fontSize: "28px",
+        fontSize: "30px",
         fontStyle: "normal",
-        color: COLOR_FUSHIA,
+        color: COLOR_BLUE,
       })
-      .setOrigin(0.5);
+      // Use a fixed width for horizontal centring, but retain the glyph's
+      // natural height so Phaser centres it vertically by its real bounds.
+      .setFixedSize(28, 0)
+      .setAlign("center")
+      .setOrigin(0.5, 0.5)
+      .setPosition(0, 0);
 
     this.mobileHeaderToggleLabel = label;
     this.mobileHeaderToggle = this.add
-      .container(0, 0, [label])
+      .container(0, 0, [background, label])
       .setDepth(300)
-      .setSize(38, 38)
+      .setSize(28, 48)
       .setInteractive({ useHandCursor: true });
 
     this.mobileHeaderToggle.on("pointerup", () => {
       if (!this.layout?.metrics.isMobile) return;
 
       this.mobileHeaderCollapsed = !this.mobileHeaderCollapsed;
+      if (this.mobileHeaderCollapsed) this.uiLayoutManager.closeMobileDrawers();
       this.callbacks.onMobileHeaderChanged(this.mobileHeaderCollapsed);
       this.resize(this.scale.width, this.scale.height);
     });
@@ -1571,18 +1741,26 @@ export class TableScene extends Phaser.Scene {
     if (!this.mobileHeaderToggle || !this.layout) return;
 
     const isMobile = this.layout.metrics.isMobile;
+    // Drawers are depth 260; this toggle is lowered to 240 while one is open
+    // so it stays visible outside the menu but never covers its close button.
     this.mobileHeaderToggle.setVisible(isMobile);
 
     if (!isMobile) return;
 
-    const table = this.layout.tableOuter;
     const topExposure = this.layout.topExposure;
-    const toggleX = Math.round(Math.max(table.x + 22, topExposure.x - 24));
-    // The up-arrow belongs below the expanded header, not over its controls.
-    // Keep the collapsed down-arrow aligned to the top exposure.
-    const toggleY = this.mobileHeaderCollapsed
-      ? topExposure.y + topExposure.height / 2
-      : this.layout.hud.y + this.layout.hud.height + 14;
+    const portrait = this.layout.metrics.isPortrait;
+    // Match the wall counter on the opposite side of the top exposure:
+    // bottom-left in portrait and left-centre in landscape.
+    const toggleX = portrait
+      ? topExposure.x + 18
+      : topExposure.x - 18;
+    const toggleY = portrait
+      ? topExposure.y + topExposure.height + 22
+      // When the landscape header is expanded, move the up-arrow below its
+      // visual centre so it does not overlap the revealed header controls.
+      : topExposure.y + topExposure.height / 2 + (this.mobileHeaderCollapsed
+        ? 0
+        : Math.round(Phaser.Math.Clamp(topExposure.height * 0.18, 10, 16)));
     this.mobileHeaderToggle.setPosition(
       toggleX,
       Math.round(toggleY),
@@ -1591,19 +1769,770 @@ export class TableScene extends Phaser.Scene {
       this.mobileHeaderCollapsed ? "keyboard_arrow_down" : "keyboard_arrow_up",
     );
   }
+
+  /** Receives an opponent discard from the future API/WebSocket. */
+  private setTileCallOffer(offer: TileCallOffer | null): void {
+    // A discard test is still allowed to open the CALL UI. Passing is the
+    // only phase where a player must not call a discarded tile.
+    this.closeJokerSwapWindow();
+    this.pendingTileCallOffer =
+      offer && this.tablePhase !== "passing" && offer.discard.suit !== "joker"
+        ? offer
+        : undefined;
+    this.renderTileCallWindow();
+  }
+
+  /** Closes a pending call when its legal calling time has ended. */
+  private expireTileCallWindow(): void {
+    if (this.pendingTileCallImage) {
+      this.tweens.killTweensOf(this.pendingTileCallImage);
+      this.pendingTileCallImage = undefined;
+    }
+    this.pendingTileCallOffer = undefined;
+    this.closeTileCallWindow();
+  }
+
+  /** Finds the two rack tiles needed to show a valid minimum Pung call. */
+  private callTileIds(offer: TileCallOffer): readonly string[] | undefined {
+    // Only tiles still physically in the Bottom rack can be used for a new
+    // call. `rackTiles` also retains tiles already moved into an exposure.
+    const rackTiles = this.rackTiles.filter((tile) => this.rackOrder.includes(tile.id));
+    const matching = rackTiles.filter(
+      (tile) => tile.suit !== "joker" && tile.asset === offer.discard.asset,
+    );
+    const jokers = rackTiles.filter((tile) => tile.suit === "joker");
+    // A call must be able to form at least a pung: the discard plus two rack
+    // tiles, where a joker may replace a matching rack tile.
+    const selected = [...matching.slice(0, 2), ...jokers.slice(0, Math.max(0, 2 - matching.length))];
+    return selected.length === 2 ? selected.map((tile) => tile.id) : undefined;
+  }
+
+  /** Builds the small CALL / SKIP popup in the centre discard area. */
+  private renderTileCallWindow(): void {
+    this.closeTileCallWindow();
+
+    const offer = this.pendingTileCallOffer;
+    if (!offer || !this.layout) return;
+
+    const tileIds = this.callTileIds(offer);
+    if (!tileIds) return;
+
+    const width = Math.round(Phaser.Math.Clamp(this.layout.canvas.width * 0.38, 210, 330));
+    const rowHeight = Math.round(Phaser.Math.Clamp(this.layout.canvas.height * 0.052, 34, 44));
+    const gap = 8;
+    const height = 58 + 2 * (rowHeight + gap) + 12;
+    const center = this.layout.discardArea;
+    const x = Math.round(center.x + center.width / 2);
+    const y = Math.round(center.y + center.height / 2);
+
+    const background = this.add.graphics();
+    background.fillStyle(0x07142f, 0.96);
+    background.lineStyle(2, 0xf0eb78, 0.95);
+    background.fillRoundedRect(-width / 2, -height / 2, width, height, 12);
+    background.strokeRoundedRect(-width / 2, -height / 2, width, height, 12);
+
+    const title = this.add
+      .text(0, -height / 2 + 28, `CALL ${offer.discard.label.toUpperCase()}?`, {
+        fontFamily: FONT_FAMILY,
+        fontSize: `${Math.round(Phaser.Math.Clamp(rowHeight * 0.48, 16, 21))}px`,
+        fontStyle: "700",
+        color: "#ffffff",
+      })
+      .setOrigin(0.5);
+
+    const children: Phaser.GameObjects.GameObject[] = [background, title];
+    const addButton = (
+      index: number,
+      label: string,
+      color: number,
+      onClick: () => void,
+    ): void => {
+      const buttonY = -height / 2 + 58 + index * (rowHeight + gap) + rowHeight / 2;
+      const [button, buttonText] = this.createPopupActionButton(
+        0, buttonY, this.popupActionButtonWidth(label, rowHeight, width - 28), rowHeight, label, color, true, onClick,
+      );
+      children.push(button, buttonText);
+    };
+
+    addButton(0, "CALL", COLOR_FUSHIA_NUM, () => {
+      // Confirm that the discarded tile has been called before it animates
+      // into the local exposure.
+      this.playHaptic("tile-discard");
+      this.animateCalledDiscardToBottomExposure();
+      this.callbacks.onTileCallDecision({
+        discardId: offer.discard.id,
+        discardedBy: offer.discardedBy,
+        action: "call",
+        tileIds,
+      });
+      this.pendingTileCallOffer = undefined;
+      this.closeTileCallWindow();
+    });
+
+    addButton(1, "SKIP", 0x475569, () => {
+      this.callbacks.onTileCallDecision({
+        discardId: offer.discard.id,
+        discardedBy: offer.discardedBy,
+        action: "skip",
+      });
+      this.pendingTileCallOffer = undefined;
+      this.closeTileCallWindow();
+    });
+
+    this.tileCallWindow = this.add.container(x, y, children).setDepth(500);
+  }
+
+  /** Removes the call popup and its buttons from the scene. */
+  private closeTileCallWindow(): void {
+    this.tileCallWindow?.destroy(true);
+    this.tileCallWindow = undefined;
+  }
+
+  /**
+   * Creates a popup button with the same rounded shape, shadow and highlight
+   * as the main PASS button. Popups use this helper so all actions look alike.
+   */
+  private createPopupActionButton(
+    x: number,
+    y: number,
+    width: number,
+    height: number,
+    label: string,
+    color: number,
+    enabled: boolean,
+    onClick: () => void,
+  ): readonly [Phaser.GameObjects.Graphics, Phaser.GameObjects.Text] {
+    const radius = Math.round(Phaser.Math.Clamp(height * 0.22, 8, 14));
+    const button = this.add.graphics();
+    button.fillStyle(0x000000, enabled ? 0.22 : 0.14);
+    button.fillRoundedRect(x - width / 2 + 3, y - height / 2 + 4, width, height, radius);
+    button.fillStyle(enabled ? color : 0x777777, 1);
+    button.fillRoundedRect(x - width / 2, y - height / 2, width, height, radius);
+    button.fillStyle(0xffffff, 0.08);
+    button.fillRoundedRect(x - width / 2 + 2, y - height / 2 + 2, width - 4, Math.max(2, height * 0.22), Math.max(5, radius - 2));
+    button.lineStyle(1, 0xffffff, enabled ? 0.35 : 0.2);
+    button.strokeRoundedRect(x - width / 2, y - height / 2, width, height, radius);
+    if (enabled) {
+      button.setInteractive(new Phaser.Geom.Rectangle(x - width / 2, y - height / 2, width, height), Phaser.Geom.Rectangle.Contains);
+      button.on("pointerup", onClick);
+    }
+    const text = this.add.text(x, y, label, {
+      fontFamily: FONT_FAMILY,
+      fontSize: `${Math.round(Phaser.Math.Clamp(height * 0.43, 14, 18))}px`,
+      fontStyle: "700",
+      color: "#ffffff",
+    }).setOrigin(0.5).setAlpha(enabled ? 1 : 0.68);
+    return [button, text];
+  }
+
+  /** Gives popup buttons comfortable padding while keeping long labels inside the popup. */
+  private popupActionButtonWidth(label: string, height: number, maxWidth: number): number {
+    const fontSize = Phaser.Math.Clamp(height * 0.43, 14, 18);
+    const textWidth = label.length * fontSize * 0.64;
+    return Math.round(Phaser.Math.Clamp(textWidth + height * 1.7, 112, maxWidth));
+  }
+
+  /** Moves the called discard from the table into the local player's exposure. */
+  private animateCalledDiscardToBottomExposure(): void {
+    const image = this.pendingTileCallImage;
+    if (!image || !this.layout) return;
+
+    this.tweens.killTweensOf(image);
+    if (this.pendingTileCallOffer) {
+      this.removeDiscardSlot(this.pendingTileCallOffer.discard.id);
+    }
+    const discardIndex = this.opponentDiscardTiles.indexOf(image);
+    if (discardIndex >= 0) {
+      this.opponentDiscardTiles.splice(discardIndex, 1);
+      this.layoutOpponentDiscardTiles();
+    }
+    this.calledBottomExposureTiles.push(image);
+    this.pendingTileCallImage = undefined;
+    this.exposureBuildAsset = this.pendingTileCallOffer?.discard.asset;
+    image.setData("exposure-asset", this.exposureBuildAsset);
+    const target = this.calledBottomExposureTilePosition(
+      this.calledBottomExposureTiles.length - 1,
+    );
+    const tileSize = this.calledBottomExposureTileSize();
+    image.setDisplaySize(tileSize.width, tileSize.height);
+    this.tweens.add({
+      targets: image,
+      x: target.x,
+      y: target.y,
+      duration: 320,
+      ease: "Cubic.Out",
+      onComplete: () => {
+        image.setDepth(42);
+      },
+    });
+  }
+
+  /** Calculates a tile size that fits inside the usable exposure tray area. */
+  private calledBottomExposureTileSize(): { readonly width: number; readonly height: number } {
+    const exposure = this.layout.bottomExposure;
+    const mode = this.exposurePanelMode();
+    const contentHeight = exposure.height * (
+      1 - exposureLipRatio(mode) - exposureNameStripRatio(mode)
+    );
+    const rackTile = this.layout.bottomTileLayout;
+    const height = Math.min(
+      rackTile.height,
+      Math.max(16, Math.round(contentHeight - 4)),
+    );
+    const aspect = rackTile.height / Math.max(1, rackTile.width);
+
+    return {
+      width: Math.round(height / aspect),
+      height,
+    };
+  }
+
+  /** Places exposure tiles from left to right, below the tray lip and label. */
+  private calledBottomExposureTilePosition(index: number): Point {
+    const exposure = this.layout.bottomExposure;
+    const tile = this.calledBottomExposureTileSize();
+    const topLipHeight = exposure.height * exposureLipRatio(this.exposurePanelMode());
+    const contentHeight = exposure.height * (
+      1 - exposureLipRatio(this.exposurePanelMode()) - exposureNameStripRatio(this.exposurePanelMode())
+    );
+    const gap = Math.max(2, Math.round(tile.width * 0.05));
+    const startX = exposure.x + Math.max(5, Math.round(tile.width * 0.18)) + tile.width / 2;
+
+    return {
+      x: Math.round(startX + index * (tile.width + gap)),
+      // Centre inside the true tray content: below the top lip and above
+      // the name strip. This prevents tall tablet/desktop tiles overflowing.
+      y: Math.round(exposure.y + topLipHeight + contentHeight / 2),
+    };
+  }
+
+  /** Repositions all local exposure tiles after a resize or orientation change. */
+  private layoutCalledBottomExposureTiles(): void {
+    this.calledBottomExposureTiles.forEach((image, index) => {
+      if (!image.active) return;
+
+      const tile = this.calledBottomExposureTileSize();
+      const target = this.calledBottomExposureTilePosition(index);
+      image.setDisplaySize(tile.width, tile.height).setPosition(target.x, target.y);
+    });
+  }
+
+  /** Keeps every opponent discard in its original shared discard-grid slot. */
+  private layoutOpponentDiscardTiles(): void {
+    const grid = this.discardGrid();
+    this.opponentDiscardTiles.forEach((image, index) => {
+      if (!image.active) return;
+
+      const discardId = image.getData("discard-id") as string | undefined;
+      const slot = this.discardSlotFor(
+        discardId ? this.discardSlotIndex(discardId, index) : index,
+        grid,
+      );
+      image.setDisplaySize(grid.tileWidth, grid.tileHeight).setPosition(slot.x, slot.y);
+    });
+  }
+
+  /** Returns true when a dragged rack tile is dropped on the local exposure. */
+  private isInsideBottomExposure(x: number, y: number): boolean {
+    return this.tileInteractionManager.isPointInsideRect(this.layout.bottomExposure, x, y);
+  }
+
+  /** Allows only matching tiles or jokers, and prevents overflowing the tray. */
+  private canAddTileToBottomExposure(tile: TileVm): boolean {
+    return Boolean(
+      this.exposureBuildAsset &&
+        // The widened mobile/tablet trays support up to twelve exposed tiles
+        // (for example, four Pungs), not only a single Sextet.
+        this.calledBottomExposureTiles.length < 12 &&
+        (tile.asset === this.exposureBuildAsset || tile.suit === "joker"),
+    );
+  }
+
+  /** Removes one rack tile and animates it into the current local exposure. */
+  private moveRackTileToBottomExposure(runtime: TileRuntime): void {
+    if (!this.canAddTileToBottomExposure(runtime.vm)) return;
+
+    // Use the same clearly noticeable feedback as a discard. `tile-tap`
+    // uses native selectionChanged(), which is too subtle on many devices.
+    this.playHaptic("tile-discard");
+    this.removeFromRackOrder(runtime.vm.id);
+    this.reindexRackRuntimeSlots();
+    runtime.zone = "exposure";
+    runtime.selected = false;
+    runtime.isDragging = false;
+    this.selectedIds.delete(runtime.vm.id);
+    runtime.image.clearTint().disableInteractive();
+    runtime.image.setData("exposure-asset", this.exposureBuildAsset);
+    this.calledBottomExposureTiles.push(runtime.image);
+
+    if (runtime.vm.suit === "joker") {
+      this.enableExposedJokerSwap(runtime);
+    }
+
+    const tile = this.calledBottomExposureTileSize();
+    const target = this.calledBottomExposureTilePosition(
+      this.calledBottomExposureTiles.length - 1,
+    );
+    runtime.image.setDisplaySize(tile.width, tile.height).setDepth(42);
+    this.tweens.killTweensOf(runtime.image);
+    this.tweens.add({
+      targets: runtime.image,
+      x: target.x,
+      y: target.y,
+      duration: 260,
+      ease: "Cubic.Out",
+    });
+    this.layoutRackTiles(true);
+    this.callbacks.onSelectionChanged([...this.selectedIds]);
+  }
+
+  /**
+   * A local exposed joker can be replaced only while this player is taking a
+   * turn and has the exact tile in their rack.  Opponent exposures will use
+   * the same flow once their exposure state is supplied by the game API.
+   */
+  private enableExposedJokerSwap(joker: TileRuntime): void {
+    const image = joker.image;
+    image.setInteractive({ useHandCursor: true, draggable: false });
+    this.input.setDraggable(image, false);
+    image.setData("joker-swap-enabled", true);
+
+    image.on("pointerup", (pointer: Phaser.Input.Pointer) => {
+      pointer.event?.stopPropagation?.();
+      image.setDepth(42);
+      this.requestJokerSwap(joker);
+    });
+  }
+
+  /** Opens the swap popup only when a matching tile is still in the local rack. */
+  private requestJokerSwap(joker: TileRuntime): void {
+    if (
+      this.tablePhase !== "playing" ||
+      this.activeSeat !== "bottom" ||
+      joker.zone !== "exposure"
+    ) return;
+
+    const exposedAsset = joker.image.getData("exposure-asset") as string | undefined;
+    if (!exposedAsset) return;
+
+    const replacement = this.rackOrder
+      .map((id) => this.tileMap.get(id))
+      .find((runtime): runtime is TileRuntime => Boolean(
+        runtime && runtime.zone === "rack" && runtime.vm.asset === exposedAsset,
+      ));
+
+    if (!replacement) return;
+
+    this.pendingJokerSwap = { joker, replacement };
+    this.closeTileCallWindow();
+    this.renderJokerSwapWindow();
+  }
+
+  /** Draws the confirmation popup before a rack tile and exposed joker exchange. */
+  private renderJokerSwapWindow(): void {
+    this.jokerSwapWindow?.destroy(true);
+    this.jokerSwapWindow = undefined;
+
+    const pending = this.pendingJokerSwap;
+    if (!pending || !this.layout) return;
+
+    const { replacement } = pending;
+    const width = Math.round(Phaser.Math.Clamp(this.layout.canvas.width * 0.42, 230, 360));
+    const rowHeight = Math.round(Phaser.Math.Clamp(this.layout.canvas.height * 0.052, 34, 44));
+    const height = 58 + 2 * (rowHeight + 8) + 12;
+    const area = this.layout.discardArea;
+
+    const background = this.add.graphics();
+    background.fillStyle(0x07142f, 0.96);
+    background.lineStyle(2, 0xf0eb78, 0.95);
+    background.fillRoundedRect(-width / 2, -height / 2, width, height, 12);
+    background.strokeRoundedRect(-width / 2, -height / 2, width, height, 12);
+
+    const title = this.add
+      .text(0, -height / 2 + 28, `SWAP JOKER FOR ${replacement.vm.label.toUpperCase()}?`, {
+        fontFamily: FONT_FAMILY,
+        fontSize: `${Math.round(Phaser.Math.Clamp(rowHeight * 0.45, 14, 20))}px`,
+        fontStyle: "700",
+        color: "#ffffff",
+      })
+      .setOrigin(0.5);
+
+    const children: Phaser.GameObjects.GameObject[] = [background, title];
+    const addButton = (index: number, label: string, color: number, onClick: () => void): void => {
+      const y = -height / 2 + 58 + index * (rowHeight + 8) + rowHeight / 2;
+      const [button, text] = this.createPopupActionButton(
+        0, y, this.popupActionButtonWidth(label, rowHeight, width - 28), rowHeight, label, color, true, onClick,
+      );
+      children.push(button, text);
+    };
+
+    addButton(0, "SWAP", COLOR_FUSHIA_NUM, () => this.confirmJokerSwap());
+    addButton(1, "CANCEL", 0x475569, () => this.closeJokerSwapWindow());
+    this.jokerSwapWindow = this.add.container(
+      Math.round(area.x + area.width / 2),
+      Math.round(area.y + area.height / 2),
+      children,
+    ).setDepth(500);
+  }
+
+  /** Cancels or removes the current Joker Swap confirmation popup. */
+  private closeJokerSwapWindow(): void {
+    this.pendingJokerSwap = undefined;
+    this.jokerSwapWindow?.destroy(true);
+    this.jokerSwapWindow = undefined;
+  }
+
+  /** Displays a server-approved Mah Jongg result without changing game state. */
+  private showMahjongWinCelebration(result: MahjongWinCelebration): void {
+    // This method only celebrates a win already approved by the server. It
+    // does not validate tiles or change the winner/game state.
+    if (!this.layout) return;
+
+    this.closeMahjongWinCelebration();
+    this.expireTileCallWindow();
+    this.closeJokerSwapWindow();
+
+    const { width, height } = this.layout.canvas;
+    const overlay = this.add.container(0, 0).setDepth(1000);
+    const backdrop = this.add.graphics();
+    backdrop.fillStyle(0x020617, 0.66);
+    backdrop.fillRect(0, 0, width, height);
+    backdrop.setInteractive(
+      new Phaser.Geom.Rectangle(0, 0, width, height),
+      Phaser.Geom.Rectangle.Contains,
+    );
+    backdrop.on("pointerup", () => this.closeMahjongWinCelebration());
+    overlay.add(backdrop);
+
+    const centerX = Math.round(width / 2);
+    const centerY = Math.round(height / 2);
+    const panelWidth = Math.round(Phaser.Math.Clamp(width * 0.58, 250, 540));
+    const panelHeight = Math.round(Phaser.Math.Clamp(height * 0.26, 140, 215));
+    const panel = this.add.graphics();
+    panel.fillStyle(COLOR_BLUE_NUM, 0.98);
+    panel.lineStyle(3, 0xf6c542, 1);
+    panel.fillRoundedRect(
+      centerX - panelWidth / 2,
+      centerY - panelHeight / 2,
+      panelWidth,
+      panelHeight,
+      18,
+    );
+    panel.strokeRoundedRect(
+      centerX - panelWidth / 2,
+      centerY - panelHeight / 2,
+      panelWidth,
+      panelHeight,
+      18,
+    );
+    overlay.add(panel);
+
+    const winner = result.winner === "bottom" ? "YOU WIN!" : `${result.winner.toUpperCase()} WINS!`;
+    const titleSize = Math.round(Phaser.Math.Clamp(width * 0.07, 28, 58));
+    const title = this.add.text(centerX, centerY - panelHeight * 0.12, "MAH JONGG!", {
+      fontFamily: FONT_FAMILY,
+      fontSize: `${titleSize}px`,
+      fontStyle: "700",
+      color: "#f6c542",
+      stroke: "#ffffff",
+      strokeThickness: Math.max(1, Math.round(titleSize * 0.045)),
+    }).setOrigin(0.5);
+    const winnerText = this.add.text(centerX, centerY + panelHeight * 0.22, winner, {
+      fontFamily: FONT_FAMILY,
+      fontSize: `${Math.round(Phaser.Math.Clamp(titleSize * 0.45, 15, 26))}px`,
+      fontStyle: "700",
+      color: "#ffffff",
+    }).setOrigin(0.5);
+    const dismiss = this.add.text(centerX, centerY + panelHeight * 0.39, "TAP TO CONTINUE", {
+      fontFamily: FONT_FAMILY,
+      fontSize: `${Math.round(Phaser.Math.Clamp(titleSize * 0.22, 10, 14))}px`,
+      fontStyle: "600",
+      color: "#dbeafe",
+    }).setOrigin(0.5);
+    overlay.add([title, winnerText, dismiss]);
+
+    title.setScale(0.6).setAlpha(0);
+    this.tweens.add({
+      targets: title,
+      scale: 1,
+      alpha: 1,
+      duration: 360,
+      ease: "Back.Out",
+    });
+
+    const colors = [0xf6c542, COLOR_FUSHIA_NUM, 0x60a5fa, 0x34d399, 0xffffff];
+    const particleCount = Phaser.Math.Clamp(Math.round(width / 13), 36, 88);
+    for (let index = 0; index < particleCount; index += 1) {
+      const size = Phaser.Math.Between(5, 10);
+      const confetti = this.add.rectangle(
+        Phaser.Math.Between(0, width),
+        Phaser.Math.Between(-height * 0.25, 0),
+        size,
+        Math.round(size * 0.55),
+        colors[index % colors.length],
+      ).setRotation(Phaser.Math.FloatBetween(-0.7, 0.7));
+      overlay.add(confetti);
+      this.tweens.add({
+        targets: confetti,
+        x: Phaser.Math.Clamp(confetti.x + Phaser.Math.Between(-100, 100), 0, width),
+        y: height + 24,
+        rotation: confetti.rotation + Phaser.Math.FloatBetween(4, 9),
+        duration: Phaser.Math.Between(1300, 2400),
+        delay: Phaser.Math.Between(0, 450),
+        ease: "Quad.In",
+      });
+    }
+
+    // Confetti can cross the whole table, but the result remains readable.
+    overlay.bringToTop(panel);
+    overlay.bringToTop(title);
+    overlay.bringToTop(winnerText);
+    overlay.bringToTop(dismiss);
+
+    this.mahjongWinOverlay = overlay;
+    this.playHaptic("pass-submit");
+    this.mahjongWinTimer = this.time.delayedCall(4200, () => this.closeMahjongWinCelebration());
+  }
+
+  /** Stops the win timer and removes the confetti and result overlay. */
+  private closeMahjongWinCelebration(): void {
+    this.mahjongWinTimer?.remove(false);
+    this.mahjongWinTimer = undefined;
+    this.mahjongWinOverlay?.destroy(true);
+    this.mahjongWinOverlay = undefined;
+  }
+
+  /**
+   * Shows the first Dead Hand step. Each opponent exposure is highlighted and
+   * its arrow/panel is clickable, so the player chooses the hand directly on
+   * the table before choosing a reason for the claim.
+   */
+  private showDeadHandSeatSelection(): void {
+    if (!this.layout || this.tablePhase !== "playing") return;
+
+    this.closeDeadHandSeatSelection();
+
+    const { width, height } = this.layout.canvas;
+    const container = this.add.container(0, 0).setDepth(880);
+    const dimmer = this.add.graphics();
+    dimmer.fillStyle(0x020617, 0.58);
+    dimmer.fillRect(0, 0, width, height);
+
+    // Blocks normal table interactions while the player is selecting a hand.
+    const blocker = this.add.zone(width / 2, height / 2, width, height)
+      .setInteractive({ useHandCursor: false });
+    const highlights = this.add.graphics();
+    const children: Phaser.GameObjects.GameObject[] = [dimmer, blocker, highlights];
+    const targets: readonly Exclude<TableSeat, "bottom">[] = ["top", "left", "right"];
+    const arrows: Record<Exclude<TableSeat, "bottom">, string> = {
+      top: "keyboard_arrow_up",
+      left: "keyboard_arrow_left",
+      right: "keyboard_arrow_right",
+    };
+
+    const chooseSeat = (seat: Exclude<TableSeat, "bottom">): void => {
+      this.closeDeadHandSeatSelection();
+      this.callbacks.onDeadHandClaimPrompt(seat);
+    };
+
+    for (const seat of targets) {
+      const rect = this.exposureRectForSeat(seat);
+      highlights.fillStyle(COLOR_FUSHIA_NUM, 0.22);
+      highlights.fillRect(rect.x + 4, rect.y + 4, rect.width - 8, rect.height - 8);
+      highlights.lineStyle(this.layout.metrics.isMobile ? 3 : 4, 0xf6c542, 1);
+      highlights.strokeRect(rect.x + 4, rect.y + 4, rect.width - 8, rect.height - 8);
+
+      const arrowPosition = seat === "top"
+        ? { x: rect.x + rect.width / 2, y: rect.y + rect.height + 24 }
+        : seat === "left"
+          ? { x: rect.x + rect.width + 24, y: rect.y + rect.height / 2 }
+          : { x: rect.x - 24, y: rect.y + rect.height / 2 };
+      const arrow = this.add.text(arrowPosition.x, arrowPosition.y, arrows[seat], {
+        // Material Symbols uses ligature text, giving the selection arrows
+        // the same rounded icon style as the mobile header control.
+        fontFamily: "Material Symbols Rounded",
+        fontSize: `${Math.round(Phaser.Math.Clamp(Math.min(width, height) * 0.07, 32, 58))}px`,
+        fontStyle: "normal",
+        color: "#ffffff",
+      }).setOrigin(0.5).setInteractive({ useHandCursor: true });
+      arrow.on("pointerdown", (pointer: Phaser.Input.Pointer) => {
+        pointer.event?.stopPropagation?.();
+        chooseSeat(seat);
+      });
+
+      const panelTarget = this.add.zone(rect.x + rect.width / 2, rect.y + rect.height / 2, rect.width, rect.height)
+        .setInteractive({ useHandCursor: true });
+      panelTarget.on("pointerdown", (pointer: Phaser.Input.Pointer) => {
+        pointer.event?.stopPropagation?.();
+        chooseSeat(seat);
+      });
+      children.push(panelTarget, arrow);
+    }
+
+    const instruction = this.add.text(width / 2, height / 2, "SELECT THE HAND YOU WOULD\nLIKE TO CALL DEAD", {
+      fontFamily: FONT_FAMILY,
+      fontSize: `${Math.round(Phaser.Math.Clamp(Math.min(width, height) * 0.034, 16, 28))}px`,
+      fontStyle: "700",
+      color: "#ffffff",
+      align: "center",
+    }).setOrigin(0.5);
+    const cancel = this.add.text(width / 2, height / 2 - 54, "×", {
+      fontFamily: FONT_FAMILY,
+      fontSize: "30px",
+      fontStyle: "500",
+      color: "#ffffff",
+    }).setOrigin(0.5).setInteractive({ useHandCursor: true });
+    cancel.on("pointerdown", (pointer: Phaser.Input.Pointer) => {
+      pointer.event?.stopPropagation?.();
+      this.closeDeadHandSeatSelection();
+    });
+    children.push(instruction, cancel);
+    container.add(children);
+    this.deadHandSeatSelection = container;
+  }
+
+  /** Closes the table-level Dead Hand seat selection without creating a claim. */
+  private closeDeadHandSeatSelection(): void {
+    this.deadHandSeatSelection?.destroy(true);
+    this.deadHandSeatSelection = undefined;
+  }
+
+  /** Exchanges the selected rack tile and exposed joker, then refreshes the rack. */
+  private confirmJokerSwap(): void {
+    const pending = this.pendingJokerSwap;
+    if (!pending || this.tablePhase !== "playing" || this.activeSeat !== "bottom") {
+      this.closeJokerSwapWindow();
+      return;
+    }
+
+    const { joker, replacement } = pending;
+    const exposureIndex = this.calledBottomExposureTiles.indexOf(joker.image);
+    const rackIndex = this.rackOrder.indexOf(replacement.vm.id);
+    if (joker.zone !== "exposure" || replacement.zone !== "rack" || exposureIndex < 0 || rackIndex < 0) {
+      this.closeJokerSwapWindow();
+      return;
+    }
+
+    const exposureAsset = joker.image.getData("exposure-asset") as string | undefined;
+    const jokerTarget = this.slotFor(replacement);
+    const exposureTarget = this.calledBottomExposureTilePosition(exposureIndex);
+    const exposureTileSize = this.calledBottomExposureTileSize();
+
+    this.rackOrder.splice(rackIndex, 1, joker.vm.id);
+    this.reindexRackRuntimeSlots();
+    joker.zone = "rack";
+    replacement.zone = "exposure";
+    replacement.image.setData("exposure-asset", exposureAsset).disableInteractive();
+    this.calledBottomExposureTiles[exposureIndex] = replacement.image;
+
+    joker.image.setInteractive({ useHandCursor: true, draggable: true });
+    this.input.setDraggable(joker.image, true);
+    joker.image.clearTint().setDepth(30);
+    replacement.image.clearTint().setDisplaySize(exposureTileSize.width, exposureTileSize.height).setDepth(42);
+
+    this.tweens.killTweensOf(joker.image);
+    this.tweens.killTweensOf(replacement.image);
+    this.tweens.add({
+      targets: replacement.image,
+      x: exposureTarget.x,
+      y: exposureTarget.y,
+      duration: 260,
+      ease: "Cubic.Out",
+    });
+    this.tweens.add({
+      targets: joker.image,
+      x: jokerTarget.x,
+      y: jokerTarget.y,
+      duration: 260,
+      ease: "Cubic.Out",
+    });
+
+    this.playHaptic("tile-discard");
+    this.closeJokerSwapWindow();
+    this.layoutRackTiles(true);
+  }
+
+  /**
+   * Temporary test path for an opponent discard. It uses static tile data,
+   * animates the discard to the shared area, then opens the normal CALL UI.
+   * Replace this method with WebSocket discard messages when the backend is ready.
+   */
+  private triggerDemoSeatDiscard(request: DemoDiscardRequest): void {
+    if (this.tablePhase === "passing" || !this.layout) return;
+
+    const assetsBySeat: Record<DemoDiscardRequest["seat"], readonly string[]> = {
+      top: ["dot_1.svg", "bam_6.svg"],
+      right: ["char_4.svg", "bam_8.svg"],
+      left: ["bam_4.svg"],
+    };
+    const assets = assetsBySeat[request.seat];
+    const asset = assets[this.demoDiscardSequence++ % assets.length];
+    const discard = this.rackTiles.find((tile) => tile.asset.endsWith(asset));
+    if (!discard) return;
+
+    this.pendingTileCallOffer = undefined;
+    this.closeTileCallWindow();
+
+    const grid = this.discardGrid();
+    const texture = this.tileTextureResolver.resolve(discard, grid.tileWidth);
+    if (!this.textures.exists(texture.atlasKey) || !this.textures.get(texture.atlasKey).has(texture.frameKey)) {
+      return;
+    }
+
+    const exposure = this.exposureRectForSeat(request.seat);
+    const sourceX = exposure.x + exposure.width / 2;
+    const sourceY = exposure.y + exposure.height / 2;
+    const discardId = `demo-${request.seat}-${request.requestId}`;
+    this.addDiscardSlot(discardId);
+    const discardSlot = this.discardSlotFor(
+      this.discardSlotIndex(discardId, this.opponentDiscardTiles.length),
+      grid,
+    );
+    const targetX = discardSlot.x;
+    const targetY = discardSlot.y;
+    const image = this.add
+      .image(sourceX, sourceY, texture.atlasKey, texture.frameKey)
+      .setDisplaySize(grid.tileWidth, grid.tileHeight)
+      .setDepth(this.discardTileDepth() + 2);
+    this.applyTileTextureFilter(image);
+    image.setData("discard-id", discardId);
+    this.pendingTileCallImage = image;
+    this.opponentDiscardTiles.push(image);
+
+    const offeredDiscard: TileCallOffer = {
+      discard: { ...discard, id: discardId },
+      discardedBy: request.seat,
+    };
+
+    this.tweens.add({
+      targets: image,
+      x: Math.round(targetX),
+      y: Math.round(targetY),
+      duration: 360,
+      ease: "Cubic.Out",
+      onComplete: () => {
+        this.playTileDiscardVoice(discard);
+        this.setTileCallOffer(offeredDiscard);
+      },
+    });
+  }
   
+  /** Returns the current HUD wall-counter size for responsive positioning. */
   private wallTileBoxSize(): { readonly width: number; readonly height: number } {
     return this.uiLayoutManager.wallTileBoxSize(this.layout);
   }
 
+  /** Returns the point where a wall tile animation begins. */
   private wallTileSourcePoint(): Point {
     return this.uiLayoutManager.wallTileSourcePoint(this.layout);
   }
 
+  /** Refreshes the number shown beside the wall tile icon. */
   private updateWallCountText(): void {
     this.uiLayoutManager.updateWallTiles(this.wallTileCount);
   }
   
+  /** Refreshes the turn instruction after changing phase or selected seat. */
   private updateInstructionText(): void {
     this.uiLayoutManager.updateInstruction(
       this.tablePhase,
@@ -1871,6 +2800,7 @@ export class TableScene extends Phaser.Scene {
     if (!this.discardedTileIds.includes(runtime.vm.id)) {
       this.discardedTileIds.push(runtime.vm.id);
     }
+    this.addDiscardSlot(runtime.vm.id);
 
     this.reindexRackRuntimeSlots();
 
@@ -1882,7 +2812,10 @@ export class TableScene extends Phaser.Scene {
     runtime.image.disableInteractive();
     const grid = this.discardGrid();
     const slot = this.discardSlotFor(
-      this.discardedTileIds.indexOf(runtime.vm.id),
+      this.discardSlotIndex(
+        runtime.vm.id,
+        this.discardedTileIds.indexOf(runtime.vm.id),
+      ),
       grid,
     );
     runtime.image.setDisplaySize(grid.tileWidth, grid.tileHeight);
@@ -1934,7 +2867,13 @@ export class TableScene extends Phaser.Scene {
     const tileHeight = Math.round(this.layout.bottomTileLayout.height);
 
     for (const runtime of this.tileMap.values()) {
-      if (runtime.zone === "discard" || runtime.zone === "pass") continue;
+      // Exposure tiles are no longer rack members; never let rack relayout
+      // pull them back to the rack centre after a double-tap or resize.
+      if (
+        runtime.zone === "discard" ||
+        runtime.zone === "pass" ||
+        runtime.zone === "exposure"
+      ) continue;
 
       const slot = this.slotFor(runtime);
       const selectedOffset = runtime.selected ? -tileHeight * 0.18 : 0;
@@ -1970,7 +2909,7 @@ export class TableScene extends Phaser.Scene {
       const runtime = this.tileMap.get(id);
       if (!runtime) return;
 
-      const slot = this.discardSlotFor(index, grid);
+      const slot = this.discardSlotFor(this.discardSlotIndex(id, index), grid);
 
       runtime.image.setDepth(this.discardTileDepth());
       runtime.image.setDisplaySize(grid.tileWidth, grid.tileHeight);
@@ -3076,6 +4015,7 @@ private isInsidePlayablePassDropArea(x: number, y: number): boolean {
       isPassAnimating: this.isPassAnimating,
       isPickAnimating: this.isPickAnimating,
       wallTileCount: this.wallTileCount,
+      canPickFromWall: this.canPickFromWall(),
     });
 
     this.uiLayoutManager.layoutPickSeatSelector(
@@ -3106,6 +4046,7 @@ private isInsidePlayablePassDropArea(x: number, y: number): boolean {
     if (this.tablePhase !== "playing") return;
     if (this.isPickAnimating) return;
     if (this.wallTileCount <= 0) return;
+    if (!this.canPickFromWall()) return;
 
     this.isPickAnimating = true;
     this.wallTileCount -= 1;

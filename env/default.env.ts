@@ -21,7 +21,7 @@ export const defaultEnvironment: any = {
   APP_HOST_AI_DOMAIN: 'http://localhost:20156', // Python AI app port
 
   APP_LISTEN_HOST: 'localhost',
-  APP_LISTEN_PORT: 20155,
+  APP_LISTEN_PORT: 20180,
 
   WEBSITE_SERVER_SIDE_LOG_URL_PATH: '/wlog/webiste',
   BACKOFFICE_SERVER_SIDE_LOG_URL_PATH: '/wlog/backoffice',

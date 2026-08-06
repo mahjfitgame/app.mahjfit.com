@@ -2,15 +2,13 @@
 /* You can add global styles to this file, and also import other style files */
 @use './theme/active/main.scss';
 
-@import "@fontsource/poppins/400.css";
-@import "@fontsource/poppins/500.css";
-@import "@fontsource/poppins/700.css";
-
 //@source "./**/*.{html,ts}";
 //@source "../node_modules/@material-tailwind/html/**/*.js";
 
 @theme {
-  --font-sans: "Poppins", ui-sans-serif, system-ui, sans-serif;
+  --font-poppins: "Poppins", ui-sans-serif, system-ui, sans-serif;
+  --font-outfit: "Outfit", ui-sans-serif, system-ui, sans-serif;
+  --font-sans: var(--font-poppins);
 
   --color-game-navy: #2f4d99;
   --color-game-board: #324f9a;

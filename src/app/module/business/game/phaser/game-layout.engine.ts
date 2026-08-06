@@ -449,10 +449,11 @@ export class GameLayoutEngine {
      * Top exposure:
      * Smaller than desktop, centered, with enough inner area.
      */
-    const topExposureWidth = this.clamp(
-      tableOuter.width * 0.560,
-      360,
-      500,
+    const topExposureWidth = this.exposureWidthForTwelveTiles(
+      bottomTileLayout,
+      tableOuter,
+      tableOuter.width * 0.90,
+      0.56,
     );
 
     const topExposureHeight = exposureThickness;
@@ -724,11 +725,11 @@ const tableOuter: Rect = {
      * Top exposure:
      * Wider than phone landscape, smaller than desktop.
      */
-    const topExposureWidth = this.clamp(
-      // Leave a dedicated wall-indicator lane before the full-height right rail.
-      tableOuter.width * 0.460,
-      390,
-      620,
+    const topExposureWidth = this.exposureWidthForTwelveTiles(
+      bottomTileLayout,
+      tableOuter,
+      tableOuter.width - 2 * (tablePadX + exposureThickness + 4),
+      0.46,
     );
 
     const topExposureHeight = exposureThickness;
@@ -963,7 +964,7 @@ const tableOuter: Rect = {
 
     // Match the mobile page-blue gutter to the table's black edge thickness.
     // Use the shorter viewport side so portrait and landscape stay consistent.
-    const tableOuterInset = this.clamp(Math.min(safeWidth, safeHeight) * 0.018, 8, 18);
+    const tableOuterInset = this.clamp(Math.min(safeWidth, safeHeight) * 0.010, 4, 10);
     const tableOuter: Rect = {
       x: safeLeft + tableOuterInset,
       // The mobile header overlays the table; it never reserves table height.
@@ -1005,10 +1006,11 @@ const tableOuter: Rect = {
     * Top exposure:
     * Smaller and lower than before, with clear gap from table border.
     */
-    const topExposureWidth = this.clamp(
-      tableOuter.width * 0.360,
-      250,
-      360,
+    const topExposureWidth = this.exposureWidthForTwelveTiles(
+      bottomTileLayout,
+      tableOuter,
+      tableOuter.width - 2 * (tablePadX + exposureThickness + 4),
+      0.36,
     );
 
     const topExposureHeight = exposureThickness;
@@ -1024,11 +1026,7 @@ const tableOuter: Rect = {
     * Bottom exposure / username panel:
     * Above rack, smaller than desktop, no overlap with instruction.
     */
-    const bottomExposureWidth = this.clamp(
-      tableOuter.width * 0.360,
-      250,
-      360,
-    );
+    const bottomExposureWidth = topExposureWidth;
 
     // Keep the bottom tray the same thickness as the top/side exposures.
     const bottomExposureHeight = exposureThickness;
@@ -1306,7 +1304,7 @@ const rightExposure: Rect = {
     const hudHeight = this.clamp(safeHeight * 0.062, 42, 54);
 
     // Keep the outer blue gutter no larger than the visible black table edge.
-    const tableOuterInset = this.clamp(Math.min(safeWidth, safeHeight) * 0.018, 8, 18);
+    const tableOuterInset = this.clamp(Math.min(safeWidth, safeHeight) * 0.010, 4, 10);
     const tableOuter: Rect = {
       x: safeLeft + tableOuterInset,
       //y: safeTop + tableOuterInset, // For top boarder 
@@ -1337,9 +1335,11 @@ const rightExposure: Rect = {
       this.tableEdgeInset(tableOuter) - 4,
     );
     const bottomRack: Rect = {
-      x: tableOuter.x + tableOuter.width * 0.055,
+      // A slightly wider phone-portrait rack lets adjacent tiles separate
+      // without making the tile images smaller or leaving the table bounds.
+      x: tableOuter.x + tableOuter.width * 0.010,
       y: tableOuter.y + tableOuter.height - rackHeight - bottomRackBottomInset,
-      width: tableOuter.width * 0.890,
+      width: tableOuter.width * 0.980,
       height: rackHeight,
     };
     const bottomTileLayout = this.computeTileLayout(
@@ -1347,7 +1347,6 @@ const rightExposure: Rect = {
       count,
       width,
       config,
-      true,
     );
     const panelRatios =
       exposureLipRatio("mobile-portrait") +
@@ -1392,10 +1391,11 @@ const rightExposure: Rect = {
      * Keep it visible but compact.
      */
 
-    const topExposureWidth = this.clamp(
-      tableOuter.width * 0.55,
-      176,
-      232,
+    const topExposureWidth = this.exposureWidthForTwelveTiles(
+      bottomTileLayout,
+      tableOuter,
+      tableOuter.width * 0.94,
+      0.55,
     );
 
     const topExposureHeight = exposureThickness;
@@ -1412,11 +1412,7 @@ const rightExposure: Rect = {
      * Compact and close to the rack.
      */
     
-    const bottomExposureWidth = this.clamp(
-      tableOuter.width * 0.58,
-      190,
-      250,
-    );
+    const bottomExposureWidth = topExposureWidth;
 
     const bottomExposureHeight = sideExposureWidth;
 
@@ -1714,21 +1710,15 @@ const rightExposure: Rect = {
     count: number,
     canvasWidth: number,
     config: GameTableConfig,
-    mobilePortrait = false,
   ): TileLayout {
     const isMobile = canvasWidth < 640;
     const isTablet = canvasWidth >= 640 && canvasWidth < 1024;
 
-    /**
-     * Mobile portrait needs the largest readable tile possible.
-     * We use small negative overlap on mobile only.
-     */
-    // Portrait keeps a modest overlap: larger than the original tile size,
-    // while leaving a clearer gap between adjacent rack tiles.
-    const overlapRatio = isMobile ? (mobilePortrait ? 0.15 : 0.14) : 0;
-
+    // Mobile rack tiles touch edge-to-edge. Their width is calculated from
+    // the available rack width, so no tile sits behind its neighbour.
+    const mobileGap = 0;
     const gap = isMobile
-      ? -0.75 // 0
+      ? mobileGap
       : isTablet
         ? this.clamp(canvasWidth * 0.003, 2, 4)
         : this.clamp(canvasWidth * 0.0045, 3, 7);
@@ -1742,31 +1732,29 @@ const rightExposure: Rect = {
     const rackTopPadding = this.clamp(rack.height * 0.025, 1, 6);
     const rackBottomPadding = this.clamp(rack.height * 0.025, 1, 8);
 
-    const effectiveCountWidth = isMobile
-      ? count - overlapRatio * (count - 1)
-      : count;
-
     const fitByWidth = isMobile
-      ? rack.width / effectiveCountWidth
+      ? (rack.width - mobileGap * (count - 1)) / count
       : (rack.width - gap * (count - 1)) / count;
 
     const fitByHeight =
       (rack.height - rackTopPadding - rackBottomPadding) /
       config.rack.tileAspect;
 
+    // A mobile-only reduction gives the rack tiles breathing room while
+    // keeping their high-resolution atlas and tablet/desktop sizes unchanged.
+    const mobileTileScale = isMobile ? 0.99 : 1;
+    const minTileWidth = isMobile ? 18 : config.rack.minTileWidth;
     const tileWidth = Math.round(
       this.clamp(
-        Math.min(fitByWidth, fitByHeight, maxTileWidth),
-        config.rack.minTileWidth,
+        Math.min(fitByWidth, fitByHeight, maxTileWidth) * mobileTileScale,
+        minTileWidth,
         maxTileWidth,
       ),
     );
 
     const tileHeight = Math.round(tileWidth * config.rack.tileAspect);
 
-    const finalGap = isMobile
-      ? Math.round(-tileWidth * overlapRatio)
-      : Math.round(gap);
+    const finalGap = Math.round(gap);
 
     const totalWidth = count * tileWidth + finalGap * (count - 1);
     const startX = rack.x + rack.width / 2 - totalWidth / 2 + tileWidth / 2;
@@ -1782,6 +1770,22 @@ const rightExposure: Rect = {
       })),
     };
   }
+  /** Width needed for twelve exposed tiles with a small visible separation. */
+  private exposureWidthForTwelveTiles(
+    tileLayout: { readonly width: number },
+    table: Rect,
+    maxWidth: number,
+    preferredTableRatio: number,
+  ): number {
+    const tileGap = Math.max(2, Math.round(tileLayout.width * 0.05));
+    const requiredWidth = tileLayout.width * 12 + tileGap * 11 + 12;
+    const safeMaxWidth = Math.max(1, maxWidth);
+
+    return Math.round(
+      Math.min(safeMaxWidth, Math.max(table.width * preferredTableRatio, requiredWidth)),
+    );
+  }
+
   private clamp(value: number, min: number, max: number): number {
     return Math.max(min, Math.min(max, value));
   }

@@ -2,9 +2,9 @@
 import Phaser from "phaser";
 import type { PassDirection } from "../../../model/tile";
 import type { TablePhase } from "../../../model/table-phase";
-import { COLOR_AVOCADO, COLOR_BLUE, COLOR_FUSHIA, COLOR_GRAY, FONT_FAMILY, ICON_DEADHAND_HOVER, ICON_DEADHAND_NORMAL, ICON_DEADHAND_PRESSED, ICON_HELP_HOVER, ICON_HELP_NORMAL, ICON_HELP_PRESSED, ICON_HINT_HOVER, ICON_HINT_NORMAL, ICON_HINT_PRESSED, ICON_SETTINGS_HOVER, ICON_SETTINGS_NORMAL, ICON_SETTINGS_PRESSED, ICON_SORT_HOVER, ICON_SORT_NORMAL, ICON_SORT_PRESSED } from "../../const";
+import { COLOR_AVOCADO, COLOR_BLUE, COLOR_BLUE_NUM, COLOR_FUSHIA, COLOR_FUSHIA_NUM, COLOR_GRAY, FONT_FAMILY, ICON_DEADHAND_HOVER, ICON_DEADHAND_NORMAL, ICON_DEADHAND_PRESSED, ICON_HELP_HOVER, ICON_HELP_NORMAL, ICON_HELP_PRESSED, ICON_HINT_HOVER, ICON_HINT_NORMAL, ICON_HINT_PRESSED, ICON_SETTINGS_HOVER, ICON_SETTINGS_NORMAL, ICON_SETTINGS_PRESSED, ICON_SORT_HOVER, ICON_SORT_NORMAL, ICON_SORT_PRESSED } from "../../const";
 import { TableLayout } from "../../type";
-import { HamburgerMenuActionKey, HudActionKey, HudImageButton, LayoutStaticUiOptions, PassButtonStateOptions, TableSeat, UiLayoutCallbacks } from "../type";
+import { HamburgerMenuActionKey, HudActionKey, HudImageButton, LayoutStaticUiOptions, PassButtonStateOptions, PlayerLabelOverlayState, PointsOverlayState, TableSeat, UiLayoutCallbacks, WallCountOverlayState } from "../type";
 
 
 /**
@@ -79,6 +79,8 @@ export class UiLayoutManager {
 
   wallCountText?: Phaser.GameObjects.Text;
   pointsText?: Phaser.GameObjects.Text;
+  private wallCountOverlayState?: WallCountOverlayState;
+  private pointsOverlayState?: PointsOverlayState;
 
   hudWallIcon?: Phaser.GameObjects.Container;
   hudPointsIcon?: Phaser.GameObjects.Container;
@@ -104,14 +106,6 @@ export class UiLayoutManager {
   private hudDropdownItems: Phaser.GameObjects.Text[] = [];
 
   /**
-   * Sort tooltip state.
-   *
-   * Default shows "Sort By Suit".
-   * Every Sort click toggles the next tooltip label.
-   */
-  private nextSortTooltip: "Sort By Suit" | "Sort By Rank" = "Sort By Suit";
-
-  /**
    * Mobile drawer submenu state.
    *
    * When user taps Settings in the mobile action drawer,
@@ -127,10 +121,10 @@ export class UiLayoutManager {
   private hudActionTooltipText?: Phaser.GameObjects.Text;
   private hoveredHudAction?: HudActionKey;
 
-  private gtColorBlue: string = "#264089";
-  private gtColorFushia: string = "#B92A90";
+  private gtColorBlue: string = COLOR_BLUE;
+  private gtColorFushia: string = COLOR_FUSHIA;
 
-  private gtnumColorFushia: number = 0xB92A90;
+  private gtnumColorFushia: number = COLOR_FUSHIA_NUM;
   
 
   private readonly hudActions = [
@@ -274,6 +268,7 @@ export class UiLayoutManager {
       this.hamburgerMenuOpen = !this.hamburgerMenuOpen;
       this.mobileActionMenuOpen = false;
       this.activeHudDropdown = undefined;
+      this.notifyMobileDrawerVisibility();
 
       if (this.lastLayout) {
         this.layoutHamburgerDrawer(this.lastLayout);
@@ -369,14 +364,25 @@ export class UiLayoutManager {
     // When visible, let the normal HUD layout decide which mobile/desktop
     // controls are active. Forcing the desktop action container visible on a
     // phone creates invisible interactive controls above the hamburger.
-    if (visible) return;
+    if (visible) {
+      // The wall icon sits in the table layer. Keep it below the expanded
+      // mobile-header background so it cannot draw through that header.
+      if (this.lastLayout?.metrics.isMobile) this.hudWallIcon?.setDepth(19);
+      return;
+    }
 
     this.hamburgerIcon?.setVisible(false);
     this.mobileHeaderBackground?.setVisible(false);
     // The wall indicator lives beside the top exposure, rather than in the
     // collapsible mobile header, so it stays available while that header is closed.
+    this.hudWallIcon?.setDepth(25);
     this.hudPointsIcon?.setVisible(false);
     this.pointsText?.setVisible(false);
+    // The native points text is outside Phaser's display list, so explicitly
+    // hide it with the rest of the collapsible mobile header controls.
+    if (this.pointsOverlayState) {
+      this.publishPointsOverlay({ ...this.pointsOverlayState, visible: false });
+    }
     this.hudActionsContainer?.setVisible(false);
     this.mobileActionButton?.setVisible(false);
     this.hudDropdownBg?.setVisible(false);
@@ -408,25 +414,9 @@ export class UiLayoutManager {
       .setVisible(false);
   }
   private tooltipLabelForAction(actionKey: HudActionKey): string {
-    /**
-     * Sort tooltip is dynamic.
-     *
-     * It tells the user what the next Sort click will do.
-     */
-    if (actionKey === "sort") {
-      return this.nextSortTooltip;
-    }
-
     const action = this.hudActions.find((item) => item.key === actionKey);
 
     return action?.tooltip ?? "";
-  }
-
-  private toggleSortTooltipState(): void {
-    this.nextSortTooltip =
-      this.nextSortTooltip === "Sort By Suit"
-        ? "Sort By Rank"
-        : "Sort By Suit";
   }
   private createHamburgerDrawer(scene: Phaser.Scene): void {
     this.hamburgerMenuBg = scene.add.graphics().setDepth(260);
@@ -465,6 +455,8 @@ export class UiLayoutManager {
       pointer.event?.stopPropagation?.();
       this.hamburgerMenuOpen = false;
       this.hamburgerMenuContainer?.setVisible(false);
+      this.notifyMobileDrawerVisibility();
+      this.callbacks.onMobileDrawerOverlay?.({ visible: false, x: 0, y: 0, width: 0, height: 0, title: "", items: [] });
     });
 
     const items: readonly {
@@ -501,6 +493,8 @@ export class UiLayoutManager {
 
         this.hamburgerMenuOpen = false;
         this.hamburgerMenuContainer?.setVisible(false);
+        this.notifyMobileDrawerVisibility();
+        this.callbacks.onMobileDrawerOverlay?.({ visible: false, x: 0, y: 0, width: 0, height: 0, title: "", items: [] });
 
         this.callbacks.onHamburgerMenuAction?.(action);
       });
@@ -665,7 +659,7 @@ export class UiLayoutManager {
 
   private createMobileActionButton(scene: Phaser.Scene): void {
     this.mobileActionButton = scene.add
-      .text(0, 0, "⋯", {
+      .text(0, 0, "⋮", {
         fontFamily: FONT_FAMILY,
         fontSize: "26px",
         fontStyle: "700",
@@ -684,6 +678,7 @@ export class UiLayoutManager {
       this.hamburgerMenuOpen = false;
       this.activeHudDropdown = undefined;
       this.hudMenuOpen = false;
+      this.notifyMobileDrawerVisibility();
 
       this.renderOpenMenusNow();
     });
@@ -695,6 +690,88 @@ export class UiLayoutManager {
     this.layoutHudDropdown(this.lastLayout);
     this.layoutMobileActionButton(this.lastLayout);
     this.layoutMobileActionDrawer(this.lastLayout);
+    this.notifyMobileDrawerVisibility();
+  }
+
+  /** Keeps native HTML overlays and the Phaser header toggle below open drawers. */
+  private notifyMobileDrawerVisibility(): void {
+    this.callbacks.onMobileDrawerVisibilityChanged?.(
+      this.hamburgerMenuOpen || this.mobileActionMenuOpen,
+    );
+  }
+
+  /** Closes either mobile drawer from its native HTML close control. */
+  closeMobileDrawers(): void {
+    this.hamburgerMenuOpen = false;
+    this.mobileActionMenuOpen = false;
+    this.mobileActionSubmenu = undefined;
+    this.renderOpenMenusNow();
+  }
+
+  handleHtmlDrawerItem(label: string): void {
+    const actions: Record<string, HamburgerMenuActionKey> = {
+      "Gameplay Settings": "gameplay-settings", "Your level/play history": "play-history",
+      "Account/billing": "account-billing", "Restart Game": "restart-game",
+      "Quit/exit": "quit-exit", "Log out": "log-out",
+    };
+    const action = actions[label];
+    if (action) {
+      this.closeMobileDrawers();
+      this.callbacks.onHamburgerMenuAction?.(action);
+      return;
+    }
+    if (label === "Sort") {
+      this.mobileActionSubmenu = "sort";
+      this.renderOpenMenusNow();
+      return;
+    }
+    const immediateAction: Record<string, HudActionKey> = {
+      "Hint": "hint",
+      "Get A Hint": "hint",
+      "Dead Hand": "dead-hand",
+      "Call DEAD Hand": "dead-hand",
+      "Help": "help",
+    };
+    const hudAction = immediateAction[label];
+    if (hudAction) {
+      this.callbacks.onHudAction?.(hudAction);
+      this.closeMobileDrawers();
+      return;
+    }
+    const sortMode = label === "Sort By Rank" ? "rank" : label === "Sort By Suit" ? "suit" : undefined;
+    if (sortMode) {
+      this.activeHudDropdown = undefined;
+      if (this.lastLayout) this.layoutHudDropdown(this.lastLayout);
+      this.callbacks.onSortRequested?.(sortMode);
+      this.closeMobileDrawers();
+      return;
+    }
+    const settingsAction = this.settingsMenuActionForLabel(label);
+    this.activeHudDropdown = undefined;
+    if (this.lastLayout) this.layoutHudDropdown(this.lastLayout);
+    if (settingsAction) this.callbacks.onHamburgerMenuAction?.(settingsAction);
+  }
+
+  /**
+   * DOM labels are normally sharper on phones. During a Phaser drawer, use
+   * their existing Phaser copies so the drawer can cover only the portions it
+   * overlaps instead of hiding every label across the entire table.
+   */
+  setNativeTextFallbackVisible(visible: boolean): void {
+    if (!this.lastLayout?.metrics.isMobile) return;
+
+    this.hudWallIcon?.setDepth(visible ? 25 : 19).setVisible(visible);
+    this.wallCountText?.setVisible(visible);
+    this.hudPointsIcon?.setVisible(visible);
+    this.pointsText?.setVisible(visible);
+    if (visible) {
+      // Mobile normally uses HTML Material icons, so redraw these Phaser
+      // graphics only for the brief behind-drawer fallback.
+      this.drawHudWallIcon(this.lastLayout);
+      this.drawHudPointsIcon(this.lastLayout);
+    }
+    this.playerLabels.forEach((label) => label.setVisible(visible));
+    this.usernameText?.setVisible(visible);
   }
   private createMobileActionMenu(scene: Phaser.Scene): Phaser.GameObjects.Text[] {
     const items: readonly {
@@ -893,6 +970,13 @@ export class UiLayoutManager {
           return;
         }
 
+        // Sort has its own two-option submenu instead of sorting immediately.
+        if (action === "sort" && !isSubmenuItem) {
+          this.mobileActionSubmenu = "sort";
+          this.renderOpenMenusNow();
+          return;
+        }
+
         /**
          * Back row returns from Settings submenu to root drawer.
          */
@@ -902,13 +986,27 @@ export class UiLayoutManager {
           return;
         }
 
-        /**
-         * Sort row toggles dynamic sort tooltip/drawer label.
-         */
-        if (action === "sort") {
-          this.callbacks.onHudAction?.(action);
-          this.toggleSortTooltipState();
+        if (action === "sort" && isSubmenuItem && rowLabel === "‹ Back") {
+          this.mobileActionSubmenu = undefined;
+          this.renderOpenMenusNow();
+          return;
+        }
 
+        const sortMode = rowLabel === "Sort By Rank" ? "rank" : rowLabel === "Sort By Suit" ? "suit" : undefined;
+        if (sortMode) {
+          this.callbacks.onSortRequested?.(sortMode);
+          this.mobileActionMenuOpen = false;
+          this.mobileActionSubmenu = undefined;
+          this.renderOpenMenusNow();
+          return;
+        }
+
+        // Settings owns visual/game options, but Restart and Quit are real
+        // navigation actions. Send them through the hamburger callback so
+        // TableScene can ask Angular to reset or leave the board.
+        const settingsMenuAction = this.settingsMenuActionForLabel(rowLabel);
+        if (settingsMenuAction) {
+          this.callbacks.onHamburgerMenuAction?.(settingsMenuAction);
           this.mobileActionMenuOpen = false;
           this.mobileActionSubmenu = undefined;
           this.renderOpenMenusNow();
@@ -1014,6 +1112,27 @@ export class UiLayoutManager {
       ];
     }
 
+    if (this.mobileActionSubmenu === "sort") {
+      const sortTextures = this.hudActionTextures.sort;
+      const sortAction = this.hudActions.find((action) => action.key === "sort");
+      return [
+        {
+          label: "‹ Back",
+          action: "sort",
+          normalTexture: sortTextures.normal,
+          activeTexture: sortTextures.active,
+          isSubmenuItem: true,
+        },
+        ...(sortAction?.items ?? []).map((label) => ({
+          label,
+          action: "sort" as const,
+          normalTexture: sortTextures.normal,
+          activeTexture: sortTextures.active,
+          isSubmenuItem: true,
+        })),
+      ];
+    }
+
     /**
      * Root mobile action drawer.
      */
@@ -1021,7 +1140,7 @@ export class UiLayoutManager {
       const textures = this.hudActionTextures[action.key];
 
       return {
-        label: action.key === "sort" ? this.tooltipLabelForAction("sort") : action.label,
+        label: action.label,
         action: action.key,
         normalTexture: textures.normal,
         activeTexture: textures.active,
@@ -1065,6 +1184,9 @@ export class UiLayoutManager {
 
     if (!this.hamburgerMenuOpen) {
       this.hamburgerMenuContainer.setVisible(false);
+      if (!this.mobileActionMenuOpen) {
+        this.callbacks.onMobileDrawerOverlay?.({ visible: false, x: 0, y: 0, width: 0, height: 0, title: "", items: [] });
+      }
       return;
     }
 
@@ -1129,7 +1251,19 @@ export class UiLayoutManager {
         Math.round(hud.x + 12),
         Math.round(hud.y + hud.height + 4),
       )
+      // Native HTML owns the visual drawer. This transparent container keeps
+      // the existing Phaser menu-item interactions without duplicate UI.
+      .setAlpha(0.001)
       .setVisible(true);
+    this.callbacks.onMobileDrawerOverlay?.({
+      visible: true,
+      x: Math.round(hud.x + 12),
+      y: Math.round(hud.y + hud.height + 4),
+      width,
+      height,
+      title: "",
+      items: this.hamburgerMenuItems.map((item) => item.text),
+    });
   }
 
   private layoutMobileActionDrawer(layout: TableLayout): void {
@@ -1148,6 +1282,7 @@ export class UiLayoutManager {
     if (!compact || !this.mobileActionMenuOpen) {
       this.mobileActionMenuContainer.setVisible(false);
       this.mobileActionMenuBg.setVisible(false);
+      if (!this.hamburgerMenuOpen) this.callbacks.onMobileDrawerOverlay?.({ visible: false, x: 0, y: 0, width: 0, height: 0, title: "", items: [] });
       return;
     }
 
@@ -1209,6 +1344,12 @@ export class UiLayoutManager {
     const itemFont = Math.round(
       Phaser.Math.Clamp(hud.height * 0.28, 15, 20),
     );
+    // Settings labels are longer, but reducing them below 15px makes Poppins
+    // look soft on high-density phones. The wider Settings drawer has room
+    // for this readable row size.
+    const drawerRowFont = isSettingsSubmenu
+      ? Math.round(Phaser.Math.Clamp(hud.height * 0.31, 16, 21))
+      : itemFont;
 
     const rowGap = Math.round(
       Phaser.Math.Clamp(hud.height * 0.24, 10, 16),
@@ -1237,14 +1378,9 @@ export class UiLayoutManager {
      */
     const height =
       rowStartY +
-      visibleRowCount * itemFont +
+      visibleRowCount * drawerRowFont +
       Math.max(0, visibleRowCount - 1) * rowGap +
       bottomPadding;
-      
-    
-
-      console.log("=============###===============", height, width);
-      
     this.drawOverlayDrawerBackground(this.mobileActionMenuBg, width, height);
     this.mobileActionMenuBg.setVisible(true);
 
@@ -1281,10 +1417,10 @@ export class UiLayoutManager {
         return;
       }
 
-      const rowY = rowStartY + index * (itemFont + rowGap);
+      const rowY = rowStartY + index * (drawerRowFont + rowGap);
 
       const iconSize = Math.round(
-        Phaser.Math.Clamp(itemFont * 1.18, 18, 26),
+        Phaser.Math.Clamp(drawerRowFont * 1.18, 18, 26),
       );
 
       /**
@@ -1322,7 +1458,7 @@ export class UiLayoutManager {
         .setDisplaySize(iconSize, iconSize)
         .setPosition(
           24 + iconSize / 2,
-          rowY + itemFont / 2,
+          rowY + drawerRowFont / 2,
         );
 
       /**
@@ -1339,24 +1475,17 @@ export class UiLayoutManager {
           24 + iconSize + 12,
           rowY,
         ); */
-        /**
-         * Submenu labels can be longer, so use a slightly smaller font
-         * while keeping the root drawer unchanged.
-         */
-        const rowFont = item.isSubmenuItem
-          ? Math.round(Math.max(13, itemFont - 2))
-          : itemFont;
-
+        /** Settings rows use the larger readable size calculated above. */
         label
           .setVisible(true)
           .setActive(true)
           .setText(item.label)
-          .setFontSize(rowFont)
+          .setFontSize(drawerRowFont)
           .setFontStyle("600")
           .setColor("#cb63b2")
           .setPosition(
-            24 + iconSize + 12,
-            rowY,
+            Math.round(24 + iconSize + 12),
+            Math.round(rowY),
           );
     });
 
@@ -1367,6 +1496,15 @@ export class UiLayoutManager {
       )
       .setDepth(260)
       .setVisible(true);
+    this.callbacks.onMobileDrawerOverlay?.({
+      visible: true,
+      x: Math.round(hud.x + hud.width - width - 12),
+      y: Math.round(hud.y + hud.height + 4),
+      width,
+      height,
+      title: isSettingsSubmenu ? "SETTINGS" : "",
+      items: drawerItems.map((item) => item.label),
+    });
   }
   private layoutMobileActionDrawerOLDW(layout: TableLayout): void {
   if (
@@ -1508,11 +1646,20 @@ export class UiLayoutManager {
     if (this.mobileHeaderBackground) {
       this.mobileHeaderBackground.clear();
       this.mobileHeaderBackground.setVisible(layout.metrics.isMobile);
-      this.mobileHeaderBackground.fillStyle(0x2f4d99, 1);
+      // Phaser Graphics requires the numeric companion of COLOR_BLUE.
+      this.mobileHeaderBackground.fillStyle(COLOR_BLUE_NUM, 1);
       this.mobileHeaderBackground.fillRect(hud.x, hud.y, hud.width, hud.height);
     }
 
     const iconY = Math.round(hud.y + hud.height / 2);
+    const mobileHeaderControlY = layout.metrics.isMobile
+      // Mirrors the CSS logo centres: 34px portrait logo at top + 4px and
+      // 28px landscape logo at top + 4px.
+      ? Math.round(hud.y + (layout.metrics.isPortrait ? 21 : 18))
+      : iconY;
+    const mobileTouchTarget = 44;
+    // Keep the full 44px touch target away from the physical screen edge.
+    const mobileHeaderEdgePadding = 6;
 
     const metricFont = compact
       ? Math.round(Phaser.Math.Clamp(hud.height * 0.19, 11, 14))
@@ -1528,16 +1675,36 @@ export class UiLayoutManager {
     this.hamburgerIcon
       ?.setVisible(true)
       .setFontSize(
-        compact
-          ? Math.round(Phaser.Math.Clamp(hud.height * 0.30, 18, 24))
+        layout.metrics.isMobile
+          ? Math.round(Phaser.Math.Clamp(hud.height * 0.62, 28, 32))
+          : compact
+            ? Math.round(Phaser.Math.Clamp(hud.height * 0.30, 18, 24))
           : Math.round(Phaser.Math.Clamp(hud.height * 0.38, 26, 34)),
       )
       .setFontStyle("600")
       .setColor(this.gtColorFushia)
       .setPosition(
-        Math.round(hud.x + Math.max(14, hud.height * 0.30)),
-        iconY,
+        Math.round(
+          hud.x + (layout.metrics.isMobile
+            ? mobileHeaderEdgePadding + mobileTouchTarget / 2
+            : Math.max(14, hud.height * 0.30)),
+        ),
+        mobileHeaderControlY,
       );
+
+    if (layout.metrics.isMobile && this.hamburgerIcon) {
+      const hitWidth = Math.max(mobileTouchTarget, this.hamburgerIcon.width);
+      const hitHeight = Math.max(mobileTouchTarget, this.hamburgerIcon.height);
+      this.hamburgerIcon.setInteractive(
+        new Phaser.Geom.Rectangle(
+          -(hitWidth - this.hamburgerIcon.width) / 2,
+          -(hitHeight - this.hamburgerIcon.height) / 2,
+          hitWidth,
+          hitHeight,
+        ),
+        Phaser.Geom.Rectangle.Contains,
+      );
+    }
 
     /**
      * Logo: visible on mobile too, but smaller.
@@ -1610,17 +1777,14 @@ export class UiLayoutManager {
      * Wall count.
      */
     const wallIconSize = this.hudWallIconSize(layout);
-    const wallY = layout.topExposure.y + layout.topExposure.height / 2;
 
     this.wallCountText
       ?.setVisible(true)
       .setText(`${wallTileCount} LEFT`)
       .setFontSize(metricFont)
       .setFontStyle("500")
-      .setColor("#f8fafc");
+      .setColor(COLOR_BLUE);
 
-    // Center the icon-and-count group in the open space between the top
-    // exposure and the right table edge. This works for every layout mode.
     const wallGroupLeft = layout.topExposure.x + layout.topExposure.width;
     // Landscape layouts have a right rail beside the top tray, including
     // large iPad Pro viewports classified as desktop. Reserve that lane.
@@ -1629,19 +1793,40 @@ export class UiLayoutManager {
       : layout.tableOuter.x + layout.tableOuter.width;
     const wallGroupWidth =
       wallIconSize.width + metricGap + (this.wallCountText?.width ?? 0);
+    const isMobilePortrait = layout.metrics.isMobile && layout.metrics.isPortrait;
     const wallGroupCenter = (wallGroupLeft + wallGroupRight) / 2;
-    const wallIconX = wallGroupCenter - wallGroupWidth / 2 + wallIconSize.width / 2;
+    const wallIconX = isMobilePortrait
+      // The widened mobile top tray has no reliable right-side lane. Place
+      // the counter just below its right edge instead of covering the tray.
+      ? layout.topExposure.x + layout.topExposure.width - wallGroupWidth + wallIconSize.width / 2
+      : wallGroupCenter - wallGroupWidth / 2 + wallIconSize.width / 2;
+    const wallY = isMobilePortrait
+      ? layout.topExposure.y + layout.topExposure.height + wallIconSize.height / 2 + 8
+      : layout.topExposure.y + layout.topExposure.height / 2;
 
+    // Native overlays keep the counter and its icon sharp at every viewport.
+    const useHtmlWallCount = true;
     this.hudWallIcon
-      ?.setVisible(true)
+      ?.setVisible(!useHtmlWallCount)
       .setPosition(Math.round(wallIconX), Math.round(wallY));
 
-    this.drawHudWallIcon(layout);
+    if (!useHtmlWallCount) this.drawHudWallIcon(layout);
 
-    this.wallCountText?.setPosition(
-      Math.round(wallIconX + wallIconSize.width / 2 + metricGap),
-      Math.round(wallY),
-    );
+    const wallCountX = Math.round(wallIconX + wallIconSize.width / 2 + metricGap);
+    const wallCountY = Math.round(wallY);
+    this.wallCountText
+      ?.setPosition(wallCountX, wallCountY)
+      .setVisible(!useHtmlWallCount);
+    this.publishWallCountOverlay({
+      text: `${wallTileCount} LEFT`,
+      x: wallCountX,
+      y: wallCountY,
+      fontSize: metricFont,
+      visible: useHtmlWallCount,
+      iconX: Math.round(wallIconX),
+      iconY: Math.round(wallY),
+      iconSize: wallIconSize.height,
+    });
 
     /**
      * Points.
@@ -1655,22 +1840,33 @@ export class UiLayoutManager {
         ? hud.x + hud.width * 0.64
         : hud.x + hud.width * 0.675;
 
+    // Native overlays keep the points label and Material icon sharp at every viewport.
+    const useHtmlPoints = true;
     this.hudPointsIcon
-      ?.setVisible(true)
+      ?.setVisible(!useHtmlPoints)
       .setPosition(Math.round(pointsGroupX), iconY);
 
-    this.drawHudPointsIcon(layout);
+    if (!useHtmlPoints) this.drawHudPointsIcon(layout);
 
+    const pointsText = compact ? "1,000 PTS" : "1,000 POINTS";
+    const pointsTextX = Math.round(pointsGroupX + pointsIconSize.width / 2 + metricGap);
     this.pointsText
-      ?.setVisible(true)
-      .setText(compact ? "1,000 PTS" : "1,000 POINTS")
+      ?.setVisible(!useHtmlPoints)
+      .setText(pointsText)
       .setFontSize(metricFont)
       .setFontStyle("500")
       .setColor("#f8fafc")
-      .setPosition(
-        Math.round(pointsGroupX + pointsIconSize.width / 2 + metricGap),
-        iconY,
-      );
+      .setPosition(pointsTextX, iconY);
+    this.publishPointsOverlay({
+      text: pointsText,
+      x: pointsTextX,
+      y: Math.round(iconY),
+      fontSize: metricFont,
+      visible: useHtmlPoints,
+      iconX: Math.round(pointsGroupX),
+      iconY: Math.round(iconY),
+      iconSize: pointsIconSize.height,
+    });
 
     /**
      * Desktop actions vs mobile action button.
@@ -1684,6 +1880,11 @@ export class UiLayoutManager {
 
     const compact = this.isCompactHud(layout);
     const hud = layout.hud;
+    const mobileTouchTarget = 44;
+    const mobileHeaderEdgePadding = 6;
+    const mobileHeaderControlY = Math.round(
+      hud.y + (layout.metrics.isPortrait ? 21 : 18),
+    );
 
     if (!compact) {
       this.mobileActionButton.setVisible(false);
@@ -1695,13 +1896,35 @@ export class UiLayoutManager {
     this.mobileActionButton
       .setVisible(true)
       .setDepth(250)
-      .setFontSize(Math.round(Phaser.Math.Clamp(hud.height * 0.34, 20, 28)))
+      .setFontSize(
+        layout.metrics.isMobile
+          ? Math.round(Phaser.Math.Clamp(hud.height * 0.68, 28, 34))
+          : Math.round(Phaser.Math.Clamp(hud.height * 0.34, 20, 28)),
+      )
       .setFontStyle("700")
       .setColor(this.gtColorFushia)
       .setPosition(
-        Math.round(hud.x + hud.width - Math.max(18, hud.height * 0.34)),
-        Math.round(hud.y + hud.height / 2),
+        Math.round(
+          hud.x + hud.width - (layout.metrics.isMobile
+            ? mobileHeaderEdgePadding + mobileTouchTarget / 2
+            : Math.max(18, hud.height * 0.34)),
+        ),
+        layout.metrics.isMobile ? mobileHeaderControlY : Math.round(hud.y + hud.height / 2),
       );
+
+    if (layout.metrics.isMobile) {
+      const hitWidth = Math.max(mobileTouchTarget, this.mobileActionButton.width);
+      const hitHeight = Math.max(mobileTouchTarget, this.mobileActionButton.height);
+      this.mobileActionButton.setInteractive(
+        new Phaser.Geom.Rectangle(
+          -(hitWidth - this.mobileActionButton.width) / 2,
+          -(hitHeight - this.mobileActionButton.height) / 2,
+          hitWidth,
+          hitHeight,
+        ),
+        Phaser.Geom.Rectangle.Contains,
+      );
+    }
   }
 
   private layoutMobileActionMenu(layout: TableLayout): void {
@@ -1821,13 +2044,24 @@ export class UiLayoutManager {
       this.mobileActionButton,
       this.hamburgerIcon,
       this.logoText,
-      this.wallCountText,
       this.pointsText,
       this.instructionText,
       ...this.pickSeatButtons,
     ]) {
       text?.setResolution(renderDpr);
     }
+
+    // Crisp-text test: the small wall counter is rendered at the device DPR
+    // (up to 3x) rather than the scene-wide 2x cap. It stays at 1x scale and
+    // an integer position, so iOS does not resample a low-resolution texture.
+    const wallCountResolution = this.lastLayout?.metrics.isMobile
+      ? Math.min(3, Math.max(renderDpr, Math.ceil(window.devicePixelRatio || 1)))
+      : renderDpr;
+    this.wallCountText
+      ?.setResolution(wallCountResolution)
+      .setScale(1)
+      .setAngle(0);
+    this.wallCountText?.texture.setFilter(Phaser.Textures.FilterMode.LINEAR);
   }
   
 
@@ -1843,6 +2077,15 @@ export class UiLayoutManager {
         pickTargetSeat === "left" ? "LEFT SEAT" : "RIGHT SEAT";
 
       this.instructionText?.setText(`YOUR TURN\nPick a tile to ${seatLabel}`);
+      return;
+    }
+
+    if (phase === "discard") {
+      const seatLabel =
+        pickTargetSeat === "bottom" ? "YOUR RACK" :
+        pickTargetSeat === "top" ? "TOP SEAT" :
+        pickTargetSeat === "left" ? "LEFT SEAT" : "RIGHT SEAT";
+      this.instructionText?.setText(`DISCARD\nDiscard from ${seatLabel}`);
       return;
     }
 
@@ -1876,10 +2119,14 @@ export class UiLayoutManager {
     const metrics = layout.metrics;
 
     const compact = this.isCompactHud(layout);
+    // Use native text at every viewport so labels remain sharp on phones,
+    // tablets, and desktop displays alike.
+    const useHtmlPlayerLabels = true;
     const compactLandscape = layout.metrics.isMobile && !layout.metrics.isPortrait;
 
     const inactiveLabelColor = COLOR_AVOCADO;
     const activeLabelColor = COLOR_BLUE;
+    
 
     const isMobilePortrait =
       metrics.isMobile &&
@@ -1895,85 +2142,138 @@ export class UiLayoutManager {
       Math.max(renderDpr, this.readablePlayerLabelResolution())
     );
 
+
     const playerFont = isMobileLandscape
-      ? Math.round(Phaser.Math.Clamp(layout.hud.height * 0.28, 11, 13))
+      ? Math.round(Phaser.Math.Clamp(layout.hud.height * 0.30, 12, 15))
       : isMobilePortrait
-        ? Math.round(Phaser.Math.Clamp(layout.hud.height * 0.18, 9, 12))
+        ? Math.round(Phaser.Math.Clamp(layout.hud.height * 0.22, 11, 14))
         : compact
           ? Math.round(Phaser.Math.Clamp(layout.hud.height * 0.18, 9, 12))
           : Math.round(metrics.playerLabelFont);
 
+
     const usernameFont = isMobileLandscape
-      ? Math.round(Phaser.Math.Clamp(layout.hud.height * 0.28, 11, 13))
+      ? Math.round(Phaser.Math.Clamp(layout.hud.height * 0.30, 12, 15))
       : isMobilePortrait
-        ? Math.round(Phaser.Math.Clamp(layout.hud.height * 0.18, 9, 12))
+        ? Math.round(Phaser.Math.Clamp(layout.hud.height * 0.22, 11, 14))
         : compact
           ? Math.round(Phaser.Math.Clamp(layout.hud.height * 0.18, 9, 12))
           : Math.round(metrics.usernameFont);
 
-    // FIX 2: Compute colors beforehand to apply matching strokes.
+
+    // Compute each label color once so active-seat styling stays consistent.
     const topColor = activeSeat === "top" ? activeLabelColor : inactiveLabelColor;
     const rightColor = activeSeat === "right" ? activeLabelColor : inactiveLabelColor;
     const leftColor = activeSeat === "left" ? activeLabelColor : inactiveLabelColor;
     const bottomColor = activeSeat === "bottom" ? activeLabelColor : inactiveLabelColor;
 
+
+    // 2. Clear any prior scale alterations. We must render at a 1:1 scale multiplier.
     this.playerLabels[0]
+      ?.setOrigin(0.5)
+      // CRITICAL: Round position to perfect boundaries so text never straddles two pixels
+      .setPosition(Math.round(layout.topLabel.x), Math.round(layout.topLabel.y))
+      
+      // 3. Render at the target size. DO NOT USE .setScale()
+      .setFontFamily('"Poppins", sans-serif')
+      .setFontSize(`${playerFont}px`)
+      .setScale(1) 
+      
+      // 4. Boost the weight. Poppins needs a thick weight at 11px-15px to avoid looking faded
+      .setFontStyle("700") 
+      .setColor(topColor)
+      
+      // 5. Add clean padding & wipe strokes (Strokes ruin small vector fonts)
+      .setPadding(4)
+      .setStroke(topColor, 0)
+      .setAlpha(1)
+      .setVisible(!useHtmlPlayerLabels)
+      .setDepth(40)
+      .setAngle(0)
+      
+      // 6. Force the internal high-DPI canvas texture resolution
+      .setResolution(labelResolution);
+
+    // 7. Override the main camera rounding exclusively for this scene's text placement
+    //this.cameras.main.setRoundPixels(false);
+
+    // 8. Re-verify rendering interpolation filter
+    this.playerLabels[0]?.texture.setFilter(Phaser.Textures.FilterMode.LINEAR);
+    
+
+
+    /* this.playerLabels[0]
       ?.setOrigin(0.5)
       .setPosition(Math.round(layout.topLabel.x), Math.round(layout.topLabel.y))
       .setFontSize(playerFont)
-      .setFontStyle(metrics.isMobile ? "600" : compact ? "600" : "700")
+      .setFontStyle(metrics.isMobile ? "400" : compact ? "600" : "700")
       .setColor(topColor)
       // FIX 3: Add explicit 2px padding to stop custom TTF bounds clipping on mobile canvas
       .setPadding(2)
-      // FIX 4: Adding a tiny 0.5px stroke forces high-precision antialiasing paths on mobile
-      .setStroke(topColor, 0.5)
+      // A fractional stroke makes small canvas text look soft on phones.
+      .setStroke(topColor, 0)
       .setAlpha(1)
-      .setVisible(true)
+      .setVisible(!useHtmlPlayerLabels)
       .setDepth(40)
       .setAngle(0)
-      .setResolution(labelResolution);
+      .setResolution(labelResolution); */
 
     this.playerLabels[1]
       ?.setOrigin(0.5)
       .setPosition(Math.round(layout.rightLabel.x), Math.round(layout.rightLabel.y))
       .setFontSize(playerFont)
-      .setFontStyle(metrics.isMobile ? "600" : compact ? "600" : "700")
+      .setFontStyle(metrics.isMobile ? "700" : compact ? "600" : "700")
       .setColor(rightColor)
       .setPadding(2)
-      // FIX 5: Crucial for 90-degree rotations. Protects font edge details from pixel bleeding.
-      .setStroke(rightColor, 0.5)
+      .setStroke(rightColor, 0)
       .setAlpha(1)
-      .setVisible(true)
+      .setVisible(!useHtmlPlayerLabels)
       .setDepth(40)
       .setAngle(90)
       .setResolution(labelResolution);
+
+    this.playerLabels[1]?.texture.setFilter(Phaser.Textures.FilterMode.LINEAR);
 
     this.playerLabels[2]
       ?.setOrigin(0.5)
       .setPosition(Math.round(layout.leftLabel.x), Math.round(layout.leftLabel.y))
       .setFontSize(playerFont)
-      .setFontStyle(metrics.isMobile ? "600" : compact ? "600" : "700")
+      .setFontStyle(metrics.isMobile ? "700" : compact ? "600" : "700")
       .setColor(leftColor)
       .setPadding(2)
-      .setStroke(leftColor, 0.5)
+      .setStroke(leftColor, 0)
       .setAlpha(1)
-      .setVisible(true)
+      .setVisible(!useHtmlPlayerLabels)
       .setDepth(40)
       .setAngle(-90)
       .setResolution(labelResolution);
+    
+    this.playerLabels[2]?.texture.setFilter(Phaser.Textures.FilterMode.LINEAR);
 
     this.usernameText
       ?.setOrigin(0.5)
       .setPosition(Math.round(layout.username.x), Math.round(layout.username.y))
       .setFontSize(usernameFont)
-      .setFontStyle(metrics.isMobile ? "600" : compact ? "600" : "700")
+      .setFontStyle(metrics.isMobile ? "700" : compact ? "600" : "700")
       .setColor(bottomColor)
       .setPadding(2)
-      .setStroke(bottomColor, 0.5)
+      .setStroke(bottomColor, 0)
       .setAlpha(1)
-      .setVisible(true)
+      // The native overlay below renders this label on phones. Keeping this
+      // Phaser text hidden prevents two copies from blending into a blur.
+      .setVisible(!useHtmlPlayerLabels)
       .setDepth(40)
       .setResolution(labelResolution);
+
+
+    this.usernameText?.texture.setFilter(Phaser.Textures.FilterMode.LINEAR);
+
+    this.callbacks.onPlayerLabelOverlay?.([
+      { key: "top", text: this.playerLabels[0]?.text ?? "PLAYER 1", x: Math.round(layout.topLabel.x), y: Math.round(layout.topLabel.y), fontSize: playerFont, color: topColor, angle: 0, visible: useHtmlPlayerLabels },
+      { key: "right", text: this.playerLabels[1]?.text ?? "PLAYER 2", x: Math.round(layout.rightLabel.x), y: Math.round(layout.rightLabel.y), fontSize: playerFont, color: rightColor, angle: 90, visible: useHtmlPlayerLabels },
+      { key: "left", text: this.playerLabels[2]?.text ?? "PLAYER 3", x: Math.round(layout.leftLabel.x), y: Math.round(layout.leftLabel.y), fontSize: playerFont, color: leftColor, angle: -90, visible: useHtmlPlayerLabels },
+      { key: "bottom", text: this.usernameText?.text ?? "USERNAME", x: Math.round(layout.username.x), y: Math.round(layout.username.y), fontSize: usernameFont, color: bottomColor, angle: 0, visible: useHtmlPlayerLabels },
+    ]);
   }
 
   updatePlayerNamesOLDW(
@@ -2198,25 +2498,41 @@ export class UiLayoutManager {
   }
 
   updateWallTiles(wallTileCount: number): void {
-    this.wallCountText?.setText(`${wallTileCount} LEFT`);
+    const text = `${wallTileCount} LEFT`;
+    this.wallCountText?.setText(text);
+    if (this.wallCountOverlayState) {
+      this.publishWallCountOverlay({ ...this.wallCountOverlayState, text });
+    }
+  }
+
+  /** Sends the one small native-text overlay only when its state changes. */
+  private publishWallCountOverlay(state: WallCountOverlayState): void {
+    this.wallCountOverlayState = state;
+    this.callbacks.onWallCountOverlay?.(state);
+  }
+
+  /** Keeps the mobile points text crisp while Phaser continues to own the icon. */
+  private publishPointsOverlay(state: PointsOverlayState): void {
+    this.pointsOverlayState = state;
+    this.callbacks.onPointsOverlay?.(state);
   }
 
 
   private hudWallIconSize(layout: TableLayout): {
-  readonly width: number;
-  readonly height: number;
-} {
-  const hudHeight = layout.hud.height;
+    readonly width: number;
+    readonly height: number;
+  } {
+    const hudHeight = layout.hud.height;
 
-  const height = Math.round(
-    Phaser.Math.Clamp(hudHeight * 0.30, 17, 25),
-  );
+    const height = Math.round(
+      Phaser.Math.Clamp(hudHeight * 0.30, 17, 25),
+    );
 
-  return {
-    width: Math.round(height * 0.58),
-    height,
-  };
-}
+    return {
+      width: Math.round(height * 0.58),
+      height,
+    };
+  }
 
   private drawHudWallIcon(layout: TableLayout): void {
     if (!this.hudWallIcon) return;
@@ -2229,7 +2545,7 @@ export class UiLayoutManager {
 
     graphics.lineStyle(
       Math.max(2, Math.round(size.height * 0.10)),
-      0xd4d12a,
+      COLOR_BLUE_NUM,
       1,
     );
 
@@ -2341,25 +2657,31 @@ export class UiLayoutManager {
         button.isPressed = false;
 
         /**
-         * Keep existing dropdown behavior.
+         * Hint, Dead Hand, and Help are immediate actions. Sort is the only
+         * non-settings HUD control that opens a mode-selection dropdown.
          */
-        this.activeHudDropdown =
-          this.activeHudDropdown === action.key ? undefined : action.key;
+        const isImmediateAction = action.key === "hint"
+          || action.key === "dead-hand"
+          || action.key === "help";
+        this.activeHudDropdown = isImmediateAction
+          ? undefined
+          : this.activeHudDropdown === action.key ? undefined : action.key;
 
-          this.callbacks.onHudAction?.(action.key);
-
-          /**
-           * Sort tooltip toggles after Sort is clicked.
-           * This changes the next hover label between:
-           * - Sort By Suit
-           * - Sort By Rank
-           */
-          if (action.key === "sort") {
-            this.toggleSortTooltipState();
+          if (action.key !== "sort") {
+            this.callbacks.onHudAction?.(action.key);
           }
 
           this.updateHudActionButtonTextures();
-          this.layoutHudDropdownFromCurrentVisibility();
+
+          // A dropdown has to be created and positioned against the current
+          // table layout.  Merely changing visibility leaves the background
+          // with no menu items, which made the Settings icon appear to do
+          // nothing on tablet and desktop.
+          if (this.lastLayout) {
+            this.layoutHudDropdown(this.lastLayout);
+          } else {
+            this.layoutHudDropdownFromCurrentVisibility();
+          }
       });
 
       image.on("pointerupoutside", () => {
@@ -2457,7 +2779,7 @@ export class UiLayoutManager {
       .setText(this.tooltipLabelForAction(action.key))
       .setFontSize(fontSize)
       .setFontStyle("600")
-      .setColor("#27428a")
+      .setColor(COLOR_BLUE)
       .setVisible(true);
 
     const paddingX = Math.round(Phaser.Math.Clamp(hud.height * 0.16, 10, 14));
@@ -2608,6 +2930,10 @@ export class UiLayoutManager {
     if (!this.activeHudDropdown) {
       this.hudDropdownBg.clear();
       this.hudDropdownBg.setVisible(false);
+      // Do not clear the shared native drawer while hamburger/action UI owns it.
+      if (!this.hamburgerMenuOpen && !this.mobileActionMenuOpen) {
+        this.callbacks.onMobileDrawerOverlay?.({ visible: false, x: 0, y: 0, width: 0, height: 0, title: "", items: [] });
+      }
       return;
     }
 
@@ -2629,7 +2955,12 @@ export class UiLayoutManager {
     const pointerHeight = 10;
 
     const width = this.dropdownWidthForAction(action.key, fontSize, paddingX);
-    const height = paddingY * 2 + action.items.length * itemHeight;
+    // Sort always exposes both modes. Keep this explicit so it cannot fall
+    // back to the earlier single-item "toggle next sort" behaviour.
+    const dropdownItems = action.key === "sort"
+      ? ["Sort By Rank", "Sort By Suit"]
+      : action.items;
+    const height = paddingY * 2 + dropdownItems.length * itemHeight;
 
     const x = Math.round(
       Phaser.Math.Clamp(
@@ -2644,6 +2975,9 @@ export class UiLayoutManager {
 
     this.hudDropdownBg.clear();
     this.hudDropdownBg.setVisible(true);
+    // HTML owns the visible dropdown on every device. Phaser keeps this
+    // transparent object only as the existing interaction target.
+    this.hudDropdownBg.setAlpha(0.001);
     this.hudDropdownBg.setPosition(x, y);
 
     this.hudDropdownBg.fillStyle(0xffffff, 1);
@@ -2659,9 +2993,20 @@ export class UiLayoutManager {
     this.hudDropdownBg.fillRect(0, pointerHeight, width, height);
     this.hudDropdownBg.lineStyle(1, 0xe5e7eb, 1);
     this.hudDropdownBg.strokeRect(0, pointerHeight, width, height);
+    // Render the visible dropdown in native HTML on every device. Phaser
+    // keeps this invisible copy solely for existing click handling.
+    this.callbacks.onMobileDrawerOverlay?.({
+      visible: true,
+      x,
+      y: y + pointerHeight,
+      width,
+      height,
+      title: action.label.toUpperCase(),
+      items: dropdownItems,
+    });
 
-    for (let index = 0; index < action.items.length; index += 1) {
-      const label = action.items[index];
+    for (let index = 0; index < dropdownItems.length; index += 1) {
+      const label = dropdownItems[index];
 
       const text = this.hudDropdownBg.scene.add
         .text(
@@ -2677,12 +3022,24 @@ export class UiLayoutManager {
         )
         .setOrigin(0, 0.5)
         .setDepth(221)
+        // Native HTML renders the label; retain this transparent text only
+        // so the established Phaser tap handlers continue to work.
+        .setAlpha(0.001)
         .setInteractive({ useHandCursor: true });
 
       text.on("pointerdown", (pointer: Phaser.Input.Pointer) => {
         pointer.event?.stopPropagation?.();
+        const sortMode = label === "Sort By Rank" ? "rank" : label === "Sort By Suit" ? "suit" : undefined;
+        const settingsMenuAction = this.settingsMenuActionForLabel(label);
         this.activeHudDropdown = undefined;
         this.layoutHudDropdown(layout);
+        if (sortMode) {
+          this.callbacks.onSortRequested?.(sortMode);
+          return;
+        }
+        if (settingsMenuAction) {
+          this.callbacks.onHamburgerMenuAction?.(settingsMenuAction);
+        }
       });
 
       this.hudDropdownItems.push(text);
@@ -2699,6 +3056,13 @@ export class UiLayoutManager {
     if (action === "sort") return Math.round(Phaser.Math.Clamp(fontSize * 7.2, 130, 170));
     if (action === "hint") return Math.round(Phaser.Math.Clamp(fontSize * 6.2, 115, 155));
     return Math.round(Phaser.Math.Clamp(fontSize * 4.8 + paddingX * 2, 75, 110));
+  }
+
+  /** Maps Settings labels that change the game page to their real menu action. */
+  private settingsMenuActionForLabel(label: string): HamburgerMenuActionKey | undefined {
+    if (label === "Restart Game") return "restart-game";
+    if (label === "Quit Game" || label === "Quit/exit") return "quit-exit";
+    return undefined;
   }
 
   private layoutHudDropdownFromCurrentVisibility(): void {
@@ -3015,58 +3379,6 @@ export class UiLayoutManager {
       Phaser.Geom.Rectangle.Contains,
     );
   }
-  layoutPassButtonOLD(layout: TableLayout): void {
-    if (!this.passButton) return;
-
-    const button = layout.passButton;
-    const metrics = layout.metrics;
-
-    const bg = this.passButton.list[0] as Phaser.GameObjects.Graphics;
-    const text = this.passButton.list[1] as Phaser.GameObjects.Text;
-
-    this.passButton.setPosition(
-      button.x + button.width / 2,
-      button.y + button.height / 2,
-    );
-
-    bg.clear();
-    bg.fillStyle(this.gtnumColorFushia, 1);
-    bg.fillRoundedRect(
-      -button.width / 2,
-      -button.height / 2,
-      button.width,
-      button.height,
-      Math.min(12, button.height * 0.28),
-    );
-
-    /* text
-      .setFontSize(metrics.passFont)
-      .setFontStyle("700")
-      .setColor("#ffffff")
-      .setPosition(0, 0); */
-    
-    const compact = this.isCompactHud(layout);
-
-    text
-      .setFontSize(
-        compact
-          ? Math.round(Phaser.Math.Clamp(layout.hud.height * 0.18, 10, 14))
-          : metrics.passFont,
-      )
-      .setFontStyle("700")
-      .setColor("#ffffff")
-      .setPosition(0, 0);
-
-    this.passButton.setInteractive(
-      new Phaser.Geom.Rectangle(
-        -button.width / 2,
-        -button.height / 2,
-        button.width,
-        button.height,
-      ),
-      Phaser.Geom.Rectangle.Contains,
-    );
-  }
 
   updatePassButtonState(options: PassButtonStateOptions): void {
     if (!this.passButton) return;
@@ -3079,6 +3391,7 @@ export class UiLayoutManager {
       isPassAnimating,
       isPickAnimating,
       wallTileCount,
+      canPickFromWall,
     } = options;
 
     const bg = this.passButton.list[0] as Phaser.GameObjects.Graphics;
@@ -3086,11 +3399,19 @@ export class UiLayoutManager {
     const button = layout.passButton;
 
     const enabled =
-      tablePhase === "playing"
-        ? wallTileCount > 0 && !isPickAnimating
+      tablePhase === "discard"
+        ? true
+        : tablePhase === "playing"
+          ? canPickFromWall !== false && wallTileCount > 0 && !isPickAnimating
         : canSubmitPass && !isPassAnimating;
 
-    text.setText(tablePhase === "playing" ? "PICK" : enabled ? "PASS" : `${passWaitingCount}/3`);
+    text.setText(
+      tablePhase === "discard"
+        ? "DISCARD"
+        : tablePhase === "playing"
+          ? "PICK"
+          : enabled ? "PASS" : `${passWaitingCount}/3`,
+    );
     this.passButton.setAlpha(enabled ? 1 : 0.65);
 
    /*  bg.clear();
@@ -3184,7 +3505,7 @@ bg.fillRoundedRect(
   ): void {
     if (!this.pickSeatSelector || this.pickSeatButtons.length === 0) return;
 
-    const visible = phase === "playing";
+    const visible = phase === "playing" || phase === "discard";
 
     this.pickSeatSelector.setVisible(visible);
 
@@ -3250,7 +3571,13 @@ bg.fillRoundedRect(
     this.hudWallIcon?.setVisible(true);
     this.wallCountText?.setVisible(true);
     this.hudPointsIcon?.setVisible(true);
-    this.pointsText?.setVisible(true);
+    this.pointsText?.setVisible(!this.lastLayout?.metrics.isMobile);
+    if (this.pointsOverlayState) {
+      this.publishPointsOverlay({
+        ...this.pointsOverlayState,
+        visible: this.lastLayout?.metrics.isMobile ?? false,
+      });
+    }
     this.hudActionsContainer?.setVisible(true);
   }
 
@@ -3261,6 +3588,9 @@ bg.fillRoundedRect(
     this.wallCountText?.setVisible(false);
     this.hudPointsIcon?.setVisible(false);
     this.pointsText?.setVisible(false);
+    if (this.pointsOverlayState) {
+      this.publishPointsOverlay({ ...this.pointsOverlayState, visible: false });
+    }
     this.hudActionsContainer?.setVisible(false);
 
     this.hudDropdownBg?.setVisible(false);

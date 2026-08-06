@@ -1,4 +1,4 @@
-package  com.thatsend.bfwpwa;
+package  com.thatsend.mahjfit;
 
 import android.graphics.Color;
 import android.os.Bundle;

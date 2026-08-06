@@ -1,3 +1,4 @@
+// file: src/app/module/business/game/phaser/scenes/type.ts
 import { TablePhase } from "../../model/table-phase";
 import { TileVm } from "../../model/tile";
 import { GameHapticType } from "../../platform/haptics.service";
@@ -8,13 +9,80 @@ import { TableLayout } from "../type";
 
 export type TableSeat = "top" | "right" | "bottom" | "left";
 
+export type CallCombination = "pung" | "kong" | "quint" | "sextet";
+
+/** A discard announced by the future game API/WebSocket for the local player to evaluate. */
+export interface TileCallOffer {
+  readonly discard: TileVm;
+  readonly discardedBy: Exclude<TableSeat, "bottom">;
+}
+
+/** Client-side intent only; the backend remains responsible for accepting the call. */
+export interface TileCallDecision {
+  readonly discardId: string;
+  readonly discardedBy: Exclude<TableSeat, "bottom">;
+  readonly action: "call" | "skip";
+  readonly combination?: CallCombination;
+  readonly tileIds?: readonly string[];
+}
+
+/** Temporary local-only trigger used to exercise the Call UI before WebSocket wiring. */
+export interface DemoDiscardRequest {
+  readonly seat: Exclude<TableSeat, "bottom">;
+  readonly requestId: number;
+}
+
+/** UI-only win notification. The server remains the authority for a Mah Jongg win. */
+export interface MahjongWinCelebration {
+  readonly winner: TableSeat;
+  readonly requestId: number;
+}
+
+/** Server-supplied away state for the local moderation prompt. */
+export interface PlayerAwayNotice {
+  readonly seat: Exclude<TableSeat, "bottom">;
+  readonly playerName: string;
+  readonly awaySinceMs: number;
+  readonly requestId: number;
+  readonly removeAfterMs?: number;
+}
+
+export interface PlayerRemovalRequest {
+  /** The player chosen in the popup. The server must approve the removal. */
+  readonly seat: Exclude<TableSeat, "bottom">;
+  /** Matches the server notice that opened the popup. */
+  readonly requestId: number;
+}
+
+export type DeadHandReason = "invalid-mahjong" | "hand-not-viable" | "incorrect-tile-count";
+
+/** Client claim only; server validation determines whether either hand is dead. */
+export interface DeadHandClaim {
+  /** The opponent whose hand is being challenged. */
+  readonly targetSeat: Exclude<TableSeat, "bottom">;
+  /** The reason selected by the local player. */
+  readonly reason: DeadHandReason;
+}
+
+/** A request from a waiting player. It is automatically removed after 15 seconds. */
+export interface JoinTableRequest {
+  readonly requestId: string;
+  readonly playerName: string;
+  readonly expiresAtMs?: number;
+}
+
+export interface JoinTableRequestDecision {
+  readonly requestId: string;
+  readonly action: "accept" | "decline";
+}
+
 export interface TileRuntime {
   readonly vm: TileVm;
   readonly image: Phaser.GameObjects.Image;
   slotIndex: number;
   selected: boolean;
   isDragging: boolean;
-  zone: "rack" | "discard" | "pass";
+  zone: "rack" | "discard" | "pass" | "exposure";
 }
 
 
@@ -24,6 +92,25 @@ export interface TableSceneCallbacks {
   onHaptic?: (type: GameHapticType) => void;
   readonly getDeviceLayout: (width: number, height: number) => DeviceLayoutState;
   readonly onMobileHeaderChanged: (collapsed: boolean) => void;
+  readonly onTileCallDecision: (decision: TileCallDecision) => void;
+  readonly onPlayerRemovalRequested: (request: PlayerRemovalRequest) => void;
+  /** Opens the native reason-selection dialog after a table seat is chosen. */
+  readonly onDeadHandClaimPrompt: (targetSeat: Exclude<TableSeat, "bottom">) => void;
+  readonly onTemporaryDiscardCompleted: () => void;
+  /** Starts a new local table after the user selects Restart Game. */
+  readonly onRestartGame: () => void;
+  /** Leaves the game page after the user selects Quit Game. */
+  readonly onQuitGame: () => void;
+  /** Updates the crisp HTML wall-count label when its value or layout changes. */
+  readonly onWallCountOverlay: (state: WallCountOverlayState) => void;
+  /** Updates native mobile player-name labels while Phaser retains their layout. */
+  readonly onPlayerLabelOverlay: (states: readonly PlayerLabelOverlayState[]) => void;
+  /** Updates the crisp native points value beside the Phaser points icon. */
+  readonly onPointsOverlay: (state: PointsOverlayState) => void;
+  /** Lets native overlays yield while a mobile Phaser drawer is open. */
+  readonly onMobileDrawerVisibilityChanged: (open: boolean) => void;
+  readonly onMobileDrawerOverlay: (state: MobileDrawerOverlayState) => void;
+  readonly onHeaderLogoLayout: (state: HeaderLogoLayoutState) => void;
 }
 
 export type TableSfxId =
@@ -99,10 +186,75 @@ type OverlayMenuSide = "left" | "right";
 
 export interface UiLayoutCallbacks {
   readonly onHudAction?: (action: HudActionKey) => void;
+  /** Applies the explicit sort mode chosen from the Sort dropdown. */
+  readonly onSortRequested?: (mode: "rank" | "suit") => void;
   readonly onPrimaryAction?: () => void;
   readonly onPickSeatChange?: (seat: TableSeat) => void;
   readonly onHamburgerMenuAction?: (action: HamburgerMenuActionKey) => void;
+  /** Positions the native HTML wall-count label over the Phaser tile icon. */
+  readonly onWallCountOverlay?: (state: WallCountOverlayState) => void;
+  /** Positions native mobile player-name labels over the Phaser table. */
+  readonly onPlayerLabelOverlay?: (states: readonly PlayerLabelOverlayState[]) => void;
+  /** Positions the native mobile points value beside its Phaser icon. */
+  readonly onPointsOverlay?: (state: PointsOverlayState) => void;
+  /** Reports whether a hamburger or action drawer currently covers the table. */
+  readonly onMobileDrawerVisibilityChanged?: (open: boolean) => void;
+  readonly onMobileDrawerOverlay?: (state: MobileDrawerOverlayState) => void;
   readonly logoTextureKey?: string;
+}
+
+export interface WallCountOverlayState {
+  readonly text: string;
+  readonly x: number;
+  readonly y: number;
+  readonly fontSize: number;
+  readonly visible: boolean;
+  readonly iconX: number;
+  readonly iconY: number;
+  readonly iconSize: number;
+}
+
+export type PlayerLabelOverlayKey = "top" | "right" | "left" | "bottom";
+
+/** Browser-native player label positioned from the Phaser table layout. */
+export interface PlayerLabelOverlayState {
+  readonly key: PlayerLabelOverlayKey;
+  readonly text: string;
+  readonly x: number;
+  readonly y: number;
+  readonly fontSize: number;
+  readonly color: string;
+  readonly angle: 0 | 90 | -90;
+  readonly visible: boolean;
+}
+
+/** Browser-native points value positioned from the Phaser HUD layout. */
+export interface PointsOverlayState {
+  readonly text: string;
+  readonly x: number;
+  readonly y: number;
+  readonly fontSize: number;
+  readonly visible: boolean;
+  readonly iconX: number;
+  readonly iconY: number;
+  readonly iconSize: number;
+}
+
+/** Native visual cover for a Phaser mobile drawer; Phaser retains click handling. */
+export interface MobileDrawerOverlayState {
+  readonly visible: boolean;
+  readonly x: number;
+  readonly y: number;
+  readonly width: number;
+  readonly height: number;
+  readonly title: string;
+  readonly items: readonly string[];
+}
+
+/** Exact logo box supplied from the same Phaser HUD coordinates as the hamburger. */
+export interface HeaderLogoLayoutState {
+  readonly top: number;
+  readonly height: number;
 }
 
 export interface LayoutStaticUiOptions {
@@ -127,6 +279,11 @@ export interface PassButtonStateOptions {
   readonly isPassAnimating: boolean;
   readonly isPickAnimating: boolean;
   readonly wallTileCount: number;
+  /**
+   * When supplied, allows Pick only when the rack and exposure total 13 tiles.
+   * Optional so legacy scene callers keep their existing UI behaviour.
+   */
+  readonly canPickFromWall?: boolean;
 }
 
 

@@ -1,9 +1,12 @@
 // file: src/app/module/business/game/game-shell/component.ts
+import { NgIf } from "@angular/common";
 import { Component, inject, signal } from "@angular/core";
+import { Router } from "@angular/router";
 import { PhaserBoardComponent } from "../phaser/component";
 import { PassDirection, TileSoundKey, TileSuit, TileVm } from "../model/tile";
 import { resolveTileSoundKey } from "../model/tile-sound.resolver";
 import { TablePhase } from "../model/table-phase";
+import { DeadHandClaim, DemoDiscardRequest, JoinTableRequest, JoinTableRequestDecision, MahjongWinCelebration, PlayerAwayNotice, PlayerRemovalRequest, TileCallDecision, TileCallOffer } from "../phaser/scenes/type";
 import { Haptics, ImpactStyle, NotificationType } from "@capacitor/haptics";
 import { GameService } from "../service";
 
@@ -30,19 +33,33 @@ function createTileVm(input: TileVmInput): TileVm {
 @Component({
   selector: "app-game-shell",
   standalone: true,
-  imports: [PhaserBoardComponent],
+  imports: [NgIf, PhaserBoardComponent],
   template: `
-    <div class="phase-debug-panel">
+    <button
+      class="phase-debug-toggle"
+      type="button"
+      [attr.aria-label]="debugPanelCollapsed() ? 'Show game test controls' : 'Hide game test controls'"
+      (click)="toggleDebugPanel()"
+    >
+      {{ debugPanelCollapsed() ? '‹' : '›' }}
+    </button>
+    <div class="phase-debug-panel" [class.is-collapsed]="debugPanelCollapsed()">
       <label>
         Phase
         <select
-          [value]="tablePhase()"
-          (change)="tablePhase.set($any($event.target).value)"
+          [value]="debugPhase()"
+          (change)="setDebugPhase($any($event.target).value)"
         >
           <option value="playing">Playing</option>
           <option value="passing">Passing</option>
+          <option value="discard">Discard</option>
         </select>
       </label>
+      <div class="discard-test-actions">
+        <button type="button" (click)="testMahjongWin()">Test Mah Jongg</button>
+        <button type="button" (click)="testPlayerAway()">Test away player</button>
+        <button type="button" (click)="testJoinRequest()">Test join request</button>
+      </div>
     </div>
     <!-- <button class="haptic-test-button"
       (click)="testHaptic()"
@@ -50,9 +67,22 @@ function createTileVm(input: TileVmInput): TileVm {
       Test Haptic
     </button> -->
     <app-phaser-board
+      *ngIf="boardVisible()"
       [rack]="rack()"
       [passDirection]="passDirection()"
       [tablePhase]="tablePhase()"
+      [tileCallOffer]="tileCallOffer()"
+      [demoDiscard]="demoDiscard()"
+      [mahjongWin]="mahjongWin()"
+      [playerAway]="playerAway()"
+      [joinTableRequest]="joinTableRequest()"
+      (tileCallDecision)="handleTileCallDecision($event)"
+      (playerRemovalRequested)="handlePlayerRemoval($event)"
+      (deadHandClaimed)="handleDeadHandClaim($event)"
+      (temporaryDiscardCompleted)="endDiscardTest()"
+      (joinTableRequestDecision)="handleJoinRequestDecision($event)"
+      (restartGame)="restartGame()"
+      (quitGame)="quitGame()"
       (selectionChanged)="selectedTileIds.set($event)"
       (passCompleted)="handlePassCompleted($event)"
     />
@@ -69,7 +99,7 @@ function createTileVm(input: TileVmInput): TileVm {
       .phase-debug-panel {
         position: fixed;
         z-index: 9999;
-        top: max(64px, env(safe-area-inset-top));
+        top: max(100px, env(safe-area-inset-top));
         right: max(12px, env(safe-area-inset-left));
         padding: 8px 10px;
         border-radius: 10px;
@@ -78,6 +108,32 @@ function createTileVm(input: TileVmInput): TileVm {
         font: 600 12px/1.2 system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
         color: #0f172a;
         user-select: none;
+        transition: transform 180ms ease, opacity 180ms ease;
+      }
+
+      /* The panel moves completely outside the table. The arrow remains at
+         the right exposure area so it can always be used to restore it. */
+      .phase-debug-panel.is-collapsed {
+        transform: translateX(calc(100% + 20px));
+        opacity: 0;
+        pointer-events: none;
+      }
+
+      .phase-debug-toggle {
+        position: fixed;
+        z-index: 10000;
+        top: 50%;
+        right: max(4px, env(safe-area-inset-right));
+        transform: translateY(-50%);
+        width: 28px;
+        height: 48px;
+        border: 0;
+        border-radius: 10px 0 0 10px;
+        background: #b92a90;
+        color: #ffffff;
+        cursor: pointer;
+        font: 700 30px/1 system-ui, sans-serif;
+        box-shadow: 0 4px 12px rgba(15, 23, 42, 0.28);
       }
 
       .phase-debug-panel label {
@@ -94,6 +150,23 @@ function createTileVm(input: TileVmInput): TileVm {
         padding: 0 8px;
         font: inherit;
         color: inherit;
+      }
+
+      .discard-test-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        margin-top: 8px;
+      }
+
+      .discard-test-actions button {
+        border: 0;
+        border-radius: 6px;
+        background: #b92a90;
+        color: #fff;
+        cursor: pointer;
+        font: inherit;
+        padding: 5px 7px;
       }
 
       .haptic-test-button {
@@ -116,11 +189,26 @@ function createTileVm(input: TileVmInput): TileVm {
 export class GameShellComponent {
 
   protected readonly service = inject(GameService);
+  private readonly router = inject(Router);
 
 
   readonly selectedTileIds = signal<readonly string[]>([]);
+  /** Controls the temporary test panel only; it does not change game state. */
+  readonly debugPanelCollapsed = signal(false);
+  /** Recreating the Phaser board clears every local tile, discard and popup. */
+  readonly boardVisible = signal(true);
   readonly passDirection = signal<PassDirection>("right");
   readonly tablePhase = signal<TablePhase>("playing");
+  readonly debugPhase = signal<TablePhase>("playing");
+  readonly tileCallOffer = signal<TileCallOffer | null>(null);
+  readonly demoDiscard = signal<DemoDiscardRequest | null>(null);
+  readonly mahjongWin = signal<MahjongWinCelebration | null>(null);
+  readonly playerAway = signal<PlayerAwayNotice | null>(null);
+  readonly joinTableRequest = signal<JoinTableRequest | null>(null);
+  private demoDiscardRequestId = 0;
+  private mahjongWinRequestId = 0;
+  private playerAwayRequestId = 0;
+  private joinRequestId = 0;
   
 
   readonly rack = signal<readonly TileVm[]>([
@@ -145,7 +233,78 @@ export class GameShellComponent {
   }
 
   async init(){
-    await this.service.startGame();
+    //await this.service.startGame();
+  }
+
+  setDebugPhase(phase: TablePhase): void {
+    // "discard" is a temporary local test phase. The real game receives its
+    // phases from the backend in the same way as playing and passing.
+    this.debugPhase.set(phase);
+    this.tablePhase.set(phase);
+  }
+
+  toggleDebugPanel(): void {
+    this.debugPanelCollapsed.update((collapsed) => !collapsed);
+  }
+
+  endDiscardTest(): void {
+    // The Phaser scene calls this after one opponent test discard. Returning
+    // to Playing keeps Call, exposure editing, and Joker Swap available.
+    this.debugPhase.set("playing");
+    this.tablePhase.set("playing");
+  }
+
+  async restartGame(): Promise<void> {
+    // Destroying and recreating the board is safer than trying to reset each
+    // Phaser object individually. It guarantees a clean rack and table UI.
+    this.boardVisible.set(false);
+    try {
+      await this.service.startGame();
+    } finally {
+      this.boardVisible.set(true);
+    }
+  }
+
+  async quitGame(): Promise<void> {
+    // The Start Game link lives on the home page, so leaving the board returns
+    // there and destroys the Phaser game cleanly.
+    await this.router.navigateByUrl("/");
+  }
+
+  testMahjongWin(): void {
+    this.mahjongWin.set({ winner: "bottom", requestId: ++this.mahjongWinRequestId });
+  }
+
+  testPlayerAway(): void {
+    this.playerAway.set({
+      seat: "top",
+      playerName: "PLAYER 1",
+      awaySinceMs: Date.now() - 2 * 60 * 1000,
+      requestId: ++this.playerAwayRequestId,
+    });
+  }
+
+  testJoinRequest(): void {
+    this.joinTableRequest.set({ requestId: `join-${++this.joinRequestId}`, playerName: "NEW PLAYER" });
+  }
+
+  handleJoinRequestDecision(decision: JoinTableRequestDecision): void {
+    console.log("[Join request decision]", decision);
+    this.joinTableRequest.set(null);
+  }
+
+  handlePlayerRemoval(request: PlayerRemovalRequest): void {
+    console.log("[Player removal requested]", request);
+    this.playerAway.set(null);
+  }
+
+  handleDeadHandClaim(claim: DeadHandClaim): void {
+    console.log("[Dead hand claim]", claim);
+  }
+
+  handleTileCallDecision(decision: TileCallDecision): void {
+    console.log("[Tile call decision]", decision);
+    this.tileCallOffer.set(null);
   }
   async testHaptic(): Promise<void> {
     console.log("TEST HAPTIC CLICKED");
@@ -159,11 +318,6 @@ export class GameShellComponent {
     setTimeout(() => {
       void Haptics.vibrate({ duration: 400 });
     }, 1000);
-  }
-  handlePassCompletedOLD(event: { readonly tileIds: readonly string[]; readonly direction: PassDirection }): void {
-    const passedIds = new Set(event.tileIds);
-    this.rack.update((tiles) => tiles.filter((tile) => !passedIds.has(tile.id)));
-    this.selectedTileIds.set([]);
   }
 
   resolveTileSoundKey(tile: {

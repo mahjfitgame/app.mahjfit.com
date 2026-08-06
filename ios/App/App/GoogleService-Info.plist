@@ -3,17 +3,17 @@
 <plist version="1.0">
 <dict>
 	<key>API_KEY</key>
-	<string>AIzaSyCew6a4MiErAjVtzeWLBwHI5FWuMV2KlcI</string>
+	<string>AIzaSyBE7fBMJLexvaXl8o4VsMLBiZEjRRdAUdE</string>
 	<key>GCM_SENDER_ID</key>
-	<string>1090015428763</string>
+	<string>723203537365</string>
 	<key>PLIST_VERSION</key>
 	<string>1</string>
 	<key>BUNDLE_ID</key>
-	<string>com.thatsend.bfwpwa</string>
+	<string>com.thatsend.mahjfitgame</string>
 	<key>PROJECT_ID</key>
-	<string>bfw-angular-pwa</string>
+	<string>mahjfit</string>
 	<key>STORAGE_BUCKET</key>
-	<string>bfw-angular-pwa.firebasestorage.app</string>
+	<string>mahjfit.firebasestorage.app</string>
 	<key>IS_ADS_ENABLED</key>
 	<false></false>
 	<key>IS_ANALYTICS_ENABLED</key>
@@ -25,6 +25,6 @@
 	<key>IS_SIGNIN_ENABLED</key>
 	<true></true>
 	<key>GOOGLE_APP_ID</key>
-	<string>1:1090015428763:ios:656cdfb040775f3b43063e</string>
+	<string>1:723203537365:ios:f1aafc4fb2f074c6bd655c</string>
 </dict>
 </plist>

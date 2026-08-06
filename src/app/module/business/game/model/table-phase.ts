@@ -1,1 +1,1 @@
-export type TablePhase = "playing" | "passing";
+export type TablePhase = "playing" | "passing" | "discard";
