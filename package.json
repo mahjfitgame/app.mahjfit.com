@@ -24,7 +24,7 @@
     "prod": "npm run sync.i18n && node server.js",
     "prod.web": "npm run sync.i18n && ng serve --configuration production",
     "test": "npm run sync.i18n && ng test",
-    "debug.ios:": "npm run build.debug && npx cap run ios",
+    "debug.ios:": "npm run build.debug && npx cap sync ios && npx cap run ios",
     "release.ios": "npm run build.prod && npx cap sync ios",
     "syncrun.ios:": "npx cap sync ios && npx cap run ios",
     "debug.android": "npm run build.debug && npx cap sync android && npx cap run android",

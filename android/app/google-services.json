@@ -1,21 +1,21 @@
 {
   "project_info": {
-    "project_number": "1090015428763",
-    "project_id": "bfw-angular-pwa",
-    "storage_bucket": "bfw-angular-pwa.firebasestorage.app"
+    "project_number": "723203537365",
+    "project_id": "mahjfit",
+    "storage_bucket": "mahjfit.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:1090015428763:android:8ea7b469d3b73ab143063e",
+        "mobilesdk_app_id": "1:723203537365:android:92357a5820a66375bd655c",
         "android_client_info": {
-          "package_name": "com.thatsend.bfwpwa"
+          "package_name": "com.thatsend.mahjfit"
         }
       },
       "oauth_client": [],
       "api_key": [
         {
-          "current_key": "AIzaSyC6VAHQechxx1UaqipIEuXBsPYulqhF7WA"
+          "current_key": "AIzaSyB0di1TwPPxbKN9KtfGbcb62crLm4ZoZoU"
         }
       ],
       "services": {

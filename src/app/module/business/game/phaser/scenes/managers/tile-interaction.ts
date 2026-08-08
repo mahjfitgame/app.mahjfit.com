@@ -9,7 +9,7 @@ import { InteractionRect, TileInteractionCallbacks, TileRuntime } from "../type"
 export class TileInteractionManager {
   private readonly dragStartByTileId = new Map<string, { x: number; y: number }>();
 
-  constructor(readonly callbacks: TileInteractionCallbacks) {}
+  constructor(readonly callbacks: TileInteractionCallbacks) { }
 
   beginPointer(tileId: string, pointer: Phaser.Input.Pointer): void {
     this.dragStartByTileId.set(tileId, { x: pointer.worldX, y: pointer.worldY });

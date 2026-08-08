@@ -16,7 +16,7 @@ import Phaser from "phaser";
 import { Capacitor } from "@capacitor/core";
 import { TileVm, PassDirection } from "../model/tile";
 import { TableScene } from "./scenes/scene";
-import { DeadHandClaim, DeadHandReason, DemoDiscardRequest, HeaderLogoLayoutState, JoinTableRequest, JoinTableRequestDecision, MahjongWinCelebration, MobileDrawerOverlayState, PlayerAwayNotice, PlayerLabelOverlayKey, PlayerLabelOverlayState, PlayerRemovalRequest, PointsOverlayState, TableSeat, TileCallDecision, TileCallOffer, WallCountOverlayState } from "./scenes/type";
+import { DeadHandClaim, DeadHandReason, DeadHandSeatSelectionState, DemoDiscardRequest, HeaderLogoLayoutState, InstructionPanelOverlayState, JoinTableRequest, JoinTableRequestDecision, MahjongWinCelebration, MobileDrawerOverlayState, PlayerAwayNotice, PlayerLabelOverlayKey, PlayerLabelOverlayState, PlayerRemovalRequest, PointsOverlayState, TableOverlayBlockLevel, TableSeat, TileCallDecision, TileCallOffer, WallCountOverlayState } from "./scenes/type";
 import { TablePhase } from "../model/table-phase";
 import { GameHapticsService, GameHapticType } from "../platform/haptics.service";
 import { DeviceLayoutService } from "./device-layout.service";
@@ -31,10 +31,19 @@ import { COLOR_BLUE, COLOR_FUSHIA, COLOR_GRAY } from "./const";
   <div #wallIconOverlay class="hud-wall-icon" aria-hidden="true">crop_2_3</div>
   <div #pointsOverlay class="hud-points" aria-hidden="true"></div>
   <div #pointsIconOverlay class="hud-points-icon" aria-hidden="true">database</div>
+  <div #instructionPanel class="instruction-panel" aria-hidden="true">
+    <div #instructionPanelContent class="instruction-panel__content">
+      <div #instructionPanelTitle class="instruction-panel__title"></div>
+      <div #instructionPanelBody class="instruction-panel__body"></div>
+    </div>
+    <button #instructionPanelButton type="button" class="instruction-panel__button"></button>
+  </div>
   <div #mobileDrawerOverlay class="mobile-drawer-overlay" aria-hidden="true"></div>
+  <div #deadHandSeatPicker class="dead-hand-seats" aria-hidden="true"></div>
   <div #removePlayerPopup class="remove-player-popup" aria-hidden="true"></div>
   <div #joinTablePopup class="join-table-popup" aria-hidden="true"></div>
   <div #deadHandPopup class="dead-hand-popup" aria-hidden="true"></div>
+  <div #mahjongWinPopup class="mahjong-win-popup" aria-hidden="true"></div>
   <div #topPlayerLabelOverlay class="hud-player-label" aria-hidden="true"></div>
   <div #rightPlayerLabelOverlay class="hud-player-label" aria-hidden="true"></div>
   <div #leftPlayerLabelOverlay class="hud-player-label" aria-hidden="true"></div>
@@ -150,13 +159,192 @@ import { COLOR_BLUE, COLOR_FUSHIA, COLOR_GRAY } from "./const";
         text-rendering: geometricPrecision;
       }
 
+      /*
+       * Centre "YOUR TURN" card. Phaser supplies every coordinate; the browser
+       * paints it so the copy and button label stay sharp at any pixel ratio.
+       */
+      .instruction-panel {
+        position: absolute;
+        z-index: 25;
+        display: none;
+        box-sizing: border-box;
+        pointer-events: none;
+        background: #f4f2ec;
+        border-style: solid;
+        border-color: #c7c22e;
+      }
+
+      /*
+       * Copy occupies the band between the top inset and the button, and is
+       * centred inside it. Overflow is clipped rather than allowed to spill
+       * over the button on very small cards.
+       */
+      .instruction-panel__content {
+        position: absolute;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        overflow: hidden;
+        text-align: center;
+        color: #264089;
+        font-family: Poppins, Arial, sans-serif;
+        -webkit-font-smoothing: antialiased;
+        text-rendering: geometricPrecision;
+      }
+
+      .instruction-panel__title {
+        font-weight: 700;
+        line-height: 1.2;
+        letter-spacing: 0.01em;
+        white-space: nowrap;
+      }
+
+      .instruction-panel__body {
+        font-weight: 500;
+        line-height: 1.32;
+        white-space: pre-line;
+      }
+
+      .instruction-panel__body:empty {
+        display: none;
+      }
+
+      .instruction-panel__button {
+        position: absolute;
+        box-sizing: border-box;
+        display: grid;
+        place-items: center;
+        padding: 0;
+        border: 0;
+        pointer-events: auto;
+        cursor: pointer;
+        color: #ffffff;
+        font-family: Poppins, Arial, sans-serif;
+        font-weight: 700;
+        line-height: 1;
+        letter-spacing: 0.02em;
+        white-space: nowrap;
+        -webkit-font-smoothing: antialiased;
+        text-rendering: geometricPrecision;
+      }
+
       .mobile-drawer-overlay { position:absolute; z-index:80; display:none; pointer-events:none; overflow:hidden; box-sizing:border-box; padding:14px 18px; border-radius:22px; background:#fff; box-shadow:0 8px 14px rgb(7 20 47 / 28%); color:#264089; font-family:Outfit,Arial,sans-serif; }
       .mobile-drawer-overlay__close { position:absolute; left:14px; top:7px; pointer-events:auto; color:#B92A90; font-size:32px; font-weight:700; line-height:1; }
       .mobile-drawer-overlay__title { font-size:20px; font-weight:700; margin-left:36px; margin-bottom:14px; }
       .mobile-drawer-overlay__item { color:#B92A90; font-size:16px; font-weight:600; line-height:1.55; white-space:nowrap; }
+      /*
+       * Dead Hand seat picker. The dimmer sits above the whole native overlay
+       * layer, so the HUD and instruction card are dimmed rather than hidden,
+       * and it swallows taps to block table interaction while it is open.
+       */
+      .dead-hand-seats {
+        position: absolute;
+        inset: 0;
+        z-index: 90;
+        display: none;
+        pointer-events: auto;
+        background: rgb(2 6 23 / 58%);
+        font-family: Poppins, Arial, sans-serif;
+      }
+
+      /*
+       * The picker's children are built at runtime, so they never receive this
+       * component's emulated-encapsulation attribute and no rule written here
+       * would match them. Their styles are applied inline in
+       * setDeadHandSeatSelection(), as with the other dynamic popups above.
+       */
+
       .remove-player-popup { position:absolute; inset:0; z-index:100; place-items:center; background:rgb(7 20 47 / 38%); font-family:Outfit,Arial,sans-serif; }
       .remove-player-popup section { width:min(420px,calc(100% - 32px)); padding:24px; border:2px solid #B92A90; border-radius:14px; background:#07142f; color:#fff; text-align:center; box-sizing:border-box; }
       .remove-player-popup h2 { margin:0 0 12px; font-size:22px; } .remove-player-popup p { margin:0 0 8px; } .remove-player-popup small { display:block; margin-bottom:16px; color:#f6c542; } .remove-player-popup button { display:block; width:auto; min-width:150px; margin:8px auto 0; padding:9px 16px; border:0; border-radius:8px; background:#B92A90; color:#fff; font:600 15px Outfit,Arial,sans-serif; } .remove-player-popup button:last-child { background:#475569; } .remove-player-popup button:disabled { opacity:.55; }
+
+      /*
+       * Native MAH JONGG win celebration. Replaces the Phaser canvas popup so
+       * the title, subtitle and dismiss text stay sharp at every pixel ratio.
+       */
+      .mahjong-win-popup {
+        position: absolute;
+        inset: 0;
+        z-index: 110;
+        display: none;
+        place-items: center;
+        background: rgb(2 6 23 / 66%);
+        font-family: Poppins, Arial, sans-serif;
+        overflow: hidden;
+      }
+
+      .mahjong-win-popup__card {
+        position: relative;
+        z-index: 2;
+        width: clamp(250px, 58vw, 540px);
+        height: clamp(140px, 26vh, 215px);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        border: 3px solid #f6c542;
+        border-radius: 18px;
+        background: rgba(38, 64, 137, 0.98);
+        box-shadow: 0 12px 36px rgb(7 20 47 / 40%);
+        text-align: center;
+        overflow: hidden;
+      }
+
+      .mahjong-win-popup__title {
+        font-size: clamp(28px, 7vw, 58px);
+        font-weight: 700;
+        line-height: 1.15;
+        color: #f6c542;
+        text-shadow:
+          -1px -1px 0 #ffffff,
+           1px -1px 0 #ffffff,
+          -1px  1px 0 #ffffff,
+           1px  1px 0 #ffffff;
+        -webkit-font-smoothing: antialiased;
+        text-rendering: geometricPrecision;
+        animation: mahjongTitleBounceIn 360ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
+      }
+
+      .mahjong-win-popup__winner {
+        margin-top: 6px;
+        font-size: clamp(15px, 3.15vw, 26px);
+        font-weight: 700;
+        line-height: 1.3;
+        color: #ffffff;
+        -webkit-font-smoothing: antialiased;
+        text-rendering: geometricPrecision;
+      }
+
+      .mahjong-win-popup__dismiss {
+        margin-top: 4px;
+        font-size: clamp(10px, 1.54vw, 14px);
+        font-weight: 600;
+        line-height: 1.3;
+        color: #dbeafe;
+        -webkit-font-smoothing: antialiased;
+        text-rendering: geometricPrecision;
+      }
+
+      .mahjong-win-popup__confetti {
+        position: absolute;
+        z-index: 1;
+        border-radius: 1px;
+        will-change: transform;
+        animation: mahjongConfettiFall var(--fall-duration, 1800ms) var(--fall-delay, 0ms) linear forwards;
+      }
+
+      @keyframes mahjongTitleBounceIn {
+        0%   { transform: scale(0.6); opacity: 0; }
+        70%  { transform: scale(1.08); opacity: 1; }
+        100% { transform: scale(1); }
+      }
+
+      @keyframes mahjongConfettiFall {
+        0%   { transform: translateY(0) rotate(var(--start-rotate, 0deg)); opacity: 1; }
+        90%  { opacity: 1; }
+        100% { transform: translateY(var(--fall-distance, 110vh)) rotate(var(--end-rotate, 720deg)); opacity: 0; }
+      }
 
       /* Phaser drawers must sit visually above the native sharp-text overlays. */
       :host(.mobile-drawer-open) .hud-wall-count,
@@ -164,6 +352,25 @@ import { COLOR_BLUE, COLOR_FUSHIA, COLOR_GRAY } from "./const";
       :host(.mobile-drawer-open) .hud-points,
       :host(.mobile-drawer-open) .hud-points-icon,
       :host(.mobile-drawer-open) .hud-player-label {
+        display: none !important;
+      }
+
+      /*
+       * A Phaser popup is drawn on the canvas, which the browser paints below
+       * every HTML overlay. These rules stand the native layer down so the
+       * popup is genuinely the topmost thing on screen.
+       *
+       * A centred popup only needs the instruction card to move aside; a
+       * full-screen dimmer needs the whole native HUD to go with it.
+       */
+      :host(.table-popup-center) .instruction-panel,
+      :host(.table-popup-screen) .instruction-panel,
+      :host(.table-popup-screen) .hud-wall-count,
+      :host(.table-popup-screen) .hud-wall-icon,
+      :host(.table-popup-screen) .hud-points,
+      :host(.table-popup-screen) .hud-points-icon,
+      :host(.table-popup-screen) .hud-player-label,
+      :host(.table-popup-screen) .hud-logo {
         display: none !important;
       }
 
@@ -205,6 +412,63 @@ import { COLOR_BLUE, COLOR_FUSHIA, COLOR_GRAY } from "./const";
         opacity: 0;
         visibility: hidden;
         transform: translateY(-12px) translateZ(0);
+      }
+
+      ::ng-deep .mahjong-win-popup {
+        position: absolute;
+        inset: 0;
+        z-index: 1000;
+        display: none;
+        place-items: center;
+        background: rgba(2, 6, 23, 0.66);
+        pointer-events: auto;
+        overflow: hidden;
+      }
+      ::ng-deep .mahjong-win-popup__card {
+        position: relative;
+        z-index: 1001;
+        width: clamp(250px, 58vw, 540px);
+        min-height: clamp(140px, 26vh, 215px);
+        background: rgba(38, 64, 137, 0.98);
+        border: 3px solid #f6c542;
+        border-radius: 18px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+        font-family: Poppins, Arial, sans-serif;
+        box-sizing: border-box;
+        padding: 24px 16px;
+      }
+      ::ng-deep .mahjong-win-popup__title {
+        color: #f6c542;
+        font-weight: 700;
+        font-size: clamp(28px, 7vw, 58px);
+        -webkit-text-stroke: max(1px, 2px) #ffffff;
+        margin: 0 0 12px 0;
+        opacity: 0;
+        transform: scale(0.6);
+        animation: mahjong-title-pop 360ms cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+      }
+      @keyframes mahjong-title-pop {
+        to { opacity: 1; transform: scale(1); }
+      }
+      ::ng-deep .mahjong-win-popup__winner {
+        color: #ffffff;
+        font-weight: 700;
+        font-size: clamp(15px, 3.15vw, 26px);
+        margin: 0 0 18px 0;
+      }
+      ::ng-deep .mahjong-win-popup__dismiss {
+        color: #dbeafe;
+        font-weight: 600;
+        font-size: clamp(10px, 1.54vw, 14px);
+        margin: 0;
+      }
+      ::ng-deep .mahjong-win-popup__confetti {
+        position: absolute;
+        z-index: 999;
       }
 
       /* Compact mobile portrait */
@@ -254,6 +518,24 @@ export class PhaserBoardComponent implements AfterViewInit {
   @ViewChild("mobileDrawerOverlay", { static: true })
   private readonly mobileDrawerOverlayRef!: ElementRef<HTMLDivElement>;
 
+  @ViewChild("instructionPanel", { static: true })
+  private readonly instructionPanelRef!: ElementRef<HTMLDivElement>;
+
+  @ViewChild("instructionPanelContent", { static: true })
+  private readonly instructionPanelContentRef!: ElementRef<HTMLDivElement>;
+
+  @ViewChild("instructionPanelTitle", { static: true })
+  private readonly instructionPanelTitleRef!: ElementRef<HTMLDivElement>;
+
+  @ViewChild("instructionPanelBody", { static: true })
+  private readonly instructionPanelBodyRef!: ElementRef<HTMLDivElement>;
+
+  @ViewChild("instructionPanelButton", { static: true })
+  private readonly instructionPanelButtonRef!: ElementRef<HTMLButtonElement>;
+
+  @ViewChild("deadHandSeatPicker", { static: true })
+  private readonly deadHandSeatPickerRef!: ElementRef<HTMLDivElement>;
+
   @ViewChild("removePlayerPopup", { static: true })
   private readonly removePlayerPopupRef!: ElementRef<HTMLDivElement>;
 
@@ -262,6 +544,9 @@ export class PhaserBoardComponent implements AfterViewInit {
 
   @ViewChild("deadHandPopup", { static: true })
   private readonly deadHandPopupRef!: ElementRef<HTMLDivElement>;
+
+  @ViewChild("mahjongWinPopup", { static: true })
+  private readonly mahjongWinPopupRef!: ElementRef<HTMLDivElement>;
 
   @ViewChild("topPlayerLabelOverlay", { static: true })
   private readonly topPlayerLabelOverlayRef!: ElementRef<HTMLDivElement>;
@@ -301,11 +586,14 @@ export class PhaserBoardComponent implements AfterViewInit {
   private readonly zone = inject(NgZone);
   private readonly destroyRef = inject(DestroyRef);
   private readonly haptics = inject(GameHapticsService);
+  private readonly el = inject(ElementRef);
 
   private game?: Phaser.Game;
   private sceneReady = false;
   private safeAreaRefreshTimer?: number;
   private joinTablePopupTimer?: number;
+  private mahjongWinPopupTimer?: number;
+
   private mobileDrawerOpen = false;
   private wallCountOverlayState?: WallCountOverlayState;
   private pointsOverlayState?: PointsOverlayState;
@@ -364,9 +652,7 @@ export class PhaserBoardComponent implements AfterViewInit {
 
     effect(() => {
       const result = this.mahjongWin();
-      if (!result || !this.game || !this.sceneReady) return;
-      // Phaser owns the visual effect; Angular only supplies the result.
-      this.game.events.emit("mahjong:win", result);
+      this.setMahjongWinPopup(result);
     });
 
     effect(() => {
@@ -389,7 +675,7 @@ export class PhaserBoardComponent implements AfterViewInit {
       host.clientWidth,
       host.clientHeight,
     ).layout;
-    
+
     this.setMobileHeaderCollapsed(
       initialLayout === "phone-portrait" || initialLayout === "phone-landscape",
     );
@@ -410,6 +696,9 @@ export class PhaserBoardComponent implements AfterViewInit {
         onPointsOverlay: (state) => this.setPointsOverlay(state),
         onMobileDrawerVisibilityChanged: (open) => this.setMobileDrawerOpen(open),
         onMobileDrawerOverlay: (state) => this.setMobileDrawerOverlay(state),
+        onInstructionPanelOverlay: (state) => this.setInstructionPanelOverlay(state),
+        onTableOverlayBlocked: (level) => this.setTableOverlayBlocked(level),
+        onDeadHandSeatSelection: (state) => this.setDeadHandSeatSelection(state),
         onHeaderLogoLayout: (state) => this.setHeaderLogoLayout(state),
         onTileCallDecision: (decision) =>
           this.zone.run(() => this.tileCallDecision.emit(decision)),
@@ -425,7 +714,7 @@ export class PhaserBoardComponent implements AfterViewInit {
       this.game = new Phaser.Game({
         type: Phaser.WEBGL,
         parent: host,
-         // 2. Scale up base width and height by the DPR to match hardware pixels
+        // 2. Scale up base width and height by the DPR to match hardware pixels
         width: Math.max(1, host.clientWidth) * dpr,
         height: Math.max(1, host.clientHeight) * dpr,
         backgroundColor: COLOR_BLUE,
@@ -456,6 +745,16 @@ export class PhaserBoardComponent implements AfterViewInit {
         canvas.style.height = '100%';
       }
 
+      // Bound once, outside the Angular zone. The Phaser scene owns whether the
+      // action is currently allowed, exactly as the old Phaser button did.
+      this.instructionPanelButtonRef.nativeElement.addEventListener(
+        "pointerdown",
+        (event) => {
+          event.stopPropagation();
+          this.game?.events.emit("instruction-panel:primary-action");
+        },
+      );
+
       this.game.events.once("table:ready", () => {
         this.sceneReady = true;
         // The scene has now registered its resize listener, so apply the
@@ -469,22 +768,22 @@ export class PhaserBoardComponent implements AfterViewInit {
         const request = this.demoDiscard();
         if (request) this.game?.events.emit("tile-call:demo-discard", request);
         const win = this.mahjongWin();
-        if (win) this.game?.events.emit("mahjong:win", win);
+        if (win) this.setMahjongWinPopup(win);
         this.game?.events.on(
 
-            "charleston:animation-complete",
+          "charleston:animation-complete",
 
-            () => {
+          () => {
 
-                console.log("Charleston animation finished");
+            console.log("Charleston animation finished");
 
-                /**
-                 * Development only.
-                 *
-                 * Here we will later replace the racks
-                 * with the received tiles.
-                 */
-            }
+            /**
+             * Development only.
+             *
+             * Here we will later replace the racks
+             * with the received tiles.
+             */
+          }
 
         );
       });
@@ -512,6 +811,8 @@ export class PhaserBoardComponent implements AfterViewInit {
       window.removeEventListener("orientationchange", refreshSafeAreaAfterOrientation);
       this.clearSafeAreaRefreshTimer();
       this.clearJoinTablePopupTimer();
+      this.clearMahjongWinPopupTimer();
+
       this.game?.destroy(true);
       this.game = undefined;
       this.sceneReady = false;
@@ -766,6 +1067,192 @@ export class PhaserBoardComponent implements AfterViewInit {
     }
   }
 
+  /**
+   * Centre instruction card. Phaser resolves every coordinate from the layout
+   * engine; the browser paints the card, its copy, and its primary button so
+   * the text stays sharp on any screen size or pixel ratio.
+   */
+  /**
+   * Yields the native overlay layer while a Phaser popup is open.
+   *
+   * HTML always paints above the canvas, so a Phaser popup such as CALL/SKIP
+   * can only come forward if the overlays covering it step aside first.
+   */
+  private setTableOverlayBlocked(level: TableOverlayBlockLevel): void {
+    const host = this.el.nativeElement.classList;
+    host.toggle("table-popup-center", level === "center");
+    host.toggle("table-popup-screen", level === "screen");
+  }
+
+  private setInstructionPanelOverlay(state: InstructionPanelOverlayState): void {
+    const panel = this.instructionPanelRef.nativeElement;
+    const content = this.instructionPanelContentRef.nativeElement;
+    const title = this.instructionPanelTitleRef.nativeElement;
+    const body = this.instructionPanelBodyRef.nativeElement;
+    const button = this.instructionPanelButtonRef.nativeElement;
+
+    panel.style.display = state.visible ? "block" : "none";
+    if (!state.visible) return;
+
+    // The layout engine reserves the card rect; the border is drawn inside it
+    // so the panel never grows past the space the engine set aside for it.
+    panel.style.left = `${state.x}px`;
+    panel.style.top = `${state.y}px`;
+    panel.style.width = `${state.width}px`;
+    panel.style.height = `${state.height}px`;
+    panel.style.borderWidth = `${state.borderWidth}px`;
+    panel.style.borderRadius = `${state.radius}px`;
+    panel.style.boxShadow = `0 ${state.shadowY}px ${state.shadowBlur}px rgb(7 20 47 / 30%)`;
+
+    // Children position against the padding box, which starts one border width
+    // inside the card rect that the published coordinates are relative to.
+    const inset = state.borderWidth;
+    content.style.left = `${-inset}px`;
+    content.style.width = `${state.width}px`;
+    content.style.top = `${state.contentTop - inset}px`;
+    content.style.height = `${Math.max(0, state.contentBottom - state.contentTop)}px`;
+
+    title.textContent = state.title;
+    title.style.fontSize = `${state.titleFontSize}px`;
+    title.style.marginBottom = state.body ? `${state.titleGap}px` : "0px";
+
+    body.textContent = state.body;
+    body.style.fontSize = `${state.bodyFontSize}px`;
+
+    const action = state.button;
+    button.textContent = action.label;
+    button.style.left = `${action.x - inset}px`;
+    button.style.top = `${action.y - inset}px`;
+    button.style.width = `${action.width}px`;
+    button.style.height = `${action.height}px`;
+    button.style.borderRadius = `${action.radius}px`;
+    button.style.fontSize = `${action.fontSize}px`;
+    // Subtle top-down sheen over the flat body, as in the reference design.
+    button.style.background =
+      `linear-gradient(180deg, rgb(255 255 255 / 12%), rgb(255 255 255 / 0%) 48%), ` +
+      (action.enabled ? COLOR_FUSHIA : "#777777");
+    button.style.opacity = action.enabled ? "1" : "0.65";
+    button.style.boxShadow =
+      `0 ${action.shadowY}px ${action.shadowBlur}px rgb(7 20 47 / ${action.enabled ? 34 : 20}%)`;
+    button.setAttribute("aria-disabled", String(!action.enabled));
+  }
+
+  /**
+   * First Dead Hand step. Phaser resolves the exposure boxes from the layout
+   * engine, so the highlights stay locked to the table; the browser draws the
+   * dimmer, arrows, and copy so the text is sharp at any pixel ratio.
+   */
+  private setDeadHandSeatSelection(state: DeadHandSeatSelectionState): void {
+    const panel = this.deadHandSeatPickerRef.nativeElement;
+    panel.style.display = state.visible ? "block" : "none";
+    panel.setAttribute("aria-hidden", String(!state.visible));
+    panel.replaceChildren();
+    if (!state.visible) return;
+
+    for (const option of state.options) {
+      // Phaser stroked the highlight centred on the rect path, so grow the
+      // border-box by half the stroke to cover the same pixels.
+      const inset = state.borderWidth / 2;
+      const target = document.createElement("button");
+      target.type = "button";
+      target.className = "dead-hand-seats__target";
+      target.setAttribute("aria-label", `Call the ${option.seat} hand dead`);
+      Object.assign(target.style, {
+        position: "absolute",
+        boxSizing: "border-box",
+        margin: "0",
+        padding: "0",
+        left: `${option.x - inset}px`,
+        top: `${option.y - inset}px`,
+        width: `${option.width + state.borderWidth}px`,
+        height: `${option.height + state.borderWidth}px`,
+        border: `${state.borderWidth}px solid #f6c542`,
+        background: "rgb(185 42 144 / 22%)",
+        cursor: "pointer",
+      });
+
+      const arrow = document.createElement("button");
+      arrow.type = "button";
+      arrow.className = "dead-hand-seats__arrow";
+      arrow.tabIndex = -1;
+      arrow.textContent = option.arrowIcon;
+      arrow.setAttribute("aria-hidden", "true");
+      Object.assign(arrow.style, {
+        position: "absolute",
+        margin: "0",
+        padding: "0",
+        border: "0",
+        background: "none",
+        left: `${option.arrowX}px`,
+        top: `${option.arrowY}px`,
+        transform: "translate(-50%, -50%)",
+        color: "#ffffff",
+        fontFamily: '"Material Symbols Rounded"',
+        fontSize: `${state.arrowFontSize}px`,
+        fontWeight: "normal",
+        fontStyle: "normal",
+        lineHeight: "1",
+        cursor: "pointer",
+      });
+
+      for (const element of [target, arrow]) {
+        element.addEventListener("pointerdown", (event) => {
+          event.stopPropagation();
+          this.game?.events.emit("dead-hand:select-seat", option.seat);
+        });
+      }
+
+      panel.append(target, arrow);
+    }
+
+    const instruction = document.createElement("div");
+    instruction.className = "dead-hand-seats__instruction";
+    instruction.textContent = state.instruction;
+    Object.assign(instruction.style, {
+      position: "absolute",
+      margin: "0",
+      left: `${state.centerX}px`,
+      top: `${state.centerY}px`,
+      transform: "translate(-50%, -50%)",
+      textAlign: "center",
+      whiteSpace: "pre-line",
+      color: "#ffffff",
+      fontFamily: "Poppins, Arial, sans-serif",
+      fontSize: `${state.instructionFontSize}px`,
+      fontWeight: "700",
+      lineHeight: "1.25",
+      pointerEvents: "none",
+    });
+
+    const cancel = document.createElement("button");
+    cancel.type = "button";
+    cancel.className = "dead-hand-seats__cancel";
+    cancel.textContent = "×";
+    cancel.setAttribute("aria-label", "Cancel");
+    Object.assign(cancel.style, {
+      position: "absolute",
+      margin: "0",
+      padding: "0",
+      border: "0",
+      background: "none",
+      left: `${state.centerX}px`,
+      top: `${state.centerY - 54}px`,
+      transform: "translate(-50%, -50%)",
+      color: "#ffffff",
+      fontFamily: "Poppins, Arial, sans-serif",
+      fontSize: "30px",
+      fontWeight: "500",
+      lineHeight: "1",
+      cursor: "pointer",
+    });
+    cancel.addEventListener("pointerdown", (event) => {
+      event.stopPropagation();
+      this.game?.events.emit("dead-hand:cancel");
+    });
+
+    panel.append(instruction, cancel);
+  }
+
   private setRemovePlayerPopup(notice: PlayerAwayNotice | null): void {
     const panel = this.removePlayerPopupRef.nativeElement;
     panel.replaceChildren();
@@ -780,23 +1267,36 @@ export class PhaserBoardComponent implements AfterViewInit {
     const elapsed = Math.max(0, Date.now() - notice.awaySinceMs);
     const remaining = Math.max(0, limit - elapsed);
     const format = (value: number): string => `${Math.floor(value / 60000)}:${String(Math.floor(value / 1000) % 60).padStart(2, "0")}`;
-    panel.innerHTML = `<section><h2>REMOVE PLAYER?</h2><p>${notice.playerName} has been away for ${format(elapsed)}.</p><small>${remaining === 0 ? `The ${format(limit)} away limit has been reached.` : `Removal available in ${format(remaining)}.`}</small><button ${remaining > 0 ? "disabled" : ""}>REMOVE PLAYER</button><button>KEEP WAITING</button></section>`;
-    const card = panel.querySelector("section") as HTMLElement;
+
+    // Built with createElement/textContent (never innerHTML) so a malicious
+    // player display name can never inject markup into the popup.
+    const card = document.createElement("section");
     Object.assign(card.style, { width: "min(420px, calc(100% - 32px))", padding: "24px", boxSizing: "border-box", border: "2px solid #B92A90", borderRadius: "14px", background: "#07142f", color: "#ffffff", textAlign: "center", fontFamily: "Outfit, Arial, sans-serif" });
-    const heading = card.querySelector("h2") as HTMLElement;
+    const heading = document.createElement("h2");
+    heading.textContent = "REMOVE PLAYER?";
     Object.assign(heading.style, { margin: "0 0 12px", fontSize: "22px" });
-    const detail = card.querySelector("p") as HTMLElement;
+    const detail = document.createElement("p");
+    detail.textContent = `${notice.playerName} has been away for ${format(elapsed)}.`;
     detail.style.margin = "0 0 8px";
-    const rule = card.querySelector("small") as HTMLElement;
+    const rule = document.createElement("small");
+    rule.textContent = remaining === 0
+      ? `The ${format(limit)} away limit has been reached.`
+      : `Removal available in ${format(remaining)}.`;
     Object.assign(rule.style, { display: "block", marginBottom: "16px", color: "#f6c542" });
-    const [remove, keep] = Array.from(panel.querySelectorAll("button")) as HTMLButtonElement[];
+    const remove = document.createElement("button");
+    remove.textContent = "REMOVE PLAYER";
+    remove.disabled = remaining > 0;
+    const keep = document.createElement("button");
+    keep.textContent = "KEEP WAITING";
     for (const button of [remove, keep]) {
       Object.assign(button.style, { display: "block", minWidth: "150px", margin: "8px auto 0", padding: "9px 16px", border: "0", borderRadius: "8px", color: "#ffffff", fontFamily: "Outfit, Arial, sans-serif", fontWeight: "600" });
     }
-    if (remove) remove.style.background = COLOR_FUSHIA;
-    if (keep) keep.style.background = COLOR_GRAY;
-    remove?.addEventListener("click", () => this.zone.run(() => this.playerRemovalRequested.emit({ seat: notice.seat, requestId: notice.requestId })));
-    keep?.addEventListener("click", () => this.setRemovePlayerPopup(null));
+    remove.style.background = COLOR_FUSHIA;
+    keep.style.background = COLOR_GRAY;
+    remove.addEventListener("click", () => this.zone.run(() => this.playerRemovalRequested.emit({ seat: notice.seat, requestId: notice.requestId })));
+    keep.addEventListener("click", () => this.setRemovePlayerPopup(null));
+    card.append(heading, detail, rule, remove, keep);
+    panel.append(card);
   }
 
   /**
@@ -945,6 +1445,98 @@ export class PhaserBoardComponent implements AfterViewInit {
     cancel.addEventListener("click", () => this.setDeadHandPopup(null));
     card.append(submit, cancel);
     panel.append(card);
+  }
+
+  /**
+   * Native MAH JONGG win celebration popup. Phaser no longer renders the
+   * overlay; the browser paints the card, confetti and all copy so the text
+   * stays sharp at any device pixel ratio.
+   */
+  private setMahjongWinPopup(result: MahjongWinCelebration | null): void {
+    this.clearMahjongWinPopupTimer();
+    const panel = this.mahjongWinPopupRef.nativeElement;
+    panel.replaceChildren();
+    panel.style.display = result ? "grid" : "none";
+    panel.setAttribute("aria-hidden", String(!result));
+    
+    this.setTableOverlayBlocked(result ? "screen" : "none");
+
+    if (!result) return;
+    
+    // Tell Phaser so it can clear its call/swap windows if open
+    this.game?.events.emit("mahjong:win", result);
+
+    void this.haptics.play("pass-submit" as any);
+
+    // Confetti
+    const vw = window.innerWidth;
+    const vh = window.innerHeight;
+    const particleCount = Math.max(36, Math.min(88, Math.round(vw / 13)));
+    const colors = ["#f6c542", "#B92A90", "#60a5fa", "#34d399", "#ffffff"];
+    for (let i = 0; i < particleCount; i++) {
+      const confetti = document.createElement("div");
+      confetti.className = "mahjong-win-popup__confetti";
+      const size = 5 + Math.random() * 5;
+      const startX = Math.random() * vw;
+      const startY = -(Math.random() * vh * 0.25);
+      const startRotate = (Math.random() - 0.5) * 80;
+      const endRotate = startRotate + 240 + Math.random() * 300;
+      const duration = 1300 + Math.random() * 1100;
+      const delay = Math.random() * 450;
+      Object.assign(confetti.style, {
+        left: `${startX}px`,
+        top: `${startY}px`,
+        width: `${size}px`,
+        height: `${Math.round(size * 0.55)}px`,
+        background: colors[i % colors.length],
+      });
+      panel.append(confetti);
+
+      confetti.animate(
+        [
+          { transform: `translateY(0px) rotate(${startRotate}deg)` },
+          { transform: `translateY(${vh + 24 - startY}px) rotate(${endRotate}deg)` }
+        ],
+        {
+          duration: Math.round(duration),
+          delay: Math.round(delay),
+          easing: "cubic-bezier(0.55, 0.085, 0.68, 0.53)",
+          fill: "forwards",
+        }
+      );
+    }
+
+    // Card
+    const card = document.createElement("div");
+    card.className = "mahjong-win-popup__card";
+
+    const title = document.createElement("div");
+    title.className = "mahjong-win-popup__title";
+    title.textContent = "MAH JONGG!";
+
+    const winner = document.createElement("div");
+    winner.className = "mahjong-win-popup__winner";
+    winner.textContent = result.winner === "bottom" ? "YOU WIN!" : `${result.winner.toUpperCase()} WINS!`;
+
+    const dismiss = document.createElement("div");
+    dismiss.className = "mahjong-win-popup__dismiss";
+    dismiss.textContent = "TAP TO CONTINUE";
+
+    card.append(title, winner, dismiss);
+    panel.append(card);
+
+    panel.addEventListener("pointerup", () => this.setMahjongWinPopup(null), { once: true });
+
+    this.mahjongWinPopupTimer = window.setTimeout(() => {
+      this.mahjongWinPopupTimer = undefined;
+      this.setMahjongWinPopup(null);
+    }, 4200);
+  }
+
+  private clearMahjongWinPopupTimer(): void {
+    if (this.mahjongWinPopupTimer === undefined) return;
+    window.clearTimeout(this.mahjongWinPopupTimer);
+    this.mahjongWinPopupTimer = undefined;
   }
 
   /** Aligns the DOM logo to the exact Phaser hamburger HUD centre. */

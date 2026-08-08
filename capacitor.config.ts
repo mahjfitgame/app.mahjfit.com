@@ -23,7 +23,8 @@ const config: CapacitorConfig = {
     //hostname: 'localhost:20180',//required to run on local backoffice port number
     androidScheme: 'https', // Required for Android release build
     iosScheme: 'https', // Required for ios release build Archieve
-    //url: 'https://192.168.0.230:20180/', // FOR TESTING PURPOSE: Network URL for "Live Reload" or "External Server"
+    //url: 'https://mahjfit-com.thatsend.dev', // FOR TESTING PURPOSE: Network URL for "Live Reload" or "External Server"
+    //url: 'https://192.168.0.230:20180/',
     cleartext: true
   },
   ios: {
@@ -76,7 +77,7 @@ const config: CapacitorConfig = {
 
       iosSpinnerStyle: 'large',
     },
-    PushNotifications:{
+    PushNotifications: {
       "presentationOptions": ["badge", "sound", "alert", "banner", "list"]
     },
     CapacitorSQLite: {
@@ -85,13 +86,13 @@ const config: CapacitorConfig = {
       iosKeychainPrefix: 'bfw-sqlite-app',
       iosBiometric: {
         biometricAuth: false,
-        biometricTitle : "Biometric login for capacitor sqlite"
+        biometricTitle: "Biometric login for capacitor sqlite"
       },
       androidIsEncryption: true,
       androidBiometric: {
-        biometricAuth : false,
-        biometricTitle : "Biometric login for capacitor sqlite",
-        biometricSubTitle : "Log in using your biometric"
+        biometricAuth: false,
+        biometricTitle: "Biometric login for capacitor sqlite",
+        biometricSubTitle: "Log in using your biometric"
       },
       electronIsEncryption: true,
       electronWindowsLocation: "C:\\ProgramData\\CapacitorDatabases",

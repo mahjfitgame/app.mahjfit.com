@@ -44,12 +44,12 @@ export class GameLayoutEngine {
     const viewport: DeviceLayoutState =
       typeof viewportOrWidth === "number"
         ? {
-            width: viewportOrWidth,
-            height: heightOrTileCount,
-            orientation:
-              heightOrTileCount >= viewportOrWidth ? "portrait" : "landscape",
-            layout: resolveDeviceLayout(viewportOrWidth, heightOrTileCount),
-          }
+          width: viewportOrWidth,
+          height: heightOrTileCount,
+          orientation:
+            heightOrTileCount >= viewportOrWidth ? "portrait" : "landscape",
+          layout: resolveDeviceLayout(viewportOrWidth, heightOrTileCount),
+        }
         : viewportOrWidth;
     const tileCount =
       typeof viewportOrWidth === "number"
@@ -83,7 +83,7 @@ export class GameLayoutEngine {
           config,
           viewport,
           safeArea,
-      );
+        );
 
       case "tablet-portrait":
         return this.computeTabletPortrait(
@@ -148,12 +148,12 @@ export class GameLayoutEngine {
 
     const hudHeight = this.clamp(safeHeight * 0.075, 58, 86);
 
-    const tableOuterInset = safeHeight * 0.012;
+    const tableOuterInset = safeHeight * 0.04; // Increased inset for more blue area
     const tableOuter: Rect = {
       x: safeLeft + tableOuterInset,
-      y: safeTop + hudHeight,
+      y: safeTop + hudHeight, // Treat the header as the top space; no extra blue inset here
       width: safeWidth - tableOuterInset * 2,
-      height: safeHeight - hudHeight - tableOuterInset,
+      height: safeHeight - hudHeight - tableOuterInset, // Only subtract inset for the bottom
     };
 
     /*
@@ -176,10 +176,17 @@ export class GameLayoutEngine {
      */
 
     const tableEdgeInset = this.tableEdgeInset(tableOuter);
-    const innerLeft = tableOuter.x + tableEdgeInset;
-    const innerTop = tableOuter.y + tableEdgeInset;
-    const innerRight = tableOuter.x + tableOuter.width - tableEdgeInset;
-    const innerBottom = tableOuter.y + tableOuter.height - tableEdgeInset;
+
+    // In desktop, increase the gap between the exposure and table for all except bottom seat
+    const isDesktop = !metrics.isMobile && !metrics.isTablet;
+    const extraDesktopGap = isDesktop ? 15 : 0;
+
+    const innerLeft = tableOuter.x + tableEdgeInset + extraDesktopGap;
+    const innerTop = tableOuter.y + tableEdgeInset + extraDesktopGap;
+    const innerRight = tableOuter.x + tableOuter.width - tableEdgeInset - extraDesktopGap;
+
+    // Apply the extra gap to the bottom seat as well to shift it slightly up on desktop
+    const innerBottom = tableOuter.y + tableOuter.height - tableEdgeInset - extraDesktopGap;
 
     const sideExposureWidth = this.clamp(
       tableOuter.width * 0.074,
@@ -187,7 +194,8 @@ export class GameLayoutEngine {
       154,
     );
 
-    const sideExposureHeight = tableOuter.height * 0.930;
+    // Adjust height on desktop so it doesn't overlap the bottom area when shifted down
+    const sideExposureHeight = tableOuter.height * (isDesktop ? 0.880 : 0.930);
 
     const sideExposureY = innerTop;
 
@@ -266,7 +274,7 @@ export class GameLayoutEngine {
     /**
      * Center white action card from PSD.
      */
-    
+
     /* const instructionWidth = this.clamp(tableOuter.width * 0.205, 360, 460);
     const instructionHeight = this.clamp(tableOuter.height * 0.175, 150, 205); */
 
@@ -282,13 +290,13 @@ export class GameLayoutEngine {
       width: instructionWidth,
       height: instructionHeight,
     }; */
-    
-   const instructionBar: Rect = {
+
+    const instructionBar: Rect = {
       x: Math.round(safeCenterX - instructionWidth / 2),
       y: Math.round(
         tableOuter.y +
-          tableOuter.height / 2 -
-          instructionHeight / 2,
+        tableOuter.height / 2 -
+        instructionHeight / 2,
       ),
       width: instructionWidth,
       height: instructionHeight,
@@ -538,8 +546,8 @@ export class GameLayoutEngine {
       x: Math.round(safeCenterX - instructionWidth / 2),
       y: Math.round(
         tableOuter.y +
-          tableOuter.height / 2 -
-          instructionHeight / 2,
+        tableOuter.height / 2 -
+        instructionHeight / 2,
       ),
       width: instructionWidth,
       height: instructionHeight,
@@ -673,15 +681,15 @@ export class GameLayoutEngine {
       width: safeWidth - tableOuterInset * 2,
       height: safeHeight - hudHeight - tableOuterInset,
     };
-/*
-const tableOuter: Rect = {
-      x: safeLeft + safeWidth * 0.025,
-      y: safeTop + hudHeight + safeHeight * 0.010,
-      width: safeWidth * 0.950,
-      height: safeHeight - hudHeight - safeBottom - safeHeight * 0.025,
-    };
-
-*/
+    /*
+    const tableOuter: Rect = {
+          x: safeLeft + safeWidth * 0.025,
+          y: safeTop + hudHeight + safeHeight * 0.010,
+          width: safeWidth * 0.950,
+          height: safeHeight - hudHeight - safeBottom - safeHeight * 0.025,
+        };
+    
+    */
 
     const tablePadX = this.tableEdgeInset(tableOuter);
     const tablePadTop = tablePadX;
@@ -712,7 +720,7 @@ const tableOuter: Rect = {
       width: Math.max(
         1,
         tableOuter.width -
-          2 * (tablePadX + provisionalExposureThickness + rackSideGutter),
+        2 * (tablePadX + provisionalExposureThickness + rackSideGutter),
       ),
       height: rackHeight,
     };
@@ -830,8 +838,8 @@ const tableOuter: Rect = {
       x: Math.round(safeCenterX - instructionWidth / 2),
       y: Math.round(
         tableOuter.y +
-          tableOuter.height / 2 -
-          instructionHeight / 2,
+        tableOuter.height / 2 -
+        instructionHeight / 2,
       ),
       width: instructionWidth,
       height: instructionHeight,
@@ -952,7 +960,7 @@ const tableOuter: Rect = {
     const metrics = this.computeResponsiveMetrics(safeWidth, safeHeight, viewport);
 
     // TEMP: remove after verifying
-  //console.log("USING MOBILE LANDSCAPE LAYOUT", width, height);
+    //console.log("USING MOBILE LANDSCAPE LAYOUT", width, height);
 
     /**
     * Mobile landscape is very height-constrained.
@@ -1094,29 +1102,29 @@ const tableOuter: Rect = {
 
     const sideExposureWidth = exposureThickness;
 
-const sideExposureY = tableOuter.y + tablePadX;
+    const sideExposureY = tableOuter.y + tablePadX;
 
-const sideExposureBottom =
-  tableOuter.y + tableOuter.height - tablePadX;
+    const sideExposureBottom =
+      tableOuter.y + tableOuter.height - tablePadX;
 
-const finalSideExposureHeight = Math.max(
-  80,
-  sideExposureBottom - sideExposureY,
-);
+    const finalSideExposureHeight = Math.max(
+      80,
+      sideExposureBottom - sideExposureY,
+    );
 
-const leftExposure: Rect = {
-  x: tableOuter.x + tablePadX,
-  y: sideExposureY,
-  width: sideExposureWidth,
-  height: finalSideExposureHeight,
-};
+    const leftExposure: Rect = {
+      x: tableOuter.x + tablePadX,
+      y: sideExposureY,
+      width: sideExposureWidth,
+      height: finalSideExposureHeight,
+    };
 
-const rightExposure: Rect = {
-  x: tableOuter.x + tableOuter.width - tablePadX - sideExposureWidth,
-  y: sideExposureY,
-  width: sideExposureWidth,
-  height: finalSideExposureHeight,
-};
+    const rightExposure: Rect = {
+      x: tableOuter.x + tableOuter.width - tablePadX - sideExposureWidth,
+      y: sideExposureY,
+      width: sideExposureWidth,
+      height: finalSideExposureHeight,
+    };
 
     /**
     * Instruction card:
@@ -1134,7 +1142,7 @@ const rightExposure: Rect = {
       78,
     );
 
-   
+
 
     /* const instructionBar: Rect = {
       x: safeCenterX - instructionWidth / 2,
@@ -1146,8 +1154,8 @@ const rightExposure: Rect = {
       x: Math.round(safeCenterX - instructionWidth / 2),
       y: Math.round(
         tableOuter.y +
-          tableOuter.height / 2 -
-          instructionHeight / 2,
+        tableOuter.height / 2 -
+        instructionHeight / 2,
       ),
       width: instructionWidth,
       height: instructionHeight,
@@ -1411,7 +1419,7 @@ const rightExposure: Rect = {
      * Bottom username/exposure panel:
      * Compact and close to the rack.
      */
-    
+
     const bottomExposureWidth = topExposureWidth;
 
     const bottomExposureHeight = sideExposureWidth;
@@ -1455,8 +1463,8 @@ const rightExposure: Rect = {
       x: Math.round(safeCenterX - instructionWidth / 2),
       y: Math.round(
         tableOuter.y +
-          tableOuter.height / 2 -
-          instructionHeight / 2,
+        tableOuter.height / 2 -
+        instructionHeight / 2,
       ),
       width: instructionWidth,
       height: instructionHeight,
@@ -1512,7 +1520,7 @@ const rightExposure: Rect = {
       height: hudHeight,
     };
 
- 
+
     const labelY = horizontalLabelCenterRatio("mobile-portrait");
     const leftLabelX = leftLabelCenterRatio("mobile-portrait");
     const rightLabelX = rightLabelCenterRatio("mobile-portrait");
@@ -1656,15 +1664,15 @@ const rightExposure: Rect = {
 
       rackHeight: this.clamp(
         height *
-          (
-            isMobile
-              ? isPortrait
-                ? 0.095
-                : 0.20
-              : isTablet
-                ? 0.02
-                : 0.20
-          ),
+        (
+          isMobile
+            ? isPortrait
+              ? 0.095
+              : 0.20
+            : isTablet
+              ? 0.02
+              : 0.20
+        ),
         isMobile
           ? isPortrait
             ? 82
@@ -1679,13 +1687,13 @@ const rightExposure: Rect = {
 
       tableRackGap: this.clamp(
         height *
-          (
-            isMobile
-              ? isPortrait
-                ? 0.004
-                : 0.01
-              : 0.012
-          ),
+        (
+          isMobile
+            ? isPortrait
+              ? 0.004
+              : 0.01
+            : 0.012
+        ),
         isMobile
           ? isPortrait
             ? 2
@@ -1704,7 +1712,7 @@ const rightExposure: Rect = {
   // This is work with the curent code but we use below of this old one 
   // The different is just gap adjustment beetween the tile of the rack
   // This also work fine with desktop and tablet, in mobile need to change as tiles have no gap.
-  
+
   private computeTileLayout(
     rack: Rect,
     count: number,

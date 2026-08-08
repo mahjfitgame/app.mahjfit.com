@@ -14,8 +14,6 @@ import { HamburgerMenuActionKey, HudActionKey, HudImageButton, LayoutStaticUiOpt
 export class UiLayoutManager {
   hudTextObjects: Phaser.GameObjects.Text[] = [];
   hudActionIconImage: Phaser.GameObjects.Image[] = [];
-  instructionText?: Phaser.GameObjects.Text;
-  passButton?: Phaser.GameObjects.Container;
   playerLabels: Phaser.GameObjects.Text[] = [];
   usernameText?: Phaser.GameObjects.Text;
   wallTileBox?: Phaser.GameObjects.Container;
@@ -70,7 +68,7 @@ export class UiLayoutManager {
    */
   private mobileActionMenuIcons: Phaser.GameObjects.Image[] = [];
 
-  
+
 
   hamburgerIcon?: Phaser.GameObjects.Text;
   logoText?: Phaser.GameObjects.Text;
@@ -81,6 +79,19 @@ export class UiLayoutManager {
   pointsText?: Phaser.GameObjects.Text;
   private wallCountOverlayState?: WallCountOverlayState;
   private pointsOverlayState?: PointsOverlayState;
+
+  /**
+   * Instruction panel model.
+   *
+   * The card, its copy, and its primary button are drawn as native HTML so the
+   * text stays sharp on every device. Phaser still owns all geometry, so these
+   * fields hold the latest content and the panel is republished whenever the
+   * layout, the phase, or the button state changes.
+   */
+  private instructionMessage = "";
+  private instructionPhase: TablePhase = "playing";
+  private passButtonLabel = "PICK";
+  private passButtonEnabled = true;
 
   hudWallIcon?: Phaser.GameObjects.Container;
   hudPointsIcon?: Phaser.GameObjects.Container;
@@ -125,7 +136,7 @@ export class UiLayoutManager {
   private gtColorFushia: string = COLOR_FUSHIA;
 
   private gtnumColorFushia: number = COLOR_FUSHIA_NUM;
-  
+
 
   private readonly hudActions = [
     {
@@ -186,33 +197,33 @@ export class UiLayoutManager {
       readonly active: string;
     }
   > = {
-    sort: {
-      normal: ICON_SORT_NORMAL,
-      hover: ICON_SORT_HOVER,
-      active: ICON_SORT_PRESSED,
-    },
-    hint: {
-      normal: ICON_HINT_NORMAL,
-      hover: ICON_HINT_HOVER,
-      active: ICON_HINT_PRESSED,
-    },
-    "dead-hand": {
-      normal: ICON_DEADHAND_NORMAL,
-      hover: ICON_DEADHAND_HOVER,
-      active: ICON_DEADHAND_PRESSED,
-    },
-    settings: {
-      normal: ICON_SETTINGS_NORMAL,
-      hover: ICON_SETTINGS_HOVER,
-      active: ICON_SETTINGS_PRESSED,
-    },
-    help: {
-      normal: ICON_HELP_NORMAL,
-      hover: ICON_HELP_HOVER,
-      active: ICON_HELP_PRESSED,
-    },
-  };
-  constructor(private readonly callbacks: UiLayoutCallbacks = {}) {}
+      sort: {
+        normal: ICON_SORT_NORMAL,
+        hover: ICON_SORT_HOVER,
+        active: ICON_SORT_PRESSED,
+      },
+      hint: {
+        normal: ICON_HINT_NORMAL,
+        hover: ICON_HINT_HOVER,
+        active: ICON_HINT_PRESSED,
+      },
+      "dead-hand": {
+        normal: ICON_DEADHAND_NORMAL,
+        hover: ICON_DEADHAND_HOVER,
+        active: ICON_DEADHAND_PRESSED,
+      },
+      settings: {
+        normal: ICON_SETTINGS_NORMAL,
+        hover: ICON_SETTINGS_HOVER,
+        active: ICON_SETTINGS_PRESSED,
+      },
+      help: {
+        normal: ICON_HELP_NORMAL,
+        hover: ICON_HELP_HOVER,
+        active: ICON_HELP_PRESSED,
+      },
+    };
+  constructor(private readonly callbacks: UiLayoutCallbacks = {}) { }
 
   createStaticUi(scene: Phaser.Scene): void {
     /**
@@ -242,8 +253,8 @@ export class UiLayoutManager {
        * Temporary until full hamburger drawer is wired.
        * Do not open settings dropdown here.
        */
-      /*this.callbacks.onHudAction?.("settings");
-    }); */
+    /*this.callbacks.onHudAction?.("settings");
+  }); */
     /* this.hamburgerIcon.on("pointerdown", (pointer: Phaser.Input.Pointer) => {
       pointer.event?.stopPropagation?.();
 
@@ -253,14 +264,14 @@ export class UiLayoutManager {
        *
        * Desktop hamburger drawer can be implemented later as a separate PSD menu.
        */
-      /*this.hudMenuOpen = !this.hudMenuOpen;
-      this.activeHudDropdown = undefined;
+    /*this.hudMenuOpen = !this.hudMenuOpen;
+    this.activeHudDropdown = undefined;
 
-      if (this.lastLayout) {
-        this.layoutMobileHud(this.lastLayout);
-        this.layoutHudDropdown(this.lastLayout);
-      }
-    }); */
+    if (this.lastLayout) {
+      this.layoutMobileHud(this.lastLayout);
+      this.layoutHudDropdown(this.lastLayout);
+    }
+  }); */
 
     this.hamburgerIcon.on("pointerdown", (pointer: Phaser.Input.Pointer) => {
       pointer.event?.stopPropagation?.();
@@ -286,7 +297,7 @@ export class UiLayoutManager {
       })
       .setOrigin(0, 0.5); */
 
-      // PNG LOGO
+    // PNG LOGO
     /* this.logoImage = scene.add
     .image(0, 0, this.callbacks.logoTextureKey ?? "majhfit-logo")
     .setOrigin(0, 0.5)
@@ -298,7 +309,7 @@ export class UiLayoutManager {
     .image(0, 0, this.callbacks.logoTextureKey ?? "majhfit-logo")
     .setOrigin(0, 0.5)
     .setDepth(25); */
-      
+
 
     this.hudWallIcon = this.createHudWallIcon(scene);
     this.wallTileBox = this.hudWallIcon;
@@ -334,17 +345,6 @@ export class UiLayoutManager {
     this.createMobileActionDrawer(scene);
 
 
-    this.instructionText = scene.add
-      .text(0, 0, "", {
-        fontFamily: FONT_FAMILY,
-        fontSize: "22px",
-        fontStyle: "700",
-        //color: "#253a78",
-        color: "#264089",
-        align: "center",
-      })
-      .setOrigin(0.5);
-
     this.playerLabels = [
       scene.add.text(0, 0, "PLAYER 1", this.labelStyle()).setOrigin(0.5),
       scene.add.text(0, 0, "PLAYER 2", this.labelStyle()).setOrigin(0.5),
@@ -356,7 +356,6 @@ export class UiLayoutManager {
       .setOrigin(0.5);
 
     this.pickSeatSelector = this.createPickSeatSelector(scene);
-    this.passButton = this.createPassButton(scene);
   }
 
   /** The mobile HUD overlays the table and can be hidden without relayout. */
@@ -427,7 +426,7 @@ export class UiLayoutManager {
         fontSize: "28px",
         fontStyle: "700",
         //color: "#cb2aa3",
-        color:this.gtColorFushia
+        color: this.gtColorFushia
       })
       .setOrigin(0, 0.5)
       .setInteractive({ useHandCursor: true })
@@ -443,7 +442,7 @@ export class UiLayoutManager {
       .setOrigin(0, 0.5)
       .setDepth(261); */
 
-      const logoTextureKey =
+    const logoTextureKey =
       this.callbacks.logoTextureKey ?? "majhfit-logo";
 
     this.hamburgerMenuLogoImage = scene.add
@@ -463,13 +462,13 @@ export class UiLayoutManager {
       readonly label: string;
       readonly action: HamburgerMenuActionKey;
     }[] = [
-      { label: "Gameplay Settings", action: "gameplay-settings" },
-      { label: "Your level/play history", action: "play-history" },
-      { label: "Account/billing", action: "account-billing" },
-      { label: "Restart Game", action: "restart-game" },
-      { label: "Quit/exit", action: "quit-exit" },
-      { label: "Log out", action: "log-out" },
-    ];
+        { label: "Gameplay Settings", action: "gameplay-settings" },
+        { label: "Your level/play history", action: "play-history" },
+        { label: "Account/billing", action: "account-billing" },
+        { label: "Restart Game", action: "restart-game" },
+        { label: "Quit/exit", action: "quit-exit" },
+        { label: "Log out", action: "log-out" },
+      ];
 
     this.hamburgerMenuItems = items.map((item) =>
       scene.add
@@ -511,8 +510,8 @@ export class UiLayoutManager {
       .setDepth(260)
       .setVisible(false);
   }
-  
-  
+
+
   private hudMetricTextStyle(): Phaser.Types.GameObjects.Text.TextStyle {
     return {
       fontFamily: FONT_FAMILY,
@@ -561,76 +560,11 @@ export class UiLayoutManager {
     this.layoutMobileActionButton(layout);
     this.layoutMobileActionDrawer(layout);
 
-    /* this.instructionText
-      ?.setPosition(
-        layout.instructionBar.x + layout.instructionBar.width / 2,
-        layout.instructionBar.y + layout.instructionBar.height * 0.36,
-      )
-      .setFontSize(Math.round(Phaser.Math.Clamp(layout.hud.height * 0.28, 18, 25)))
-      .setFontStyle("600")
-      .setColor("#263b7a")
-      .setAlign("center"); */
-    
-    const compact = this.isCompactHud(layout);
-
-    /* this.instructionText
-      ?.setPosition(
-        layout.instructionBar.x + layout.instructionBar.width / 2,
-        layout.instructionBar.y + layout.instructionBar.height * 0.34,
-      )
-      .setFontSize(
-        compact
-          ? Math.round(Phaser.Math.Clamp(layout.hud.height * 0.19, 8, 12))
-          : Math.round(Phaser.Math.Clamp(layout.hud.height * 0.28, 18, 25)),
-      )
-      .setFontStyle("600")
-      .setColor("#263b7a")
-      .setAlign("center"); */
-
-    /* const compactLandscape =
-    layout.metrics.isMobile && !layout.metrics.isPortrait;
-
-  this.instructionText
-    ?.setPosition(
-      layout.instructionBar.x + layout.instructionBar.width / 2,
-      layout.instructionBar.y + layout.instructionBar.height * 0.34,
-    )
-    .setFontSize(
-      compactLandscape
-        ? Math.round(Phaser.Math.Clamp(layout.hud.height * 0.145, 8, 11))
-        : compact
-          ? Math.round(Phaser.Math.Clamp(layout.hud.height * 0.19, 11, 15))
-          : Math.round(Phaser.Math.Clamp(layout.hud.height * 0.28, 18, 25)),
-    )
-    .setFontStyle("600")
-    .setColor("#263b7a")
-    .setAlign("center"); */
-    
-    const compactLandscape = layout.metrics.isMobile && !layout.metrics.isPortrait;
-    const isPassing = tablePhase === "passing";
-
-    const instructionFont = compactLandscape
-      ? Math.round(Phaser.Math.Clamp(layout.hud.height * 0.135, 8, 10))
-      : compact
-        ? Math.round(Phaser.Math.Clamp(layout.hud.height * 0.18, 10, 14))
-        : isPassing
-          ? Math.round(Phaser.Math.Clamp(layout.instructionBar.height * 0.118, 18, 25))
-          : Math.round(Phaser.Math.Clamp(layout.instructionBar.height * 0.135, 19, 28));
-
-    this.instructionText
-      ?.setPosition(
-        layout.instructionBar.x + layout.instructionBar.width / 2,
-        layout.instructionBar.y + layout.instructionBar.height * (isPassing ? 0.305 : 0.34),
-      )
-      .setFontSize(instructionFont)
-      .setFontStyle("600")
-      .setColor(this.gtColorBlue)
-      .setAlign("center")
-
+    // The instruction card, its copy, and its primary button are native HTML.
+    // updateInstruction()/updatePassButtonState() republish that panel below.
     this.updateInstruction(tablePhase, pickTargetSeat, passDirection);
     this.updatePlayerNames(layout, renderDpr, options.activeSeat);
 
-    this.layoutPassButton(layout);
     this.updatePassButtonState(options);
     this.layoutPickSeatSelector(layout, tablePhase, pickTargetSeat);
     this.layoutMobileHud(layout);
@@ -778,12 +712,12 @@ export class UiLayoutManager {
       readonly label: string;
       readonly action: HudActionKey;
     }[] = [
-      { label: "Sort Tiles", action: "sort" },
-      { label: "Get A Hint", action: "hint" },
-      { label: "Call DEAD Hand", action: "dead-hand" },
-      { label: "Settings", action: "settings" },
-      { label: "Help", action: "help" },
-    ];
+        { label: "Sort Tiles", action: "sort" },
+        { label: "Get A Hint", action: "hint" },
+        { label: "Call DEAD Hand", action: "dead-hand" },
+        { label: "Settings", action: "settings" },
+        { label: "Help", action: "help" },
+      ];
 
     this.mobileActionMenuItems = items.map((item) =>
       scene.add
@@ -1218,13 +1152,13 @@ export class UiLayoutManager {
       .setPosition(26, headerY)
       .setFontSize(Math.round(Phaser.Math.Clamp(hud.height * 0.42, 22, 34)))
       .setColor(this.gtColorFushia);
-      //.setColor("#cb2aa3");
+    //.setColor("#cb2aa3");
 
     /* this.hamburgerMenuLogoText
       .setPosition(72, headerY)
       .setFontSize(Math.round(Phaser.Math.Clamp(hud.height * 0.42, 24, 38)))
       .setColor("#27428a"); */
-    
+
     const logoHeight = Math.round(
       Phaser.Math.Clamp(hud.height * 0.58, 32, 54),
     );
@@ -1276,9 +1210,9 @@ export class UiLayoutManager {
       return;
     }
 
-    
+
     const compact = this.isCompactHud(layout);
-    
+
     if (!compact || !this.mobileActionMenuOpen) {
       this.mobileActionMenuContainer.setVisible(false);
       this.mobileActionMenuBg.setVisible(false);
@@ -1390,7 +1324,7 @@ export class UiLayoutManager {
       .setFontSize(Math.round(Phaser.Math.Clamp(hud.height * 0.40, 22, 34)))
       .setFontStyle("700")
       .setColor(this.gtColorFushia);
-      //.setColor("#cb2aa3");
+    //.setColor("#cb2aa3");
 
     this.mobileActionMenuTitleText
       .setVisible(true)
@@ -1398,7 +1332,7 @@ export class UiLayoutManager {
       .setFontSize(Math.round(Phaser.Math.Clamp(hud.height * 0.35, 18, 28)))
       .setFontStyle("700")
       .setColor("#264089");
-      //.setColor("#27428a");
+    //.setColor("#27428a");
 
 
     this.mobileActionMenuItems.forEach((label, index) => {
@@ -1475,18 +1409,18 @@ export class UiLayoutManager {
           24 + iconSize + 12,
           rowY,
         ); */
-        /** Settings rows use the larger readable size calculated above. */
-        label
-          .setVisible(true)
-          .setActive(true)
-          .setText(item.label)
-          .setFontSize(drawerRowFont)
-          .setFontStyle("600")
-          .setColor("#cb63b2")
-          .setPosition(
-            Math.round(24 + iconSize + 12),
-            Math.round(rowY),
-          );
+      /** Settings rows use the larger readable size calculated above. */
+      label
+        .setVisible(true)
+        .setActive(true)
+        .setText(item.label)
+        .setFontSize(drawerRowFont)
+        .setFontStyle("600")
+        .setColor("#cb63b2")
+        .setPosition(
+          Math.round(24 + iconSize + 12),
+          Math.round(rowY),
+        );
     });
 
     this.mobileActionMenuContainer
@@ -1506,139 +1440,6 @@ export class UiLayoutManager {
       items: drawerItems.map((item) => item.label),
     });
   }
-  private layoutMobileActionDrawerOLDW(layout: TableLayout): void {
-  if (
-    !this.mobileActionMenuContainer ||
-    !this.mobileActionMenuBg ||
-    !this.mobileActionMenuTitleText ||
-    !this.mobileActionMenuCloseText
-  ) {
-    return;
-  }
-
-  const compact = this.isCompactHud(layout);
-
-  if (!compact || !this.mobileActionMenuOpen) {
-    this.mobileActionMenuContainer.setVisible(false);
-    return;
-  }
-
-  const hud = layout.hud;
-
-  const width = Math.round(
-    Phaser.Math.Clamp(layout.canvas.width * 0.42, 200, 280),
-  );
-
-  const headerY = 34;
-  const rowStartY = 78;
-  const rowGap = 14;
-  const itemFont = Math.round(
-    Phaser.Math.Clamp(hud.height * 0.28, 15, 20),
-  );
-
-  this.mobileActionMenuItems.forEach((item) => {
-    item
-      .setFontSize(itemFont)
-      .setFontStyle("500")
-      .setColor("#cb63b2")
-      .setVisible(true);
-  });
-
-  const height =
-    rowStartY +
-    this.mobileActionMenuItems.length * (itemFont + rowGap) +
-    22;
-
-  this.drawOverlayDrawerBackground(this.mobileActionMenuBg, width, height);
-
-  this.mobileActionMenuTitleText
-    .setVisible(true)
-    .setPosition(width - 52, headerY)
-    .setFontSize(Math.round(Phaser.Math.Clamp(hud.height * 0.34, 18, 28)))
-    .setColor("#27428a");
-
-  this.mobileActionMenuCloseText
-    .setVisible(true)
-    .setPosition(width - 20, headerY)
-    .setFontSize(Math.round(Phaser.Math.Clamp(hud.height * 0.38, 20, 30)))
-    .setColor(this.gtColorFushia);
-    //.setColor("#cb2aa3");
-
-  this.mobileActionMenuItems.forEach((item, index) => {
-    item.setPosition(20, rowStartY + index * (itemFont + rowGap));
-  });
-
-  this.mobileActionMenuContainer
-    .setPosition(
-      Math.round(hud.x + hud.width - width - 12),
-      Math.round(hud.y + hud.height + 4),
-    )
-    .setDepth(260)
-    .setVisible(true);
-}
-  private layoutMobileActionDrawerOLD(layout: TableLayout): void {
-    if (
-      !this.mobileActionMenuContainer ||
-      !this.mobileActionMenuBg ||
-      !this.mobileActionMenuTitleText ||
-      !this.mobileActionMenuCloseText
-    ) {
-      return;
-    }
-
-    const compact = this.isCompactHud(layout);
-
-    if (!compact || !this.mobileActionMenuOpen) {
-      this.mobileActionMenuContainer.setVisible(false);
-      return;
-    }
-
-    const hud = layout.hud;
-
-    const width = Math.round(
-      Phaser.Math.Clamp(layout.canvas.width * 0.42, 200, 280),
-    );
-
-    const headerY = 34;
-    const rowStartY = 78;
-    const rowGap = 14;
-    const itemFont = Math.round(
-      Phaser.Math.Clamp(hud.height * 0.28, 15, 20),
-    );
-
-    this.mobileActionMenuItems.forEach((item) => {
-      item.setFontSize(itemFont).setFontStyle("500").setColor("#cb63b2");
-    });
-
-    const height =
-      rowStartY +
-      this.mobileActionMenuItems.length * (itemFont + rowGap) +
-      22;
-
-    this.drawOverlayDrawerBackground(this.mobileActionMenuBg, width, height);
-
-    this.mobileActionMenuTitleText
-      .setPosition(width - 52, headerY)
-      .setFontSize(Math.round(Phaser.Math.Clamp(hud.height * 0.34, 18, 28)))
-      .setColor("#27428a");
-
-    this.mobileActionMenuCloseText
-      .setPosition(width - 20, headerY)
-      .setFontSize(Math.round(Phaser.Math.Clamp(hud.height * 0.38, 20, 30)))
-      .setColor(this.gtColorFushia);
-
-    this.mobileActionMenuItems.forEach((item, index) => {
-      item.setPosition(20, rowStartY + index * (itemFont + rowGap));
-    });
-
-    this.mobileActionMenuContainer
-      .setPosition(
-        Math.round(hud.x + hud.width - width - 12),
-        Math.round(hud.y + hud.height + 4),
-      )
-      .setVisible(true);
-  }
-  
   private layoutPsdHud(layout: TableLayout, wallTileCount: number): void {
     const hud = layout.hud;
     const compact = this.isCompactHud(layout);
@@ -1679,7 +1480,7 @@ export class UiLayoutManager {
           ? Math.round(Phaser.Math.Clamp(hud.height * 0.62, 28, 32))
           : compact
             ? Math.round(Phaser.Math.Clamp(hud.height * 0.30, 18, 24))
-          : Math.round(Phaser.Math.Clamp(hud.height * 0.38, 26, 34)),
+            : Math.round(Phaser.Math.Clamp(hud.height * 0.38, 26, 34)),
       )
       .setFontStyle("600")
       .setColor(this.gtColorFushia)
@@ -1725,10 +1526,10 @@ export class UiLayoutManager {
         iconY,
       ); */
 
-      // this.logoImage = scene.add.image(400, 300, 'logoKey')
-      /**
-     * Logo Image: visible on mobile too, but scaled dynamically.
-     */
+    // this.logoImage = scene.add.image(400, 300, 'logoKey')
+    /**
+   * Logo Image: visible on mobile too, but scaled dynamically.
+   */
     /* if (this.logoImage) {
       // 1. Calculate the dynamic scale based on the HUD height
       const targetHeight = compact ? hud.height * 0.28 : hud.height * 0.43;
@@ -1747,41 +1548,45 @@ export class UiLayoutManager {
           iconY
         );
     } */
-   /* const logoX = compact
-    ? Math.round(hud.x + Math.max(30, hud.height * 0.58))
-    : Math.round(hud.x + Math.max(64, hud.height * 0.94));
+    /* const logoX = compact
+     ? Math.round(hud.x + Math.max(30, hud.height * 0.58))
+     : Math.round(hud.x + Math.max(64, hud.height * 0.94));
+ 
+   const logoHeight = compact
+     ? Math.round(Phaser.Math.Clamp(hud.height * 0.34, 16, 24))
+     : Math.round(Phaser.Math.Clamp(hud.height * 0.52, 34, 48));
+ 
+   if (this.logoImage) {
+     const source = this.logoImage.texture.getSourceImage() as HTMLImageElement;
+     const sourceWidth = source.width || 1;
+     const sourceHeight = source.height || 1;
+ 
+     const logoWidth = Math.round((sourceWidth / sourceHeight) * logoHeight);
+ 
+     this.logoImage
+       .setVisible(true)
+       .setOrigin(0, 0.5)
+       .setDisplaySize(logoWidth, logoHeight)
+       .setPosition(Math.round(logoX), Math.round(iconY));
+   } */
 
-  const logoHeight = compact
-    ? Math.round(Phaser.Math.Clamp(hud.height * 0.34, 16, 24))
-    : Math.round(Phaser.Math.Clamp(hud.height * 0.52, 34, 48));
 
-  if (this.logoImage) {
-    const source = this.logoImage.texture.getSourceImage() as HTMLImageElement;
-    const sourceWidth = source.width || 1;
-    const sourceHeight = source.height || 1;
 
-    const logoWidth = Math.round((sourceWidth / sourceHeight) * logoHeight);
-
-    this.logoImage
-      .setVisible(true)
-      .setOrigin(0, 0.5)
-      .setDisplaySize(logoWidth, logoHeight)
-      .setPosition(Math.round(logoX), Math.round(iconY));
-  } */
-
-      
-      
 
 
     /**
      * Wall count.
      */
     const wallIconSize = this.hudWallIconSize(layout);
+    // Slightly smaller bump on mobile landscape so it doesn't touch the panels
+    const wallMetricFont = layout.metrics.isMobile && !layout.metrics.isPortrait
+      ? Math.round(metricFont * 1.1)
+      : Math.round(metricFont * 1.25);
 
     this.wallCountText
       ?.setVisible(true)
       .setText(`${wallTileCount} LEFT`)
-      .setFontSize(metricFont)
+      .setFontSize(wallMetricFont)
       .setFontStyle("500")
       .setColor(COLOR_BLUE);
 
@@ -1789,18 +1594,19 @@ export class UiLayoutManager {
     // Landscape layouts have a right rail beside the top tray, including
     // large iPad Pro viewports classified as desktop. Reserve that lane.
     const wallGroupRight = !layout.metrics.isPortrait
-      ? layout.rightExposure.x - 12
+      ? layout.rightExposure.x
       : layout.tableOuter.x + layout.tableOuter.width;
     const wallGroupWidth =
       wallIconSize.width + metricGap + (this.wallCountText?.width ?? 0);
     const isMobilePortrait = layout.metrics.isMobile && layout.metrics.isPortrait;
+    const placeBelowTopExposure = isMobilePortrait || layout.metrics.isTablet;
     const wallGroupCenter = (wallGroupLeft + wallGroupRight) / 2;
-    const wallIconX = isMobilePortrait
+    const wallIconX = placeBelowTopExposure
       // The widened mobile top tray has no reliable right-side lane. Place
       // the counter just below its right edge instead of covering the tray.
       ? layout.topExposure.x + layout.topExposure.width - wallGroupWidth + wallIconSize.width / 2
       : wallGroupCenter - wallGroupWidth / 2 + wallIconSize.width / 2;
-    const wallY = isMobilePortrait
+    const wallY = placeBelowTopExposure
       ? layout.topExposure.y + layout.topExposure.height + wallIconSize.height / 2 + 8
       : layout.topExposure.y + layout.topExposure.height / 2;
 
@@ -1821,7 +1627,7 @@ export class UiLayoutManager {
       text: `${wallTileCount} LEFT`,
       x: wallCountX,
       y: wallCountY,
-      fontSize: metricFont,
+      fontSize: wallMetricFont,
       visible: useHtmlWallCount,
       iconX: Math.round(wallIconX),
       iconY: Math.round(wallY),
@@ -1971,7 +1777,7 @@ export class UiLayoutManager {
         .setVisible(true);
     });
   }
-  
+
   private hudPointsIconSize(layout: TableLayout): {
     readonly width: number;
     readonly height: number;
@@ -2045,7 +1851,6 @@ export class UiLayoutManager {
       this.hamburgerIcon,
       this.logoText,
       this.pointsText,
-      this.instructionText,
       ...this.pickSeatButtons,
     ]) {
       text?.setResolution(renderDpr);
@@ -2063,38 +1868,153 @@ export class UiLayoutManager {
       .setAngle(0);
     this.wallCountText?.texture.setFilter(Phaser.Textures.FilterMode.LINEAR);
   }
-  
+
 
   updateInstruction(
     phase: TablePhase,
     pickTargetSeat: TableSeat,
     passDirection: PassDirection,
   ): void {
-    if (phase === "playing") {
+    this.instructionPhase = phase;
+
+    if (phase === "playing" || phase === "discard") {
       const seatLabel =
         pickTargetSeat === "bottom" ? "YOUR RACK" :
-        pickTargetSeat === "top" ? "TOP SEAT" :
-        pickTargetSeat === "left" ? "LEFT SEAT" : "RIGHT SEAT";
+          pickTargetSeat === "top" ? "TOP SEAT" :
+            pickTargetSeat === "left" ? "LEFT SEAT" : "RIGHT SEAT";
 
-      this.instructionText?.setText(`YOUR TURN\nPick a tile to ${seatLabel}`);
+      this.instructionMessage =
+        phase === "playing"
+          ? `YOUR TURN\nPick a tile to ${seatLabel}`
+          : `DISCARD\nDiscard from ${seatLabel}`;
+
+      this.publishInstructionPanel();
       return;
     }
 
-    if (phase === "discard") {
-      const seatLabel =
-        pickTargetSeat === "bottom" ? "YOUR RACK" :
-        pickTargetSeat === "top" ? "TOP SEAT" :
-        pickTargetSeat === "left" ? "LEFT SEAT" : "RIGHT SEAT";
-      this.instructionText?.setText(`DISCARD\nDiscard from ${seatLabel}`);
-      return;
-    }
-
-    const label =
+    this.instructionMessage =
       passDirection === "right" ? "YOUR TURN\nSelect 3 tiles to pass\nto the right." :
-      passDirection === "left" ? "YOUR TURN\nSelect 3 tiles to pass\nto the left." :
-      "YOUR TURN\nSelect 3 tiles to pass\nacross.";
+        passDirection === "left" ? "YOUR TURN\nSelect 3 tiles to pass\nto the left." :
+          "YOUR TURN\nSelect 3 tiles to pass\nacross.";
 
-    this.instructionText?.setText(label);
+    this.publishInstructionPanel();
+  }
+
+  /**
+   * Rebuilds the native instruction card from the last resolved layout.
+   *
+   * Every number here mirrors the geometry the Phaser Graphics card used, so
+   * the HTML panel lands on exactly the same pixels as the old drawn card.
+   */
+  private publishInstructionPanel(): void {
+    const layout = this.lastLayout;
+    if (!layout) return;
+
+    const card = layout.instructionBar;
+    const button = layout.passButton;
+    const compact = this.isCompactHud(layout);
+    const compactLandscape = layout.metrics.isMobile && !layout.metrics.isPortrait;
+    const isPassing = this.instructionPhase === "passing";
+
+    const radius = Math.round(Phaser.Math.Clamp(card.height * 0.22, 16, 34));
+    // The reference card carries a heavier olive rim than the old Phaser
+    // stroke, held to a sane range so phone-sized cards keep their inner room.
+    const borderWidth = Math.round(Phaser.Math.Clamp(card.height * 0.026, 3, 7));
+
+    const bodyFontSize = compactLandscape
+      ? Math.round(Phaser.Math.Clamp(layout.hud.height * 0.135, 8, 10))
+      : compact
+        ? Math.round(Phaser.Math.Clamp(layout.hud.height * 0.18, 10, 14))
+        : isPassing
+          ? Math.round(Phaser.Math.Clamp(card.height * 0.118, 18, 25))
+          : Math.round(Phaser.Math.Clamp(card.height * 0.135, 19, 28));
+
+    const buttonRadius = Math.round(Phaser.Math.Clamp(button.height * 0.22, 8, 14));
+
+    const buttonFontSize = compactLandscape
+      ? Math.round(Phaser.Math.Clamp(layout.hud.height * 0.19, 11, 14))
+      : compact
+        ? Math.round(Phaser.Math.Clamp(layout.hud.height * 0.20, 11, 15))
+        : Math.round(Phaser.Math.Clamp(layout.metrics.passFont * 1.15, 18, 31));
+
+    // The first line is the emphasised heading; the rest is supporting copy.
+    const [title, ...bodyLines] = this.instructionMessage.split("\n");
+    const body = bodyLines.join("\n");
+
+    const buttonTop = Math.round(button.y - card.y);
+
+    // Short phone cards are barely taller than their button, so they trade
+    // breathing room for legible copy; roomier cards keep the fuller insets.
+    const tight = card.height < 100;
+    const contentTop = Math.round(card.height * (tight ? 0.045 : 0.08));
+    const contentBottom = Math.max(
+      contentTop,
+      buttonTop - Math.round(card.height * (tight ? 0.025 : 0.045)),
+    );
+
+    /**
+     * Shrink the copy to the band above the button when it would not fit.
+     *
+     * The multipliers below mirror the CSS line-heights, so the measurement
+     * here matches what the browser lays out. Compact phone cards are barely
+     * taller than their button, and this keeps the copy inside the card
+     * instead of letting it run over the button.
+     */
+    let titleFontSize = Math.round(bodyFontSize * 1.12);
+    let bodyFitted = bodyFontSize;
+    let titleGap = body ? Math.max(2, Math.round(bodyFontSize * 0.34)) : 0;
+
+    const band = contentBottom - contentTop;
+    const required =
+      titleFontSize * 1.2 + titleGap + bodyLines.length * bodyFitted * 1.32;
+
+    if (band > 0 && required > band) {
+      // 8px matches the smallest size the compact-landscape clamp already
+      // allows, so the copy never shrinks below what the design considers
+      // legible; at that floor the heading is distinguished by weight alone.
+      const scale = band / required;
+      titleFontSize = Math.max(8, Math.floor(titleFontSize * scale));
+      bodyFitted = Math.max(8, Math.floor(bodyFitted * scale));
+      titleGap = body ? Math.max(1, Math.floor(titleGap * scale)) : 0;
+    }
+
+    this.callbacks.onInstructionPanelOverlay?.({
+      visible: true,
+      x: Math.round(card.x),
+      y: Math.round(card.y),
+      width: Math.round(card.width),
+      height: Math.round(card.height),
+      radius,
+      borderWidth,
+      shadowY: Math.max(6, Math.round(card.height * 0.045)),
+      shadowBlur: Math.max(12, Math.round(card.height * 0.10)),
+      title: title ?? "",
+      titleFontSize,
+      body,
+      bodyFontSize: bodyFitted,
+      // Copy is centred between the top inset and the gap above the button, so
+      // it can never collide with the button as the card shrinks.
+      contentTop,
+      contentBottom,
+      titleGap,
+      button: {
+        label: this.passButtonLabel,
+        enabled: this.passButtonEnabled,
+        x: Math.round(button.x - card.x),
+        y: buttonTop,
+        width: Math.round(button.width),
+        height: Math.round(button.height),
+        radius: buttonRadius,
+        fontSize: buttonFontSize,
+        shadowY: Math.max(3, Math.round(button.height * 0.10)),
+        shadowBlur: Math.max(6, Math.round(button.height * 0.22)),
+      },
+    });
+  }
+
+  /** Routes a tap on the native primary button back through the normal callback. */
+  handleHtmlPrimaryAction(): void {
+    this.callbacks.onPrimaryAction?.();
   }
   /**
    * Higher internal texture resolution for small player labels.
@@ -2126,7 +2046,7 @@ export class UiLayoutManager {
 
     const inactiveLabelColor = COLOR_AVOCADO;
     const activeLabelColor = COLOR_BLUE;
-    
+
 
     const isMobilePortrait =
       metrics.isMobile &&
@@ -2173,16 +2093,16 @@ export class UiLayoutManager {
       ?.setOrigin(0.5)
       // CRITICAL: Round position to perfect boundaries so text never straddles two pixels
       .setPosition(Math.round(layout.topLabel.x), Math.round(layout.topLabel.y))
-      
+
       // 3. Render at the target size. DO NOT USE .setScale()
       .setFontFamily('"Poppins", sans-serif')
       .setFontSize(`${playerFont}px`)
-      .setScale(1) 
-      
+      .setScale(1)
+
       // 4. Boost the weight. Poppins needs a thick weight at 11px-15px to avoid looking faded
-      .setFontStyle("700") 
+      .setFontStyle("700")
       .setColor(topColor)
-      
+
       // 5. Add clean padding & wipe strokes (Strokes ruin small vector fonts)
       .setPadding(4)
       .setStroke(topColor, 0)
@@ -2190,7 +2110,7 @@ export class UiLayoutManager {
       .setVisible(!useHtmlPlayerLabels)
       .setDepth(40)
       .setAngle(0)
-      
+
       // 6. Force the internal high-DPI canvas texture resolution
       .setResolution(labelResolution);
 
@@ -2199,7 +2119,7 @@ export class UiLayoutManager {
 
     // 8. Re-verify rendering interpolation filter
     this.playerLabels[0]?.texture.setFilter(Phaser.Textures.FilterMode.LINEAR);
-    
+
 
 
     /* this.playerLabels[0]
@@ -2247,7 +2167,7 @@ export class UiLayoutManager {
       .setDepth(40)
       .setAngle(-90)
       .setResolution(labelResolution);
-    
+
     this.playerLabels[2]?.texture.setFilter(Phaser.Textures.FilterMode.LINEAR);
 
     this.usernameText
@@ -2274,227 +2194,6 @@ export class UiLayoutManager {
       { key: "left", text: this.playerLabels[2]?.text ?? "PLAYER 3", x: Math.round(layout.leftLabel.x), y: Math.round(layout.leftLabel.y), fontSize: playerFont, color: leftColor, angle: -90, visible: useHtmlPlayerLabels },
       { key: "bottom", text: this.usernameText?.text ?? "USERNAME", x: Math.round(layout.username.x), y: Math.round(layout.username.y), fontSize: usernameFont, color: bottomColor, angle: 0, visible: useHtmlPlayerLabels },
     ]);
-  }
-
-  updatePlayerNamesOLDW(
-    layout: TableLayout,
-    renderDpr: number,
-    activeSeat: TableSeat,
-  ): void {
-    const metrics = layout.metrics;
-
-    const compact = this.isCompactHud(layout);
-    const compactLandscape = layout.metrics.isMobile && !layout.metrics.isPortrait;
-
-    const inactiveLabelColor = COLOR_AVOCADO;
-    const activeLabelColor = COLOR_BLUE;
-
-    /**
-     * Player label font sizes.
-     *
-     * Real mobile devices cannot read 4px/5px Phaser text clearly.
-     * Keep desktop/tablet driven by ResponsiveMetrics, but use a real
-     * minimum readable size for mobile portrait/landscape.
-     *
-     * This only changes text size. It does not change label positions,
-     * exposure panel sizes, rack layout, pass area, or discard area.
-     */
-    const isMobilePortrait =
-      metrics.isMobile &&
-      layout.canvas.height >= layout.canvas.width;
-
-    const isMobileLandscape =
-      metrics.isMobile &&
-      layout.canvas.width > layout.canvas.height;
-    const labelResolution = Math.max(
-      renderDpr,
-      this.readablePlayerLabelResolution(),
-    );
-    const playerFont = isMobileLandscape
-      ? Math.round(Phaser.Math.Clamp(layout.hud.height * 0.28, 11, 13))
-      : isMobilePortrait
-        ? Math.round(Phaser.Math.Clamp(layout.hud.height * 0.18, 9, 12))//Math.round(Phaser.Math.Clamp(layout.hud.height * 0.28, 11, 13))
-        : compact
-          ? Math.round(Phaser.Math.Clamp(layout.hud.height * 0.18, 9, 12))
-          : Math.round(metrics.playerLabelFont);
-
-    const usernameFont = isMobileLandscape
-      ? Math.round(Phaser.Math.Clamp(layout.hud.height * 0.28, 11, 13))
-      : isMobilePortrait
-        ? Math.round(Phaser.Math.Clamp(layout.hud.height * 0.18, 9, 12))
-        : compact
-          ? Math.round(Phaser.Math.Clamp(layout.hud.height * 0.18, 9, 12))
-          : Math.round(metrics.usernameFont);
-
-    this.playerLabels[0]
-      ?.setOrigin(0.5)
-      .setPosition(Math.round(layout.topLabel.x), Math.round(layout.topLabel.y))
-      .setFontSize(playerFont)
-      .setFontStyle(metrics.isMobile ? "600" : compact ? "600" : "700")
-      .setColor(activeSeat === "top" ? activeLabelColor : inactiveLabelColor)
-      //.setStroke(activeSeat === "top" ? "#f0eb78" : "#07142f", 1)
-      .setAlpha(1)
-      .setVisible(true)
-      .setDepth(40)
-      .setAngle(0)
-      .setResolution(labelResolution);
-
-    this.playerLabels[1]
-      ?.setOrigin(0.5)
-      .setPosition(Math.round(layout.rightLabel.x), Math.round(layout.rightLabel.y))
-      .setFontSize(playerFont)
-      .setFontStyle(metrics.isMobile ? "600" : compact ? "600" : "700")
-      .setColor(activeSeat === "right" ? activeLabelColor : inactiveLabelColor)
-      //.setStroke(activeSeat === "right" ? "#f0eb78" : "#07142f", 1)
-      .setAlpha(1)
-      .setVisible(true)
-      .setDepth(40)
-      .setAngle(90)
-      .setResolution(labelResolution);
-
-    this.playerLabels[2]
-      ?.setOrigin(0.5)
-      .setPosition(Math.round(layout.leftLabel.x), Math.round(layout.leftLabel.y))
-      .setFontSize(playerFont)
-      .setFontStyle(metrics.isMobile ? "600" : compact ? "600" : "700")
-      .setColor(activeSeat === "left" ? activeLabelColor : inactiveLabelColor)
-      //.setStroke(activeSeat === "left" ? "#f0eb78" : "#07142f", 1)
-      .setAlpha(1)
-      .setVisible(true)
-      .setDepth(40)
-      .setAngle(-90)
-      .setResolution(labelResolution);
-
-    this.usernameText
-      ?.setOrigin(0.5)
-      .setPosition(Math.round(layout.username.x), Math.round(layout.username.y))
-      .setFontSize(usernameFont)
-      .setFontStyle(metrics.isMobile ? "600" : compact ? "600" : "700")
-      .setColor(activeSeat === "bottom" ? activeLabelColor : inactiveLabelColor)
-      //.setStroke(activeSeat === "bottom" ? "#f0eb78" : "#07142f", 1)
-      .setAlpha(1)
-      .setVisible(true)
-      .setDepth(40)
-      .setResolution(labelResolution);
-  }
-  updatePlayerNamesOOLD(
-    layout: TableLayout,
-    renderDpr: number,
-    activeSeat: TableSeat,
-  ): void {
-    const metrics = layout.metrics;
-
-    const inactiveLabelColor = "#d4d12a";
-    const activeLabelColor = "#17336f";
-
-    const compact = this.isCompactHud(layout);
-    const compactLandscape = layout.metrics.isMobile && !layout.metrics.isPortrait;
-
-    /* const playerFont = compact
-      ? Math.round(Phaser.Math.Clamp(layout.hud.height * 0.135, 7, 10))
-      : metrics.playerLabelFont;
-
-    const usernameFont = compact
-      ? Math.round(Phaser.Math.Clamp(layout.hud.height * 0.135, 7, 10))
-      : metrics.usernameFont; */
-    
-    /* const playerFont = compact
-      ? Math.round(Phaser.Math.Clamp(layout.hud.height * 0.11, 6, 8))
-      : metrics.playerLabelFont;
-
-    const usernameFont = compact
-      ? Math.round(Phaser.Math.Clamp(layout.hud.height * 0.11, 6, 8))
-      : metrics.usernameFont; */
-
-   /* const playerFont = compactLandscape
-    ? Math.round(Phaser.Math.Clamp(layout.hud.height * 0.095, 5, 7))
-    : compact
-      ? Math.round(Phaser.Math.Clamp(layout.hud.height * 0.10, 5, 7))
-      : metrics.playerLabelFont;
-
-  const usernameFont = compactLandscape
-    ? Math.round(Phaser.Math.Clamp(layout.hud.height * 0.095, 5, 7))
-    : compact
-      ? Math.round(Phaser.Math.Clamp(layout.hud.height * 0.10, 5, 7))
-      : metrics.usernameFont; */
-
-      /* const playerFont = compactLandscape
-        ? 5
-        : compact
-          ? Math.round(Phaser.Math.Clamp(layout.hud.height * 0.10, 5, 7))
-          : metrics.playerLabelFont;
-
-      const usernameFont = compactLandscape
-        ? 5
-        : compact
-          ? Math.round(Phaser.Math.Clamp(layout.hud.height * 0.10, 5, 7))
-          : metrics.usernameFont; */
-      /* const playerFont = compactLandscape
-        ? 4
-        : compact
-          ? 4
-          : Math.max(10, Math.round(metrics.playerLabelFont * 0.82));
-
-      const usernameFont = compactLandscape
-        ? 4
-        : compact
-          ? 4
-          : Math.max(10, Math.round(metrics.usernameFont * 0.82)); */
-
-      const playerFont = compactLandscape
-        ? 5
-        : compact
-          ? 4
-          : metrics.playerLabelFont;
-
-      const usernameFont = compactLandscape
-        ? 5
-        : compact
-          ? 4
-          : metrics.usernameFont;
-
-    this.playerLabels[0]
-      ?.setPosition(layout.topLabel.x, layout.topLabel.y)
-      .setFontSize(playerFont)
-      .setFontStyle(compact ? "600" : "700")
-      .setColor(activeSeat === "top" ? activeLabelColor : inactiveLabelColor)
-      .setAlpha(1)
-      .setVisible(true)
-      .setDepth(40)
-      .setAngle(0)
-      .setResolution(renderDpr);
-
-    this.playerLabels[1]
-      ?.setPosition(layout.rightLabel.x, layout.rightLabel.y)
-      .setFontSize(playerFont)
-      .setFontStyle(compact ? "600" : "700")
-      .setColor(activeSeat === "right" ? activeLabelColor : inactiveLabelColor)
-      .setAlpha(1)
-      .setVisible(true)
-      .setDepth(40)
-      .setAngle(90)
-      .setResolution(renderDpr);
-
-    this.playerLabels[2]
-      ?.setPosition(layout.leftLabel.x, layout.leftLabel.y)
-      .setFontSize(playerFont)
-      .setFontStyle(compact ? "600" : "700")
-      .setColor(activeSeat === "left" ? activeLabelColor : inactiveLabelColor)
-      .setAlpha(1)
-      .setVisible(true)
-      .setDepth(40)
-      .setAngle(-90)
-      .setResolution(renderDpr);
-
-    this.usernameText
-      ?.setPosition(layout.username.x, layout.username.y)
-      .setFontSize(usernameFont)
-      .setFontStyle(compact ? "600" : "700")
-      .setColor(activeSeat === "bottom" ? activeLabelColor : inactiveLabelColor)
-      .setAlpha(1)
-      .setVisible(true)
-      .setDepth(40)
-      .setResolution(renderDpr);
   }
 
   updateWallTiles(wallTileCount: number): void {
@@ -2525,7 +2224,7 @@ export class UiLayoutManager {
     const hudHeight = layout.hud.height;
 
     const height = Math.round(
-      Phaser.Math.Clamp(hudHeight * 0.30, 17, 25),
+      Phaser.Math.Clamp(hudHeight * 0.38, 22, 32),
     );
 
     return {
@@ -2667,21 +2366,21 @@ export class UiLayoutManager {
           ? undefined
           : this.activeHudDropdown === action.key ? undefined : action.key;
 
-          if (action.key !== "sort") {
-            this.callbacks.onHudAction?.(action.key);
-          }
+        if (action.key !== "sort") {
+          this.callbacks.onHudAction?.(action.key);
+        }
 
-          this.updateHudActionButtonTextures();
+        this.updateHudActionButtonTextures();
 
-          // A dropdown has to be created and positioned against the current
-          // table layout.  Merely changing visibility leaves the background
-          // with no menu items, which made the Settings icon appear to do
-          // nothing on tablet and desktop.
-          if (this.lastLayout) {
-            this.layoutHudDropdown(this.lastLayout);
-          } else {
-            this.layoutHudDropdownFromCurrentVisibility();
-          }
+        // A dropdown has to be created and positioned against the current
+        // table layout.  Merely changing visibility leaves the background
+        // with no menu items, which made the Settings icon appear to do
+        // nothing on tablet and desktop.
+        if (this.lastLayout) {
+          this.layoutHudDropdown(this.lastLayout);
+        } else {
+          this.layoutHudDropdownFromCurrentVisibility();
+        }
       });
 
       image.on("pointerupoutside", () => {
@@ -2890,9 +2589,9 @@ export class UiLayoutManager {
     this.hudActionsContainer.setPosition(
       Math.round(
         hud.x +
-          hud.width -
-          Math.max(26, hud.height * 0.38) -
-          totalWidth,
+        hud.width -
+        Math.max(26, hud.height * 0.38) -
+        totalWidth,
       ),
       Math.round(hud.y + hud.height / 2),
     );
@@ -2938,7 +2637,7 @@ export class UiLayoutManager {
     }
 
     const action = this.hudActions.find((item) => item.key === this.activeHudDropdown);
-        const button = this.hudActionButtons.find(
+    const button = this.hudActionButtons.find(
       (item) => item.key === this.activeHudDropdown,
     );
 
@@ -3081,10 +2780,10 @@ export class UiLayoutManager {
   }
 
   private layoutHudDropdownFromCurrentAction(): void {
-     /**
-     * The actual dropdown layout needs TableLayout, so this only toggles visibility.
-     * The next layoutStaticUi/updateHUD call will position exactly.
-     */
+    /**
+    * The actual dropdown layout needs TableLayout, so this only toggles visibility.
+    * The next layoutStaticUi/updateHUD call will position exactly.
+    */
     this.updateHudActionButtonTextures();
     this.hudDropdownBg?.setVisible(Boolean(this.activeHudDropdown));
   }
@@ -3094,12 +2793,12 @@ export class UiLayoutManager {
       readonly label: string;
       readonly action: HudActionKey;
     }[] = [
-      { label: "Sort Tiles", action: "sort" },
-      { label: "Get A Hint", action: "hint" },
-      { label: "Call DEAD Hand", action: "dead-hand" },
-      { label: "Settings", action: "settings" },
-      { label: "Help", action: "help" },
-    ];
+        { label: "Sort Tiles", action: "sort" },
+        { label: "Get A Hint", action: "hint" },
+        { label: "Call DEAD Hand", action: "dead-hand" },
+        { label: "Settings", action: "settings" },
+        { label: "Help", action: "help" },
+      ];
 
     this.hudMenuItems = items.map((item) =>
       scene.add
@@ -3261,130 +2960,14 @@ export class UiLayoutManager {
     };
   }
 
-  createPassButton(scene: Phaser.Scene): Phaser.GameObjects.Container {
-    const bg = scene.add.graphics();
-
-    const text = scene.add
-      .text(0, 0, "PICK", {
-        fontFamily: FONT_FAMILY,
-        fontSize: "13px",
-        fontStyle: "700",
-        color: "#ffffff",
-      })
-      .setOrigin(0.5);
-
-    this.passButton = scene.add
-      .container(0, 0, [bg, text])
-      .setDepth(20);
-
-    this.passButton.setInteractive(
-      new Phaser.Geom.Rectangle(-70, -32, 140, 64),
-      Phaser.Geom.Rectangle.Contains,
-    );
-
-    this.passButton.on("pointerdown", () => {
-      this.callbacks.onPrimaryAction?.();
-    });
-
-    return this.passButton;
-  }
-
-  layoutPassButton(layout: TableLayout): void {
-    if (!this.passButton) return;
-
-    const button = layout.passButton;
-    const metrics = layout.metrics;
-
-    const bg = this.passButton.list[0] as Phaser.GameObjects.Graphics;
-    const text = this.passButton.list[1] as Phaser.GameObjects.Text;
-
-    const compact = this.isCompactHud(layout);
-    const compactLandscape = layout.metrics.isMobile && !layout.metrics.isPortrait;
-
-    this.passButton.setPosition(
-      Math.round(button.x + button.width / 2),
-      Math.round(button.y + button.height / 2),
-    );
-
-    const radius = Math.round(
-      Phaser.Math.Clamp(button.height * 0.22, 8, 14),
-    );
-
-    bg.clear();
-
-    /**
-     * PSD-style button shadow.
-     */
-    bg.fillStyle(0x000000, 0.22);
-    bg.fillRoundedRect(
-      -button.width / 2 + Math.max(3, button.width * 0.025),
-      -button.height / 2 + Math.max(4, button.height * 0.10),
-      button.width,
-      button.height,
-      radius,
-    );
-
-    bg.fillStyle(0x000000, 0.10);
-    bg.fillRoundedRect(
-      -button.width / 2 + Math.max(6, button.width * 0.045),
-      -button.height / 2 + Math.max(7, button.height * 0.16),
-      button.width,
-      button.height,
-      radius,
-    );
-
-    /**
-     * Magenta button body.
-     */
-    bg.fillStyle(this.gtnumColorFushia, 1);
-    bg.fillRoundedRect(
-      -button.width / 2,
-      -button.height / 2,
-      button.width,
-      button.height,
-      radius,
-    );
-
-    /**
-     * Subtle top highlight.
-     */
-    bg.fillStyle(0xffffff, 0.08);
-    bg.fillRoundedRect(
-      -button.width / 2 + 2,
-      -button.height / 2 + 2,
-      button.width - 4,
-      Math.max(2, button.height * 0.22),
-      Math.max(5, radius - 2),
-    );
-
-    text
-      .setFontSize(
-        compactLandscape
-          ? Math.round(Phaser.Math.Clamp(layout.hud.height * 0.19, 11, 14))
-          : compact
-            ? Math.round(Phaser.Math.Clamp(layout.hud.height * 0.20, 11, 15))
-            : Math.round(Phaser.Math.Clamp(metrics.passFont * 1.15, 18, 31)),
-      )
-      .setFontStyle("700")
-      .setColor("#ffffff")
-      .setPosition(0, 0);
-
-    this.passButton.setInteractive(
-      new Phaser.Geom.Rectangle(
-        -button.width / 2,
-        -button.height / 2,
-        button.width,
-        button.height,
-      ),
-      Phaser.Geom.Rectangle.Contains,
-    );
-  }
-
+  /**
+   * Resolves the primary button's label and enabled state.
+   *
+   * The button itself is native HTML, so this only updates the model and
+   * republishes the instruction panel.
+   */
   updatePassButtonState(options: PassButtonStateOptions): void {
-    if (!this.passButton) return;
-
     const {
-      layout,
       tablePhase,
       passWaitingCount,
       canSubmitPass,
@@ -3394,67 +2977,23 @@ export class UiLayoutManager {
       canPickFromWall,
     } = options;
 
-    const bg = this.passButton.list[0] as Phaser.GameObjects.Graphics;
-    const text = this.passButton.list[1] as Phaser.GameObjects.Text;
-    const button = layout.passButton;
-
     const enabled =
       tablePhase === "discard"
         ? true
         : tablePhase === "playing"
           ? canPickFromWall !== false && wallTileCount > 0 && !isPickAnimating
-        : canSubmitPass && !isPassAnimating;
+          : canSubmitPass && !isPassAnimating;
 
-    text.setText(
+    this.passButtonEnabled = enabled;
+    this.passButtonLabel =
       tablePhase === "discard"
         ? "DISCARD"
         : tablePhase === "playing"
           ? "PICK"
-          : enabled ? "PASS" : `${passWaitingCount}/3`,
-    );
-    this.passButton.setAlpha(enabled ? 1 : 0.65);
+          : enabled ? "PASS" : `${passWaitingCount}/3`;
 
-   /*  bg.clear();
-    bg.fillStyle(enabled ? 0xcb2aa3 : 0x777777, 1);
-    bg.fillRoundedRect(
-      -button.width / 2,
-      -button.height / 2,
-      button.width,
-      button.height,
-      Math.min(12, button.height * 0.28),
-    ); */
-    const radius = Math.round(
-  Phaser.Math.Clamp(button.height * 0.22, 8, 14),
-);
-
-bg.clear();
-
-bg.fillStyle(0x000000, enabled ? 0.22 : 0.14);
-bg.fillRoundedRect(
-  -button.width / 2 + Math.max(3, button.width * 0.025),
-  -button.height / 2 + Math.max(4, button.height * 0.10),
-  button.width,
-  button.height,
-  radius,
-);
-
-bg.fillStyle(enabled ? this.gtnumColorFushia : 0x777777, 1);
-bg.fillRoundedRect(
-  -button.width / 2,
-  -button.height / 2,
-  button.width,
-  button.height,
-  radius,
-);
-
-bg.fillStyle(0xffffff, enabled ? 0.08 : 0.04);
-bg.fillRoundedRect(
-  -button.width / 2 + 2,
-  -button.height / 2 + 2,
-  button.width - 4,
-  Math.max(2, button.height * 0.22),
-  Math.max(5, radius - 2),
-);
+    this.instructionPhase = tablePhase;
+    this.publishInstructionPanel();
   }
 
   createPickSeatSelector(scene: Phaser.Scene): Phaser.GameObjects.Container {
@@ -3497,7 +3036,7 @@ bg.fillRoundedRect(
     return this.pickSeatSelector;
   }
 
-  
+
   layoutPickSeatSelector(
     layout: TableLayout,
     phase: TablePhase,
@@ -3596,14 +3135,6 @@ bg.fillRoundedRect(
     this.hudDropdownBg?.setVisible(false);
     this.hudDropdownItems.forEach((item) => item.setVisible(false));
     this.hudMenuItems.forEach((item) => item.setVisible(false));
-  }
-
-  showPassButton(): void {
-    this.passButton?.setVisible(true);
-  }
-
-  hidePassButton(): void {
-    this.passButton?.setVisible(false);
   }
 
   private labelStyle(): Phaser.Types.GameObjects.Text.TextStyle {

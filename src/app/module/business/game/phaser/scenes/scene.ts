@@ -20,8 +20,8 @@ import {
   exposureLipRatio,
   exposureNameStripRatio,
 } from "../exposure-panel.tokens";
-import { COLOR_AVOCADO_NUM, COLOR_BLUE, COLOR_BLUE_NUM, COLOR_FUSHIA, COLOR_FUSHIA_NUM, COLOR_GRAY_NUM, COLOR_LAVENDER_NUM, FONT_FAMILY, ICON_DEADHAND_HOVER, ICON_DEADHAND_NORMAL, ICON_DEADHAND_PRESSED, ICON_HELP_HOVER, ICON_HELP_NORMAL, ICON_HELP_PRESSED, ICON_HINT_HOVER, ICON_HINT_NORMAL, ICON_HINT_PRESSED, ICON_SETTINGS_HOVER, ICON_SETTINGS_NORMAL, ICON_SETTINGS_PRESSED, ICON_SORT_HOVER, ICON_SORT_NORMAL, ICON_SORT_PRESSED } from "../const";
-import { BotPassVisualTile, CharlestonVisualTransfer, DemoDiscardRequest, DiscardGrid, HamburgerMenuActionKey, HudActionKey, MahjongWinCelebration, TableSceneCallbacks, TableSeat, TileCallOffer, TileRuntime, TableSfxConfig, TableSfxId } from "./type";
+import { ANIMATION_SPEED, COLOR_BLUE, COLOR_BLUE_NUM, COLOR_FUSHIA, COLOR_FUSHIA_NUM, COLOR_GRAY_NUM, COLOR_LAVENDER_NUM, FONT_FAMILY, ICON_DEADHAND_HOVER, ICON_DEADHAND_NORMAL, ICON_DEADHAND_PRESSED, ICON_HELP_HOVER, ICON_HELP_NORMAL, ICON_HELP_PRESSED, ICON_HINT_HOVER, ICON_HINT_NORMAL, ICON_HINT_PRESSED, ICON_SETTINGS_HOVER, ICON_SETTINGS_NORMAL, ICON_SETTINGS_PRESSED, ICON_SORT_HOVER, ICON_SORT_NORMAL, ICON_SORT_PRESSED } from "../const";
+import { BotPassVisualTile, CharlestonVisualTransfer, DemoDiscardRequest, DiscardGrid, HamburgerMenuActionKey, HudActionKey, MahjongWinCelebration, TableOverlayBlockLevel, TableSceneCallbacks, TableSeat, TileCallOffer, TileRuntime, TableSfxConfig, TableSfxId } from "./type";
 
 export class TableScene extends Phaser.Scene {
   private readonly callbacks: TableSceneCallbacks;
@@ -48,8 +48,12 @@ export class TableScene extends Phaser.Scene {
   private set layout(value: TableLayout) {
     this.stateManager.layout = value;
   }
-  
 
+
+  private bgGraphics!: Phaser.GameObjects.Graphics;
+  private tableBgImage!: Phaser.GameObjects.Image;
+  private tableBgMaskGraphics!: Phaser.GameObjects.Graphics;
+  private tableBgMask!: Phaser.Display.Masks.GeometryMask;
   private graphics!: Phaser.GameObjects.Graphics;
   private get hudTextObjects(): Phaser.GameObjects.Text[] { return this.uiLayoutManager.hudTextObjects; }
   private set hudTextObjects(value: Phaser.GameObjects.Text[]) { this.uiLayoutManager.hudTextObjects = value; }
@@ -61,10 +65,6 @@ export class TableScene extends Phaser.Scene {
   private set hudActionsContainer(value: Phaser.GameObjects.Container | undefined) { this.uiLayoutManager.hudActionsContainer = value; }
   private get hudActionIconTexts(): Phaser.GameObjects.Text[] { return this.uiLayoutManager.hudActionIconTexts; }
   private set hudActionIconTexts(value: Phaser.GameObjects.Text[]) { this.uiLayoutManager.hudActionIconTexts = value; }
-  private get instructionText(): Phaser.GameObjects.Text | undefined { return this.uiLayoutManager.instructionText; }
-  private set instructionText(value: Phaser.GameObjects.Text | undefined) { this.uiLayoutManager.instructionText = value; }
-  private get passButton(): Phaser.GameObjects.Container | undefined { return this.uiLayoutManager.passButton; }
-  private set passButton(value: Phaser.GameObjects.Container | undefined) { this.uiLayoutManager.passButton = value; }
   private get playerLabels(): Phaser.GameObjects.Text[] { return this.uiLayoutManager.playerLabels; }
   private set playerLabels(value: Phaser.GameObjects.Text[]) { this.uiLayoutManager.playerLabels = value; }
   private get usernameText(): Phaser.GameObjects.Text | undefined { return this.uiLayoutManager.usernameText; }
@@ -105,6 +105,7 @@ export class TableScene extends Phaser.Scene {
   private tileCallWindow?: Phaser.GameObjects.Container;
   private pendingTileCallImage?: Phaser.GameObjects.Image;
   private readonly opponentDiscardTiles: Phaser.GameObjects.Image[] = [];
+
   private readonly discardSlotOrder: string[] = [];
   private readonly calledBottomExposureTiles: Phaser.GameObjects.Image[] = [];
   private exposureBuildAsset?: string;
@@ -115,7 +116,8 @@ export class TableScene extends Phaser.Scene {
   };
   private mahjongWinOverlay?: Phaser.GameObjects.Container;
   private mahjongWinTimer?: Phaser.Time.TimerEvent;
-  private deadHandSeatSelection?: Phaser.GameObjects.Container;
+  private deadHandSeatSelectionOpen = false;
+  private tableOverlayBlockLevel: TableOverlayBlockLevel = "none";
   private demoDiscardSequence = 0;
   private demoDiscardRequestId = 0;
 
@@ -167,7 +169,7 @@ export class TableScene extends Phaser.Scene {
   private readonly botPassVisualTiles: BotPassVisualTile[] = [];
   private botPassVisualSequence = 0;
   private isBotPassVisualAnimating = false;
-  
+
   private hasCompletedFirstCharlestonVisualPass = false;
 
   private lastSubmittedPassDestination?: TableSeat;
@@ -205,6 +207,7 @@ export class TableScene extends Phaser.Scene {
         this.callbacks.onMobileDrawerVisibilityChanged(open);
       },
       onMobileDrawerOverlay: (state) => this.callbacks.onMobileDrawerOverlay(state),
+      onInstructionPanelOverlay: (state) => this.callbacks.onInstructionPanelOverlay(state),
     });
 
     this.tileInteractionManager = new TileInteractionManager({
@@ -221,7 +224,7 @@ export class TableScene extends Phaser.Scene {
       requestAnimation: () => undefined,
     });
     this.soundManager = new SoundManager(this, callbacks.onHaptic);
-    
+
     this.passFlowManager = new PassFlowManager(
       this.stateManager,
       this.animationManager,
@@ -239,9 +242,14 @@ export class TableScene extends Phaser.Scene {
   }
 
   create(): void {
+    this.bgGraphics = this.add.graphics();
+    this.tableBgImage = this.add.image(0, 0, "table_bg").setOrigin(0.5, 0.5);
+    this.tableBgMaskGraphics = this.add.graphics().setVisible(false);
+    this.tableBgMask = this.tableBgMaskGraphics.createGeometryMask();
+    this.tableBgImage.setMask(this.tableBgMask);
     this.graphics = this.add.graphics();
     this.input.setTopOnly(true);
-    this.input.dragDistanceThreshold = 4;
+    this.input.dragDistanceThreshold = 35; // Increased to prevent slight finger rolls from breaking double-taps
     this.input.dragTimeThreshold = 60;
     this.game.events.on("rack:set", this.setRack, this);
     this.game.events.on("pass:direction", this.setPassDirection, this);
@@ -255,12 +263,12 @@ export class TableScene extends Phaser.Scene {
     this.game.events.on("hamburger:html-action", (label: string) => {
       this.uiLayoutManager.handleHtmlDrawerItem(label);
     });
-    
-    
+
+
     this.game.events.on(
       "charleston:animation-complete",
       () => {
-          //this.applyPassResult();
+        //this.applyPassResult();
       }
     );
 
@@ -302,6 +310,8 @@ export class TableScene extends Phaser.Scene {
         "assets/majhfit-logo-blue@3x.png",
       );
     }
+
+    this.load.image("table_bg", "assets/game/game-board-bg.png");
 
     // Hud action ICONS
     this.load.image(ICON_SORT_NORMAL, "assets/game/icons/icon_sort_default.png");
@@ -355,7 +365,7 @@ export class TableScene extends Phaser.Scene {
         return;
     }
   }
-  
+
   private handlePrimaryAction(): void {
     // Temporary QA flow: the existing PICK control becomes the confirmation
     // action for the currently selected opponent seat while Phase is Discard.
@@ -404,7 +414,7 @@ export class TableScene extends Phaser.Scene {
     if (this.pickTargetSeat !== "bottom") return true;
 
     const exposedTileCount = this.calledBottomExposureTiles.filter((tile) => tile.active).length;
-    return this.rackOrder.length + exposedTileCount === 13;
+    return this.rackOrder.length + exposedTileCount < 14;
   }
 
   private handleHudAction(action: HudActionKey): void {
@@ -469,6 +479,9 @@ export class TableScene extends Phaser.Scene {
     if (phase !== "playing") {
       this.pendingTileCallOffer = undefined;
       this.closeTileCallWindow();
+      // A Dead Hand claim is only valid during play, so never leave its
+      // full-screen picker covering the table after the phase moves on.
+      this.closeDeadHandSeatSelection();
     }
 
     if (phase !== "passing") {
@@ -541,9 +554,8 @@ export class TableScene extends Phaser.Scene {
     this.layoutOpponentDiscardTiles();
     this.renderTileCallWindow();
     this.renderJokerSwapWindow();
-    if (this.deadHandSeatSelection) {
-      this.showDeadHandSeatSelection();
-    }
+    // Keeps the Dead Hand highlights locked to the exposures after a resize.
+    this.publishDeadHandSeatSelection();
     this.layoutRackTiles(false);
     this.layoutPassWaitingArea();
     this.layoutPassWaitingTiles(false);
@@ -552,7 +564,7 @@ export class TableScene extends Phaser.Scene {
     this.refreshRackTexturesIfAtlasChanged();
   }
 
-  private activeRackLayoutTileCount(): number {    
+  private activeRackLayoutTileCount(): number {
     return Math.max(14, this.rackOrder.length);
   }
 
@@ -576,7 +588,7 @@ export class TableScene extends Phaser.Scene {
     this.layoutPassWaitingTiles(false);
     this.updatePassButtonState();
   }
-  
+
 
   private setPassDirection(direction: PassDirection): void {
     this.passFlowManager.setPassDirection(direction);
@@ -638,7 +650,7 @@ export class TableScene extends Phaser.Scene {
       this.load.start();
     }
   }
- 
+
 
   private reconcileRackTiles(): void {
     const incomingIds = new Set(this.rackTiles.map((tile) => tile.id));
@@ -693,8 +705,7 @@ export class TableScene extends Phaser.Scene {
       const image = this.add.image(0, 0, texture.atlasKey, texture.frameKey);
       image.setOrigin(0.5);
       image.setDisplaySize(tileWidth, tileHeight);
-      this.applyTileTextureFilter(image);
-
+      this.applyTileTextureFilter(image, true);
 
       const runtime: TileRuntime = {
         vm: tile,
@@ -882,19 +893,19 @@ export class TableScene extends Phaser.Scene {
 
       runtime.image.setPosition(Math.round(dragX), Math.round(dragY));
 
-     if (runtime.zone === "rack") {
-          const isPassingDropTarget =
-            this.tablePhase === "passing" &&
-            (
-              this.isInsidePassWaitingArea(pointer.worldX, pointer.worldY) ||
-              this.isInsidePlayablePassDropArea(pointer.worldX, pointer.worldY)
-            );
-        
+      if (runtime.zone === "rack") {
+        const isPassingDropTarget =
+          this.tablePhase === "passing" &&
+          (
+            this.isInsidePassWaitingArea(pointer.worldX, pointer.worldY) ||
+            this.isInsidePlayablePassDropArea(pointer.worldX, pointer.worldY)
+          );
+
         if (isPassingDropTarget) {
           return;
         }
 
-        
+
         if (this.isInsideRackArea(pointer.worldX, pointer.worldY)) {
           const newIndex = this.rackIndexFromDragX(runtime.vm.id, pointer.worldX);
           const currentIndex = this.rackOrder.indexOf(runtime.vm.id);
@@ -919,17 +930,17 @@ export class TableScene extends Phaser.Scene {
 
         this.suppressTapByTileId.add(runtime.vm.id);
         runtime.isDragging = false;
-      
+
         if (
           this.tablePhase === "passing" &&
-        runtime.zone === "rack" &&
-        (
-          this.isInsidePassWaitingArea(pointer.worldX, pointer.worldY) ||
-          this.isInsidePlayablePassDropArea(pointer.worldX, pointer.worldY)
-        )
-      ) {
-        this.tileInteractionManager.cleanupDrop(runtime.vm.id);
-        this.snapTileToPassWaiting(runtime);
+          runtime.zone === "rack" &&
+          (
+            this.isInsidePassWaitingArea(pointer.worldX, pointer.worldY) ||
+            this.isInsidePlayablePassDropArea(pointer.worldX, pointer.worldY)
+          )
+        ) {
+          this.tileInteractionManager.cleanupDrop(runtime.vm.id);
+          this.snapTileToPassWaiting(runtime);
           return;
         }
 
@@ -948,13 +959,13 @@ export class TableScene extends Phaser.Scene {
           this.isInsidePlayableDiscardArea(pointer.worldX, pointer.worldY)
         ) {
           this.tileInteractionManager.cleanupDrop(runtime.vm.id);
-          this.snapTileToDiscard(runtime);
+          this.snapTileToDiscard(runtime, ANIMATION_SPEED, "Cubic.Out");
           return;
         }
 
-          this.tileInteractionManager.cleanupDrop(runtime.vm.id);
-          this.returnTileToSlot(runtime);
-        });
+        this.tileInteractionManager.cleanupDrop(runtime.vm.id);
+        this.returnTileToSlot(runtime);
+      });
     });
 
     this.tileInteractionManager.onPointerUp(runtime.image, () => {
@@ -990,7 +1001,7 @@ export class TableScene extends Phaser.Scene {
         runtime.selected = false;
         this.selectedIds.delete(runtime.vm.id);
         runtime.image.clearTint();
-        this.snapTileToDiscard(runtime);
+        this.snapTileToDiscard(runtime, ANIMATION_SPEED, "Cubic.Out");
       }
     });
   }
@@ -1010,7 +1021,7 @@ export class TableScene extends Phaser.Scene {
       runtime.image.clearTint();
     }
   }
-// 
+  // 
   private returnTileToSlot(runtime: TileRuntime): void {
     runtime.zone = "rack";
 
@@ -1041,8 +1052,10 @@ export class TableScene extends Phaser.Scene {
     };
   }
   private drawTable(): void {
+    const gBg = this.bgGraphics;
     const g = this.graphics;
 
+    gBg.clear();
     g.clear();
 
     const canvas = this.layout.canvas;
@@ -1059,25 +1072,25 @@ export class TableScene extends Phaser.Scene {
     const panelColor = 0x162449;
     const panelInner = 0x253a78;
 
-    g.fillStyle(pageColor, 1);
-    g.fillRect(0, 0, canvas.width, canvas.height);
+    gBg.fillStyle(pageColor, 1);
+    gBg.fillRect(0, 0, canvas.width, canvas.height);
 
     // Header.
-    g.fillStyle(hudColor, 1);
-    g.fillRect(hud.x, hud.y, hud.width, hud.height);
+    gBg.fillStyle(hudColor, 1);
+    gBg.fillRect(hud.x, hud.y, hud.width, hud.height);
 
 
-    
+
     const borderSize = this.layout.metrics.isMobile
       ? Math.max(3, Math.round(Math.min(table.width, table.height) * 0.006))
       : Math.max(6, Math.round(Math.min(table.width, table.height) * 0.009));
-    // Every inset layer reduces its radius by the same inset. This keeps the
-    // black frame, felt and subtle inner shadow on one continuous curve.
-    const tableCornerRadius = 14;
-    const feltCornerRadius = Math.max(0, tableCornerRadius - borderSize);
+    // Every inset layer reduces its radius by the same inset.
+    // The user requested removing rounded corners, so this is 0 for a sharp rectangular table.
+    const tableCornerRadius = 0;
+    const feltCornerRadius = tableCornerRadius;
 
-    g.fillStyle(tableBorderDark, 1);
-    g.fillRoundedRect(
+    gBg.fillStyle(tableBorderDark, 1);
+    gBg.fillRoundedRect(
       table.x,
       table.y,
       table.width,
@@ -1085,14 +1098,72 @@ export class TableScene extends Phaser.Scene {
       tableCornerRadius,
     );
 
-    
+
     const feltX = table.x + borderSize;
     const feltY = table.y + borderSize;
     const feltWidth = table.width - borderSize * 2;
     const feltHeight = table.height - borderSize * 2;
 
-    g.fillStyle(feltColor, 1);
-    g.fillRoundedRect(
+    // Top and Left borders using the requested #051630 color.
+    // This polygon interlocks perfectly with the bottom/right polygon using 45-degree miters.
+    gBg.fillStyle(0x051630, 1);
+    gBg.beginPath();
+    gBg.moveTo(feltX + feltWidth, feltY); // Start at inner top-right
+    gBg.lineTo(feltX + feltWidth + borderSize, feltY - borderSize); // Miter to outer top-right
+    gBg.lineTo(feltX - borderSize, feltY - borderSize); // Left to outer top-left
+    gBg.lineTo(feltX - borderSize, feltY + feltHeight + borderSize); // Down to outer bottom-left
+    gBg.lineTo(feltX, feltY + feltHeight); // Miter to inner bottom-left
+    gBg.lineTo(feltX, feltY); // Up to inner top-left
+    gBg.lineTo(feltX + feltWidth, feltY); // Right back to start
+    gBg.closePath();
+    gBg.fill();
+
+    // Apply the specified color to the bottom and right borders of the game table
+    // We draw this as a single polygon with 45-degree mitered ends at the top-right and bottom-left
+    // to perfectly match the 3D depth perspective against the dark background.
+    gBg.fillStyle(0x303845, 1);
+    gBg.beginPath();
+
+    // 1. Start at the top-right corner of the inner felt
+    gBg.moveTo(feltX + feltWidth, feltY);
+    // 2. 45-degree miter up-right to the outer table bounds
+    gBg.lineTo(feltX + feltWidth + borderSize, feltY - borderSize);
+    // 3. Straight down to the bottom-right outer table bounds
+    gBg.lineTo(feltX + feltWidth + borderSize, feltY + feltHeight + borderSize);
+    // 4. Straight left to the bottom-left outer table bounds
+    gBg.lineTo(feltX - borderSize, feltY + feltHeight + borderSize);
+    // 5. 45-degree miter up-right back to the bottom-left corner of the inner felt
+    gBg.lineTo(feltX, feltY + feltHeight);
+    // 6. Straight right to the bottom-right corner of the inner felt
+    gBg.lineTo(feltX + feltWidth, feltY + feltHeight);
+    // 7. Straight up back to the starting point
+    gBg.lineTo(feltX + feltWidth, feltY);
+
+    gBg.closePath();
+    gBg.fill();
+
+    this.tableBgImage.setVisible(true);
+    this.tableBgImage.setPosition(feltX + feltWidth / 2, feltY + feltHeight / 2);
+    // The source image includes a baked-in border ("outsider blue area of table").
+    // We crop the built-in border out (approx 8% from edges) so we only use the pink texture.
+    const origW = this.tableBgImage.width;
+    const origH = this.tableBgImage.height;
+    const cropBorderX = origW * 0.08;
+    const cropBorderY = origH * 0.08;
+    const cropW = origW - (cropBorderX * 2);
+    const cropH = origH - (cropBorderY * 2);
+
+    this.tableBgImage.setCrop(cropBorderX, cropBorderY, cropW, cropH);
+
+    // Scale the image so the cropped area perfectly fits the felt, without overflowing the screen.
+    // This allows the table border and outer blue page background to be visible!
+    const scaleX = feltWidth / cropW;
+    const scaleY = feltHeight / cropH;
+    this.tableBgImage.setScale(scaleX, scaleY);
+
+    this.tableBgMaskGraphics.clear();
+    this.tableBgMaskGraphics.fillStyle(0xffffff, 1);
+    this.tableBgMaskGraphics.fillRoundedRect(
       feltX,
       feltY,
       feltWidth,
@@ -1100,9 +1171,9 @@ export class TableScene extends Phaser.Scene {
       feltCornerRadius,
     );
 
-    
-    
-    const insetShadowWidth = Math.max(
+    // Removed manual corner covers because the corners are now sharp (radius 0), 
+    // so the pink texture's sharp corners perfectly fit the table frame.
+    /* const insetShadowWidth = Math.max(
       2,
       Math.round(borderSize * 0.26),
     );
@@ -1119,9 +1190,47 @@ export class TableScene extends Phaser.Scene {
       feltWidth - insetShadowWidth,
       feltHeight - insetShadowWidth,
       Math.max(0, feltCornerRadius - insetShadowWidth / 2),
-    );
+    ); */
 
-    
+
+    // Deep 3D inner shadow around the entire perimeter of the felt
+    // We use a high-resolution loop to create a perfectly smooth, seamless gradient
+    // so it looks like a real 3D shadow rather than distinct rectangles.
+    const innerShadowTopLeft = 0x01050a;     // Matches the new #030d1c border
+    const innerShadowBottomRight = 0x1e2430; // Matches the new #303845 border
+    const maxSpread = 22; // How far the shadow extends inward (in pixels)
+
+    for (let i = 0; i < maxSpread; i++) {
+      const progress = i / maxSpread;
+      // Exponential decay for a realistic shadow falloff
+      const currentAlpha = 0.8 * Math.pow(1 - progress, 2.5);
+
+      // lineWidth = 1, so offset by 0.5 to keep it exactly inside the pixel boundary
+      const inset = i + 0.5;
+
+      // 1. Top and Left inner shadow
+      g.lineStyle(1, innerShadowTopLeft, currentAlpha);
+      g.beginPath();
+      // Start from bottom-left corner
+      g.moveTo(feltX + inset, feltY + feltHeight - inset);
+      // Up to top-left corner
+      g.lineTo(feltX + inset, feltY + inset);
+      // Right to top-right corner
+      g.lineTo(feltX + feltWidth - inset, feltY + inset);
+      g.strokePath();
+
+      // 2. Bottom and Right inner shadow
+      g.lineStyle(1, innerShadowBottomRight, currentAlpha);
+      g.beginPath();
+      // Start from top-right corner
+      g.moveTo(feltX + feltWidth - inset, feltY + inset);
+      // Down to bottom-right corner
+      g.lineTo(feltX + feltWidth - inset, feltY + feltHeight - inset);
+      // Left to bottom-left corner
+      g.lineTo(feltX + inset, feltY + feltHeight - inset);
+      g.strokePath();
+    }
+
     const liftWidth = Math.max(1, Math.round(borderSize * 0.10));
 
     g.lineStyle(
@@ -1177,62 +1286,11 @@ export class TableScene extends Phaser.Scene {
 
     this.drawActiveSeatExposureHighlight();
 
-    const card = this.layout.instructionBar;
-
-    const cardRadius = Math.round(
-      Phaser.Math.Clamp(card.height * 0.22, 16, 34),
-    );
-
-    g.fillStyle(0x000000, 0.18);
-    g.fillRoundedRect(
-      card.x + Math.max(4, card.width * 0.012),
-      card.y + Math.max(6, card.height * 0.045),
-      card.width,
-      card.height,
-      cardRadius,
-    );
-
-    g.fillStyle(0x000000, 0.08);
-    g.fillRoundedRect(
-      card.x + Math.max(8, card.width * 0.020),
-      card.y + Math.max(10, card.height * 0.065),
-      card.width,
-      card.height,
-      cardRadius,
-    );
-
-    g.fillStyle(0xffffff, 0.98);
-    g.fillRoundedRect(
-      card.x,
-      card.y,
-      card.width,
-      card.height,
-      cardRadius,
-    );
-
-    g.fillStyle(0xfffbf2, 0.20);
-    g.fillRoundedRect(
-      card.x + 2,
-      card.y + 2,
-      card.width - 4,
-      card.height - 4,
-      Math.max(10, cardRadius - 2),
-    );
-
-    g.lineStyle(
-      Math.max(2, Math.round(card.height * 0.018)),
-      COLOR_AVOCADO_NUM,
-      0.95,
-    );
-    g.strokeRoundedRect(
-      card.x,
-      card.y,
-      card.width,
-      card.height,
-      cardRadius,
-    );
+    // The instruction card is drawn as native HTML by PhaserBoardComponent so
+    // its copy stays sharp at any device pixel ratio. UiLayoutManager publishes
+    // its geometry from this same layout.
   }
-  
+
   private exposurePanelMode(): ExposurePanelMode {
     const width = this.layout.canvas.width;
     const height = this.layout.canvas.height;
@@ -1297,13 +1355,13 @@ export class TableScene extends Phaser.Scene {
 
     const compactMobile = this.layout.metrics.isMobile;
 
-    
+
     const modeKey = this.exposurePanelMode();
 
-    
+
     const lipRatio = exposureLipRatio(modeKey);
 
-    const nameStripRatio =  exposureNameStripRatio(modeKey);
+    const nameStripRatio = exposureNameStripRatio(modeKey);
 
     const lipW = Math.max(
       compactMobile ? 4 : 8,
@@ -1316,60 +1374,33 @@ export class TableScene extends Phaser.Scene {
     );
 
     const dividerW = 1;
-
     const stripFill = active ? 0xd7d33a : 0x22488f;
     const stripHighlight = active ? 0xf0eb78 : 0x3c63bb;
     const dividerFill = active ? 0x9b9722 : 0x8ea4d0;
 
-    
-    const shadowOffsetX = 2;
-    const shadowOffsetY = 3;
-    const shadowSpread = 2;
-    
     // --- FIXED SHADOW SYSTEM ---
-    // Draw the shadow elements directly onto the graphics pipeline.
-    // We draw multiple overlapping rectangles with decreasing alphas to create a "soft blur" effect.
-    
-    const shadowAlphaBase = 0.08;
+    const maxSpread = 16; // Larger spread for a softer shadow
     const shadowColor = 0x000000;
 
-    // Layer 1: Broad, faint outer glow/spread
-    g.fillStyle(shadowColor, shadowAlphaBase * 0.5);
-    g.fillRect(
-      x + shadowOffsetX - shadowSpread,
-      y + shadowOffsetY - shadowSpread,
-      w + (shadowSpread * 2),
-      h + (shadowSpread * 2)
-    );
+    // Slight directional offset for 3D feel
+    const shadowOffsetX = side === "left" ? 4 : side === "right" ? -4 : 0;
+    const shadowOffsetY = 8;
 
-    // Layer 2: Core drop shadow box
-    g.fillStyle(shadowColor, shadowAlphaBase * 1.5);
-    g.fillRect(
-      x + shadowOffsetX,
-      y + shadowOffsetY,
-      w,
-      h
-    );
-
-    // Layer 3: Soft ambient edge reinforcement
-    g.fillStyle(shadowColor, shadowAlphaBase * 0.8);
-    g.fillRect(
-      x + shadowOffsetX - 1,
-      y + shadowOffsetY - 1,
-      w + 2,
-      h + 2
-    );
-    
-    
-    g.fillStyle(0x17336f, 1);
-    g.fillRect(x, y, w, h);
-
-    
-    g.lineStyle(1, 0x07142f, 0.45);
-    g.strokeRect(x, y, w, h);
+    for (let i = maxSpread; i >= 0; i--) {
+      const progress = i / maxSpread;
+      const alpha = 0.015 + 0.065 * Math.pow(1 - progress, 2.5); // Soft exponential decay
+      g.fillStyle(shadowColor, alpha);
+      g.fillRoundedRect(
+        x - i + shadowOffsetX,
+        y - i + shadowOffsetY,
+        w + i * 2,
+        h + i * 2,
+        i
+      );
+    }
 
     if (side === "left") {
-      
+
       const contentX = x + lipW;
       const contentW = w - lipW - nameStripW - dividerW;
       const dividerX = contentX + contentW;
@@ -1416,7 +1447,7 @@ export class TableScene extends Phaser.Scene {
       g.fillStyle(stripFill, 1);
       g.fillRect(stripX, y, nameStripW, h);
 
-      
+
 
       g.fillStyle(stripHighlight, active ? 0.34 : 0.24);
       g.fillRect(
@@ -1429,7 +1460,7 @@ export class TableScene extends Phaser.Scene {
       return;
     }
 
-    
+
     const stripX = x;
     const dividerX = stripX + nameStripW;
     const contentX = dividerX + dividerW;
@@ -1439,7 +1470,7 @@ export class TableScene extends Phaser.Scene {
     g.fillStyle(stripFill, 1);
     g.fillRect(stripX, y, nameStripW, h);
 
-    
+
     if (nameStripW >= 6) {
       g.fillStyle(stripHighlight, active ? 0.22 : 0.16);
       g.fillRect(
@@ -1526,59 +1557,38 @@ export class TableScene extends Phaser.Scene {
 
     const isBottom = mode === "bottom";
 
-    
+
     const stripFill = active ? 0xd7d33a : 0x22488f;
     const stripHighlight = active ? 0xf0eb78 : 0x3c63bb;
     const dividerFill = active ? 0x9b9722 : 0x8ea4d0;
 
-    
-    const shadowOffsetX = 2;
-    const shadowOffsetY = 3;
-    const shadowSpread = 2;
-
-    const shadowAlphaBase = 0.08;
+    // --- FIXED SHADOW SYSTEM ---
+    const maxSpread = 16; // Larger spread for a softer shadow
     const shadowColor = 0x000000;
+    const shadowOffsetY = 8;
 
-    // Layer 1: Broad, faint outer glow/spread
-    g.fillStyle(shadowColor, shadowAlphaBase * 0.5);
-    g.fillRect(
-      x + shadowOffsetX - shadowSpread,
-      y + shadowOffsetY - shadowSpread,
-      w + (shadowSpread * 2),
-      h + (shadowSpread * 2)
-    );
+    for (let i = maxSpread; i >= 0; i--) {
+      const progress = i / maxSpread;
+      const alpha = 0.015 + 0.065 * Math.pow(1 - progress, 2.5); // Soft exponential decay
+      g.fillStyle(shadowColor, alpha);
+      g.fillRoundedRect(
+        x - i,
+        y - i + shadowOffsetY,
+        w + i * 2,
+        h + i * 2,
+        i
+      );
+    }
 
-    // Layer 2: Core drop shadow box
-    g.fillStyle(shadowColor, shadowAlphaBase * 1.5);
-    g.fillRect(
-      x + shadowOffsetX,
-      y + shadowOffsetY,
-      w,
-      h
-    );
+    // g.fillRect(x, y, w, h);
+    // g.lineStyle(1, 0x07142f, 0.45);
+    // g.strokeRect(x, y, w, h);
 
-    // Layer 3: Soft ambient edge reinforcement
-    g.fillStyle(shadowColor, shadowAlphaBase * 0.8);
-    g.fillRect(
-      x + shadowOffsetX - 1,
-      y + shadowOffsetY - 1,
-      w + 2,
-      h + 2
-    );
 
-    
-    g.fillStyle(0x17336f, 1);
-    g.fillRect(x, y, w, h);
-
-    
-    g.lineStyle(1, 0x07142f, 0.45);
-    g.strokeRect(x, y, w, h);
-
-    
     g.fillStyle(0x3159aa, 1);
     g.fillRect(x, y, w, topLipH);
 
-    
+
     g.fillStyle(0x5e82d5, 0.42);
     g.fillRect(
       x + Math.max(4, Math.round(w * 0.01)),
@@ -1587,11 +1597,11 @@ export class TableScene extends Phaser.Scene {
       Math.max(2, Math.round(topLipH * 0.16)),
     );
 
-    
+
     g.fillStyle(0x172c61, 1);
     g.fillRect(contentX, contentY, contentW, contentH);
 
-    
+
     g.fillStyle(0x1f3b83, 0.76);
     g.fillRect(
       contentX + Math.max(4, Math.round(w * 0.01)),
@@ -1600,7 +1610,7 @@ export class TableScene extends Phaser.Scene {
       contentH - Math.max(6, Math.round(contentH * 0.09)),
     );
 
-    
+
     g.fillStyle(0x07122d, 0.18);
     g.fillRect(
       contentX,
@@ -1609,11 +1619,11 @@ export class TableScene extends Phaser.Scene {
       Math.max(3, Math.round(contentH * 0.06)),
     );
 
-    
+
     g.fillStyle(dividerFill, isBottom ? 0.72 : 0.58);
     g.fillRect(x, dividerY, w, dividerH);
 
-    
+
     g.fillStyle(stripFill, 1);
     g.fillRect(x, stripY, w, nameStripH);
 
@@ -1627,7 +1637,7 @@ export class TableScene extends Phaser.Scene {
       );
     }
 
-    
+
     g.fillStyle(0x07122d, 0.22);
     g.fillRect(
       x,
@@ -1636,7 +1646,7 @@ export class TableScene extends Phaser.Scene {
       Math.max(3, Math.round(h * 0.018)),
     );
   }
-  
+
   private drawActiveSeatExposureHighlight(): void {
     const rect = this.exposureRectForSeat(this.activeSeat);
     const g = this.graphics;
@@ -1645,7 +1655,7 @@ export class TableScene extends Phaser.Scene {
     const radius = Phaser.Math.Clamp(shortest * 0.18, 8, 18);
 
     const lineWidth = this.layout.metrics.isMobile ? 3 : 4;
-    
+
     g.fillStyle(0xffd166, 0.08);
     g.fillRoundedRect(
       rect.x + 6,
@@ -1671,10 +1681,22 @@ export class TableScene extends Phaser.Scene {
 
     return this.layout.rightExposure;
   }
-  
+
   private createStaticUi(): void {
     this.uiLayoutManager.createStaticUi(this);
     this.game.events.on("mobile-drawer:close", () => this.uiLayoutManager.closeMobileDrawers());
+    this.game.events.on(
+      "instruction-panel:primary-action",
+      () => this.uiLayoutManager.handleHtmlPrimaryAction(),
+    );
+    this.game.events.on(
+      "dead-hand:select-seat",
+      (seat: Exclude<TableSeat, "bottom">) => this.handleHtmlDeadHandSeatChosen(seat),
+    );
+    this.game.events.on(
+      "dead-hand:cancel",
+      () => this.closeDeadHandSeatSelection(),
+    );
     this.createMobileHeaderToggle();
     this.layoutStaticUi();
   }
@@ -1783,6 +1805,29 @@ export class TableScene extends Phaser.Scene {
   }
 
   /** Closes a pending call when its legal calling time has ended. */
+  /**
+   * Tells Angular how much of the native overlay layer to stand down.
+   *
+   * Phaser popups live on the canvas, which the browser paints below every
+   * HTML overlay. Whenever one opens or closes, the native layer is told to
+   * yield so the popup is the topmost thing on screen.
+   */
+  private syncTableOverlayBlockLevel(): void {
+    // The Dead Hand seat picker is native and draws its own dimmer above the
+    // whole overlay layer, so only the remaining Phaser popups appear here.
+    const level: TableOverlayBlockLevel =
+      this.mahjongWinOverlay
+        ? "screen"
+        : this.tileCallWindow || this.jokerSwapWindow
+          ? "center"
+          : "none";
+
+    if (level === this.tableOverlayBlockLevel) return;
+
+    this.tableOverlayBlockLevel = level;
+    this.callbacks.onTableOverlayBlocked(level);
+  }
+
   private expireTileCallWindow(): void {
     if (this.pendingTileCallImage) {
       this.tweens.killTweensOf(this.pendingTileCallImage);
@@ -1880,12 +1925,14 @@ export class TableScene extends Phaser.Scene {
     });
 
     this.tileCallWindow = this.add.container(x, y, children).setDepth(500);
+    this.syncTableOverlayBlockLevel();
   }
 
   /** Removes the call popup and its buttons from the scene. */
   private closeTileCallWindow(): void {
     this.tileCallWindow?.destroy(true);
     this.tileCallWindow = undefined;
+    this.syncTableOverlayBlockLevel();
   }
 
   /**
@@ -1959,7 +2006,7 @@ export class TableScene extends Phaser.Scene {
       targets: image,
       x: target.x,
       y: target.y,
-      duration: 320,
+      duration: ANIMATION_SPEED,
       ease: "Cubic.Out",
       onComplete: () => {
         image.setDepth(42);
@@ -2041,10 +2088,10 @@ export class TableScene extends Phaser.Scene {
   private canAddTileToBottomExposure(tile: TileVm): boolean {
     return Boolean(
       this.exposureBuildAsset &&
-        // The widened mobile/tablet trays support up to twelve exposed tiles
-        // (for example, four Pungs), not only a single Sextet.
-        this.calledBottomExposureTiles.length < 12 &&
-        (tile.asset === this.exposureBuildAsset || tile.suit === "joker"),
+      // The widened mobile/tablet trays support up to twelve exposed tiles
+      // (for example, four Pungs), not only a single Sextet.
+      this.calledBottomExposureTiles.length < 12 &&
+      (tile.asset === this.exposureBuildAsset || tile.suit === "joker"),
     );
   }
 
@@ -2079,7 +2126,7 @@ export class TableScene extends Phaser.Scene {
       targets: runtime.image,
       x: target.x,
       y: target.y,
-      duration: 260,
+      duration: ANIMATION_SPEED,
       ease: "Cubic.Out",
     });
     this.layoutRackTiles(true);
@@ -2132,6 +2179,9 @@ export class TableScene extends Phaser.Scene {
   private renderJokerSwapWindow(): void {
     this.jokerSwapWindow?.destroy(true);
     this.jokerSwapWindow = undefined;
+    // Covers the early returns below; the tail of this method syncs again once
+    // a new window has been built.
+    this.syncTableOverlayBlockLevel();
 
     const pending = this.pendingJokerSwap;
     if (!pending || !this.layout) return;
@@ -2173,6 +2223,7 @@ export class TableScene extends Phaser.Scene {
       Math.round(area.y + area.height / 2),
       children,
     ).setDepth(500);
+    this.syncTableOverlayBlockLevel();
   }
 
   /** Cancels or removes the current Joker Swap confirmation popup. */
@@ -2180,126 +2231,19 @@ export class TableScene extends Phaser.Scene {
     this.pendingJokerSwap = undefined;
     this.jokerSwapWindow?.destroy(true);
     this.jokerSwapWindow = undefined;
+    this.syncTableOverlayBlockLevel();
   }
 
-  /** Displays a server-approved Mah Jongg result without changing game state. */
+  /** Closes other windows when the native MAH JONGG popup opens. */
   private showMahjongWinCelebration(result: MahjongWinCelebration): void {
-    // This method only celebrates a win already approved by the server. It
-    // does not validate tiles or change the winner/game state.
     if (!this.layout) return;
 
-    this.closeMahjongWinCelebration();
     this.expireTileCallWindow();
     this.closeJokerSwapWindow();
-
-    const { width, height } = this.layout.canvas;
-    const overlay = this.add.container(0, 0).setDepth(1000);
-    const backdrop = this.add.graphics();
-    backdrop.fillStyle(0x020617, 0.66);
-    backdrop.fillRect(0, 0, width, height);
-    backdrop.setInteractive(
-      new Phaser.Geom.Rectangle(0, 0, width, height),
-      Phaser.Geom.Rectangle.Contains,
-    );
-    backdrop.on("pointerup", () => this.closeMahjongWinCelebration());
-    overlay.add(backdrop);
-
-    const centerX = Math.round(width / 2);
-    const centerY = Math.round(height / 2);
-    const panelWidth = Math.round(Phaser.Math.Clamp(width * 0.58, 250, 540));
-    const panelHeight = Math.round(Phaser.Math.Clamp(height * 0.26, 140, 215));
-    const panel = this.add.graphics();
-    panel.fillStyle(COLOR_BLUE_NUM, 0.98);
-    panel.lineStyle(3, 0xf6c542, 1);
-    panel.fillRoundedRect(
-      centerX - panelWidth / 2,
-      centerY - panelHeight / 2,
-      panelWidth,
-      panelHeight,
-      18,
-    );
-    panel.strokeRoundedRect(
-      centerX - panelWidth / 2,
-      centerY - panelHeight / 2,
-      panelWidth,
-      panelHeight,
-      18,
-    );
-    overlay.add(panel);
-
-    const winner = result.winner === "bottom" ? "YOU WIN!" : `${result.winner.toUpperCase()} WINS!`;
-    const titleSize = Math.round(Phaser.Math.Clamp(width * 0.07, 28, 58));
-    const title = this.add.text(centerX, centerY - panelHeight * 0.12, "MAH JONGG!", {
-      fontFamily: FONT_FAMILY,
-      fontSize: `${titleSize}px`,
-      fontStyle: "700",
-      color: "#f6c542",
-      stroke: "#ffffff",
-      strokeThickness: Math.max(1, Math.round(titleSize * 0.045)),
-    }).setOrigin(0.5);
-    const winnerText = this.add.text(centerX, centerY + panelHeight * 0.22, winner, {
-      fontFamily: FONT_FAMILY,
-      fontSize: `${Math.round(Phaser.Math.Clamp(titleSize * 0.45, 15, 26))}px`,
-      fontStyle: "700",
-      color: "#ffffff",
-    }).setOrigin(0.5);
-    const dismiss = this.add.text(centerX, centerY + panelHeight * 0.39, "TAP TO CONTINUE", {
-      fontFamily: FONT_FAMILY,
-      fontSize: `${Math.round(Phaser.Math.Clamp(titleSize * 0.22, 10, 14))}px`,
-      fontStyle: "600",
-      color: "#dbeafe",
-    }).setOrigin(0.5);
-    overlay.add([title, winnerText, dismiss]);
-
-    title.setScale(0.6).setAlpha(0);
-    this.tweens.add({
-      targets: title,
-      scale: 1,
-      alpha: 1,
-      duration: 360,
-      ease: "Back.Out",
-    });
-
-    const colors = [0xf6c542, COLOR_FUSHIA_NUM, 0x60a5fa, 0x34d399, 0xffffff];
-    const particleCount = Phaser.Math.Clamp(Math.round(width / 13), 36, 88);
-    for (let index = 0; index < particleCount; index += 1) {
-      const size = Phaser.Math.Between(5, 10);
-      const confetti = this.add.rectangle(
-        Phaser.Math.Between(0, width),
-        Phaser.Math.Between(-height * 0.25, 0),
-        size,
-        Math.round(size * 0.55),
-        colors[index % colors.length],
-      ).setRotation(Phaser.Math.FloatBetween(-0.7, 0.7));
-      overlay.add(confetti);
-      this.tweens.add({
-        targets: confetti,
-        x: Phaser.Math.Clamp(confetti.x + Phaser.Math.Between(-100, 100), 0, width),
-        y: height + 24,
-        rotation: confetti.rotation + Phaser.Math.FloatBetween(4, 9),
-        duration: Phaser.Math.Between(1300, 2400),
-        delay: Phaser.Math.Between(0, 450),
-        ease: "Quad.In",
-      });
-    }
-
-    // Confetti can cross the whole table, but the result remains readable.
-    overlay.bringToTop(panel);
-    overlay.bringToTop(title);
-    overlay.bringToTop(winnerText);
-    overlay.bringToTop(dismiss);
-
-    this.mahjongWinOverlay = overlay;
-    this.playHaptic("pass-submit");
-    this.mahjongWinTimer = this.time.delayedCall(4200, () => this.closeMahjongWinCelebration());
   }
 
-  /** Stops the win timer and removes the confetti and result overlay. */
   private closeMahjongWinCelebration(): void {
-    this.mahjongWinTimer?.remove(false);
-    this.mahjongWinTimer = undefined;
-    this.mahjongWinOverlay?.destroy(true);
-    this.mahjongWinOverlay = undefined;
+    // The native HTML popup now handles its own dismissal.
   }
 
   /**
@@ -2310,91 +2254,84 @@ export class TableScene extends Phaser.Scene {
   private showDeadHandSeatSelection(): void {
     if (!this.layout || this.tablePhase !== "playing") return;
 
-    this.closeDeadHandSeatSelection();
+    this.deadHandSeatSelectionOpen = true;
+    this.publishDeadHandSeatSelection();
+  }
+
+  /**
+   * Publishes the seat picker for the native overlay to draw.
+   *
+   * Phaser keeps ownership of the exposure geometry, so the highlights stay
+   * locked to the table through every resize and orientation change.
+   */
+  private publishDeadHandSeatSelection(): void {
+    if (!this.deadHandSeatSelectionOpen || !this.layout) {
+      this.callbacks.onDeadHandSeatSelection({
+        visible: false,
+        instruction: "",
+        instructionFontSize: 0,
+        centerX: 0,
+        centerY: 0,
+        borderWidth: 0,
+        arrowFontSize: 0,
+        options: [],
+      });
+      return;
+    }
 
     const { width, height } = this.layout.canvas;
-    const container = this.add.container(0, 0).setDepth(880);
-    const dimmer = this.add.graphics();
-    dimmer.fillStyle(0x020617, 0.58);
-    dimmer.fillRect(0, 0, width, height);
-
-    // Blocks normal table interactions while the player is selecting a hand.
-    const blocker = this.add.zone(width / 2, height / 2, width, height)
-      .setInteractive({ useHandCursor: false });
-    const highlights = this.add.graphics();
-    const children: Phaser.GameObjects.GameObject[] = [dimmer, blocker, highlights];
-    const targets: readonly Exclude<TableSeat, "bottom">[] = ["top", "left", "right"];
     const arrows: Record<Exclude<TableSeat, "bottom">, string> = {
       top: "keyboard_arrow_up",
       left: "keyboard_arrow_left",
       right: "keyboard_arrow_right",
     };
+    const targets: readonly Exclude<TableSeat, "bottom">[] = ["top", "left", "right"];
 
-    const chooseSeat = (seat: Exclude<TableSeat, "bottom">): void => {
-      this.closeDeadHandSeatSelection();
-      this.callbacks.onDeadHandClaimPrompt(seat);
-    };
+    this.callbacks.onDeadHandSeatSelection({
+      visible: true,
+      instruction: "SELECT THE HAND YOU WOULD\nLIKE TO CALL DEAD",
+      instructionFontSize: Math.round(
+        Phaser.Math.Clamp(Math.min(width, height) * 0.034, 16, 28),
+      ),
+      centerX: Math.round(width / 2),
+      centerY: Math.round(height / 2),
+      borderWidth: this.layout.metrics.isMobile ? 3 : 4,
+      arrowFontSize: Math.round(
+        Phaser.Math.Clamp(Math.min(width, height) * 0.07, 32, 58),
+      ),
+      options: targets.map((seat) => {
+        const rect = this.exposureRectForSeat(seat);
+        const arrow = seat === "top"
+          ? { x: rect.x + rect.width / 2, y: rect.y + rect.height / 2 }
+          : seat === "left"
+            ? { x: rect.x + rect.width + 24, y: rect.y + rect.height / 2 }
+            : { x: rect.x - 24, y: rect.y + rect.height / 2 };
 
-    for (const seat of targets) {
-      const rect = this.exposureRectForSeat(seat);
-      highlights.fillStyle(COLOR_FUSHIA_NUM, 0.22);
-      highlights.fillRect(rect.x + 4, rect.y + 4, rect.width - 8, rect.height - 8);
-      highlights.lineStyle(this.layout.metrics.isMobile ? 3 : 4, 0xf6c542, 1);
-      highlights.strokeRect(rect.x + 4, rect.y + 4, rect.width - 8, rect.height - 8);
-
-      const arrowPosition = seat === "top"
-        ? { x: rect.x + rect.width / 2, y: rect.y + rect.height + 24 }
-        : seat === "left"
-          ? { x: rect.x + rect.width + 24, y: rect.y + rect.height / 2 }
-          : { x: rect.x - 24, y: rect.y + rect.height / 2 };
-      const arrow = this.add.text(arrowPosition.x, arrowPosition.y, arrows[seat], {
-        // Material Symbols uses ligature text, giving the selection arrows
-        // the same rounded icon style as the mobile header control.
-        fontFamily: "Material Symbols Rounded",
-        fontSize: `${Math.round(Phaser.Math.Clamp(Math.min(width, height) * 0.07, 32, 58))}px`,
-        fontStyle: "normal",
-        color: "#ffffff",
-      }).setOrigin(0.5).setInteractive({ useHandCursor: true });
-      arrow.on("pointerdown", (pointer: Phaser.Input.Pointer) => {
-        pointer.event?.stopPropagation?.();
-        chooseSeat(seat);
-      });
-
-      const panelTarget = this.add.zone(rect.x + rect.width / 2, rect.y + rect.height / 2, rect.width, rect.height)
-        .setInteractive({ useHandCursor: true });
-      panelTarget.on("pointerdown", (pointer: Phaser.Input.Pointer) => {
-        pointer.event?.stopPropagation?.();
-        chooseSeat(seat);
-      });
-      children.push(panelTarget, arrow);
-    }
-
-    const instruction = this.add.text(width / 2, height / 2, "SELECT THE HAND YOU WOULD\nLIKE TO CALL DEAD", {
-      fontFamily: FONT_FAMILY,
-      fontSize: `${Math.round(Phaser.Math.Clamp(Math.min(width, height) * 0.034, 16, 28))}px`,
-      fontStyle: "700",
-      color: "#ffffff",
-      align: "center",
-    }).setOrigin(0.5);
-    const cancel = this.add.text(width / 2, height / 2 - 54, "×", {
-      fontFamily: FONT_FAMILY,
-      fontSize: "30px",
-      fontStyle: "500",
-      color: "#ffffff",
-    }).setOrigin(0.5).setInteractive({ useHandCursor: true });
-    cancel.on("pointerdown", (pointer: Phaser.Input.Pointer) => {
-      pointer.event?.stopPropagation?.();
-      this.closeDeadHandSeatSelection();
+        return {
+          seat,
+          // Matches the 4px inset the Phaser highlight used.
+          x: Math.round(rect.x + 4),
+          y: Math.round(rect.y + 4),
+          width: Math.round(rect.width - 8),
+          height: Math.round(rect.height - 8),
+          arrowIcon: arrows[seat],
+          arrowX: Math.round(arrow.x),
+          arrowY: Math.round(arrow.y),
+        };
+      }),
     });
-    children.push(instruction, cancel);
-    container.add(children);
-    this.deadHandSeatSelection = container;
+  }
+
+  /** Confirms the chosen hand and hands over to the native reason dialog. */
+  private handleHtmlDeadHandSeatChosen(seat: Exclude<TableSeat, "bottom">): void {
+    this.closeDeadHandSeatSelection();
+    this.callbacks.onDeadHandClaimPrompt(seat);
   }
 
   /** Closes the table-level Dead Hand seat selection without creating a claim. */
   private closeDeadHandSeatSelection(): void {
-    this.deadHandSeatSelection?.destroy(true);
-    this.deadHandSeatSelection = undefined;
+    this.deadHandSeatSelectionOpen = false;
+    this.publishDeadHandSeatSelection();
   }
 
   /** Exchanges the selected rack tile and exposed joker, then refreshes the rack. */
@@ -2508,7 +2445,7 @@ export class TableScene extends Phaser.Scene {
       targets: image,
       x: Math.round(targetX),
       y: Math.round(targetY),
-      duration: 360,
+      duration: ANIMATION_SPEED,
       ease: "Cubic.Out",
       onComplete: () => {
         this.playTileDiscardVoice(discard);
@@ -2516,7 +2453,7 @@ export class TableScene extends Phaser.Scene {
       },
     });
   }
-  
+
   /** Returns the current HUD wall-counter size for responsive positioning. */
   private wallTileBoxSize(): { readonly width: number; readonly height: number } {
     return this.uiLayoutManager.wallTileBoxSize(this.layout);
@@ -2531,7 +2468,7 @@ export class TableScene extends Phaser.Scene {
   private updateWallCountText(): void {
     this.uiLayoutManager.updateWallTiles(this.wallTileCount);
   }
-  
+
   /** Refreshes the turn instruction after changing phase or selected seat. */
   private updateInstructionText(): void {
     this.uiLayoutManager.updateInstruction(
@@ -2540,7 +2477,7 @@ export class TableScene extends Phaser.Scene {
       this.passDirection,
     );
   }
-  
+
   private textureKey(tile: TileVm): string {
     return `tile-${tile.id}`;
   }
@@ -2552,7 +2489,7 @@ export class TableScene extends Phaser.Scene {
     const row = Math.floor(index / grid.columns);
     const col = index % grid.columns;
 
-    
+
     const fullRowWidth =
       grid.columns * grid.tileWidth +
       Math.max(0, grid.columns - 1) * grid.gapX;
@@ -2566,9 +2503,9 @@ export class TableScene extends Phaser.Scene {
       x: Math.round(startX + col * (grid.tileWidth + grid.gapX)),
       y: Math.round(
         grid.y +
-          grid.paddingY +
-          grid.tileHeight / 2 +
-          row * (grid.tileHeight + grid.gapY),
+        grid.paddingY +
+        grid.tileHeight / 2 +
+        row * (grid.tileHeight + grid.gapY),
       ),
     };
   }
@@ -2597,7 +2534,7 @@ export class TableScene extends Phaser.Scene {
     const gapX = isPhonePortrait ? 2 : isPhoneLandscape ? 3 : isTablet ? 5 : 6;
     const gapY = isPhonePortrait ? 2 : isPhoneLandscape ? 3 : isTablet ? 5 : 6;
 
-    
+
     if (isPhonePortrait) {
       const preferredColumns = Phaser.Math.Clamp(
         Math.ceil(Math.sqrt(count * (area.width / Math.max(1, area.height)) * aspect)),
@@ -2616,14 +2553,14 @@ export class TableScene extends Phaser.Scene {
         rows /
         aspect;
 
-      
-     const tileWidth = Math.round(
-      Phaser.Math.Clamp(
-        Math.min(widthByColumns, widthByRows, rackTile.width * 0.66),
-        22,
-        42,
-      ),
-    );
+
+      const tileWidth = Math.round(
+        Phaser.Math.Clamp(
+          Math.min(widthByColumns, widthByRows, rackTile.width * 0.66),
+          22,
+          42,
+        ),
+      );
 
       const tileHeight = Math.round(tileWidth * aspect);
 
@@ -2647,7 +2584,7 @@ export class TableScene extends Phaser.Scene {
       };
     }
 
-    
+
     if (isPhoneLandscape) {
       const preferredColumns = Phaser.Math.Clamp(
         Math.ceil(Math.sqrt(count * 1.9)),
@@ -2666,7 +2603,7 @@ export class TableScene extends Phaser.Scene {
         rows /
         aspect;
 
-      
+
 
       const tileWidth = Math.round(
         Phaser.Math.Clamp(
@@ -2698,7 +2635,7 @@ export class TableScene extends Phaser.Scene {
       };
     }
 
-    
+
     const targetColumns = isTablet ? 14 : 18;
     const targetRows = isTablet ? 5 : 5;
 
@@ -2753,7 +2690,7 @@ export class TableScene extends Phaser.Scene {
     if (!slots.length) {
       return currentIndex;
     }
-    
+
     const farSideThreshold = tileWidth * 0.35;
     let targetIndex = currentIndex;
     for (let index = currentIndex + 1; index < this.rackOrder.length; index++) {
@@ -2789,7 +2726,7 @@ export class TableScene extends Phaser.Scene {
   private isInsideRackArea(x: number, y: number): boolean {
     return this.tileInteractionManager.isPointInsideRect(this.layout.bottomRack, x, y);
   }
-  private snapTileToDiscard(runtime: TileRuntime): void {
+  private snapTileToDiscard(runtime: TileRuntime, duration: number = ANIMATION_SPEED, ease: string = "Cubic.Out"): void {
     if (this.tablePhase !== "playing") {
       this.returnTileToSlot(runtime);
       return;
@@ -2827,6 +2764,8 @@ export class TableScene extends Phaser.Scene {
       runtime.image,
       Math.round(slot.x),
       Math.round(slot.y),
+      duration,
+      ease
     );
 
     this.playHaptic("tile-discard");
@@ -2855,8 +2794,7 @@ export class TableScene extends Phaser.Scene {
     this.layoutDiscardTiles(true);
   }
 
-  private applyTileTextureFilter(image: Phaser.GameObjects.Image): void {
-    const tileWidth = this.layout.bottomTileLayout.width;
+  private applyTileTextureFilter(image: Phaser.GameObjects.Image, isBottomRack: boolean = false): void {
     image.texture.setFilter(Phaser.Textures.FilterMode.LINEAR);
   }
 
@@ -2921,8 +2859,8 @@ export class TableScene extends Phaser.Scene {
           x: Math.round(slot.x),
           y: Math.round(slot.y),
           angle: 0,
-          duration: 140,
-          ease: "Sine.easeOut",
+          duration: ANIMATION_SPEED,
+          ease: "Cubic.Out",
         });
       } else {
         runtime.image.setPosition(Math.round(slot.x), Math.round(slot.y));
@@ -2935,54 +2873,54 @@ export class TableScene extends Phaser.Scene {
   }
 
   private playableDiscardDropRect(): Phaser.Geom.Rectangle {
-  const top =
-    this.layout.topExposure.y +
-    this.layout.topExposure.height +
-    this.layout.tableOuter.height * 0.025;
+    const top =
+      this.layout.topExposure.y +
+      this.layout.topExposure.height +
+      this.layout.tableOuter.height * 0.025;
 
-  const bottom =
-    this.layout.bottomExposure.y -
-    this.layout.tableOuter.height * 0.018;
+    const bottom =
+      this.layout.bottomExposure.y -
+      this.layout.tableOuter.height * 0.018;
 
-  const left =
-    this.layout.leftExposure.x +
-    this.layout.leftExposure.width +
-    this.layout.tableOuter.width * 0.025;
+    const left =
+      this.layout.leftExposure.x +
+      this.layout.leftExposure.width +
+      this.layout.tableOuter.width * 0.025;
 
-  const right =
-    this.layout.rightExposure.x -
-    this.layout.tableOuter.width * 0.025;
+    const right =
+      this.layout.rightExposure.x -
+      this.layout.tableOuter.width * 0.025;
 
-  return new Phaser.Geom.Rectangle(
-    left,
-    top,
-    Math.max(1, right - left),
-    Math.max(1, bottom - top),
-  );
-}
-
-private isInsidePlayableDiscardArea(x: number, y: number): boolean {
-  if (this.tablePhase !== "playing") {
-    return false;
+    return new Phaser.Geom.Rectangle(
+      left,
+      top,
+      Math.max(1, right - left),
+      Math.max(1, bottom - top),
+    );
   }
 
-  return Phaser.Geom.Rectangle.Contains(
-    this.playableDiscardDropRect(),
-    x,
-    y,
-  );
-}
-private isInsidePlayablePassDropArea(x: number, y: number): boolean {
-  if (this.tablePhase !== "passing") {
-    return false;
-  }
+  private isInsidePlayableDiscardArea(x: number, y: number): boolean {
+    if (this.tablePhase !== "playing") {
+      return false;
+    }
 
-  return Phaser.Geom.Rectangle.Contains(
-    this.playableDiscardDropRect(),
-    x,
-    y,
-  );
-}
+    return Phaser.Geom.Rectangle.Contains(
+      this.playableDiscardDropRect(),
+      x,
+      y,
+    );
+  }
+  private isInsidePlayablePassDropArea(x: number, y: number): boolean {
+    if (this.tablePhase !== "passing") {
+      return false;
+    }
+
+    return Phaser.Geom.Rectangle.Contains(
+      this.playableDiscardDropRect(),
+      x,
+      y,
+    );
+  }
   public playCharlestonRound(items: readonly PassAnimationItem[]): void {
     this.animationManager.playCharlestonRound(
       items,
@@ -2997,12 +2935,12 @@ private isInsidePlayablePassDropArea(x: number, y: number): boolean {
   }
 
   public debugPlayCharleston(): void {
-      this.playCharlestonRound([
-          { from: "top", to: "right", tileCount: 3, },
-          { from: "right", to: "bottom", tileCount: 3,},
-          { from: "bottom", to: "left", tileCount: 3,},
-          { from: "left", to: "top", tileCount: 3, }
-      ]);
+    this.playCharlestonRound([
+      { from: "top", to: "right", tileCount: 3, },
+      { from: "right", to: "bottom", tileCount: 3, },
+      { from: "bottom", to: "left", tileCount: 3, },
+      { from: "left", to: "top", tileCount: 3, }
+    ]);
   }
 
   private snapTileToPassWaiting(runtime: TileRuntime): void {
@@ -3041,13 +2979,6 @@ private isInsidePlayablePassDropArea(x: number, y: number): boolean {
   private returnPassTileToRack(tileId: string): void {
     const runtime = this.tileMap.get(tileId);
     if (!runtime) return;
-    console.log("RETURN START", {
-      tileId,
-      zone: runtime.zone,
-      passWaitingTileIds: [...this.passWaitingTileIds],
-      rackOrder: [...this.rackOrder],
-      hasCloseButton: this.passCloseButtons.has(tileId),
-    });
     if (runtime.zone !== "pass") return;
     this.playHaptic("tile-return");
 
@@ -3076,7 +3007,7 @@ private isInsidePlayablePassDropArea(x: number, y: number): boolean {
     const rackHeight = Math.round(this.layout.bottomTileLayout.height);
 
     this.removeFromPassWaiting(tileId);
-  
+
     runtime.zone = "rack";
     runtime.selected = false;
     runtime.isDragging = false;
@@ -3112,7 +3043,7 @@ private isInsidePlayablePassDropArea(x: number, y: number): boolean {
       duration: 320,
       ease: "Cubic.easeInOut",
       onUpdate: () => {
-        
+
         const growProgress = Phaser.Math.Clamp((progress.value - 0.55) / 0.45, 0, 1);
         const easedGrow = Phaser.Math.Easing.Sine.Out(growProgress);
 
@@ -3131,7 +3062,7 @@ private isInsidePlayablePassDropArea(x: number, y: number): boolean {
       duration: 320,
       ease: "Cubic.easeInOut",
       onComplete: () => {
-        
+
         runtime.image.setAlpha(1);
         runtime.image.setDepth(30);
         runtime.image.setAngle(0);
@@ -3147,7 +3078,7 @@ private isInsidePlayablePassDropArea(x: number, y: number): boolean {
     });
   }
 
-  
+
   private removeFromPassWaiting(tileId: string): void {
     this.passFlowManager.removePassWaitingTile(tileId);
 
@@ -3197,7 +3128,7 @@ private isInsidePlayablePassDropArea(x: number, y: number): boolean {
       10,
     );
   }
-  
+
   private resizePassCloseButton(button: Phaser.GameObjects.Container): void {
     const radius = this.passCloseButtonRadius();
 
@@ -3263,7 +3194,7 @@ private isInsidePlayablePassDropArea(x: number, y: number): boolean {
 
     this.resizePassCloseButton(close);
   }
-  
+
   private rotatedTileCorner(
     centerX: number,
     centerY: number,
@@ -3304,7 +3235,7 @@ private isInsidePlayablePassDropArea(x: number, y: number): boolean {
   }
 
   private passDropRectForSeat(seat: TableSeat): Rect {
-    
+
     const targets = this.passAreaTargets(seat, 3);
     const size = this.passTileDisplaySize(seat);
 
@@ -3419,8 +3350,8 @@ private isInsidePlayablePassDropArea(x: number, y: number): boolean {
     const y =
       seat === "top"
         ? this.layout.topExposure.y +
-          this.layout.topExposure.height +
-          Math.round(size.height * 0.82)
+        this.layout.topExposure.height +
+        Math.round(size.height * 0.82)
         : rect.y + rect.height / 2;
 
     const startX = rect.x + rect.width / 2 - step * (count - 1) / 2;
@@ -3437,7 +3368,7 @@ private isInsidePlayablePassDropArea(x: number, y: number): boolean {
   } {
     const rackWidth = this.layout.bottomTileLayout.width;
 
-    
+
     const width = Math.round(
       Phaser.Math.Clamp(
         rackWidth * 0.82,
@@ -3506,13 +3437,13 @@ private isInsidePlayablePassDropArea(x: number, y: number): boolean {
       });
     };
 
-    
+
     this.animatePassWaitingTilesIntoSeatRack(ids, () => {
       selectedTilesFinished = true;
       finishWhenBothAnimationsComplete();
     });
 
-    
+
     this.animateBotPassVisualsForSubmit(() => {
       botVisualsFinished = true;
       finishWhenBothAnimationsComplete();
@@ -3808,7 +3739,7 @@ private isInsidePlayablePassDropArea(x: number, y: number): boolean {
         case "top": return "right";
         case "right": return "bottom";
       }
-    } 
+    }
     switch (seat) {
       case "bottom": return "top";
       case "top": return "bottom";
@@ -3994,7 +3925,7 @@ private isInsidePlayablePassDropArea(x: number, y: number): boolean {
       y: Math.round(y),
     }));
   }
-  
+
   private applyPassWaitingResult(ids: readonly string[]): void {
     this.passFlowManager.applyPassWaitingResult(ids, {
       onTileRemoved: (runtime) => runtime.image.destroy(),
@@ -4005,7 +3936,7 @@ private isInsidePlayablePassDropArea(x: number, y: number): boolean {
     });
   }
 
-  
+
   private updatePassButtonState(): void {
     this.uiLayoutManager.updatePassButtonState({
       layout: this.layout,
@@ -4028,11 +3959,11 @@ private isInsidePlayablePassDropArea(x: number, y: number): boolean {
     this.soundManager.playHaptic(type);
   }
 
-  
+
   private playSfx(id: TableSfxId): void {
     this.soundManager.playSfx(id);
   }
-  
+
   private layoutPickSeatSelector(): void {
     this.uiLayoutManager.layoutPickSeatSelector(
       this.layout,
@@ -4086,19 +4017,19 @@ private isInsidePlayablePassDropArea(x: number, y: number): boolean {
     const clone =
       seat === "bottom" && pickedTile
         ? this.createTileFrontPickClone(
-            pickedTile,
-            source.x,
-            source.y,
-            size.width,
-            size.height,
-          )
+          pickedTile,
+          source.x,
+          source.y,
+          size.width,
+          size.height,
+        )
         : this.createTileBackClone(
-            source.x,
-            source.y,
-            size.width,
-            size.height,
-            0,
-          );
+          source.x,
+          source.y,
+          size.width,
+          size.height,
+          0,
+        );
 
     this.animationManager.animateWallPick(
       clone,
@@ -4152,7 +4083,7 @@ private isInsidePlayablePassDropArea(x: number, y: number): boolean {
     if (isTabletPortrait) return 0.74;
     if (isTabletLandscape) return 0.78;
 
-    return 1;
+    return 0.82;
   }
 
   private pickAnimationGrowStartForDevice(): number {
@@ -4178,7 +4109,7 @@ private isInsidePlayablePassDropArea(x: number, y: number): boolean {
     return 0.62;
   }
 
-  
+
 
   private createTileFrontPickClone(
     tile: TileVm,
@@ -4193,7 +4124,7 @@ private isInsidePlayablePassDropArea(x: number, y: number): boolean {
       !this.textures.exists(texture.atlasKey) ||
       !this.textures.get(texture.atlasKey).has(texture.frameKey)
     ) {
-      
+
       const fallback = this.add.image(x, y, TILE_ATLAS_1X_KEY);
       fallback.setOrigin(0.5);
       fallback.setDisplaySize(width, height);
@@ -4203,12 +4134,12 @@ private isInsidePlayablePassDropArea(x: number, y: number): boolean {
     const image = this.add.image(x, y, texture.atlasKey, texture.frameKey);
     image.setOrigin(0.5);
     image.setDisplaySize(width, height);
-    this.applyTileTextureFilter(image);
+    this.applyTileTextureFilter(image, true);
 
     return image;
   }
 
-  
+
 
   private pickTileAngleForSeat(seat: TableSeat): number {
     if (seat === "right") return 90;
@@ -4217,10 +4148,17 @@ private isInsidePlayablePassDropArea(x: number, y: number): boolean {
     return 0;
   }
 
+  /**
+   * Wall-pick travel time per seat.
+   *
+   * Kept slow enough to read the tile leaving the wall. The relative pacing is
+   * unchanged: the top seat is nearest the wall, the local rack is furthest.
+   */
   private pickAnimationDurationForSeat(seat: TableSeat): number {
-    if (seat === "bottom") return 420;
-    if (seat === "top") return 260;
-    return 340;
+    return ANIMATION_SPEED;
+    /* if (seat === "bottom") return 800;
+    if (seat === "top") return 500;
+    return 640; */
   }
 
   private pickAnimationTileSize(seat: TableSeat): {
@@ -4236,7 +4174,7 @@ private isInsidePlayablePassDropArea(x: number, y: number): boolean {
 
     return this.passTileDisplaySize(seat);
   }
-  
+
   private pickTargetPointForSeat(seat: TableSeat): Point {
     if (seat === "bottom") {
       const nextLayout = this.layoutEngine.compute(
@@ -4260,28 +4198,32 @@ private isInsidePlayablePassDropArea(x: number, y: number): boolean {
     }
 
     if (seat === "top") {
-      return this.topSeatPickTargetPoint();
+      const rack = this.layout.topExposure;
+      return {
+        x: Math.round(rack.x + rack.width / 2),
+        y: Math.round(rack.y + rack.height / 2),
+      };
     }
 
-    const targets = this.seatRackTargets(seat, 1);
+    if (seat === "left") {
+      const rack = this.layout.leftExposure;
+      return {
+        x: Math.round(rack.x + rack.width / 2),
+        y: Math.round(rack.y + rack.height / 2),
+      };
+    }
 
-    return (
-      targets[0] ?? {
-        x: this.layout.hud.x + this.layout.hud.width / 2,
-        y: this.layout.hud.y + this.layout.hud.height / 2,
-      }
-    );
-  }
+    if (seat === "right") {
+      const rack = this.layout.rightExposure;
+      return {
+        x: Math.round(rack.x + rack.width / 2),
+        y: Math.round(rack.y + rack.height / 2),
+      };
+    }
 
-
-  private topSeatPickTargetPoint(): Point {
-    const topRack = this.layout.topExposure;
-    const size = this.pickAnimationTileSize("top");
-
-    
     return {
-      x: Math.round(topRack.x + size.width / 2),
-      y: Math.round(topRack.y + topRack.height / 2),
+      x: this.layout.hud.x + this.layout.hud.width / 2,
+      y: this.layout.hud.y + this.layout.hud.height / 2,
     };
   }
   private createMockPickedTile(): TileVm {
@@ -4298,7 +4240,10 @@ private isInsidePlayablePassDropArea(x: number, y: number): boolean {
   }
 
   private addMockPickedTileToRack(tile: TileVm): void {
-    
+
     this.setRack([...this.rackTiles, tile]);
+  }
+
+  override update(time: number, delta: number): void {
   }
 }

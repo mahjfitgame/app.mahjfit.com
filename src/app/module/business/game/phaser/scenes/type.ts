@@ -110,6 +110,12 @@ export interface TableSceneCallbacks {
   /** Lets native overlays yield while a mobile Phaser drawer is open. */
   readonly onMobileDrawerVisibilityChanged: (open: boolean) => void;
   readonly onMobileDrawerOverlay: (state: MobileDrawerOverlayState) => void;
+  /** Renders the crisp native "YOUR TURN" card, its copy, and its button. */
+  readonly onInstructionPanelOverlay: (state: InstructionPanelOverlayState) => void;
+  /** Lets native overlays yield so a Phaser popup can sit above them. */
+  readonly onTableOverlayBlocked: (level: TableOverlayBlockLevel) => void;
+  /** Draws the native Dead Hand seat picker over the opponent exposures. */
+  readonly onDeadHandSeatSelection: (state: DeadHandSeatSelectionState) => void;
   readonly onHeaderLogoLayout: (state: HeaderLogoLayoutState) => void;
 }
 
@@ -200,6 +206,8 @@ export interface UiLayoutCallbacks {
   /** Reports whether a hamburger or action drawer currently covers the table. */
   readonly onMobileDrawerVisibilityChanged?: (open: boolean) => void;
   readonly onMobileDrawerOverlay?: (state: MobileDrawerOverlayState) => void;
+  /** Positions and fills the native instruction card over the table centre. */
+  readonly onInstructionPanelOverlay?: (state: InstructionPanelOverlayState) => void;
   readonly logoTextureKey?: string;
 }
 
@@ -239,6 +247,98 @@ export interface PointsOverlayState {
   readonly iconY: number;
   readonly iconSize: number;
 }
+
+/**
+ * Primary action button inside the instruction panel (PICK / PASS / DISCARD).
+ * Coordinates are relative to the panel's top-left corner.
+ */
+export interface InstructionPanelButtonState {
+  readonly label: string;
+  readonly enabled: boolean;
+  readonly x: number;
+  readonly y: number;
+  readonly width: number;
+  readonly height: number;
+  readonly radius: number;
+  readonly fontSize: number;
+  readonly shadowY: number;
+  readonly shadowBlur: number;
+}
+
+/**
+ * The centre "YOUR TURN" card. Phaser owns every coordinate through the layout
+ * engine; the browser paints the card, its text, and its button so the copy
+ * stays sharp at any device pixel ratio.
+ */
+export interface InstructionPanelOverlayState {
+  readonly visible: boolean;
+  readonly x: number;
+  readonly y: number;
+  readonly width: number;
+  readonly height: number;
+  readonly radius: number;
+  readonly borderWidth: number;
+  readonly shadowY: number;
+  readonly shadowBlur: number;
+  /** Emphasised heading line, e.g. "YOUR TURN". */
+  readonly title: string;
+  readonly titleFontSize: number;
+  /** Remaining copy below the heading, newline separated. */
+  readonly body: string;
+  readonly bodyFontSize: number;
+  /**
+   * Vertical band reserved for the copy, relative to the card's top-left.
+   * The copy is centred inside it, which keeps it clear of the button on
+   * every screen size instead of relying on a fixed centre point.
+   */
+  readonly contentTop: number;
+  readonly contentBottom: number;
+  readonly titleGap: number;
+  readonly button: InstructionPanelButtonState;
+}
+
+/** One selectable opponent hand in the Dead Hand seat step. */
+export interface DeadHandSeatOption {
+  readonly seat: Exclude<TableSeat, "bottom">;
+  /** Highlight box over that seat's exposure, in CSS pixels. */
+  readonly x: number;
+  readonly y: number;
+  readonly width: number;
+  readonly height: number;
+  /** Material Symbols ligature pointing at the seat. */
+  readonly arrowIcon: string;
+  readonly arrowX: number;
+  readonly arrowY: number;
+}
+
+/**
+ * First Dead Hand step: pick which opponent's hand to call dead.
+ *
+ * Phaser resolves the exposure boxes from the layout engine; the browser draws
+ * the dimmer, highlights, arrows, and copy so the text stays sharp.
+ */
+export interface DeadHandSeatSelectionState {
+  readonly visible: boolean;
+  readonly instruction: string;
+  readonly instructionFontSize: number;
+  readonly centerX: number;
+  readonly centerY: number;
+  readonly borderWidth: number;
+  readonly arrowFontSize: number;
+  readonly options: readonly DeadHandSeatOption[];
+}
+
+/**
+ * How much of the native overlay layer a Phaser popup currently covers.
+ *
+ * HTML always composites above the Phaser canvas, so a Phaser popup can only
+ * come forward if the native overlays it would sit under step aside.
+ *
+ * - `none`   nothing open
+ * - `center` a centred panel (call/skip, joker swap) over the table middle
+ * - `screen` a full-screen dimmer (Mah Jongg win, dead-hand seat selection)
+ */
+export type TableOverlayBlockLevel = "none" | "center" | "screen";
 
 /** Native visual cover for a Phaser mobile drawer; Phaser retains click handling. */
 export interface MobileDrawerOverlayState {

@@ -44,6 +44,9 @@ export const COLOR_GREEN_NUM = 0x11B364;
 
 export const FONT_FAMILY = "Poppins, Arial";
 
+export const ANIMATION_SPEED = 900;
+
+
 
 
 

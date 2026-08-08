@@ -25,7 +25,7 @@ export class StateManager {
   activeDragTile?: TileRuntime;
   dragPointerId?: number;
   readonly dragStartByTileId = new Map<string, { x: number; y: number }>();
-  readonly dragThresholdPx = 10;
+  readonly dragThresholdPx = 35;
   readonly suppressTapByTileId = new Set<string>();
   readonly doubleTapMs = 280;
   readonly lastTapAtByTileId = new Map<string, number>();
@@ -46,5 +46,5 @@ export class StateManager {
   activeRackAtlasKey?: string;
   pendingAtlasRefresh = false;
 
-  constructor() {}
+  constructor() { }
 }

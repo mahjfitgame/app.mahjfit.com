@@ -93,6 +93,8 @@ export class AnimationManager {
     image: Phaser.GameObjects.Image,
     x: number,
     y: number,
+    duration: number = 160,
+    ease: string = "Sine.easeOut"
   ): void {
     this.scene.tweens.killTweensOf(image);
     this.scene.tweens.add({
@@ -100,8 +102,8 @@ export class AnimationManager {
       x,
       y,
       angle: 0,
-      duration: 160,
-      ease: "Sine.easeOut",
+      duration,
+      ease,
     });
   }
 
@@ -121,8 +123,8 @@ export class AnimationManager {
         x,
         y,
         angle: 0,
-        duration: 140,
-        ease: "Sine.easeOut",
+        duration: 1000,
+        ease: "Cubic.Out",
       });
       return;
     }
@@ -263,12 +265,16 @@ export class AnimationManager {
       const tileBack = this.createTileBackClone(item.image.x, item.image.y, size.width, size.height, item.image.angle);
       onCloneCreated(tileBack);
       item.image.setDepth(181);
-      this.scene.tweens.add({ targets: item.image, scaleX: 0, duration: 110, ease: "Sine.easeIn", onComplete: () => {
-        item.image?.setVisible(false);
-        this.scene.tweens.add({ targets: tileBack, scaleX: 1, duration: 110, ease: "Sine.easeOut", onComplete: () => {
-          this.scene.tweens.add({ targets: tileBack, x: target.x, y: target.y, angle: endAngle, alpha: 0, scaleX: 0.82, scaleY: 0.82, duration: 520, ease: "Cubic.easeInOut", onComplete: () => { tileBack.destroy(); completeOne(); } });
-        } });
-      } });
+      this.scene.tweens.add({
+        targets: item.image, scaleX: 0, duration: 110, ease: "Sine.easeIn", onComplete: () => {
+          item.image?.setVisible(false);
+          this.scene.tweens.add({
+            targets: tileBack, scaleX: 1, duration: 110, ease: "Sine.easeOut", onComplete: () => {
+              this.scene.tweens.add({ targets: tileBack, x: target.x, y: target.y, angle: endAngle, alpha: 0, scaleX: 0.82, scaleY: 0.82, duration: 520, ease: "Cubic.easeInOut", onComplete: () => { tileBack.destroy(); completeOne(); } });
+            }
+          });
+        }
+      });
     });
   }
 
