@@ -87,7 +87,7 @@ export class GameService implements FoundationModuleServiceType {
         throw new Error(`Unsupported tile sound: ${JSON.stringify(tile)}`);
     }
 
-    private resolve(tile: TileVm, tileDisplayWidth: number): TileTextureRef {
+    public resolve(tile: TileVm, tileDisplayWidth: number): TileTextureRef {
         const atlas = this.selectTileAtlas(tileDisplayWidth);
 
         return {

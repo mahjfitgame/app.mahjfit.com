@@ -126,7 +126,6 @@ export class TableScene extends Phaser.Scene {
   private get hudMenuItems(): Phaser.GameObjects.Text[] { return this.uiLayoutManager.hudMenuItems; }
   private set hudMenuItems(value: Phaser.GameObjects.Text[]) { this.uiLayoutManager.hudMenuItems = value; }
 
-  private readonly tileTextureResolver = new TileTextureResolver();
   private get dragStartByTileId(): Map<string, { x: number; y: number }> { return this.stateManager.dragStartByTileId; }
   private get dragThresholdPx(): number { return this.stateManager.dragThresholdPx; }
   private get suppressTapByTileId(): Set<string> { return this.stateManager.suppressTapByTileId; }
@@ -679,7 +678,7 @@ export class TableScene extends Phaser.Scene {
 
       const tileWidth = Math.round(this.layout.bottomTileLayout.width);
       const tileHeight = Math.round(this.layout.bottomTileLayout.height);
-      const texture = this.tileTextureResolver.resolve(tile, tileWidth);
+      const texture = this.gmService.resolve(tile, tileWidth);
 
       if (!this.textures.exists(texture.atlasKey)) {
         console.error("[TILE ATLAS MISSING]", texture.atlasKey, tile);
@@ -722,7 +721,7 @@ export class TableScene extends Phaser.Scene {
       if (!runtime) continue;
       if (runtime.zone !== "rack") continue;
 
-      const texture = this.tileTextureResolver.resolve(runtime.vm, tileWidth);
+      const texture = this.gmService.resolve(runtime.vm, tileWidth);
 
       if (!this.textures.exists(texture.atlasKey)) {
         continue;
@@ -2382,7 +2381,7 @@ export class TableScene extends Phaser.Scene {
     this.closeTileCallWindow();
 
     const grid = this.discardGrid();
-    const texture = this.tileTextureResolver.resolve(discard, grid.tileWidth);
+    const texture = this.gmService.resolve(discard, grid.tileWidth);
     if (!this.textures.exists(texture.atlasKey) || !this.textures.get(texture.atlasKey).has(texture.frameKey)) {
       return;
     }
@@ -4087,7 +4086,7 @@ export class TableScene extends Phaser.Scene {
     width: number,
     height: number,
   ): Phaser.GameObjects.Image {
-    const texture = this.tileTextureResolver.resolve(tile, Math.round(width));
+    const texture = this.gmService.resolve(tile, Math.round(width));
 
     if (
       !this.textures.exists(texture.atlasKey) ||
