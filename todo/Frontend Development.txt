@@ -38,8 +38,32 @@ DONE
 Test app with real device and an iPad simulator to cross-check the design and make the necessary adjustments for different devices
 
 4]
-Make adjustment for the rack tile animation which gives smoother experience and it properly place to the bottom seat rack. 
+Make smooth animation for Bottom seat pick tile
 Analysed Bam, Dot, Crack reference app for new one more feature
+
+5]
+Upgrade API and client side wrapper.
+
+6]
+
+
+Remain design parts
+- Siamese game play
+- Game board icons – We currently have the action icons, but I noticed that two icons are still missing: the tile count icon and the points icon.
+- 1x tile atlas
+- Favicon
+- Final app icons, including the foreground and background assets
+
+
+For now, I have uploaded the demo on web with the latest design change. 
+
+URL: 
+https://mahjfit-com.thatsend.dev/
+
+
+
+
+
 
 
 
@@ -132,7 +156,6 @@ Game board icons – We currently have the action icons, but I noticed that two 
 3]
 Favicon
 4]
-
 Final app icons, including the foreground and background assets
 
 Thank you!

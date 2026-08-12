@@ -11,18 +11,18 @@ export class TileInteractionManager {
 
   constructor(readonly callbacks: TileInteractionCallbacks) { }
 
-  beginPointer(tileId: string, pointer: Phaser.Input.Pointer): void {
+  public beginPointer(tileId: string, pointer: Phaser.Input.Pointer): void {
     this.dragStartByTileId.set(tileId, { x: pointer.worldX, y: pointer.worldY });
   }
 
-  pointerDistance(tileId: string, pointer: Phaser.Input.Pointer): number | undefined {
+  public pointerDistance(tileId: string, pointer: Phaser.Input.Pointer): number | undefined {
     const start = this.dragStartByTileId.get(tileId);
     if (!start) return undefined;
 
     return Phaser.Math.Distance.Between(start.x, start.y, pointer.worldX, pointer.worldY);
   }
 
-  hasReachedDragThreshold(
+  public hasReachedDragThreshold(
     tileId: string,
     pointer: Phaser.Input.Pointer,
     threshold: number,
@@ -31,15 +31,15 @@ export class TileInteractionManager {
     return distance !== undefined && distance >= threshold;
   }
 
-  finishPointer(tileId: string): void {
+  public finishPointer(tileId: string): void {
     this.dragStartByTileId.delete(tileId);
   }
 
-  cancelDrag(tileId: string): void {
+  public cancelDrag(tileId: string): void {
     this.finishPointer(tileId);
   }
 
-  handleDrop(
+  public handleDrop(
     runtime: TileRuntime,
     pointer: Phaser.Input.Pointer,
     onDrop: (x: number, y: number) => void,
@@ -47,11 +47,11 @@ export class TileInteractionManager {
     onDrop(pointer.worldX, pointer.worldY);
   }
 
-  cleanupDrop(tileId: string): void {
+  public cleanupDrop(tileId: string): void {
     this.finishPointer(tileId);
   }
 
-  toggleSelection(
+  public toggleSelection(
     runtime: TileRuntime,
     selectedIds: Set<string>,
     canChangeSelection: (runtime: TileRuntime, selecting: boolean) => boolean,
@@ -75,68 +75,68 @@ export class TileInteractionManager {
     onSelectionChanged();
   }
 
-  isPointInsideRect(rect: InteractionRect, x: number, y: number): boolean {
+  public isPointInsideRect(rect: InteractionRect, x: number, y: number): boolean {
     return x >= rect.x && x <= rect.x + rect.width && y >= rect.y && y <= rect.y + rect.height;
   }
 
-  findTile<T>(tiles: ReadonlyMap<string, T>, tileId: string): T | undefined {
+  public findTile<T>(tiles: ReadonlyMap<string, T>, tileId: string): T | undefined {
     return tiles.get(tileId);
   }
 
-  onPointerDown(
+  public onPointerDown(
     image: Phaser.GameObjects.Image,
     handler: (pointer: Phaser.Input.Pointer) => void,
   ): void {
     image.on("pointerdown", handler);
   }
 
-  onPointerUp(
+  public onPointerUp(
     image: Phaser.GameObjects.Image,
     handler: () => void,
   ): void {
     image.on("pointerup", handler);
   }
 
-  onPointerOver(
+  public onPointerOver(
     image: Phaser.GameObjects.Image,
     handler: (pointer: Phaser.Input.Pointer) => void,
   ): void {
     image.on("pointerover", handler);
   }
 
-  onPointerOut(
+  public onPointerOut(
     image: Phaser.GameObjects.Image,
     handler: (pointer: Phaser.Input.Pointer) => void,
   ): void {
     image.on("pointerout", handler);
   }
 
-  onPointerCancel(
+  public onPointerCancel(
     image: Phaser.GameObjects.Image,
     handler: (pointer: Phaser.Input.Pointer) => void,
   ): void {
     image.on("pointercancel", handler);
   }
 
-  onDragStart(image: Phaser.GameObjects.Image, handler: () => void): void {
+  public onDragStart(image: Phaser.GameObjects.Image, handler: () => void): void {
     image.on("dragstart", handler);
   }
 
-  onDrag(
+  public onDrag(
     image: Phaser.GameObjects.Image,
     handler: (pointer: Phaser.Input.Pointer, dragX: number, dragY: number) => void,
   ): void {
     image.on("drag", handler);
   }
 
-  onDragEnd(
+  public onDragEnd(
     image: Phaser.GameObjects.Image,
     handler: (pointer: Phaser.Input.Pointer) => void,
   ): void {
     image.on("dragend", handler);
   }
 
-  removePointerHandler(
+  public removePointerHandler(
     image: Phaser.GameObjects.Image,
     event: string,
     handler: (...args: unknown[]) => void,

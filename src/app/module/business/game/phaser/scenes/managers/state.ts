@@ -1,9 +1,8 @@
 // file: src/app/module/business/game/phaser/scenes/managers/state.ts
 import Phaser from "phaser";
-import type { PassDirection, TileVm } from "../../../model/tile";
-import type { TablePhase } from "../../../model/table-phase";
-import { TableLayout } from "../../type";
+import { PassDirection, TableLayout, TablePhase } from "../../type";
 import { TableSeat, TileRuntime } from "../type";
+import { TileVm } from "../../../type";
 
 /**
  * Owns mutable table, rack, pass, and interaction state.

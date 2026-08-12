@@ -2,13 +2,11 @@
 import Phaser from "phaser";
 import { GameLayoutEngine } from "../game.layout";
 import { ExposurePanelMode, PassAnimationItem, PassDirection, Point, Rect, SafeAreaInsets, TableLayout, TablePhase } from "../type";
-
-import { AnimationManager } from "./managers/animation";
-import { PassFlowManager } from "./managers/pass-flow";
+import { PassFlowManager } from "./managers/pass.flow";
 import { SoundManager } from "./managers/sound";
 import { StateManager } from "./managers/state";
-import { TileInteractionManager } from "./managers/tile-interaction";
-import { UiLayoutManager } from "./managers/ui-layout";
+import { TileInteractionManager } from "./managers/tile.interaction";
+import { UiLayoutManager } from "./managers/ui.layout";
 
 import { ANIMATION_SPEED, BOT_PASS_COMMIT_DURATION_MS, BOT_PASS_MOVE_DURATION_MS, BOT_PASS_WAITING_PAUSE_MS, COLOR_BLUE, COLOR_BLUE_NUM, COLOR_FUSHIA, COLOR_FUSHIA_NUM, COLOR_GRAY_NUM, COLOR_LAVENDER_NUM, FONT_FAMILY, GAME_TABLE_CONFIG, ICON_DEADHAND_HOVER, ICON_DEADHAND_NORMAL, ICON_DEADHAND_PRESSED, ICON_HELP_HOVER, ICON_HELP_NORMAL, ICON_HELP_PRESSED, ICON_HINT_HOVER, ICON_HINT_NORMAL, ICON_HINT_PRESSED, ICON_SETTINGS_HOVER, ICON_SETTINGS_NORMAL, ICON_SETTINGS_PRESSED, ICON_SORT_HOVER, ICON_SORT_NORMAL, ICON_SORT_PRESSED } from "../const";
 import { BotPassVisualTile, CharlestonVisualTransfer, DemoDiscardRequest, DiscardGrid, HamburgerMenuActionKey, HudActionKey, MahjongWinCelebration, TableOverlayBlockLevel, TableSceneCallbacks, TableSeat, TileCallOffer, TileRuntime, TableSfxConfig, TableSfxId } from "../type";
@@ -17,10 +15,12 @@ import { PhaserService } from "../service";
 import { inject } from "@angular/core";
 import { TILE_ATLAS_1X_KEY, TILE_ATLAS_2X_KEY } from "../../const";
 import { GameService } from "../../service";
+import { GameAnimation } from "../animation";
 
 export class TableScene extends Phaser.Scene {
   protected readonly service = inject(PhaserService);
   protected readonly gmService = inject(GameService);
+  protected readonly gmAnimation = inject(GameAnimation);
 
   private readonly callbacks: TableSceneCallbacks;
   private readonly layoutEngine = new GameLayoutEngine();
@@ -29,7 +29,7 @@ export class TableScene extends Phaser.Scene {
   // Manager skeletons; existing Scene logic remains the active implementation.
   private readonly tileInteractionManager: TileInteractionManager;
   private readonly passFlowManager: PassFlowManager;
-  private readonly animationManager = new AnimationManager(this);
+
   //private readonly uiLayoutManager = new UiLayoutManager();
   private readonly uiLayoutManager: UiLayoutManager;
   private readonly soundManager: SoundManager;
@@ -215,7 +215,6 @@ export class TableScene extends Phaser.Scene {
 
     this.passFlowManager = new PassFlowManager(
       this.stateManager,
-      this.animationManager,
       this.uiLayoutManager,
       {
         isPassPhaseAllowed: () => this.tablePhase === "passing",
@@ -997,7 +996,7 @@ export class TableScene extends Phaser.Scene {
     const slot = this.slotFor(runtime);
     const selectedOffset = runtime.selected ? -this.layout.bottomTileLayout.height * 0.18 : 0;
 
-    this.animationManager.animateRackTileSelection(
+    this.gmAnimation.animateRackTileSelection(
       runtime.image,
       slot.x,
       slot.y + selectedOffset,
@@ -1023,7 +1022,7 @@ export class TableScene extends Phaser.Scene {
       ? -this.layout.bottomTileLayout.height * 0.18
       : 0;
 
-    this.animationManager.animateRackTileReturn(
+    this.gmAnimation.animateRackTileReturn(
       runtime.image,
       Math.round(slot.x),
       Math.round(slot.y + selectedOffset),
@@ -2730,7 +2729,7 @@ export class TableScene extends Phaser.Scene {
 
     this.tweens.killTweensOf(runtime.image);
 
-    this.animationManager.animateDiscardDrop(
+    this.gmAnimation.animateDiscardDrop(
       runtime.image,
       Math.round(slot.x),
       Math.round(slot.y),
@@ -2795,7 +2794,7 @@ export class TableScene extends Phaser.Scene {
         continue;
       }
 
-      this.animationManager.layoutRackTile(
+      this.gmAnimation.layoutRackTile(
         runtime.image,
         tileWidth,
         tileHeight,
@@ -2892,7 +2891,7 @@ export class TableScene extends Phaser.Scene {
     );
   }
   public playCharlestonRound(items: readonly PassAnimationItem[]): void {
-    this.animationManager.playCharlestonRound(
+    this.gmAnimation.playCharlestonRound(
       items,
       this.layout,
       () => {
@@ -3126,7 +3125,7 @@ export class TableScene extends Phaser.Scene {
     const targets = this.passAreaTargets(this.currentPassDestination, ids.length);
     const angle = this.passTileAngle(this.currentPassDestination);
     const size = this.passTileDisplaySize(this.currentPassDestination);
-    this.animationManager.layoutPassWaitingTiles(
+    this.gmAnimation.layoutPassWaitingTiles(
       ids.map((id) => ({ id, image: this.tileMap.get(id)?.image })),
       targets,
       size,
@@ -3426,7 +3425,7 @@ export class TableScene extends Phaser.Scene {
     const destination = this.currentPassDestination;
     const endTargets = this.seatRackTargets(destination, ids.length);
     const endAngle = this.passTileAngle(destination);
-    this.animationManager.animatePassWaitingTilesIntoSeatRack(
+    this.gmAnimation.animatePassWaitingTilesIntoSeatRack(
       ids.map((id) => ({ id, image: this.tileMap.get(id)?.image })),
       endTargets,
       this.passTileDisplaySize(destination),
@@ -4001,7 +4000,7 @@ export class TableScene extends Phaser.Scene {
           0,
         );
 
-    this.animationManager.animateWallPick(
+    this.gmAnimation.animateWallPick(
       clone,
       target,
       this.pickTileAngleForSeat(seat),

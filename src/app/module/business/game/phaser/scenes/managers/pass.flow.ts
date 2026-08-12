@@ -1,39 +1,9 @@
 // file: src/app/module/business/game/phaser/scenes/managers/pass-flow.ts
-import type { PassDirection } from "../../../model/tile";
-import { TableSeat, TileRuntime } from "../type";
-import { AnimationManager } from "./animation";
+import { PassDirection } from "../../type";
+import { PassFlowCallbacks, PassResultCallbacks, TableSeat, TileRuntime } from "../type";
 import { StateManager } from "./state";
-import { UiLayoutManager } from "./ui-layout";
+import { UiLayoutManager } from "./ui.layout";
 
-/**
- * Scene-owned decisions and external effects used by the future pass flow.
- */
-export interface PassFlowCallbacks {
-  readonly isPassPhaseAllowed: () => boolean;
-  readonly validateSubmission: () => boolean;
-  readonly approveSubmission: () => boolean;
-  readonly onPassCompleted: (payload: {
-    readonly tileIds: readonly string[];
-    readonly direction: PassDirection;
-  }) => void;
-  readonly notifyNetworking: (payload: {
-    readonly tileIds: readonly string[];
-    readonly direction: PassDirection;
-  }) => void;
-  readonly emitExternalEvent: (event: string, payload?: unknown) => void;
-  readonly requestPassUiUpdate: () => void;
-}
-
-export interface PassResultCallbacks {
-  readonly onTileRemoved: (runtime: TileRuntime) => void;
-  readonly onCloseButtonRemoved: (tileId: string) => void;
-  readonly onSelectionChanged: () => void;
-  readonly onPassCompleted: (payload: {
-    readonly tileIds: readonly string[];
-    readonly direction: PassDirection;
-  }) => void;
-  readonly onLayoutRequested: () => void;
-}
 
 /**
  * Coordinates the pass feature without owning state, animations, UI, rules,
@@ -42,21 +12,20 @@ export interface PassResultCallbacks {
 export class PassFlowManager {
   constructor(
     readonly state: StateManager,
-    readonly animations: AnimationManager,
     readonly ui: UiLayoutManager,
     readonly callbacks: PassFlowCallbacks,
-  ) {}
+  ) { }
 
-  addPassWaitingTile(tileId: string): void {
+  public addPassWaitingTile(tileId: string): void {
     this.state.passWaitingTileIds.push(tileId);
   }
 
-  removePassWaitingTile(tileId: string): void {
+  public removePassWaitingTile(tileId: string): void {
     const index = this.state.passWaitingTileIds.indexOf(tileId);
     if (index >= 0) this.state.passWaitingTileIds.splice(index, 1);
   }
 
-  hasPassWaitingTile(tileId: string): boolean {
+  public hasPassWaitingTile(tileId: string): boolean {
     return this.state.passWaitingTileIds.includes(tileId);
   }
 
@@ -64,13 +33,13 @@ export class PassFlowManager {
     return this.state.passWaitingTileIds.length;
   }
 
-  setPassDirection(direction: PassDirection): TableSeat {
+  public setPassDirection(direction: PassDirection): TableSeat {
     this.state.passDirection = direction;
     this.state.currentPassDestination = this.destinationForDirection(direction);
     return this.state.currentPassDestination;
   }
 
-  destinationForDirection(direction: PassDirection): TableSeat {
+  public destinationForDirection(direction: PassDirection): TableSeat {
     switch (direction) {
       case "right": return "right";
       case "left": return "left";
@@ -78,15 +47,15 @@ export class PassFlowManager {
     }
   }
 
-  isPassingPhase(): boolean {
+  public isPassingPhase(): boolean {
     return this.callbacks.isPassPhaseAllowed();
   }
 
-  canSubmitPassWaitingTiles(): boolean {
+  public canSubmitPassWaitingTiles(): boolean {
     return this.isPassingPhase() && this.passWaitingTileCount === 3;
   }
 
-  beginSubmission(): boolean {
+  public beginSubmission(): boolean {
     if (!this.canSubmitPassWaitingTiles()) return false;
     if (this.state.isPassAnimating) return false;
 
@@ -94,11 +63,11 @@ export class PassFlowManager {
     return true;
   }
 
-  requestSubmissionUiUpdate(): void {
+  public requestSubmissionUiUpdate(): void {
     this.callbacks.requestPassUiUpdate();
   }
 
-  applyPassWaitingResult(
+  public applyPassWaitingResult(
     ids: readonly string[],
     callbacks: PassResultCallbacks,
   ): void {
