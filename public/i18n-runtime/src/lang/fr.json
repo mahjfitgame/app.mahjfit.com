@@ -22,8 +22,12 @@
       "NEXT": "Suivant",
       "BACK": "Retour",
       "CONTINUE": "Continuer",
+      "PROCEED_FURTHER": "Poursuivre",
       "PREVIOUS": "Précédent",
       "LOADING": "Chargement...",
+      "PROCESSING": "Traitement en cours...",
+      "REDIRECTING": "Redirection en cours...",
+      "PREPARING": "Préparation en cours...",
       "NO_RECORDS": "Aucun enregistrement trouvé",
       "STEP": "Étape"
     },
@@ -81,7 +85,8 @@
         "FORGOT_PASSWORD": "Mot de passe oublié",
         "MY_ACCOUNT": "Mon compte",
         "MY_PROFILE": "Mon profil",
-        "DASHBOARD": "Tableau de bord"
+        "DASHBOARD": "Tableau de bord",
+        "CREATE_ACCOUNT": "Créer un nouveau compte"
       }
     }
   }

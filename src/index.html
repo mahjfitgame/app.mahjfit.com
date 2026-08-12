@@ -3,7 +3,7 @@
 
 <head>
   <meta charset="utf-8" />
-  <title>Bfw Angular PWA</title>
+  <title>Mahjfit</title>
   <base href="/" />
   <meta name="viewport"
     content="viewport-fit=cover, width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no" />
@@ -17,7 +17,7 @@
           http://0.0.0.0:* https://0.0.0.0:* 
           http://192.168.0.200:* https://192.168.0.200:* 
           http://192.168.0.230:* https://192.168.0.230:* 
-          http://192.168.0.231:* https://192.168.0.231:*;
+          http://192.168.0.231:* https://192.168.0.231:*
           http://mahjfit-com.thatsend.dev https://mahjfit-com.thatsend.dev;
         script-src 
           'self' 
@@ -29,7 +29,7 @@
           http://0.0.0.0:* https://0.0.0.0:* 
           http://192.168.0.200:* https://192.168.0.200:* 
           http://192.168.0.230:* https://192.168.0.230:*
-          http://192.168.0.231:* https://192.168.0.231:*;
+          http://192.168.0.231:* https://192.168.0.231:*
           http://mahjfit-com.thatsend.dev https://mahjfit-com.thatsend.dev;
         style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
         font-src 'self' https://fonts.gstatic.com data:;
@@ -40,7 +40,7 @@
           http://0.0.0.0:* https://localhost:* 
           http://192.168.0.200:* https://192.168.0.200:* 
           http://192.168.0.230:* https://192.168.0.230:* 
-          http://192.168.0.231:* https://192.168.0.230:*;
+          http://192.168.0.231:* https://192.168.0.230:*
           http://mahjfit-com.thatsend.dev https://mahjfit-com.thatsend.dev;
         connect-src 
           'self'
@@ -51,7 +51,7 @@
           http://192.168.0.200:* https://192.168.0.200:* 
           http://192.168.0.230:* https://192.168.0.230:* 
           http://192.168.0.231:* https://192.168.0.231:*
-          http://mahjfit-com.thatsend.dev https://mahjfit-com.thatsend.dev;
+          http://mahjfit-com.thatsend.dev https://mahjfit-com.thatsend.dev
           ws: wss:
           https://bfw-nestjs-microservice-api.thatsend.app
           https://bfw-nestjs-microservice-ws.thatsend.app
@@ -76,8 +76,58 @@
 
   <link rel="manifest" href="manifest.webmanifest" />
 </head>
+<!--
+    data-bfw-theme-mode is intentionally not set here. the script below sets it before the first
+    paint, and when it finds nothing the body inherits "color-scheme: light dark" from html,
+    so the empty page still follows the system preference instead of being pinned to light.
+  -->
 
-<body class="bfw-field-rounded" data-bfw-theme="default" data-bfw-theme-mode="light" data-bfw-theme-preference="system">
+<body class="bfw-field-rounded" data-bfw-theme="default" data-bfw-theme-preference="system">
+  <!--
+      this runs before the angular bundle is downloaded, the only moment early enough to stop the
+      page painting in the wrong theme. the app initializer in base/theme/provider.ts owns the
+      mode from bootstrap onward, this only covers the gap before that.
+    -->
+  <script>
+    (function () {
+      // storage key of the plain themeMode signal of the theme state, built as:
+      // <preferences prefix>.<platform>.<signal state prefix>.<store key>.<field>
+      // example: als.web.ss.theme.tmode
+      //
+      // on native, capacitor injects its bridge at document start, so the platform is already
+      // readable here. on web the bridge ships inside the angular bundle and is not loaded yet,
+      // and there the platform is 'web' anyway, which is why that is the fallback.
+      var PREFERENCES_PREFIX = 'als';
+      var SIGNAL_STATE_PREFIX = 'ss';
+      var THEME_STATE_STORE_KEY = 'theme';
+      var THEME_STATE_FIELD_MODE = 'tmode';
+
+      var THEME_MODE_ATTRIBUTE = 'data-bfw-theme-mode';
+      var THEME_MODE_DARK = 'dark';
+      var THEME_MODE_LIGHT = 'light';
+
+      try {
+        var capacitor = window.Capacitor;
+        var platform = capacitor && capacitor.getPlatform ? capacitor.getPlatform() : 'web';
+
+        var storageKey = [
+          PREFERENCES_PREFIX,
+          platform,
+          SIGNAL_STATE_PREFIX,
+          THEME_STATE_STORE_KEY,
+          THEME_STATE_FIELD_MODE,
+        ].join('.');
+
+        var mode = window.localStorage.getItem(storageKey);
+
+        // no stored mode leaves the attribute off, so html color-scheme follows the system
+        if (mode === THEME_MODE_DARK || mode === THEME_MODE_LIGHT) {
+          document.body.setAttribute(THEME_MODE_ATTRIBUTE, mode);
+        }
+      } catch (e) { }
+    })();
+  </script>
+
   <app-root></app-root>
   <noscript>Please enable JavaScript to continue using this application.</noscript>
 </body>

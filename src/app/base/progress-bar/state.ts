@@ -4,19 +4,26 @@ import { ConfService } from "@libs/conf/service";
 import { LogService } from "@libs/log/service";
 import { SignalStateService } from "@libs/signal-state/service";
 import { ProgressBarStatusEnum } from "@base/progress-bar/enum";
-import { AppModuleStateType } from "@libs/utility/type";
+import { GlobalProgressBarService } from "@base/global-progress-bar/service";
+import { ContextProfileService } from "@libs/context-profile/service";
+import { BfwApiService } from "@libs/third-party-apis/bfw-api/service";
+import { FoundationModuleStateType } from "@libs/foundation-module/type/state";
+import { PROGRESS_BAR_STATE_STORE_KEY } from "./const";
 
 @Service()
-export class ProgressBarState extends SignalStateService implements AppModuleStateType {
+export class ProgressBarState extends SignalStateService implements FoundationModuleStateType {
 
     // ████ DEPENDENCIES ████████████████████████████████████████████████
 
-    private readonly conf = inject(ConfService);
-    private readonly log = inject(LogService);
+    public readonly conf = inject(ConfService);
+    public readonly log = inject(LogService);
+    public readonly gpbs = inject(GlobalProgressBarService);
+    public readonly ctxp = inject(ContextProfileService);
+    public readonly api = inject(BfwApiService);
 
     // ████ CLASS PROPERTIES ████████████████████████████████████████████
 
-    public override readonly storeKey = 'pbs';
+    public override readonly storeKey = PROGRESS_BAR_STATE_STORE_KEY;
 
     // Keep the completed state visible long enough for the material bar animation to reach 100%. This is because animation takes time
     private readonly completeVisibleMs = 350;
@@ -94,7 +101,7 @@ export class ProgressBarState extends SignalStateService implements AppModuleSta
         const startedAt = this.processing();
 
         if (startedAt === false) {
-        return [0, 0, 0];
+            return [0, 0, 0];
         }
 
         this.clearStopSchedule();

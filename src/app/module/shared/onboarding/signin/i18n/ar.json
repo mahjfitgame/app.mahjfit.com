@@ -31,8 +31,6 @@
       "PASSWORD": "كلمة المرور",
       "OTP": "رمز التحقق (OTP)",
       "KEEP_SIGNED_IN": "البقاء قيد تسجيل الدخول",
-      "CREATE_ACCOUNT": "إنشاء حساب جديد",
-      "FORGOT_PASSWORD": "هل نسيت كلمة المرور؟",
       "RESEND_OTP": "إعادة إرسال رمز OTP"
     },
     "FIELD_PLACEHOLDER": {
@@ -54,7 +52,8 @@
       "CONTINUE_WITH": "أو المتابعة باستخدام"
     },
     "VALIDATION": {
-      "USER_NOT_FOUND": "عذرًا، لم يتم العثور على المستخدم."
+      "USER_NOT_FOUND": "عذرًا، لم يتم العثور على المستخدم.",
+      "ALREADY_SIGNED_IN": "لقد سجلت الدخول بالفعل."
     }
   }
 }

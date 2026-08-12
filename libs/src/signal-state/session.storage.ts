@@ -1,7 +1,6 @@
 // file: libs/src/signal-state/session-storage.ts
 import { inject, Service } from '@angular/core';
 import { BrowserSessionStorageService } from '../browser-session-storage/service';
-import { SignatureService } from '../signature/service';
 import { SignalStateUtility } from './utility';
 import {
   SignalStateScopeType,
@@ -16,11 +15,6 @@ export class SignalStateSessionStorage {
    * It is readonly so the service wiring stays stable for the instance lifetime.
    */
   private readonly browserSessionStorage = inject(BrowserSessionStorageService);
-  /**
-   * Keeps the signature dependency or state holder used by this class.
-   * It is readonly so the service wiring stays stable for the instance lifetime.
-   */
-  private readonly signature = inject(SignatureService);
   /**
    * Keeps the utility dependency or state holder used by this class.
    * It is readonly so the service wiring stays stable for the instance lifetime.
@@ -45,18 +39,13 @@ export class SignalStateSessionStorage {
    * Handles the save<T> operation for signal-state persistence.
    * The method keeps callers on a single safe path for this behavior.
    */
-  public async save<T>(key: string, state: T, version = 1): Promise<void> {
+  public async save<T>(key: string, state: T, version = 1, plainValue = false): Promise<void> {
     const normalizedKey = this.utility.normalizeStorageKey(key);
 
-    this.utility.assertSerializable(state);
-
-    const envelope: SignalStateSessionStorageEnvelopeType = {
-      v: version,
-      u: new Date().toISOString(),
-      s: this.signature.encryptJson(state),
-    };
-
-    await this.browserSessionStorage.set(normalizedKey, envelope);
+    await this.browserSessionStorage.set(
+      normalizedKey,
+      this.utility.buildRecord(state, version, plainValue),
+    );
   }
 
   /**
@@ -77,20 +66,12 @@ export class SignalStateSessionStorage {
         SignalStateSessionStorageEnvelopeType | string
       >(normalizedKey);
 
-      if (!stored) {
+      // a plain record can be false, 0, or an empty string, only a missing record is null
+      if (stored === null || stored === undefined) {
         return null;
       }
 
-      const envelope = this.utility.parseEnvelope<SignalStateSessionStorageEnvelopeType>(stored);
-      if (!this.utility.isStorageEnvelope(envelope) || envelope.v !== expectedVersion) {
-        return null;
-      }
-
-      return {
-        v: envelope.v,
-        u: envelope.u,
-        s: this.signature.decryptJson<T>(envelope.s),
-      };
+      return this.utility.readRecord<T>(stored, expectedVersion);
     } catch {
       return null;
     }

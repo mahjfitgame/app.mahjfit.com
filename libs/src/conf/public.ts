@@ -14,14 +14,17 @@ export class ConfPublic {
   public LANGUAGE_CODE: string =  'en-US';
 
   // All app host domain list
+  public APP_HOST_DOMAIN_TLD_LABEL_COUNT: number = 1; // 1 = .com, 2 = .com.br kind of, for main app domain
   public APP_HOST_GRAPHQL_DOMAIN: string =  'http://localhost:20147'; // GRAPHQL APP gateway supergraph microservice port
   public APP_HOST_WEBSOCKET_DOMAIN: string =  'ws://localhost:20150'; // WEBSOCKET app port
   public APP_HOST_REST_DOMAIN: string = 'http://localhost:20152'; // REST app port
   public APP_HOST_WEB_DOMAIN: string = 'http://localhost:20153'; // WEB app port
   public APP_HOST_AI_DOMAIN: string = 'http://localhost:20156'; // Python AI app port
+  public APP_HOST_WEBSITE_DOMAIN: string = 'http://localhost:20154'; // Frontend Website port
+  public APP_HOST_BACKOFFICE_WEB_DOMAIN: string = 'http://localhost:20155'; // Frontend BACKOFFICE port
 
   public APP_LISTEN_HOST: string = 'localhost';
-  public APP_LISTEN_PORT: number = 20180;
+  public APP_LISTEN_PORT: number = 20155;
 
   public WEBSITE_SERVER_SIDE_LOG_URL_PATH: string = '/wlog/webiste';
   public BACKOFFICE_SERVER_SIDE_LOG_URL_PATH: string = '/wlog/backoffice';

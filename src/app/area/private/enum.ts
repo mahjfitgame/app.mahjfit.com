@@ -1,4 +1,4 @@
-// file: ./src/app/area/private/enum.ts
+// file: src/app/area/private/enum.ts
 export enum PrivateAreaLayoutSlotEnum {
     SLOT_START_SIDE_BAR_EXTENSION = 'SLOT_START_SIDE_BAR_EXTENSION',
     SLOT_MAIN_HEADER_TOOLBAR_EXTENSION = 'SLOT_MAIN_HEADER_TOOLBAR_EXTENSION',

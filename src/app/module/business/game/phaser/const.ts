@@ -1,3 +1,5 @@
+import { GameTableConfig } from "./type";
+
 export const ICON_SORT_NORMAL = "icon_sort_normal";
 export const ICON_SORT_HOVER = "icon_sort_hover";
 export const ICON_SORT_PRESSED = "icon_sort_pressed";
@@ -46,13 +48,30 @@ export const FONT_FAMILY = "Poppins, Arial";
 
 export const ANIMATION_SPEED = 900;
 
+export const BOT_PASS_WAITING_PAUSE_MS = 320;
+export const BOT_PASS_MOVE_DURATION_MS = 620;
+export const BOT_PASS_COMMIT_DURATION_MS = 520;
 
-
-
-
-
-
-
-
-
-
+export const GAME_TABLE_CONFIG: GameTableConfig = {
+    colors: {
+        page: 0x2f4d99,
+        exposure: 0x6675ac,
+        discard: 0x324f9a,
+        panel: 0x2f4592,
+        accent: 0xcb2aa3,
+        lime: "#e4f22c",
+        white: "#ffffff",
+    },
+    rack: {
+        tileAspect: 1.43,
+        maxTileWidthDesktop: 76,
+        maxTileWidthTablet: 58,
+        maxTileWidthMobile: 34,
+        minTileWidth: 22,
+        gapRatio: 0.0045,
+    },
+    animation: {
+        passDurationMs: 420,
+        dragReturnMs: 180,
+    },
+};

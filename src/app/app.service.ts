@@ -1,3 +1,4 @@
+// file: src/app/app.service.ts
 import { DOCUMENT, inject, Service } from "@angular/core";
 import { BfwApiService } from "@libs/third-party-apis/bfw-api/service";
 import { ConfService } from "@libs/conf/service";
@@ -8,19 +9,23 @@ import { ScrollDirectionService } from "@libs/scroll-direction/service";
 import { I18nService } from "@base/internationalization/service";
 import { SplashScreenService } from "@base/splash-screen/service";
 import { GlobalProgressBarService } from "@base/global-progress-bar/service";
-import { Router } from "@angular/router";
 import { UserAuthentication, UserDeviceHandShakeInputDto } from "@bfw/api-sdk/graphql/endpoints/shared";
 import { ContextProfileService } from "@libs/context-profile/service";
 import { BfwApiSdkDefaultRequestHeaders, BfwApiSdkError, BfwApiSdkErrorInterceptor, BfwApiSdkRequest, BfwApiSdkRequestInterceptor, BfwApiSdkResponse, BfwApiSdkResponseInterceptor, checkFailureSignal, TRIGGER_GRAPHQL_STATEFUL_AUTHORISATION_FAILURE, TRIGGER_REST_STATEFUL_AUTHORISATION_FAILURE } from "@bfw/api-sdk/core";
+import { AppState } from "@app/app.state";
 
 @Service()
 export class AppService {
-    private readonly router = inject(Router);
+    private initializationPromise: Promise<boolean> | null = null;
+    private apiInterceptorsRegistered = false;
+
     public readonly document = inject(DOCUMENT);
+
+    public readonly state = inject(AppState);
 
     public readonly conf = inject(ConfService);
     public readonly log = inject(LogService);
-    
+
     public readonly cookie = inject(CookieService);
     public readonly scroll = inject(ScrollDirectionService);
     public readonly ps = inject(PlatformService);
@@ -31,7 +36,44 @@ export class AppService {
     public readonly i18n = inject(I18nService);
     public readonly api = inject(BfwApiService);
 
-    constructor() {}
+    constructor() { }
+
+    public initialize(): Promise<boolean> {
+        this.initializationPromise ??= this.initializeOnce();
+        return this.initializationPromise;
+    }
+
+    private async initializeOnce(): Promise<boolean> {
+        this.splash.stream = 10;
+
+        try {
+            await this.ps.init();
+            this.splash.stream = 30;
+
+            this.registerApiInterceptorsOnce();
+            this.splash.stream = 40;
+
+            const handshake = await this.clientServerHandShake();
+            this.splash.stream = 60;
+
+            if (handshake === false) {
+                this.state.setStartupSucceeded(false);
+                return false;
+            }
+
+            await this.afterClientServerHandShake();
+            this.splash.stream = 70;
+
+            this.state.setStartupSucceeded(true);
+            return true;
+        } catch (error) {
+            this.log.error('[AppService] initialization failed', error);
+            this.state.setStartupSucceeded(false);
+            return false;
+        } finally {
+            this.splash.stream = 90;
+        }
+    }
 
     public onWindowScroll(): void {
         this.scroll.updateScrollDirection(this.document, {
@@ -44,9 +86,7 @@ export class AppService {
         // need to find some way and work around for this
         try {
             // wait for context state to sync and ready
-            while (!this.ctxp.state.ready()) {
-                await new Promise<void>((resolve) => setTimeout(resolve, 10));
-            }
+            await this.ctxp.state.whenReady();
 
             // load api service
             this.api.sdk.graphql.use(UserAuthentication);
@@ -74,16 +114,16 @@ export class AppService {
                 screen_width: Number(hsi.screen_width),
                 screen_height: Number(hsi.screen_height),
                 device_pixel_ratio: Number(hsi.device_pixel_ratio),
-                hardware_concurrency:hsi.hardware_concurrency,
+                hardware_concurrency: hsi.hardware_concurrency,
                 max_touch_points: hsi.max_touch_points,
                 device_memory: hsi.device_memory,
             };
 
             // if token is alreadu exist
-            if(this.ctxp.state.hostToken() && this.ctxp.state.hostToken() !== null && this.ctxp.state.hostToken() !== ''){
+            if (this.ctxp.state.hostToken() && this.ctxp.state.hostToken() !== null && this.ctxp.state.hostToken() !== '') {
                 this.log.info('[AppService] Host Token Found.');
             }
-            
+
             // api handshake: check if existing or add new both in one request
             const http = await this.api.sdk.graphql.userAuthentication.appClientServerHandShake({
                 selection: {
@@ -124,11 +164,21 @@ export class AppService {
                 this.ctxp.state.setCtxs(ctxs);
 
                 // set or clear stateful token in state
-                if(logged_in && stoken) {
+                if (logged_in && stoken) {
                     this.ctxp.state.setSessionToken(stoken);
                 } else {
-                    this.ctxp.state.clearSessionToken();
+                    this.ctxp.state.clearSession();
                 }
+
+                // push the tokens into the sdk right now instead of waiting for the header effect.
+                // that effect is created in state onActivate(), after the authenticated resource,
+                // so on the same flush the resource loader runs first and its request would leave
+                // without the stateful token.
+                this.ctxp.state.configureBfwApiHeaders();
+
+                // handshake is complete and every token is in state and in the sdk, state driven
+                // requests may now leave. keep this last, nothing may fire on a half set state.
+                this.ctxp.state.setHandshaked(true);
 
                 return ctxs ?? false;
             }
@@ -151,21 +201,31 @@ export class AppService {
         // connect to web socket
         //await this.api.sdk.graphql.ws.connect();
     }
-    public registerAfterResponseInterceptor(): void {
+    private registerApiInterceptorsOnce(): void {
+        if (this.apiInterceptorsRegistered) {
+            return;
+        }
+
+        this.registerBeforeApiRequestInterceptor();
+        this.registerAfterApiResponseInterceptor();
+        this.registerAfterApiResponseErrorInterceptor();
+        this.apiInterceptorsRegistered = true;
+    }
+    public registerAfterApiResponseInterceptor(): void {
         // make sure do not add any error related logic
         // it will go inside registerAfterResponseErrorInterceptor()
-        const interceptor: BfwApiSdkResponseInterceptor = 
-            async <T>(res: BfwApiSdkResponse<T>): Promise<BfwApiSdkResponse<T>>  => {
+        const interceptor: BfwApiSdkResponseInterceptor =
+            async <T>(res: BfwApiSdkResponse<T>): Promise<BfwApiSdkResponse<T>> => {
 
                 // update host token after response
                 const hostToken = res.getResHeaderHostAuthorization();
-                if(hostToken) {
+                if (hostToken) {
                     this.ctxp.state.setHostToken(hostToken);
-                } 
+                }
 
                 // update ctxs after response
                 const ctxs = res.getResHeaderCtxs();
-                if(ctxs) {
+                if (ctxs) {
                     this.ctxp.state.setCtxs(ctxs);
                 }
 
@@ -177,14 +237,12 @@ export class AppService {
         this.api.sdk.graphql.registerAfterResponseInterceptor(interceptor);
         this.api.sdk.rest.registerAfterResponseInterceptor(interceptor);
     }
-    public registerAfterResponseErrorInterceptor(): void {
+    public registerAfterApiResponseErrorInterceptor(): void {
         // make sure that if its error then also registerAfterResponseInterceptor() will execute
         // so do not duplicate same process in error interceptor
 
-        const interceptor: BfwApiSdkErrorInterceptor = 
-            async (err: BfwApiSdkError): Promise<BfwApiSdkError>  => {
-                const messages = err.errors();
-
+        const interceptor: BfwApiSdkErrorInterceptor =
+            async (err: BfwApiSdkError): Promise<BfwApiSdkError> => {
                 // if server throw 401, and has failure signal message in error clear session token
                 if (err.status === 401) {
                     const messages = err.errors();
@@ -198,12 +256,12 @@ export class AppService {
 
                     const hasFailureSignal = checkFailureSignal(triggers, messages);
 
-                    if(hasFailureSignal) {
-                        this.ctxp.state.clearSessionToken();    
+                    if (hasFailureSignal) {
+                        this.ctxp.state.clearSession();
                     }
                 }
 
-                if(err.response) {
+                if (err.response) {
                     // make sure err.response is readonly in error interceptor
                     const res = err.response;
 
@@ -214,13 +272,13 @@ export class AppService {
         this.api.sdk.graphql.registerAfterResponseErrorInterceptor(interceptor);
         this.api.sdk.rest.registerAfterResponseErrorInterceptor(interceptor);
     }
-    public registerBeforeRequestInterceptor(): void {
-        const interceptor: BfwApiSdkRequestInterceptor = 
-            async <T>(req: BfwApiSdkRequest<T>): Promise<BfwApiSdkRequest<T>>  => {
+    public registerBeforeApiRequestInterceptor(): void {
+        const interceptor: BfwApiSdkRequestInterceptor =
+            async <T>(req: BfwApiSdkRequest<T>): Promise<BfwApiSdkRequest<T>> => {
                 // add logic to mofify request
                 this.log.info(`[REQ INTERCEPTOR] Started ${req.headers[BfwApiSdkDefaultRequestHeaders.REQ_RES_ID] ?? '0'}`);
                 return req;
-        }
+            }
         this.api.sdk.graphql.registerBeforeRequestInterceptor(interceptor);
         this.api.sdk.rest.registerBeforeRequestInterceptor(interceptor);
     }

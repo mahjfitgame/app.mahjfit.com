@@ -7,13 +7,14 @@ import {
   inject,
   OnDestroy,
   OnInit,
-  
+
 } from '@angular/core';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
-import { RouterOutlet } from '@angular/router';
+import { Router, RouterOutlet } from '@angular/router';
 import { GlobalProgressBarComponent } from '@base/global-progress-bar/component';
 import { MatIconModule } from '@angular/material/icon';
 import { AppService } from '@app/app.service';
+import { HttpStatusServiceUnavailableRoute } from 'src/app/module/shared/http-status/service-unavailable/route';
 
 @Component({
   selector: 'app-root',
@@ -30,7 +31,7 @@ import { AppService } from '@app/app.service';
 })
 export class AppComponent implements OnInit, OnDestroy, AfterViewInit {
   protected readonly service = inject(AppService);
-  constructor() {}
+  constructor() { }
   public async ngOnInit(): Promise<void> {
     // Splash screen starts from app config as early as possible.
     this.service.splash.stream = 10;
@@ -41,7 +42,7 @@ export class AppComponent implements OnInit, OnDestroy, AfterViewInit {
   public async ngAfterViewInit(): Promise<void> {
     await this.onAppStartUp();
   }
-  public async ngOnDestroy(): Promise<void> {}
+  public async ngOnDestroy(): Promise<void> { }
   public async onAppStartUp() {
     let removeSplash: boolean = false;
     try {
@@ -50,16 +51,16 @@ export class AppComponent implements OnInit, OnDestroy, AfterViewInit {
       this.service.splash.stream = 30;
 
       // perform required registration and initialization
-      this.service.registerBeforeRequestInterceptor();
-      this.service.registerAfterResponseInterceptor();
-      this.service.registerAfterResponseErrorInterceptor();
+      this.service.registerBeforeApiRequestInterceptor();
+      this.service.registerAfterApiResponseInterceptor();
+      this.service.registerAfterApiResponseErrorInterceptor();
       this.service.splash.stream = 40;
 
       // hand shake with api to wake it up and check if it's responsive, also can be used to fetch some critical data for app initialization
-      //const hs = await this.service.clientServerHandShake();
-      const hs=true;
+      const hs = await this.service.clientServerHandShake();
+      //const hs = true;
       this.service.splash.stream = 60;
-      
+
 
       // decide to hide splash or not
       if (!hs) {

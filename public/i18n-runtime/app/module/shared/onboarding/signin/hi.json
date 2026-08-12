@@ -31,8 +31,6 @@
       "PASSWORD": "पासवर्ड",
       "OTP": "ओटीपी",
       "KEEP_SIGNED_IN": "मुझे साइन इन रखें",
-      "CREATE_ACCOUNT": "नया खाता बनाएं",
-      "FORGOT_PASSWORD": "पासवर्ड भूल गए?",
       "RESEND_OTP": "ओटीपी पुनः भेजें"
     },
     "FIELD_PLACEHOLDER": {
@@ -54,7 +52,8 @@
       "CONTINUE_WITH": "या इसके साथ जारी रखें"
     },
     "VALIDATION": {
-      "USER_NOT_FOUND": "क्षमा करें, उपयोगकर्ता नहीं मिला."
+      "USER_NOT_FOUND": "क्षमा करें, उपयोगकर्ता नहीं मिला.",
+      "ALREADY_SIGNED_IN": "आप पहले से साइन इन हैं।"
     }
   }
 }

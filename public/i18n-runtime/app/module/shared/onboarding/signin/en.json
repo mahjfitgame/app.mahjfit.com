@@ -36,8 +36,6 @@
       "OTP": "OTP",
       "SQ_ANSWER": "Answer",
       "KEEP_SIGNED_IN": "Keep me signed in",
-      "CREATE_ACCOUNT": "Create a new account",
-      "FORGOT_PASSWORD": "Forgot password?",
       "RESEND_OTP": "Resend OTP",
       "MFA_OPTION": "Multi Factor Authentication Option"
     },
@@ -62,7 +60,8 @@
     },
     "VALIDATION": {
       "INVALID_USER": "Sorry, user not found.",
-      "INVALID_IDENTIFY": "Sorry, password is incorrect."
+      "INVALID_IDENTIFY": "Sorry, password is incorrect.",
+      "ALREADY_SIGNED_IN": "You are already signed in."
     }
   }
 }

@@ -9,10 +9,9 @@ import { GeoCountryService } from '@module/shared/geo/country/service';
 import { CrudLayoutDirective } from '@base/crud/directive';
 import { MatIcon } from '@angular/material/icon';
 import { TermHighlightDirective } from '@libs/utility/directive/term.highlight.directive';
-import { URL_PROVIDER } from '@libs/url/provider';
 import { MatSnackBarModule } from '@angular/material/snack-bar';
 import { CRUD_PROVIDER } from '@base/crud/provider';
-import { GeoCountryState } from '@module/shared/geo/country/state';
+import { GEO_COUNTRY_PROVIDER } from './provider';
 
 @Component({
   selector: 'app-geo-country',
@@ -38,10 +37,8 @@ import { GeoCountryState } from '@module/shared/geo/country/state';
         CrudModule,
     ],
     providers: [
-        URL_PROVIDER,
         CRUD_PROVIDER,
-        GeoCountryState,
-        GeoCountryService,
+        GEO_COUNTRY_PROVIDER,
     ]
 })
 export class GeoCountryComponent implements OnInit, OnDestroy {

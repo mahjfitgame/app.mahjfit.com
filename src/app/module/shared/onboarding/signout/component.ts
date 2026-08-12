@@ -3,7 +3,7 @@ import { AfterViewChecked, AfterViewInit, Component, inject, OnDestroy, OnInit }
 import { JsonPipe, KeyValuePipe } from "@angular/common";
 import { MatCardModule } from "@angular/material/card";
 import { MatInputModule } from "@angular/material/input";
-import { Router, RouterModule } from "@angular/router";
+import { RouterModule } from "@angular/router";
 import { MatCheckboxModule } from "@angular/material/checkbox";
 import { MatGridListModule } from "@angular/material/grid-list";
 import { MatButtonModule } from "@angular/material/button";
@@ -14,11 +14,10 @@ import { MatRippleModule } from '@angular/material/core';
 import { CdkPortal } from "@angular/cdk/portal";
 import { AuthAreaLayoutDirective } from "@area/auth/directive";
 import { TranslocoModule } from "@jsverse/transloco";
-import { URL_PROVIDER } from "@libs/url/provider";
 import { NotifyBannerComponent } from "@base/notify-banner/component";
 import { SignoutService } from "./service";
-import { SignoutState } from "./state";
 import { MatDivider } from "@angular/material/divider";
+import { SIGNOUT_PROVIDER } from "./provider";
 
 @Component({
   selector: 'app-signout',
@@ -26,7 +25,7 @@ import { MatDivider } from "@angular/material/divider";
   templateUrl: 'template.html',
   styleUrl: 'style.scss',
   imports: [
-    JsonPipe,
+    //JsonPipe,
     //KeyValuePipe,
     RouterModule,
     //CdkPortal,
@@ -45,18 +44,19 @@ import { MatDivider } from "@angular/material/divider";
     MatDivider
 ],
   providers: [
-    SignoutState,
-    SignoutService,
+    SIGNOUT_PROVIDER,
   ],
 })
 export class SignoutComponent implements OnInit, AfterViewInit, AfterViewChecked, OnDestroy {
-    private router = inject(Router);
     protected readonly service = inject(SignoutService);
     
     constructor() {}
 
     public async ngOnInit(): Promise<void> {
       this.service.initI18n();
+
+      // signout from active session
+      await this.service.signout();
     }
     public async ngAfterViewInit(): Promise<void> {}
     public async ngAfterViewChecked(): Promise<void> {}

@@ -1,4 +1,5 @@
 // file: ./libs/src/platform/const.ts
+export const PLATFORM_STATE_STORE_KEY = 'p' as const;
 export const PLATFORM_STATE_VERSION: number = 1;
 
 export const PLATFORM_NAME_WEB = 'web' as const;

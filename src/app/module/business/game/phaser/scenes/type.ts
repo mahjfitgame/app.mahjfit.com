@@ -1,10 +1,11 @@
 // file: src/app/module/business/game/phaser/scenes/type.ts
-import { TablePhase } from "../../model/table-phase";
+
 import { TileVm } from "../../model/tile";
-import { GameHapticType } from "../../platform/haptics.service";
+import { GameHapticType } from "../../type";
+
 import { DeviceLayoutState } from "../device-layout.service";
 import { PassDirection } from "../models/pass-animation.model";
-import { TableLayout } from "../type";
+import { TableLayout, TablePhase } from "../type";
 
 
 export type TableSeat = "top" | "right" | "bottom" | "left";
@@ -107,6 +108,8 @@ export interface TableSceneCallbacks {
   readonly onPlayerLabelOverlay: (states: readonly PlayerLabelOverlayState[]) => void;
   /** Updates the crisp native points value beside the Phaser points icon. */
   readonly onPointsOverlay: (state: PointsOverlayState) => void;
+  /** Positions the native mobile header toggle arrow. */
+  readonly onMobileHeaderToggle: (state: MobileHeaderToggleState) => void;
   /** Lets native overlays yield while a mobile Phaser drawer is open. */
   readonly onMobileDrawerVisibilityChanged: (open: boolean) => void;
   readonly onMobileDrawerOverlay: (state: MobileDrawerOverlayState) => void;
@@ -208,6 +211,8 @@ export interface UiLayoutCallbacks {
   readonly onMobileDrawerOverlay?: (state: MobileDrawerOverlayState) => void;
   /** Positions and fills the native instruction card over the table centre. */
   readonly onInstructionPanelOverlay?: (state: InstructionPanelOverlayState) => void;
+  /** Positions the native mobile header toggle arrow. */
+  readonly onMobileHeaderToggle?: (state: MobileHeaderToggleState) => void;
   readonly logoTextureKey?: string;
 }
 
@@ -233,6 +238,14 @@ export interface PlayerLabelOverlayState {
   readonly fontSize: number;
   readonly color: string;
   readonly angle: 0 | 90 | -90;
+  readonly visible: boolean;
+}
+
+/** Browser-native mobile header toggle arrow. */
+export interface MobileHeaderToggleState {
+  readonly icon: string;
+  readonly x: number;
+  readonly y: number;
   readonly visible: boolean;
 }
 

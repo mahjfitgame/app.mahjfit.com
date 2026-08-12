@@ -8,14 +8,53 @@ Upgrade the winning Mahjong popup to make UI clear
 Upgrade Dead hand popup UI to select the seat
 
 2]
+Done feedback point
+2.1]
+Use HEX blue from Carolyn on border around entire screen.
+DONE
+2.2]
+Deeoer shadow around game board - should look 2D
+DONE
+2.3]
+Add Game board texture and correct HEX color
+DONE
+2.4]
+Drop shadow around racks
+DONE
+2.5]
+Drop shadow around tiles
+DONE
+2.6]
+Match tile and point icons size.
+DONE
+2.7]
+Use Carolyn Icons
+DONE
+2.8]
+Use Carolyn Design(fonts/shapes/color)
+DONE
+
+3]
+Test app with real device and an iPad simulator to cross-check the design and make the necessary adjustments for different devices
+
+4]
+Make adjustment for the rack tile animation which gives smoother experience and it properly place to the bottom seat rack. 
+Analysed Bam, Dot, Crack reference app for new one more feature
 
 
 
+
+
+
+
+
+Pick white tile for other seat right now it created with the Phase white box instead we need back side of tile image and when pick animate that tile
+
+Mobile reduce the all shadow.
+
+Upgrade design for all the major of devices for batter user experience and completed feedback points given by your team. 
 
 QA - Task 1
-
-
-I have completely optimized the game engine for flawless 60fps performance on all devices.
 
 Here is what I just did to guarantee the best possible performance:
 
@@ -27,6 +66,33 @@ The game is now running at the absolute highest standard of performance and visu
 ========================================================
 Would you like me to lighten that hex color up so that the top and left border actually stands out and is visible? A slightly lighter shade like #1c2a42 or #233454 
 
+
+FOR CLIENT]
+
+Hello Everyone,
+
+I provided my response in the ongoing "Tech Discussion" document.
+
+I have added new section "Section: About UPLOAD THE CARD". Please review and give your feedback.
+
+https://docs.google.com/document/d/1oYDHHtSRrNoc3l_Q9TO8nIqfG_R74WKqlV-ji82F3CA/edit?usp=sharing
+
+Thank you.
+
+FOR CLIENT]
+Today, I have started the work on the game play API implement with frontend, I will continue work on it.
+
+I will keep you posted on work progress.
+Thank you!
+
+
+
+
+FOR CLIENT]
+Today, I worked on to set proper spacing between the exposure and table and set the preopes shadow for the mobile and tablet devices. Also upgrade the backend as required.
+
+I will keep you posted on work progress.
+Thank you!
 
 
 

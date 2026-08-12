@@ -25,6 +25,8 @@ import { PrivateAreaLayoutSlotEnum } from "@area/private/enum";
 import { MatTabsModule } from "@angular/material/tabs";
 import { AppPaginationEvent } from "@base/pagination/type";
 import { PrivateAreaLayoutService } from "@area/private/service";
+import { DASHBOARD_PROVIDER } from "./provider";
+import { DashboardService } from "./service";
 
 export interface TableItem {
   customerImage: string;
@@ -81,11 +83,15 @@ interface DashboardColumnOption {
 
     PaginationComponent,
   ],
-  providers: [],
+  providers: [
+    DASHBOARD_PROVIDER,
+  ],
 })
 export class DashboardComponent implements OnInit {
     //@ViewChild("searchDrawer") searchDrawer!: MatDrawer;
     public searchDrawer = viewChild<MatDrawer>('searchDrawer');
+
+    protected readonly service = inject(DashboardService);
 
     protected readonly bpo = inject(BreakpointObserverService);
     protected readonly privateAreaLayoutService = inject(PrivateAreaLayoutService);
@@ -356,13 +362,9 @@ export class DashboardComponent implements OnInit {
   }
 
     public async ngOnInit(): Promise<void> {
-        this.privateAreaLayoutService.state.setModuleInfo({
-            icon: 'dashboard',
-            url: '/dashboard',
-            title: 'Dashboard',
-            hint: 'Access to dashboard',
-            i18n: null
-        })
+        this.service.initI18n();
+        this.service.setModuleInfo();
+        this.service.alterBreadcrumb();
     }
 
    

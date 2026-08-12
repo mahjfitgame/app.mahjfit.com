@@ -46,6 +46,9 @@ export class ConfService {
     public get languageCode(): string {
         return this._conf.LANGUAGE_CODE;
     }
+    public get appHostDomainTldLabelCount(): number {
+        return this._conf.APP_HOST_DOMAIN_TLD_LABEL_COUNT;
+    }
     public get appHostGraphQLDomain(): string {
         return this._conf.APP_HOST_GRAPHQL_DOMAIN;
     }
@@ -57,6 +60,12 @@ export class ConfService {
     }
     public get appHostWebDomain(): string {
         return this._conf.APP_HOST_WEB_DOMAIN;
+    }
+    public get appHostWebsiteDomain(): string {
+        return this._conf.APP_HOST_WEBSITE_DOMAIN;
+    }
+    public get appHostBackofficeWebDomain(): string {
+        return this._conf.APP_HOST_BACKOFFICE_WEB_DOMAIN;
     }
     public get appHostAiDomain(): string {
         return this._conf.APP_HOST_AI_DOMAIN;

@@ -5,26 +5,39 @@ import { LogService } from '@libs/log/service';
 import { SignalStateService } from '@libs/signal-state/service';
 
 import { ThemeEnum, ThemeModeEnum, ThemePreferenceEnum } from '@base/theme/type';
-import { AppModuleStateType } from '@libs/utility/type';
+import { GlobalProgressBarService } from '@base/global-progress-bar/service';
+import { ContextProfileService } from '@libs/context-profile/service';
+import { BfwApiService } from '@libs/third-party-apis/bfw-api/service';
+import { FoundationModuleStateType } from '@libs/foundation-module/type/state';
+import {
+    THEME_ATTRIBUTE,
+    THEME_MODE_ATTRIBUTE,
+    THEME_PREFERENCE_ATTRIBUTE,
+    THEME_STATE_STORE_KEY,
+} from './const';
+import { ThemeStateFieldEnum } from './enum';
 
 @Service()
-export class ThemeState extends SignalStateService implements AppModuleStateType {
+export class ThemeState extends SignalStateService implements FoundationModuleStateType {
 
     // ████ DEPENDENCIES ████████████████████████████████████████████████
 
-    private readonly conf = inject(ConfService);
-    private readonly log = inject(LogService);
+    public readonly conf = inject(ConfService);
+    public readonly log = inject(LogService);
+    public readonly gpbs = inject(GlobalProgressBarService);
+    public readonly ctxp = inject(ContextProfileService);
+    public readonly api = inject(BfwApiService);
 
     // ████ CLASS PROPERTIES ████████████████████████████████████████████
 
-    public override readonly storeKey = 'theme';
+    public override readonly storeKey = THEME_STATE_STORE_KEY;
 
     private readonly systemThemeMediaQuery: MediaQueryList | null =
         typeof window !== 'undefined' ? window.matchMedia('(prefers-color-scheme: dark)') : null;
 
-    private readonly attrTheme = 'data-bfw-theme';
-    private readonly attrThemeMode = 'data-bfw-theme-mode';
-    private readonly attrThemePreference = 'data-bfw-theme-preference';
+    private readonly attrTheme = THEME_ATTRIBUTE;
+    private readonly attrThemeMode = THEME_MODE_ATTRIBUTE;
+    private readonly attrThemePreference = THEME_PREFERENCE_ATTRIBUTE;
 
     // ████ SIGNAL FORM PROPERTIES ██████████████████████████████████████
     // n/a
@@ -36,7 +49,7 @@ export class ThemeState extends SignalStateService implements AppModuleStateType
     );
 
     private readonly _themePreference = this.localStoragePersistSignal<ThemePreferenceEnum>(
-        'tpref',
+        ThemeStateFieldEnum.PREFERENCE,
         ThemePreferenceEnum.SYSTEM,
         {
             crossTab: true,
@@ -45,28 +58,58 @@ export class ThemeState extends SignalStateService implements AppModuleStateType
     );
     public readonly themePreference = this._themePreference.asReadonly();
 
+    /**
+     * Persisted copy of the resolved theme mode, stored as a plain readable value.
+     * themeMode() above stays the runtime truth, this field only mirrors it so the theme
+     * provider and the index.html boot script can read the mode synchronously before the
+     * encrypted state is loaded. The theme effect in onActivate() keeps it up to date.
+     * 
+     * keep the mode readable as raw text for anything outside Angular that needs it later
+     * so, plainValue: true
+     */
+    private readonly _themeMode = this.localStoragePersistSignal<ThemeModeEnum>(
+        ThemeStateFieldEnum.MODE,
+        ThemeModeEnum.LIGHT,
+        {
+            crossTab: true,
+            plainValue: true,
+            validate: this.isThemeMode,
+        },
+    );
+    /**
+     * do not read direct plain value from _themeMode() instead decide based on set preference
+     * plain value is for bootstrap process only
+     */
     public readonly themeMode = computed<ThemeModeEnum>(() => {
         const preference = this.themePreference();
 
         if (preference === ThemePreferenceEnum.LIGHT) {
-        return ThemeModeEnum.LIGHT;
+            return ThemeModeEnum.LIGHT;
         }
         if (preference === ThemePreferenceEnum.DARK) {
-        return ThemeModeEnum.DARK;
+            return ThemeModeEnum.DARK;
         }
 
         return this.systemThemeMode();
     });
     public readonly isDarkMode = computed(() => this.themeMode() === ThemeModeEnum.DARK);
 
-    private readonly _theme = this.localStoragePersistSignal<ThemeEnum>('theme', ThemeEnum.DEFAULT, {
-        crossTab: true,
-        validate: this.isTheme,
-    });
+    private readonly _theme = this.localStoragePersistSignal<ThemeEnum>(
+        ThemeStateFieldEnum.THEME,
+        ThemeEnum.DEFAULT,
+        {
+            crossTab: true,
+            validate: this.isTheme,
+        },
+    );
     public readonly theme = this._theme.asReadonly();
 
     // ████ STATE DEBUGGER ██████████████████████████████████████████████
-    // n/a
+    /*
+    public readonly debugState = computed(() => ({
+        
+    })); 
+    */
 
     constructor() {
         super();
@@ -90,11 +133,19 @@ export class ThemeState extends SignalStateService implements AppModuleStateType
             }
 
             document.body.setAttribute(this.attrTheme, theme);
-            document.body.setAttribute(
-                this.attrThemeMode,
-                this.ready() ? themeMode : ThemeModeEnum.LIGHT,
-            );
+
+            // until the persisted preference is loaded the computed mode is only a default,
+            // keep the mode applied at bootstrap so the theme never flashes
+            if (!this.ready()) {
+                return;
+            }
+
+            document.body.setAttribute(this.attrThemeMode, themeMode);
             document.body.setAttribute(this.attrThemePreference, themePreference);
+
+            // mirror the resolved mode so the next app start can read it synchronously,
+            // this covers system theme changes too, which never pass through the setters
+            this.setThemeMode(themeMode);
         });
 
         this.registerDeactivationCleanup(() => themeEffect.destroy());
@@ -114,12 +165,15 @@ export class ThemeState extends SignalStateService implements AppModuleStateType
     }
     public toggleThemePreference(themePreference?: ThemePreferenceEnum): void {
         const nextThemePreference =
-        themePreference ??
-        (this.themeMode() === ThemeModeEnum.DARK
-            ? ThemePreferenceEnum.LIGHT
-            : ThemePreferenceEnum.DARK);
+            themePreference ??
+            (this.themeMode() === ThemeModeEnum.DARK
+                ? ThemePreferenceEnum.LIGHT
+                : ThemePreferenceEnum.DARK);
 
         this.setThemePreference(nextThemePreference);
+    }
+    public setThemeMode(themeMode: ThemeModeEnum): void {
+        this._themeMode.set(themeMode);
     }
 
     // ████ SIGNAL DATA VALIDATORS ██████████████████████████████████████
@@ -138,11 +192,11 @@ export class ThemeState extends SignalStateService implements AppModuleStateType
 
     private listenSystemThemeChanges(): void {
         if (!this.systemThemeMediaQuery) {
-        return;
+            return;
         }
 
         const handleSystemThemeChange = (event: MediaQueryListEvent): void => {
-        this.systemThemeMode.set(event.matches ? ThemeModeEnum.DARK : ThemeModeEnum.LIGHT);
+            this.systemThemeMode.set(event.matches ? ThemeModeEnum.DARK : ThemeModeEnum.LIGHT);
         };
 
         this.systemThemeMediaQuery.addEventListener('change', handleSystemThemeChange);

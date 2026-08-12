@@ -6,28 +6,31 @@ import { SignalStateService } from "@libs/signal-state/service";
 import { SigninMutationFormModelType, SigninStepResponseType, SigninMutationFieldObjType, SigninStepSequenceType, SigninAvailableMultiFactorAuthenticationType, SigninMutationFormErrorType } from "@module/shared/onboarding/signin/type";
 import { SigninStepEnum, UserMultiFactorAuthenticationTypeEnum, UserMultiFactorAuthenticationTypeEnumAddon } from "@bfw/api-sdk/graphql/endpoints/shared";
 import { CrudFieldUiTypeEnum } from "@base/crud/enum";
-import { form, hidden, minLength, required, validate } from "@angular/forms/signals";
+import { disabled, form, hidden, minLength, required, validate } from "@angular/forms/signals";
 import { GlobalProgressBarService } from "@base/global-progress-bar/service";
 import { ContextProfileService } from "@libs/context-profile/service";
-import { BfwApiService } from "@libs/third-party-apis/bfw-api";
-import { AppModuleStateType } from "@libs/utility/type";
+import { BfwApiService } from "@libs/third-party-apis/bfw-api/service";
+import { FoundationModuleStateType } from "@libs/foundation-module/type/state";
+import { CrudChildMutationStateType } from "src/app/base/crud/child/type/mutation.state";
+import { ONBOARDING_SIGNIN_STATE_STORE_KEY } from "./const";
 
 @Service({ autoProvided: false })
-export class SigninState extends SignalStateService implements AppModuleStateType {
-    
+export class SigninState extends SignalStateService implements FoundationModuleStateType, CrudChildMutationStateType {
+
     // ████ DEPENDENCIES ████████████████████████████████████████████████
 
-    private readonly conf = inject(ConfService);
-    private readonly log = inject(LogService);
-    private readonly gpbs = inject(GlobalProgressBarService);
-    private readonly ctxp = inject(ContextProfileService);
-    private readonly api = inject(BfwApiService);
+    public readonly conf = inject(ConfService);
+    public readonly log = inject(LogService);
+    public readonly gpbs = inject(GlobalProgressBarService);
+    public readonly ctxp = inject(ContextProfileService);
+    public readonly api = inject(BfwApiService);
 
     // ████ CLASS PROPERTIES ████████████████████████████████████████████
-    
-    // required for persisted state
-    public override readonly storeKey = 'sin';
 
+    // required for persisted state
+    public override readonly storeKey = ONBOARDING_SIGNIN_STATE_STORE_KEY;
+
+    // ████ CRUD OBJECTS ████████████████████████████████████████████
     // set mutation field obj
     public readonly MUTATION_FIELD_OBJ: SigninMutationFieldObjType = {
         un_pe_pm: {
@@ -38,8 +41,8 @@ export class SigninState extends SignalStateService implements AppModuleStateTyp
             url_matrix_param: 'uem',
             value: null,
             validation: {
-                required: { 
-                    message: 'GL.VALIDATION.REQUIRED', 
+                required: {
+                    message: 'GL.VALIDATION.REQUIRED',
                     value: true,
                 },
                 min_length: {
@@ -56,8 +59,8 @@ export class SigninState extends SignalStateService implements AppModuleStateTyp
             url_matrix_param: 'i',
             value: null,
             validation: {
-                required: { 
-                    message: 'GL.VALIDATION.REQUIRED', 
+                required: {
+                    message: 'GL.VALIDATION.REQUIRED',
                     value: true,
                 },
                 min_length: {
@@ -83,8 +86,8 @@ export class SigninState extends SignalStateService implements AppModuleStateTyp
             url_matrix_param: 'mo',
             value: null,
             validation: {
-                required: { 
-                    message: 'GL.VALIDATION.REQUIRED', 
+                required: {
+                    message: 'GL.VALIDATION.REQUIRED',
                     value: true,
                 }
             }
@@ -97,8 +100,8 @@ export class SigninState extends SignalStateService implements AppModuleStateTyp
             url_matrix_param: 'vi',
             value: null,
             validation: {
-                required: { 
-                    message: 'GL.VALIDATION.REQUIRED', 
+                required: {
+                    message: 'GL.VALIDATION.REQUIRED',
                     value: true,
                 },
                 min_length: {
@@ -110,11 +113,11 @@ export class SigninState extends SignalStateService implements AppModuleStateTyp
     };
 
     // ████ SIGNAL FORM PROPERTIES ██████████████████████████████████████
-    
-    private readonly _mutationFieldObj = signal<SigninMutationFieldObjType>(this.MUTATION_FIELD_OBJ);
+
+    public readonly _mutationFieldObj = signal<SigninMutationFieldObjType>(this.MUTATION_FIELD_OBJ);
     public readonly mutationFieldObj = this._mutationFieldObj.asReadonly();
 
-    private _mutationFormError = signal<SigninMutationFormErrorType>({
+    public readonly _mutationFormError = signal<SigninMutationFormErrorType>({
         un_pe_pm: null,
         identify: null,
         keep_logged: null,
@@ -131,9 +134,14 @@ export class SigninState extends SignalStateService implements AppModuleStateTyp
         mfa_vi: ''
     });
     public readonly mutationFormModel = this._mutationFormModel.asReadonly();
-    
+
+    public readonly _mutationFormProcessing = signal(false);
+    public readonly mutationFormProcessing = this._mutationFormProcessing.asReadonly();
+
     public readonly mutationForm = form(this._mutationFormModel, (sp) => {
         const fo = this.mutationFieldObj();
+
+        disabled(sp, { when: () => this.mutationFormProcessing() });
 
         // ─── HIDE FIELD ──────────────────────────────────────────────────
         // Multi-step flow: hide non-active fields so they don't block validation.
@@ -157,24 +165,27 @@ export class SigninState extends SignalStateService implements AppModuleStateTyp
             const mfError = this.mutationFormError().un_pe_pm;
             const invalidUserValue = this.invalidUser();
 
-            if(invalidUserValue && invalidUserValue.includes(ctx.value())) {
+            if (this.ctxp.state.authenticated()) {
+                // this is important, if user is already signed in then do not allow to sign in again in same device
+                return { kind: 'authenticated', message: 'ONBOARDING_SIGNIN.VALIDATION.ALREADY_SIGNED_IN' };
+            } else if (invalidUserValue && invalidUserValue.includes(ctx.value())) {
                 return { kind: 'not_found', message: 'ONBOARDING_SIGNIN.VALIDATION.INVALID_USER' };
-            } else if(mfError) {
+            } else if (mfError) {
                 return { kind: 'mf_error', message: mfError };
             }
             return null;
         });
-        
+
         // ─── FIELD: identify ──────────────────────────────────────────────────
         required(sp.identify, { message: fo.identify?.validation?.required?.message });
         minLength(sp.identify, fo.identify?.validation?.min_length?.value, { message: fo.identify?.validation?.min_length?.message });
         validate(sp.identify, (ctx) => {
             const mfError = this.mutationFormError().identify;
             const invalidIdentifyValue = this.invalidUser();
-            
-            if(invalidIdentifyValue && invalidIdentifyValue.includes(ctx.value())) {
+
+            if (invalidIdentifyValue && invalidIdentifyValue.includes(ctx.value())) {
                 return { kind: 'not_found', message: 'ONBOARDING_SIGNIN.VALIDATION.INVALID_IDENTIFY' };
-            } else if(mfError) {
+            } else if (mfError) {
                 return { kind: 'mf_error', message: mfError };
             }
             return null;
@@ -197,7 +208,7 @@ export class SigninState extends SignalStateService implements AppModuleStateTyp
     });
 
     // ████ SIGNAL PROPERTIES ███████████████████████████████████████████
-    
+
     private readonly _step = signal<SigninStepEnum>(SigninStepEnum.USERNAME);
     public readonly step = this._step.asReadonly();
 
@@ -250,6 +261,7 @@ export class SigninState extends SignalStateService implements AppModuleStateTyp
 
     // ████ STATE DEBUGGER ██████████████████████████████████████████████
 
+    /*
     public readonly debugState = computed(() => ({
         step: this.step(),
         heading: this.heading(),
@@ -261,6 +273,7 @@ export class SigninState extends SignalStateService implements AppModuleStateTyp
         selected_mfao: this.selected_mfao(),
         step_response: this.stepResponse(),
     }));
+    */
 
     constructor() {
         super();
@@ -268,7 +281,7 @@ export class SigninState extends SignalStateService implements AppModuleStateTyp
     }
 
     // ████ LISTENERS ███████████████████████████████████████████████████
-    
+
     public override onActivate(): void {
         const registerEffect = effect(() => {
             if (!this.ready()) {
@@ -281,25 +294,25 @@ export class SigninState extends SignalStateService implements AppModuleStateTyp
         this.registerDeactivationCleanup(() => registerEffect.destroy());
     }
     public override onDeactivate(): void {
-        
+
     }
 
-    // ████ SIGNAL METHODS ██████████████████████████████████████████████
-    
+    // ████ SIGNAL FORM METHODS ██████████████████████████████████████████████
+
     public setMutationFieldObj(mutationFieldObj: SigninMutationFieldObjType): void {
         this._mutationFieldObj.set(mutationFieldObj);
     }
     public computedMutationFieldObjMfaVi(): void {
         const fieldObject = this.mutationFieldObj();
 
-        if(this.selected_mfao() === UserMultiFactorAuthenticationTypeEnum.MULTIFAT_SECURITY_QUE) {
+        if (this.selected_mfao() === UserMultiFactorAuthenticationTypeEnum.MULTIFAT_SECURITY_QUE) {
             fieldObject.mfa_vi.label = 'ONBOARDING_SIGNIN.FIELD_LABEL.SQ_ANSWER';
             fieldObject.mfa_vi.placeholder = 'ONBOARDING_SIGNIN.FIELD_PLACEHOLDER.SQ_ANSWER';
         } else {
             fieldObject.mfa_vi.label = 'ONBOARDING_SIGNIN.FIELD_LABEL.OTP';
             fieldObject.mfa_vi.placeholder = 'ONBOARDING_SIGNIN.FIELD_PLACEHOLDER.OTP';
         }
-        
+
         this.setMutationFieldObj(fieldObject);
     }
     public setMutationFormError(error: SigninMutationFormErrorType): void {
@@ -338,6 +351,17 @@ export class SigninState extends SignalStateService implements AppModuleStateTyp
             mfa_vi: ''
         });
     }
+    public setMutationFormProcessing(processing: boolean): void {
+        this._mutationFormProcessing.set(processing);
+    }
+    public resetMutationForm(): void {
+        // reset the form when needed
+        this.clearMutationFormError();
+        this.clearMutationFormModel();
+        this.mutationForm().reset();
+    }
+
+    // ████ SIGNAL METHODS ██████████████████████████████████████████████
     public setStep(step: SigninStepEnum): void {
         this._step.set(step);
     }
@@ -362,30 +386,30 @@ export class SigninState extends SignalStateService implements AppModuleStateTyp
             case SigninStepEnum.USERNAME:
                 this.setHeading('ONBOARDING_SIGNIN.STEP.USERNAME.HEADING');
                 this.setSubHeading('ONBOARDING_SIGNIN.STEP.USERNAME.SUBHEADING');
-            break;
+                break;
             case SigninStepEnum.PASSWORD:
                 this.setHeading('ONBOARDING_SIGNIN.STEP.PASSWORD.HEADING');
                 this.setSubHeading('ONBOARDING_SIGNIN.STEP.PASSWORD.SUBHEADING');
-            break;
+                break;
             case SigninStepEnum.MFAO:
                 this.setHeading('ONBOARDING_SIGNIN.STEP.MFA_OPTION.HEADING');
                 this.setSubHeading('ONBOARDING_SIGNIN.STEP.MFA_OPTION.SUBHEADING');
-            break;
+                break;
             case SigninStepEnum.VERIFY:
-                if(this.selected_mfao() === UserMultiFactorAuthenticationTypeEnum.MULTIFAT_SECURITY_QUE) {
+                if (this.selected_mfao() === UserMultiFactorAuthenticationTypeEnum.MULTIFAT_SECURITY_QUE) {
                     this.setHeading('ONBOARDING_SIGNIN.STEP.VERIFY_SQ_ANSWER.HEADING');
                     this.setSubHeading('ONBOARDING_SIGNIN.STEP.VERIFY_SQ_ANSWER.SUBHEADING');
                 } else {
                     this.setHeading('ONBOARDING_SIGNIN.STEP.VERIFY_OTP.HEADING');
                     this.setSubHeading('ONBOARDING_SIGNIN.STEP.VERIFY_OTP.SUBHEADING');
                 }
-            break;
+                break;
             case SigninStepEnum.FINISH:
                 this.setHeading('ONBOARDING_SIGNIN.STEP.FINISH.HEADING');
                 this.setSubHeading('ONBOARDING_SIGNIN.STEP.FINISH.SUBHEADING');
-            break;
+                break;
             default:
-            break;
+                break;
         }
     }
     public setSubHeading(subHeading: string | null): void {
@@ -423,12 +447,12 @@ export class SigninState extends SignalStateService implements AppModuleStateTyp
     }
     public pushInvalidUser(invalidUser: string): void {
         this._invalidUser.update(all => [
-            ...(all ?? []), 
+            ...(all ?? []),
             invalidUser
         ]);
     }
     public removeInvalidUser(invalidUser: string): void {
-        this._invalidUser.update(all => 
+        this._invalidUser.update(all =>
             // if currentAlerts is null/undefined, fallback to an empty array, then filter
             (all ?? []).filter(iu => iu !== invalidUser)
         );
@@ -441,12 +465,12 @@ export class SigninState extends SignalStateService implements AppModuleStateTyp
     }
     public pushInvalidIdentify(invalidIdentify: string): void {
         this._invalidIdentify.update(all => [
-            ...(all ?? []), 
+            ...(all ?? []),
             invalidIdentify
         ]);
     }
     public removeInvalidIdentify(invalidIdentify: string): void {
-        this._invalidIdentify.update(all => 
+        this._invalidIdentify.update(all =>
             // if currentAlerts is null/undefined, fallback to an empty array, then filter
             (all ?? []).filter(ii => ii !== invalidIdentify)
         );
@@ -471,14 +495,14 @@ export class SigninState extends SignalStateService implements AppModuleStateTyp
     }
     public computedDisableResendOtp(): boolean {
         // if its pocessing then do not allow to send otp
-        if(this.gpbs.processing)
+        if (this.gpbs.processing)
             return true;
 
         return this._disable_resend_otp();
     }
     public delayEnableResendOtp(minute: number = 0.25): void {
         this._disable_resend_otp.set(true);
-        
+
         setTimeout(() => {
             this._disable_resend_otp.set(false);
         }, minute * 60 * 1000);
@@ -486,13 +510,13 @@ export class SigninState extends SignalStateService implements AppModuleStateTyp
 
     // ████ SIGNAL DATA VALIDATORS ██████████████████████████████████████
     // n/a
-    
+
     // ████ REGISTRATION AND CALLBACKS ██████████████████████████████████
     // n/a
-    
+
     // ████ API CALLS ███████████████████████████████████████████████████
     // n/a
-    
+
     // ████ WEB SOCKET CALLS ████████████████████████████████████████████
     // n/a
 } 

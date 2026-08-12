@@ -6,12 +6,12 @@ import { FormsModule } from '@angular/forms';
 @Component({
   selector: 'app-theme',
   standalone: true,
+  templateUrl: './template.html',
+  styleUrl: './style.scss',
   imports: [
     FormsModule,
   ],
   providers: [],
-  templateUrl: './template.html',
-  styleUrl: './style.scss',
 })
 export class ThemeComponent implements OnInit, OnDestroy {
     public readonly service = inject(ThemeService)

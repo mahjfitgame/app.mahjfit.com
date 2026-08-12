@@ -143,6 +143,13 @@ export interface PersistSignalOptionsBaseType<T> {
 
   /** Default: false. Removes the persisted record instead of saving a null value. */
   deleteOnNull?: boolean;
+
+  /**
+   * Default: false. Stores the raw value instead of an encrypted versioned envelope.
+   * Use it when the value must stay readable by other code (boot scripts, native side, server).
+   * Plain records carry no version, so version changes cannot invalidate them.
+   */
+  plainValue?: boolean;
 }
 
 /**
@@ -221,6 +228,7 @@ export interface NormalizedPersistSignalOptionsType<T> {
   serialize?: (value: T) => unknown;
   deserialize?: (value: unknown) => T;
   deleteOnNull: boolean;
+  plainValue: boolean;
   source?:
     | SignalStateLocalDbSourceType
     | SignalStateServerSyncSourceType

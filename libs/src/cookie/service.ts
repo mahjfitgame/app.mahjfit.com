@@ -5,6 +5,7 @@ import {
   CookieMapType,
   CookieUrlOptionsType,
   DeleteCookieOptionsType,
+  RemoveCookieOptionsType,
   SetCookieOptionsType,
 } from './type';
 
@@ -65,9 +66,19 @@ export class CookieService {
     return value !== null;
   }
 
-  public async delete(name: string, options?: CookieUrlOptionsType): Promise<void> {
+  public async delete(name: string, options?: RemoveCookieOptionsType): Promise<void> {
     const key = this.normalizeKey(name);
     if (!key) {
+      return;
+    }
+
+    if (this.isWebPlatform()) {
+      await this.set({
+        key,
+        value: '',
+        path: options?.path?.trim() || '/',
+        expires: new Date(0).toUTCString(),
+      });
       return;
     }
 

@@ -1,0 +1,15 @@
+{
+  "HOME": {
+    "MODULE": {
+      "TITLE": "Home",
+      "HINT": "Landing page of the application."
+    },
+    "HEADING": "Welcome",
+    "SUBHEADING": "Choose where you want to go",
+    "BRAND_LOGO_ALT": "Brand logo",
+    "DB_VERSION": "Current DB Version: {{version}}",
+    "ACTION": {
+      "GEO_COUNTRY": "Already signed in? Go to Geo Country"
+    }
+  }
+}

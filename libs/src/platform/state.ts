@@ -1,3 +1,4 @@
+// file: libs/src/platform/state.ts
 import { computed, inject, Service, signal } from '@angular/core';
 import { LogService } from '@libs/log/service';
 import { SignalStateService } from '@libs/signal-state/service';
@@ -12,7 +13,6 @@ import {
   PLATFORM_ORIENTATION_NATURAL,
 } from './const';
 import { PlatformKeyboardResizeEnum } from './enum';
-import { AppModuleStateType } from '@libs/utility/type';
 import type {
   PlatformKeyboardPhase,
   PlatformNetworkConnectionType,
@@ -22,18 +22,24 @@ import type {
   PlatformScreenSizeType,
 } from './type';
 import { PLATFORM_ADAPTER } from './provider';
+import { ConfService } from '@libs/conf/service';
+import { BfwApiService } from '@libs/third-party-apis/bfw-api/service';
+import { PLATFORM_STATE_STORE_KEY } from './const';
 
 @Service()
-export class PlatformState extends SignalStateService implements AppModuleStateType {
+export class PlatformState extends SignalStateService {
 
   // ████ DEPENDENCIES ████████████████████████████████████████████████
 
   private readonly adapter: PlatformAdapter = inject(PLATFORM_ADAPTER);
-  private readonly log = inject(LogService);
+  
+  public readonly conf = inject(ConfService);
+  public readonly log = inject(LogService);
+  public readonly api = inject(BfwApiService);
 
   // ████ CLASS PROPERTIES ████████████████████████████████████████████
 
-  public override readonly storeKey = 'p';
+  public override readonly storeKey = PLATFORM_STATE_STORE_KEY;
 
   private initPromise: Promise<void> | null = null;
   private runtimeActive = false;

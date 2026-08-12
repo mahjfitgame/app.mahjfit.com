@@ -1,8 +1,7 @@
 // file: src/app/module/business/game/phaser/scenes/managers/animation.ts
 import Phaser from "phaser";
-import { PassAnimationManager } from "../../animations/pass-animation.manager";
-import type { PassAnimationItem } from "../../models/pass-animation.model";
-import { TableLayout } from "../../type";
+import { PassAnimationManager } from "../../animations/pass-animation.manager";;
+import { PassAnimationItem, TableLayout } from "../../type";
 
 export interface PassWaitingTileAnimation {
   readonly id: string;
@@ -133,7 +132,7 @@ export class AnimationManager {
     image.setAngle(0);
   }
 
-  animateWallPick(
+  animateWallPickOLD(
     clone: WallPickClone,
     target: AnimationPoint,
     angle: number,
@@ -167,17 +166,16 @@ export class AnimationManager {
           clone.setScale(
             Phaser.Math.Linear(startScale, finalScale, easedGrow),
           );
-
           return;
+        } else {
+          clone.setScale(
+            Phaser.Math.Linear(
+              startScale,
+              finalScale,
+              Phaser.Math.Easing.Sine.Out(progress.value),
+            ),
+          );
         }
-
-        clone.setScale(
-          Phaser.Math.Linear(
-            startScale,
-            finalScale,
-            Phaser.Math.Easing.Sine.Out(progress.value),
-          ),
-        );
       },
     });
 
@@ -194,7 +192,7 @@ export class AnimationManager {
       },
     });
   }
-  animateWallPickOLD(
+  animateWallPick(
     clone: WallPickClone,
     target: AnimationPoint,
     angle: number,
@@ -202,40 +200,82 @@ export class AnimationManager {
     startScale: number,
     isBottomSeat: boolean,
     onFinished: () => void,
+    finalScale: number = 1,
+    growStart: number = 0.62,
   ): void {
-    clone.setScale(startScale);
+    const baseScaleX = clone.scaleX;
+    const baseScaleY = clone.scaleY;
+
+    clone.setScale(baseScaleX * startScale, baseScaleY * startScale);
     clone.setAlpha(1);
     clone.setDepth(190);
 
+    const startX = clone.x;
+    const startY = clone.y;
+    const screenWidth = this.scene.cameras.main.width;
+
+    // The user requested all bottom-seat picks to use the left curve,
+    // avoiding the right curve entirely.
+    const direction = -1;
+
+    // For the bottom seat, curve out to the side by about 30% of screen width (max 200px).
+    // By swinging to the left or right depending on the target, we guarantee the tile 
+    // never flies straight down the middle, beautifully dodging the HTML username.
+    const arcOffset = isBottomSeat ? Math.min(200, screenWidth * 0.3) * direction : 0;
+
+    const controlX = startX + (target.x - startX) * 0.5 + arcOffset;
+    const controlY = startY + (target.y - startY) * 0.5;
+
     const progress = { value: 0 };
+
     this.scene.tweens.add({
       targets: progress,
       value: 1,
       duration,
       ease: "Cubic.easeInOut",
       onUpdate: () => {
+        const p = progress.value;
+
         if (isBottomSeat) {
-          const growProgress = Phaser.Math.Clamp((progress.value - 0.62) / 0.38, 0, 1);
-          clone.setScale(Phaser.Math.Linear(startScale, 1, Phaser.Math.Easing.Sine.Out(growProgress)));
-          return;
+          const growProgress = Phaser.Math.Clamp(
+            (p - growStart) / (1 - growStart),
+            0,
+            1,
+          );
+
+          const easedGrow = Phaser.Math.Easing.Sine.Out(growProgress);
+          const currentScale = Phaser.Math.Linear(startScale, finalScale, easedGrow);
+          clone.setScale(baseScaleX * currentScale, baseScaleY * currentScale);
+
+          // Quadratic Bezier curve for X and Y
+          const x = Math.pow(1 - p, 2) * startX + 2 * (1 - p) * p * controlX + Math.pow(p, 2) * target.x;
+          const y = Math.pow(1 - p, 2) * startY + 2 * (1 - p) * p * controlY + Math.pow(p, 2) * target.y;
+          clone.setPosition(x, y);
+        } else {
+          const currentScale = Phaser.Math.Linear(startScale, finalScale, Phaser.Math.Easing.Sine.Out(p));
+          clone.setScale(baseScaleX * currentScale, baseScaleY * currentScale);
+
+          // Linear straight path for non-bottom seats
+          clone.setPosition(
+            Phaser.Math.Linear(startX, target.x, p),
+            Phaser.Math.Linear(startY, target.y, p),
+          );
         }
-
-        clone.setScale(Phaser.Math.Linear(startScale, 1, Phaser.Math.Easing.Sine.Out(progress.value)));
       },
-    });
-
-    this.scene.tweens.add({
-      targets: clone,
-      x: Math.round(target.x),
-      y: Math.round(target.y),
-      angle,
-      duration,
-      ease: "Cubic.easeInOut",
       onComplete: () => {
         clone.destroy();
         onFinished();
       },
     });
+
+    if (!isBottomSeat) {
+      this.scene.tweens.add({
+        targets: clone,
+        angle,
+        duration,
+        ease: "Cubic.easeInOut",
+      });
+    }
   }
 
   layoutPassWaitingTiles(items: readonly PassWaitingTileAnimation[], targets: readonly AnimationPoint[], size: AnimationSize, angle: number, animate: boolean, onPositionCloseButton: (tileId: string) => void): void {

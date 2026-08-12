@@ -2,7 +2,7 @@
 import { inject, provideAppInitializer } from "@angular/core";
 import { SqliteService } from "./service";
 
-export function provideSqlite() {
+export function provideSqliteModule() {
     return [
         provideAppInitializer(() => {
             const sqlite = inject(SqliteService);

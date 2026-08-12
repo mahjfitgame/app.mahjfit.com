@@ -1,0 +1,28 @@
+{
+  "ONBOARDING_FORGOTPASSWORD": {
+    "MODULE": {
+      "TITLE": "Forgot Your Password?",
+      "HINT": "Enter your account detail to reset your password."
+    },
+    "MESSAGE": {
+      "SUCCESS": "Password recovery instructions have been sent. Please check your email for further instructions.",
+      "ERROR": "Unable to process your request. Please try again."
+    },
+    "FIELD_LABEL": {
+      "USERNAME": "Username, Email, or Mobile",
+      "AROLE_ID": "Role",
+      "PASS_RECOVER_URL": "Recovery URL"
+    },
+    "FIELD_PLACEHOLDER": {
+      "USERNAME": "Enter your username, email, or mobile",
+      "AROLE_ID": "Select your role",
+      "PASS_RECOVER_URL": "Enter the password recovery URL"
+    },
+    "VALIDATION": {
+      "USERNAME": "Username, email, or mobile is required.",
+      "USERNAME_MIN_LENGTH": "Username, email, or mobile must be at least {{min_length}} characters long.",
+      "AROLE_ID": "Role is required.",
+      "PASS_RECOVER_URL": "Password recovery URL is required."
+    }
+  }
+}

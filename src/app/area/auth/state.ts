@@ -1,4 +1,4 @@
-// file: ./src/app/area/auth/state.ts
+// file: src/app/area/auth/state.ts
 import { Portal } from "@angular/cdk/portal";
 import { effect, inject, Service, signal, WritableSignal } from "@angular/core";
 import { ConfService } from "@libs/conf/service";
@@ -6,19 +6,26 @@ import { LogService } from "@libs/log/service";
 import { SignalStateService } from "@libs/signal-state/service";
 import { AuthSlotPortalType } from "@area/auth/type";
 import { AuthAreaLayoutStateRuntimeEnum } from "@area/auth/enum";
-import { AppModuleStateType } from "@libs/utility/type";
+import { GlobalProgressBarService } from "@base/global-progress-bar/service";
+import { ContextProfileService } from "@libs/context-profile/service";
+import { BfwApiService } from "@libs/third-party-apis/bfw-api/service";
+import { FoundationModuleStateType } from "@libs/foundation-module/type/state";
+import { AUTH_AREA_STATE_STORE_KEY } from "./const";
 
 @Service({ autoProvided: false })
-export class AuthAreaLayoutState extends SignalStateService implements AppModuleStateType {
+export class AuthAreaLayoutState extends SignalStateService implements FoundationModuleStateType {
 
     // ████ DEPENDENCIES ████████████████████████████████████████████████
 
-    private readonly conf = inject(ConfService)
-    private readonly log = inject(LogService)
+    public readonly conf = inject(ConfService)
+    public readonly log = inject(LogService)
+    public readonly gpbs = inject(GlobalProgressBarService);
+    public readonly ctxp = inject(ContextProfileService);
+    public readonly api = inject(BfwApiService);
 
     // ████ CLASS PROPERTIES ████████████████████████████████████████████
 
-    public override readonly storeKey = "aal";
+    public override readonly storeKey = AUTH_AREA_STATE_STORE_KEY;
 
     // ████ SIGNAL FORM PROPERTIES ██████████████████████████████████████
     // n/a

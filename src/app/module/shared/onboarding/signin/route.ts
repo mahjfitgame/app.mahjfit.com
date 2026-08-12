@@ -1,12 +1,21 @@
-// ./src/app/module/shared/onboarding/signin/route.ts
+// file: src/app/module/shared/onboarding/signin/route.ts
 
-import { Routes } from '@angular/router';
+import { inject, Service } from '@angular/core';
+import { ActivatedRoute, Router, Routes } from '@angular/router';
+import { FoundationModuleRouteType } from '@libs/foundation-module/type/route';
 import { UrlService } from '@libs/url/service';
 import { SLUG_SIGNIN } from '@module/shared/onboarding/signin/slug';
 import { SLUG_AUTH_AREA } from 'src/app/area/auth/slug';
+import { AreaGuard } from 'src/app/area/guard';
 
-export class SigninRoute {
+@Service({ autoProvided: false })
+export class SigninRoute implements FoundationModuleRouteType {
+    // CLASS PROPERTIES ▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬
     public static readonly moduleLevel = [SLUG_AUTH_AREA, SLUG_SIGNIN];
+
+    // DEPENDENCIES ▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬
+    public readonly activeRoute = inject(ActivatedRoute);
+    public readonly router = inject(Router);
 
     // ROUTES ▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬
     /**
@@ -14,10 +23,11 @@ export class SigninRoute {
      * need to merge with app routes [src/app/area/auth/route.ts]
      */
     public static routes(): Routes {
-        
+
         const routes: Routes = [
             {
                 path: SLUG_SIGNIN,
+                canMatch: [AreaGuard.CanMatchUnauthenticated],
                 title: 'Sign In',
                 loadComponent: () => import('@module/shared/onboarding/signin/component').then((c) => c.SigninComponent),
             },
@@ -26,7 +36,7 @@ export class SigninRoute {
         return routes;
     }
 
-    // ABSOLUTE PATH ▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬
+    // PATHS ▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬
     public static absolutePathArr(): string[] {
         const moduleLevel = this.moduleLevel;
         const params = {};
@@ -38,4 +48,8 @@ export class SigninRoute {
         const params = {};
         return UrlService.getAbsolutePath(moduleLevel, params);
     }
+
+    // NAVIGATION ▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬
+
+    // PARAM GETTERS ▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬
 }

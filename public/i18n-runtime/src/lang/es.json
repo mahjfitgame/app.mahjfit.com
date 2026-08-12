@@ -22,8 +22,12 @@
       "NEXT": "Siguiente",
       "BACK": "Atrás",
       "CONTINUE": "Continuar",
+      "PROCEED_FURTHER": "Seguir adelante",
       "PREVIOUS": "Anterior",
       "LOADING": "Cargando...",
+      "PROCESSING": "Procesando...",
+      "REDIRECTING": "Redirigiendo...",
+      "PREPARING": "Preparando...",
       "NO_RECORDS": "No se encontraron registros",
       "STEP": "Paso"
     },
@@ -81,7 +85,8 @@
         "FORGOT_PASSWORD": "Olvidé mi contraseña",
         "MY_ACCOUNT": "Mi cuenta",
         "MY_PROFILE": "Mi perfil",
-        "DASHBOARD": "Panel"
+        "DASHBOARD": "Panel",
+        "CREATE_ACCOUNT": "Crear una cuenta nueva"
       }
     }
   }

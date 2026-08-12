@@ -5,21 +5,26 @@ import { LogService } from '@libs/log/service';
 import { SignalStateService } from '@libs/signal-state/service';
 import { I18N_P_STATE_VERSION } from '@base/internationalization/const';
 import { I18nBidiEnum, I18nLanguageEnum } from '@base/internationalization/enum';
-import { BfwApiService } from '@libs/third-party-apis/bfw-api';
-import { AppModuleStateType } from '@libs/utility/type';
+import { BfwApiService } from '@libs/third-party-apis/bfw-api/service';
+import { GlobalProgressBarService } from '@base/global-progress-bar/service';
+import { ContextProfileService } from '@libs/context-profile/service';
+import { FoundationModuleStateType } from '@libs/foundation-module/type/state';
+import { I18N_STATE_STORE_KEY } from './const';
 
 @Service()
-export class I18nState extends SignalStateService implements AppModuleStateType {
+export class I18nState extends SignalStateService implements FoundationModuleStateType {
 
     // ████ DEPENDENCIES ████████████████████████████████████████████████
 
-    private readonly conf = inject(ConfService)
-    private readonly log = inject(LogService)
+    public readonly conf = inject(ConfService)
+    public readonly log = inject(LogService)
+    public readonly gpbs = inject(GlobalProgressBarService);
+    public readonly ctxp = inject(ContextProfileService);
     public readonly api = inject(BfwApiService);
 
     // ████ CLASS PROPERTIES ████████████████████████████████████████████
 
-    public override readonly storeKey = 'i18n';
+    public override readonly storeKey = I18N_STATE_STORE_KEY;
 
     private readonly attrLang = 'lang';
     private readonly attrBidi = 'dir';

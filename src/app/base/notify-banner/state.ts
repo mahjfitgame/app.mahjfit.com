@@ -4,15 +4,21 @@ import { ConfService } from '@libs/conf/service';
 import { LogService } from '@libs/log/service';
 import { SignalStateService } from '@libs/signal-state/service';
 import { NotifyBannerAlertType } from '@base/notify-banner/type';
-import { AppModuleStateType } from '@libs/utility/type';
+import { FoundationModuleStateType } from "@libs/foundation-module/type/state";
+import { GlobalProgressBarService } from '../global-progress-bar/service';
+import { BfwApiService } from '@libs/third-party-apis/bfw-api/service';
+import { ContextProfileService } from '@libs/context-profile/service';
 
 @Service()
-export class NotifyBannerState extends SignalStateService implements AppModuleStateType {
+export class NotifyBannerState extends SignalStateService implements FoundationModuleStateType {
 
     // ████ DEPENDENCIES ████████████████████████████████████████████████
 
-    private readonly conf = inject(ConfService)
-    private readonly log = inject(LogService)
+    public readonly conf = inject(ConfService);
+    public readonly log = inject(LogService);
+    public readonly gpbs = inject(GlobalProgressBarService);
+    public readonly ctxp = inject(ContextProfileService);
+    public readonly api = inject(BfwApiService);
 
     // ████ CLASS PROPERTIES ████████████████████████████████████████████
 
@@ -27,7 +33,10 @@ export class NotifyBannerState extends SignalStateService implements AppModuleSt
     public readonly alert = this._alert.asReadonly();
 
     // ████ STATE DEBUGGER ██████████████████████████████████████████████
-    // n/a
+
+    /* public readonly debugState = computed(() => ({
+        
+    })); */
 
     constructor() {
         super();
@@ -39,13 +48,13 @@ export class NotifyBannerState extends SignalStateService implements AppModuleSt
     // ████ LISTENERS ███████████████████████████████████████████████████
 
     public override onActivate(): void {
-        const registerEffect = effect(() => {
+        /* const registerEffect = effect(() => {
             if (!this.ready()) {
                 return;
             }
         });
 
-        this.registerDeactivationCleanup(() => registerEffect.destroy());
+        this.registerDeactivationCleanup(() => registerEffect.destroy()); */
     }
 
     public override onDeactivate(): void {

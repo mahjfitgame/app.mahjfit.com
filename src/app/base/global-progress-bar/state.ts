@@ -3,19 +3,19 @@ import { DestroyRef, effect, inject, Service, signal } from "@angular/core";
 import { ConfService } from "@libs/conf/service";
 import { LogService } from "@libs/log/service";
 import { SignalStateService } from "@libs/signal-state/service";
-import { AppModuleStateType } from "@libs/utility/type";
+import { GLOBAL_PROGRESS_BAR_STATE_STORE_KEY } from "./const";
 
 @Service()
-export class GlobalProgressBarState extends SignalStateService implements AppModuleStateType {
+export class GlobalProgressBarState extends SignalStateService {
 
     // ████ DEPENDENCIES ████████████████████████████████████████████████
 
-    private readonly conf = inject(ConfService);
-    private readonly log = inject(LogService);
+    public readonly conf = inject(ConfService);
+    public readonly log = inject(LogService);
 
     // ████ CLASS PROPERTIES ████████████████████████████████████████████
 
-    public override readonly storeKey = 'gpbs';
+    public override readonly storeKey = GLOBAL_PROGRESS_BAR_STATE_STORE_KEY;
 
     // ████ SIGNAL FORM PROPERTIES ██████████████████████████████████████
     // n/a

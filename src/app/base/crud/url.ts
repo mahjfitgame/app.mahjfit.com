@@ -107,7 +107,7 @@ export class CrudUrl {
             
 
             // get the current URL matrix params
-            const sourceMatrixParams = this.url.getMatrixParams();
+            const sourceMatrixParams = this.url.state.getMatrixParams();
 
             // SearchFilterFieldObj
             this.syncCrudFieldObjGroupFromUrlState(
@@ -238,7 +238,7 @@ export class CrudUrl {
             return;
         }
 
-        const currentMatrixParams = this.url.getMatrixParams();
+        const currentMatrixParams = this.url.state.getMatrixParams();
 
         const nextMatrixParams: UrlParamsType = {
             ...this.removeCrudOwnedParams(currentMatrixParams),
@@ -246,7 +246,8 @@ export class CrudUrl {
         };
 
         // sync url state
-        this.url.replaceMatrixParams(nextMatrixParams);
+        // ⚠ setMatrixParams REPLACES. patchMatrixParams would leave stale params behind.
+        this.url.state.setMatrixParams(nextMatrixParams);
     }
 
     /**
@@ -263,7 +264,7 @@ export class CrudUrl {
         if (!this.url.isUrlSyncEnabled()) {
             return;
         }
-        const currentMatrixParams = this.url.getMatrixParams();
+        const currentMatrixParams = this.url.state.getMatrixParams();
 
         const nextMatrixParams: UrlParamsType = {
             ...this.removeCrudOwnedParams(currentMatrixParams),
@@ -271,7 +272,8 @@ export class CrudUrl {
             ...patch,
         };
 
-        this.url.replaceMatrixParams(nextMatrixParams);
+        // ⚠ setMatrixParams REPLACES. patchMatrixParams would leave stale params behind.
+        this.url.state.setMatrixParams(nextMatrixParams);
     }
 
     public getCrudMatrixParamsFromState(): UrlParamsType {
@@ -338,7 +340,7 @@ export class CrudUrl {
      * Just fetch the state data, process and return in required format
      */
     public getCrudMatrixParamsFromUrlState(): UrlParamsType {
-        const sourceMatrixParams = this.url.getMatrixParams();
+        const sourceMatrixParams = this.url.state.getMatrixParams();
         const params: UrlParamsType = {};
 
         const groups = this.getCrudStateFieldGroupsWithOrder();
@@ -452,9 +454,18 @@ export class CrudUrl {
     }
 
     // ██████ CRUD ACTION URL ███████████████████████████████████████████
+    /**
+     * Live snapshot read, deliberately not state.activatedRouteFirstSegment().
+     *
+     * This runs from CrudComponent's constructor via initCrudActionFromUrl(),
+     * i.e. during route activation, one step before the route signals fire.
+     * A signal read here returns the previous navigation.
+     *
+     * Phase 2 converts this to a computed together with removing that
+     * constructor call — the two changes only work as a pair.
+     */
     public getCrudActionFromRoute(): CrudActionEnum | null {
-        const activeRoute = this.url.getActiveRoute();
-        const firstPath = activeRoute.snapshot.url.at(0)?.path ?? null;
+        const firstPath = this.url.state.getActivatedRouteSnapshot().url.at(0)?.path ?? null;
 
         if (!firstPath) {
             return null;
@@ -463,8 +474,8 @@ export class CrudUrl {
         return this.isCrudActionValue(firstPath) ? firstPath : null;
     }
     public getCrudActionRecordIdFromRoute(): CrudActionRecordIdType {
-        const activeRoute = this.url.getActiveRoute();
-        const idParam = activeRoute.snapshot.paramMap.get('id');
+        // live read, same reason as getCrudActionFromRoute() above
+        const idParam = this.url.state.getActivatedRouteSnapshot().paramMap.get('id');
 
         if (!idParam) {
             return [];

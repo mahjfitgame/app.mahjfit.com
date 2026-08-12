@@ -1,4 +1,4 @@
-// file: ./src/app/area/private/type.ts
+// file: src/app/area/private/type.ts
 import { Portal } from "@angular/cdk/portal";
 
 export interface PrivateAreaModuleInfoType {

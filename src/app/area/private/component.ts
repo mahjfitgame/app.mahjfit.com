@@ -1,3 +1,4 @@
+// file: src/app/area/private/component.ts
 import { CommonModule } from "@angular/common";
 import { AfterViewInit, Component, effect, ElementRef, inject, Input, OnDestroy, OnInit, viewChild, ViewChild } from "@angular/core";
 import { MatBadgeModule } from "@angular/material/badge";
@@ -5,7 +6,9 @@ import { MatButtonModule } from "@angular/material/button";
 import { MatCardModule } from "@angular/material/card";
 import { MatAccordion, MatExpansionModule } from "@angular/material/expansion";
 import { MatIcon } from "@angular/material/icon";
+import { MatDividerModule } from "@angular/material/divider";
 import { MatListModule, MatNavList } from "@angular/material/list";
+import { MatMenuModule } from "@angular/material/menu";
 import { MatSidenav, MatSidenavModule } from "@angular/material/sidenav";
 import { MatTabsModule } from "@angular/material/tabs";
 import { MatToolbarModule } from "@angular/material/toolbar";
@@ -23,6 +26,8 @@ interface NavItem {
   route?: string;
   icon: string;
   children?: NavItem[];
+  divider?: boolean;
+  css_class?: string;
 }
 
 @Component({
@@ -48,26 +53,34 @@ interface NavItem {
     MatCardModule,
     MatTabsModule,
     MatTooltipModule,
+    MatMenuModule,
+    MatDividerModule,
 
     BreadcrumbComponent,
     BreadcrumbItemDirective,
 
-        NotifyBannerComponent,
-        TranslocoModule,
-    ],
-    providers: [
-        PrivateAreaLayoutState,
-        PrivateAreaLayoutService,
-    ],
+    NotifyBannerComponent,
+    TranslocoModule,
+  ],
+  providers: [
+    PrivateAreaLayoutState,
+    PrivateAreaLayoutService,
+  ],
 })
 export class PrivateAreaLayoutComponent implements OnInit, OnDestroy, AfterViewInit {
   public readonly route = inject(ActivatedRoute);
   public readonly service = inject(PrivateAreaLayoutService);
 
-    //@ViewChild('BfwEndSideBarTabGroup') endSideBarTabGroup!: MatTabGroup;
-    //@ViewChild('BfwEndSideBarTabGroup', { read: ElementRef }) endSideBarTabGroupElement!: ElementRef;
-    public endSideBarTabGroupElement = viewChild<ElementRef>('BfwEndSideBarTabGroup');
-    
+  //@ViewChild('BfwEndSideBarTabGroup') endSideBarTabGroup!: MatTabGroup;
+  //@ViewChild('BfwEndSideBarTabGroup', { read: ElementRef }) endSideBarTabGroupElement!: ElementRef;
+  public endSideBarTabGroupElement = viewChild<ElementRef>('BfwEndSideBarTabGroup');
+
+
+  accountMenuItems: NavItem[] = [
+    { name: 'My Profile', route: '/account/my-profile', icon: 'person' },
+    { name: 'Settings', route: '/app/settings', icon: 'settings' },
+    { name: 'Signout', route: '/auth/signout', icon: 'logout', divider: true, css_class: 'tw:text-error!' },
+  ];
 
   navItems: NavItem[] = [
     { name: 'Home', route: '/', icon: 'house' },
@@ -78,6 +91,7 @@ export class PrivateAreaLayoutComponent implements OnInit, OnDestroy, AfterViewI
       icon: 'planet',
       children: [{ name: 'Country', route: '/account/geo/country', icon: 'globe' }],
     },
+    { name: 'Signout', route: '/auth/signout', icon: 'logout' },
     {
       name: 'Projects',
       icon: 'dashboard',
@@ -158,37 +172,37 @@ export class PrivateAreaLayoutComponent implements OnInit, OnDestroy, AfterViewI
     { name: 'Pages', route: '/app/pages', icon: 'layers' },
   ];
 
-  constructor() {}
+  constructor() { }
 
-    public async ngOnInit(): Promise<void> {
-        this.service.log.debug('[PrivateAreaLayoutComponent] initialized');
-    }
+  public async ngOnInit(): Promise<void> {
+    this.service.log.debug('[PrivateAreaLayoutComponent] initialized');
+  }
 
-    public async ngOnDestroy(): Promise<void> {
-        this.service.state.setDefault();
-        this.service.log.debug('[PrivateAreaLayoutComponent] destroyed and layouts cleared');
-    }
+  public async ngOnDestroy(): Promise<void> {
+    this.service.state.setDefault();
+    this.service.log.debug('[PrivateAreaLayoutComponent] destroyed and layouts cleared');
+  }
 
-    public async ngAfterViewInit(): Promise<void> {
-    }
+  public async ngAfterViewInit(): Promise<void> {
+  }
 
-    public closeSidenavIfSmAndDown(sidenav: MatSidenav): void {
-        if(this.service.bos.isSmAndDown()) {
-            sidenav.toggle();
-        }
+  public closeSidenavIfSmAndDown(sidenav: MatSidenav): void {
+    if (this.service.bos.isSmAndDown()) {
+      sidenav.toggle();
     }
+  }
 
-    public scrollToActiveBfwEndSideBarTab() {
-        // We need a tiny delay to ensure the DOM has updated the 'active' class
-        setTimeout(() => {
-            const activeLabel = this.endSideBarTabGroupElement()?.nativeElement.querySelector('.mdc-tab--active');
-            if (activeLabel) {
-                activeLabel.scrollIntoView({
-                    behavior: 'smooth',
-                    inline: 'center', // This centers the tab in the header view
-                    block: 'nearest'
-                });
-            }
-        }, 30);
-    }
+  public switchToActiveBfwEndSideBarTab() {
+    // We need a tiny delay to ensure the DOM has updated the 'active' class
+    setTimeout(() => {
+      const activeLabel = this.endSideBarTabGroupElement()?.nativeElement?.querySelector('.mdc-tab--active');
+      if (activeLabel) {
+        activeLabel.scrollIntoView({
+          behavior: 'smooth',
+          inline: 'center', // This centers the tab in the header view
+          block: 'nearest'
+        });
+      }
+    }, 30);
+  }
 }

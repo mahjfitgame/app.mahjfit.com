@@ -1,10 +1,21 @@
 // file: libs/src/signal-state/utility.ts
-import { Service } from '@angular/core';
-import { SignalStateScopeType, SignalStateStorageEnvelopeType } from './type';
+import { Service, inject } from '@angular/core';
+import { SignatureService } from '../signature/service';
+import {
+  SignalStateScopeType,
+  SignalStateStorageEnvelopeType,
+  SignalStateStorageValueType,
+} from './type';
 import { SIGNAL_STATE_STORAGE_PREFIX } from './const';
 
 @Service()
 export class SignalStateUtility {
+  /**
+   * Keeps the signature dependency used to encrypt and decrypt envelope payloads.
+   * It is readonly so the service wiring stays stable for the instance lifetime.
+   */
+  private readonly signature = inject(SignatureService);
+
   /**
    * Handles the buildStorageKey operation for signal-state persistence.
    * The method keeps callers on a single safe path for this behavior.
@@ -77,6 +88,51 @@ export class SignalStateUtility {
     if (JSON.stringify(value) === undefined) {
       throw new Error('Persisted signal value must be JSON serializable.');
     }
+  }
+
+  /**
+   * Builds the record written to storage for one save.
+   * Plain fields keep the raw value, every other field is encrypted inside a versioned envelope.
+   */
+  public buildRecord<T>(state: T, version: number, plainValue: boolean): SignalStateStorageEnvelopeType | T {
+    this.assertSerializable(state);
+
+    if (plainValue) {
+      return state;
+    }
+
+    return {
+      v: version,
+      u: new Date().toISOString(),
+      s: this.signature.encryptJson(state),
+    };
+  }
+
+  /**
+   * Reads a stored record written by buildRecord().
+   * An envelope is version checked and decrypted, anything else is taken as a plain raw value,
+   * so a field keeps loading correctly after its plainValue option is switched.
+   */
+  public readRecord<T>(stored: unknown, expectedVersion: number): SignalStateStorageValueType<T> | null {
+    const parsed = typeof stored === 'string' ? this.parseEnvelope(stored as string) : stored;
+
+    if (this.isStorageEnvelope(parsed)) {
+      if (parsed.v !== expectedVersion) {
+        return null;
+      }
+
+      return {
+        v: parsed.v,
+        u: parsed.u,
+        s: this.signature.decryptJson<T>(parsed.s),
+      };
+    }
+
+    return {
+      v: expectedVersion,
+      u: new Date().toISOString(),
+      s: (parsed ?? stored) as T,
+    };
   }
 
   /**

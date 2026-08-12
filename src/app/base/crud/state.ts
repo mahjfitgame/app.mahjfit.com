@@ -9,23 +9,31 @@ import { CrudActionEnum, CrudActionUiLayoutEnum, CrudFieldNormalizeModeEnum, Cru
 import { SelectionModel } from "@angular/cdk/collections";
 import { MatTableDataSource } from "@angular/material/table";
 import { CRUD_RECYCLE_BIN_STATUS } from "@base/crud/const";
-import { AppModuleStateType } from "@libs/utility/type";
+import { GlobalProgressBarService } from "@base/global-progress-bar/service";
+import { ContextProfileService } from "@libs/context-profile/service";
+import { BfwApiService } from "@libs/third-party-apis/bfw-api/service";
+import { FoundationModuleStateType } from "@libs/foundation-module/type/state";
+import { CRUD_STATE_STORE_KEY } from "./const";
 @Service({ autoProvided: false })
-export class CrudState extends SignalStateService implements AppModuleStateType {
+export class CrudState extends SignalStateService implements FoundationModuleStateType {
     // ████ DEPENDENCIES ████████████████████████████████████████████████
 
-    private readonly conf = inject(ConfService);
-    private readonly log = inject(LogService);
+    public readonly conf = inject(ConfService);
+    public readonly log = inject(LogService);
+    public readonly gpbs = inject(GlobalProgressBarService);
+    public readonly ctxp = inject(ContextProfileService);
+    public readonly api = inject(BfwApiService);
 
     // ████ CLASS PROPERTIES ████████████████████████████████████████████
-    public override readonly storeKey = 'crud';
+    public override readonly storeKey = CRUD_STATE_STORE_KEY;
 
+    // ████ CRUD OBJECTS ████████████████████████████████████████████████
     private readonly DEF_LIST_OPERATION_FIELD_OBJ: CrudStateListOperationFieldObjType = {
         quick_search: {
             label: 'Quick search',
             type: CrudFieldUiTypeEnum.TEXT,
             url_matrix_param: 'qs',
-            placeholder: 'Type to search' ,
+            placeholder: 'Type to search',
             hint: 'Quick search across listed records.',
             mat_icon_prepend: 'search',
             mat_icon_append: 'close',
@@ -498,7 +506,7 @@ export class CrudState extends SignalStateService implements AppModuleStateType 
         // This only iterates the root keys once, making it very fast.
         const keys = Object.keys(finfo);
         const len = keys.length;
-        for(let i = 0; i < len; i++) {
+        for (let i = 0; i < len; i++) {
             const key = keys[i];
             const val = finfo[key];
             result.columns[key] = val.label;
@@ -645,7 +653,7 @@ export class CrudState extends SignalStateService implements AppModuleStateType 
 
     // DISPLAY_FIELDS
     public setDisplayFieldsOption(option?: CrudFieldOptionType): void {
-        if(!option) {
+        if (!option) {
             option = this.formattedListingFields().labels;
         }
 
@@ -654,7 +662,7 @@ export class CrudState extends SignalStateService implements AppModuleStateType 
         });
     }
     public setDisplayFieldsDefault(def?: string[]): void {
-        if(!def || def.length === 0) {
+        if (!def || def.length === 0) {
             def = Object.keys(this.formattedListingFields().labels);
         }
         this.updateViewOptionFieldObj(CrudViewOptionFieldsEnum.DISPLAY_FIELDS, {
@@ -687,7 +695,7 @@ export class CrudState extends SignalStateService implements AppModuleStateType 
     public setSortFieldsAndDirectionOption(option?: CrudFieldOptionType): void {
         // TODO: here need to update the logic as we need to allow multiple fields with 2 direction
         // this is just temporary logic
-        if(!option) {
+        if (!option) {
             option = this.formattedListingFields().sortable;
         }
         this.updateViewOptionFieldObj(CrudViewOptionFieldsEnum.SORT_FIELDS_AND_DIRECTION, {
@@ -695,7 +703,7 @@ export class CrudState extends SignalStateService implements AppModuleStateType 
         });
     }
     public setSortFieldsAndDirectionDefault(def?: string[]): void {
-        if(!def || def.length === 0) {
+        if (!def || def.length === 0) {
             def = Object.keys(this.formattedListingFields().sortable);
         }
         this.updateViewOptionFieldObj(CrudViewOptionFieldsEnum.SORT_FIELDS_AND_DIRECTION, {
@@ -727,7 +735,7 @@ export class CrudState extends SignalStateService implements AppModuleStateType 
 
     // RBIN
     public setRbinOption(option?: CrudFieldSwitchOptionType): void {
-        if(!option) {
+        if (!option) {
             option = CRUD_RECYCLE_BIN_STATUS;
         }
         this.updateViewOptionFieldObj(CrudViewOptionFieldsEnum.RBIN, {
@@ -792,22 +800,22 @@ export class CrudState extends SignalStateService implements AppModuleStateType 
     }
 
     public updateListOperationFieldObj(
-            key: CrudListOperationFieldsEnum,
-            updates: Partial<CrudFormFieldInfoType>
-        ): void {
-            this._listOperationFieldObj.update((finfo) => {
-                // if the main object is empty, or the specific key is missing, return unchanged state
-                if (!finfo || !(key in finfo)) {
-                    return finfo;
-                }
+        key: CrudListOperationFieldsEnum,
+        updates: Partial<CrudFormFieldInfoType>
+    ): void {
+        this._listOperationFieldObj.update((finfo) => {
+            // if the main object is empty, or the specific key is missing, return unchanged state
+            if (!finfo || !(key in finfo)) {
+                return finfo;
+            }
 
-                return {
-                    ...finfo,
-                    [key]: {
-                        ...finfo[key],
-                        ...updates
-                    }
-                };
+            return {
+                ...finfo,
+                [key]: {
+                    ...finfo[key],
+                    ...updates
+                }
+            };
         });
     }
 
@@ -875,7 +883,7 @@ export class CrudState extends SignalStateService implements AppModuleStateType 
     // LISTING_COLUMN_POSITION
     public setListingColumnPositionOption(option?: CrudFieldOptionType): void {
         // set default options
-        if(!option) {
+        if (!option) {
             option = this.formattedListingFields().columns;
         }
 
@@ -884,7 +892,7 @@ export class CrudState extends SignalStateService implements AppModuleStateType 
         });
     }
     public setListingColumnPositionDefault(def?: string[]): void {
-        if(!def || def.length === 0) {
+        if (!def || def.length === 0) {
             let columns: string[] = [];
             const moduleColumns = this.formattedListingFields().columns;
 
@@ -942,7 +950,7 @@ export class CrudState extends SignalStateService implements AppModuleStateType 
 
     // ROWS_PER_PAGE
     public setRowsPerPageOption(option?: object): void {
-        if(!option) {
+        if (!option) {
             option = CrudListingItemPerPageOptionEnum;
 
             // This creates the clean { "KEY": value } object from enum
@@ -959,7 +967,7 @@ export class CrudState extends SignalStateService implements AppModuleStateType 
         });
     }
     public setRowsPerPageDefault(def?: number): void {
-        if(!def) {
+        if (!def) {
             def = this.conf.numOfRecordsPerPage ?? CrudListingItemPerPageOptionEnum.TWENTY_FIVE;
         }
         this.updateListOperationFieldObj(CrudListOperationFieldsEnum.ROWS_PER_PAGE, {
@@ -1112,7 +1120,7 @@ export class CrudState extends SignalStateService implements AppModuleStateType 
 
     // ████ ACCESS PERMISSION ███████████████████████████████████████████████████
     public grantRecordSelectionColumn(): boolean {
-        if(this.primaryKey()) {
+        if (this.primaryKey()) {
             // TODO: need to check user permissions and draft logic here
             return true;
         }
@@ -1120,7 +1128,7 @@ export class CrudState extends SignalStateService implements AppModuleStateType 
     }
 
     public grantRecordActionColumn(): boolean {
-        if(this.primaryKey()) {
+        if (this.primaryKey()) {
             // TODO: need to check user permissions and draft logic here
             return true;
         }
@@ -1133,12 +1141,12 @@ export class CrudState extends SignalStateService implements AppModuleStateType 
         const pkf = this.primaryKey();
 
         // check for rowIdKey fields name, default to state
-        if(!rowIdField && pkf) {
+        if (!rowIdField && pkf) {
             rowIdField = pkf;
         }
 
         // if still no id, then return null
-        if((!rowIdField || rowIdField === '') && (!pkf || pkf === '')) {
+        if ((!rowIdField || rowIdField === '') && (!pkf || pkf === '')) {
             return null;
         }
 

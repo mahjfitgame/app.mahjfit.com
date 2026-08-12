@@ -3,4 +3,6 @@ export enum ContextProfileStateFieldEnum {
     HOST_TOKEN = 'ha',
     CTXS = 'cs',
     STATEFUL_TOKEN = 'sfa',
+    REDIRECT_AFTER_AUTH = 'raa',
+    STATEFUL_INFO = 'sfinfo',
 }

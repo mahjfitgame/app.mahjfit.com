@@ -16,8 +16,12 @@
       "NEXT": "अगला",
       "BACK": "वापस",
       "CONTINUE": "जारी रखें",
+      "PROCEED_FURTHER": "आगे बढ़ें",
       "PREVIOUS": "पिछला",
       "LOADING": "लोड हो रहा है...",
+      "PROCESSING": "प्रक्रिया जारी है...",
+      "REDIRECTING": "पुनर्निर्देशित किया जा रहा है...",
+      "PREPARING": "तैयारी हो रही है...",
       "NO_RECORDS": "कोई रिकॉर्ड नहीं मिला",
       "STEP": "चरण"
     },
@@ -74,7 +78,8 @@
         "FORGOT_PASSWORD": "पासवर्ड भूल गए",
         "MY_ACCOUNT": "मेरा खाता",
         "MY_PROFILE": "मेरी प्रोफ़ाइल",
-        "DASHBOARD": "डैशबोर्ड"
+        "DASHBOARD": "डैशबोर्ड",
+        "CREATE_ACCOUNT": "नया खाता बनाएं"
       }
     }
   }

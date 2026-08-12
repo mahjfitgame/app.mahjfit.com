@@ -100,6 +100,13 @@
   margin-bottom: var(--bfw-safe-area-bottom);
 }
 
+.bfw-safe-area-m {
+  margin-top: var(--bfw-safe-area-top);
+  margin-inline-end: var(--bfw-safe-area-inline-end);
+  margin-bottom: var(--bfw-safe-area-bottom);
+  margin-inline-start: var(--bfw-safe-area-inline-start);
+}
+
 /* Inset / positioning */
 .bfw-safe-area-top {
   top: var(--bfw-safe-area-top);

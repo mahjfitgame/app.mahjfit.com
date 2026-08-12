@@ -1,5 +1,6 @@
 import { Service, computed, signal } from '@angular/core';
 import { SignalStateService } from '../../service';
+import { SIGNAL_STATE_EXAMPLE_USER_MODULE_STATE_STORE_KEY } from './const';
 import {
   UserModulePreferenceType,
   UserModuleRecordType,
@@ -17,7 +18,7 @@ import {
  */
 @Service({ autoProvided: false })
 export class UserModuleState extends SignalStateService {
-  protected override readonly storeKey = 'user';
+  protected override readonly storeKey = SIGNAL_STATE_EXAMPLE_USER_MODULE_STATE_STORE_KEY;
 
   // ---------------------------------------------------------------------------
   // Runtime state: memory only, cleared when this service is destroyed/reloaded.

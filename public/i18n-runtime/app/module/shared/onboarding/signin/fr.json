@@ -31,8 +31,6 @@
       "PASSWORD": "Mot de passe",
       "OTP": "OTP",
       "KEEP_SIGNED_IN": "Rester connecté",
-      "CREATE_ACCOUNT": "Créer un nouveau compte",
-      "FORGOT_PASSWORD": "Mot de passe oublié ?",
       "RESEND_OTP": "Renvoyer l'OTP"
     },
     "FIELD_PLACEHOLDER": {
@@ -54,7 +52,8 @@
       "CONTINUE_WITH": "Ou continuer avec"
     },
     "VALIDATION": {
-      "USER_NOT_FOUND": "Désolé, utilisateur introuvable."
+      "USER_NOT_FOUND": "Désolé, utilisateur introuvable.",
+      "ALREADY_SIGNED_IN": "Vous êtes déjà connecté(e)."
     }
   }
 }

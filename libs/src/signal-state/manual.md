@@ -490,8 +490,20 @@ public clearLocalStoragePersistedField(field: string): Promise<void>;
 public clearSessionStoragePersistedField(field: string): Promise<void>;
 public clearLocalDbPersistedField(field: string): Promise<void>;
 public clearServerSyncedField(field: string): Promise<void>;
-public clearCookiePersistedField(field: string): Promise<void>;
+public clearCookiePersistSignal(field: string): Promise<void>;
 ```
+
+Reload re-runs the load path of one field and replaces its in-memory value. It does **not** write the reloaded value back to the backend.
+
+```ts
+public reloadLocalStoragePersistedField(field: string): Promise<void>;
+public reloadSessionStoragePersistedField(field: string): Promise<void>;
+public reloadLocalDbPersistedField(field: string): Promise<void>;
+public reloadServerSyncedField(field: string): Promise<void>;
+public reloadCookiePersistedField(field: string): Promise<void>;
+```
+
+Use it when an external change makes one stored value stale before the next full load. For a server-sync field this calls the field's `source.getValue()` again; for browser backends it re-reads that backend. It is the same per-field path used by cross-tab notifications, so the stale-load sequence guard, `validate`, and the initial-value fallback all apply.
 
 Snapshots return current in-memory values for registrations of one storage kind:
 
@@ -511,7 +523,9 @@ state.resetLocalStoragePersistedState();
 await state.clearLocalStoragePersistedField('theme');
 await state.clearLocalDbPersistedState();
 await state.clearServerSyncedField('country-name');
-await state.clearCookiePersistedField('affiliate-code');
+await state.clearCookiePersistSignal('affiliate-code');
+
+await state.reloadServerSyncedField('country-name');
 
 const localValues = state.localStoragePersistedSnapshot();
 const serverValues = state.serverSyncedSnapshot();
@@ -522,6 +536,8 @@ Important semantics:
 
 - scoped fields can only be cleared while the matching scope is active;
 - unknown fields are ignored;
+- a single-field reload does not toggle service-wide `ready` or `syncing`;
+- a reload does not trigger a save, because it refreshes the saved snapshot before the field becomes ready again;
 - clear publishes a cross-tab notification only for fields whose `crossTab` option is true;
 - reset can later save defaults because it writes to the signal and clears the saved snapshot;
 - snapshots are shallow top-level objects; nested objects are not deep-cloned.
@@ -541,6 +557,7 @@ interface PersistSignalOptionsBaseType<T> {
   serialize?: (value: T) => unknown;
   deserialize?: (value: unknown) => T;
   deleteOnNull?: boolean;
+  plainValue?: boolean;
 }
 ```
 
@@ -582,6 +599,7 @@ interface SignalStateServerSyncSourceType {
 | `deserialize`  | No                     | Identity                  | Converts loaded persisted data back to runtime `T`.                                                                   |
 | `deleteOnNull` | No                     | `false`                   | Removes the backend record when the persisted representation is `null`.                                               |
 | `crossTab`     | No                     | `false`                   | Publishes exact-key notifications after successful save/remove.                                                       |
+| `plainValue`   | No                     | `false`                   | Stores the raw value instead of an encrypted envelope. Plain records carry no version, so `version` cannot invalidate them. |
 | `source`       | Local DB/server/cookie | Backend-specific default. | Custom DB/server adapter or cookie options. Cookie `path`/`expires` apply on save; `url` applies on save/load/delete. |
 
 ### 5.1 Validation
@@ -1144,7 +1162,44 @@ private readonly serverFilterStore = this.serverSyncSignal<Filter>('filter', DEF
 });
 ```
 
-### 11.6 Wait for restored persisted values before API work
+### 11.6 Resync one server field when a related signal changes
+
+A server-sync field is loaded on construction, on scope changes, and on cross-tab notifications. When another signal makes it stale before any of those happen, reload only that field.
+
+```ts
+protected override onActivate(): void {
+  let primed = false;
+  let previous: boolean | null = null;
+
+  const resyncEffect = effect(() => {
+    const authenticated = this.authenticated();
+
+    if (!this.ready()) {
+      return;
+    }
+
+    // the initial load already called getValue(), do not fetch twice on startup
+    if (!primed) {
+      primed = true;
+      previous = authenticated;
+      return;
+    }
+
+    if (previous === authenticated) {
+      return;
+    }
+    previous = authenticated;
+
+    void this.reloadServerSyncedField('authenticated');
+  });
+
+  this.registerDeactivationCleanup(() => resyncEffect.destroy());
+}
+```
+
+The previous-value guard is required because the effect also reads `ready()`, which toggles on scope changes. Without it, a scope change would trigger a redundant single-field reload on top of the full reload it already causes.
+
+### 11.7 Wait for restored persisted values before API work
 
 ```ts
 protected override onActivate(): void {
@@ -1162,7 +1217,7 @@ protected override onActivate(): void {
 
 Because `ready` toggles after scope changes, this pattern can reload for a new identity. Add a one-shot flag if the work should happen only once.
 
-### 11.7 Logout while preserving saved scoped data
+### 11.8 Logout while preserving saved scoped data
 
 ```ts
 public logout(): void {
@@ -1171,7 +1226,7 @@ public logout(): void {
 }
 ```
 
-### 11.8 Logout and delete active user's persisted data
+### 11.9 Logout and delete active user's persisted data
 
 ```ts
 public async logoutAndForget(): Promise<void> {
@@ -1187,7 +1242,7 @@ public async logoutAndForget(): Promise<void> {
 
 Clear while the scope is still active. Otherwise the scoped key cannot be resolved.
 
-### 11.9 Event listener owned by a state
+### 11.10 Event listener owned by a state
 
 ```ts
 @Injectable()
@@ -1214,7 +1269,7 @@ export class ViewportState extends SignalStateService {
 }
 ```
 
-### 11.10 Mutable timer cleanup
+### 11.11 Mutable timer cleanup
 
 ```ts
 @Injectable()

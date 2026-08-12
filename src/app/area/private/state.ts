@@ -6,19 +6,26 @@ import { SignalStateService } from "@libs/signal-state/service";
 import { EndSideBarOnCloseType, PrivateAreaModuleInfoType, SlotEndSideBarTabBodyType, SlotEndSideBarTabLabelType } from "@area/private/type";
 import { Portal } from "@angular/cdk/portal";
 import { PrivateAreaLayoutSlotEnum } from "@area/private/enum";
-import { AppModuleStateType } from "@libs/utility/type";
+import { GlobalProgressBarService } from "@base/global-progress-bar/service";
+import { ContextProfileService } from "@libs/context-profile/service";
+import { BfwApiService } from "@libs/third-party-apis/bfw-api/service";
+import { FoundationModuleStateType } from "@libs/foundation-module/type/state";
+import { PRIVATE_AREA_STATE_STORE_KEY } from "./const";
 
 @Service({ autoProvided: false })
-export class PrivateAreaLayoutState extends SignalStateService implements AppModuleStateType {
+export class PrivateAreaLayoutState extends SignalStateService implements FoundationModuleStateType {
 
     // ████ DEPENDENCIES ████████████████████████████████████████████████
 
-    private readonly conf = inject(ConfService);
-    private readonly log = inject(LogService);
+    public readonly conf = inject(ConfService);
+    public readonly log = inject(LogService);
+    public readonly gpbs = inject(GlobalProgressBarService);
+    public readonly ctxp = inject(ContextProfileService);
+    public readonly api = inject(BfwApiService);
 
     // ████ CLASS PROPERTIES ████████████████████████████████████████████
 
-    public override readonly storeKey = 'pal';
+    public override readonly storeKey = PRIVATE_AREA_STATE_STORE_KEY;
 
     // ████ SIGNAL FORM PROPERTIES ██████████████████████████████████████
     // n/a
@@ -71,6 +78,7 @@ export class PrivateAreaLayoutState extends SignalStateService implements AppMod
     // ████ LISTENERS ███████████████████████████████████████████████████
 
     public override onActivate(): void {
+        /*
         const registerEffect = effect(() => {
             if (!this.ready()) {
                 return;
@@ -78,6 +86,7 @@ export class PrivateAreaLayoutState extends SignalStateService implements AppMod
         });
 
         this.registerDeactivationCleanup(() => registerEffect.destroy());
+        */
     }
 
     public override onDeactivate(): void {
@@ -120,7 +129,7 @@ export class PrivateAreaLayoutState extends SignalStateService implements AppMod
         });
     }
     public runEndSideBarOnClose(): void {
-        for(const key in this.endSideBarOnClose()) {
+        for (const key in this.endSideBarOnClose()) {
             this.endSideBarOnClose()?.[key]?.();
         }
     }

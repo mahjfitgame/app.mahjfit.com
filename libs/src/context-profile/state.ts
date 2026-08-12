@@ -1,24 +1,29 @@
 // file: libs/src/context-profile/state.ts
 
-import { computed, effect, inject, Service } from "@angular/core";
-import { Session } from "@bfw/api-sdk/graphql/endpoints/shared";
+import { computed, effect, inject, resource, Service, signal } from "@angular/core";
+import { ContextProfile, Session } from "@bfw/api-sdk/graphql/endpoints/shared";
 import { ConfService } from "@libs/conf/service";
 import { LogService } from "@libs/log/service";
 import { SignalStateService } from "@libs/signal-state/service";
-import { BfwApiService } from "@libs/third-party-apis/bfw-api";
+import { BfwApiService } from "@libs/third-party-apis/bfw-api/service";
 import { ContextProfileStateFieldEnum } from "./enum";
-import type { ContextProfileSessionPayload } from "./type";
+import type { ContextProfileSessionPayload, ContextProfileStatefulInfo } from "./type";
 import { jwtDecode } from "jwt-decode";
-import { AppModuleStateType } from "@libs/utility/type";
+import { SignatureService } from "@libs/signature/service";
+import { GlobalProgressBarService } from "src/app/base/global-progress-bar/service";
+import { CONTEXT_PROFILE_STATE_STORE_KEY } from "./const";
+import { BfwApiSdkError } from "@bfw/api-sdk/core";
 
 @Service()
-export class ContextProfileState extends SignalStateService implements AppModuleStateType {
+export class ContextProfileState extends SignalStateService {
 
     // ████ DEPENDENCIES ████████████████████████████████████████████████
     public readonly conf = inject(ConfService);
     public readonly log = inject(LogService);
-
+    public readonly gpbs = inject(GlobalProgressBarService);
     public readonly api = inject(BfwApiService);
+
+    private readonly sign = inject(SignatureService);
     
     /**
      * Here naming rules are bit different due to security reasons
@@ -33,7 +38,7 @@ export class ContextProfileState extends SignalStateService implements AppModule
      */
     
     // ████ CLASS PROPERTIES ████████████████████████████████████████████
-    public override readonly storeKey = 'cp';
+    public override readonly storeKey = CONTEXT_PROFILE_STATE_STORE_KEY;
 
     // ████ SIGNAL FORM PROPERTIES ██████████████████████████████████████
     // n/a
@@ -42,10 +47,34 @@ export class ContextProfileState extends SignalStateService implements AppModule
     // ████ SIGNAL PROPERTIES ███████████████████████████████████████████
     
     // ▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬
+    private readonly _redirectAfterAuth = this.localStoragePersistSignal<string | null>(
+        ContextProfileStateFieldEnum.REDIRECT_AFTER_AUTH,
+        null,
+        {
+            debounceMs: 0,
+            deleteOnNull: true,
+            validate: this.validateRedirectAfterAuth,
+        },
+    );
+    public readonly redirectAfterAuth = this._redirectAfterAuth.asReadonly();
+
+    // ▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬
+    /**
+     * The client/server handshake is what mints the host token, the ctxs and the stateful token,
+     * so it must be the first request the app makes. Any state driven request that leaves before
+     * it would go out unauthorized, this gate is what holds them back.
+     * Runtime only, never persisted, every app run must handshake again.
+     * Opened from AppService.clientServerHandShake() on success only.
+     */
+    private readonly _handshaked = signal<boolean>(false);
+    public readonly handshaked = this._handshaked.asReadonly();
+
+    // ▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬
     private readonly _hostToken = this.localStoragePersistSignal<string | null>(
         ContextProfileStateFieldEnum.HOST_TOKEN, // context profile host authorization
         null,
         {
+            debounceMs: 0,
             crossTab: true,
             validate: (value): value is string | null => value === null || typeof value === 'string',
         }
@@ -58,17 +87,19 @@ export class ContextProfileState extends SignalStateService implements AppModule
         ContextProfileStateFieldEnum.CTXS, // context profile keyid (sid): this actually session keyid not id, keep the name annonymous for security
         null,
         {
+            debounceMs: 0,
             crossTab: true,
             validate: (value): value is string | null => value === null || typeof value === 'string',
         },
     )
-    private readonly ctxs = this._ctxs.asReadonly();
+    public readonly ctxs = this._ctxs.asReadonly();
 
     // ▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬
     private readonly _statefulToken_ck = this.cookiePersistSignal<string | null>(
         ContextProfileStateFieldEnum.STATEFUL_TOKEN, // context stateful authorization: cookie, keep name same as source is different
         null,
         {
+            debounceMs: 0,
             crossTab: true,
             validate: this.validateSessionToken,
             deleteOnNull: true,
@@ -85,6 +116,7 @@ export class ContextProfileState extends SignalStateService implements AppModule
         ContextProfileStateFieldEnum.STATEFUL_TOKEN, // context profile stateful authorization: local storage, keep name same as source is different
         null,
         {
+            debounceMs: 0,
             crossTab: true,
             validate: this.validateSessionToken,
             deleteOnNull: true,
@@ -100,6 +132,7 @@ export class ContextProfileState extends SignalStateService implements AppModule
         ContextProfileStateFieldEnum.STATEFUL_TOKEN, // context stateful authorization: session storage, keep name same as source is different
         null,
         {
+            debounceMs: 0,
             crossTab: true,
             validate: this.validateSessionToken,
             deleteOnNull: true,
@@ -115,6 +148,7 @@ export class ContextProfileState extends SignalStateService implements AppModule
         ContextProfileStateFieldEnum.STATEFUL_TOKEN, // context stateful authorization: local db, keep name same as source is different
         null,
         {
+            debounceMs: 0,
             crossTab: true,
             validate: this.validateSessionToken,
             deleteOnNull: true,
@@ -124,6 +158,66 @@ export class ContextProfileState extends SignalStateService implements AppModule
         () => null;
         //this._statefulToken_ldb.asReadonly();
 
+
+    // ▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬
+    private readonly _statefulInfo = this.cookiePersistSignal<ContextProfileStatefulInfo | null>(
+        ContextProfileStateFieldEnum.STATEFUL_INFO,
+        null,
+        {
+            debounceMs: 0,
+            crossTab: true,
+            validate: this.validateStatefulInfo,
+            deleteOnNull: true,
+            source: {
+                path: '/',
+            }
+        },
+    );
+    public readonly statefulInfo = this._statefulInfo.asReadonly();
+
+    // ▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬
+    /**
+     * This is readonly state
+     */
+    private readonly _serverContextAuthenticated = resource({
+        // undefined keeps the resource idle, so nothing is fetched before the state is ready.
+        // ready() alone is not enough, hydration releases this loader and the handshake at the
+        // same moment and this loader wins the race, so the handshake gate is required here too.
+        // any change of this value re-runs the loader, that is what resyncs the flag.
+        params: () => this.ready() && this.handshaked()
+            ? this.localContextAuthenticated()
+            : undefined,
+        defaultValue: false,
+        loader: async ({ params, abortSignal, previous }): Promise<boolean> => {
+            if (!params) {
+                return false;
+            }
+
+            // a session change needs the server to settle its session store first,
+            // otherwise this reads back the state from before the change.
+            // previous is idle only on the very first load, that one is not delayed.
+            if (previous.status !== 'idle') {
+                await new Promise((resolve) => setTimeout(resolve, 400));
+            }
+
+            try {
+                const http = await this.api.sdk.graphql.contextProfile.authenticated({
+                    signal: abortSignal,
+                });
+
+                // the api owns this value, so it is still validated before it reaches the signal
+                return this.validateServerContextAuthenticated(http.data) ? http.data : false;
+            } catch(e: any | BfwApiSdkError) {
+                return false;
+            }
+        },
+    });
+    public readonly serverContextAuthenticated = this._serverContextAuthenticated.value.asReadonly();
+
+    // ▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬
+    public readonly localContextAuthenticated = computed<boolean>(() => {
+        return this.isLocalContextAuthenticated();
+    })
 
     // ▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬
     public readonly sessionToken = computed<string | null>(() => {
@@ -140,17 +234,34 @@ export class ContextProfileState extends SignalStateService implements AppModule
         return this.getSessionExpiry();
     });
 
-    // ▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬
     /**
-     * @isAuthenticated
+     * @authenticated
      * signal to check if user is authenticated using sign in or not
      * based on available staeful authorization token  and its expiry it decides
      * 
      * @returns {boolean}
      */
-    public readonly isAuthenticated = computed<boolean>(() => {
-        return this.authenticatedSession();
+    public readonly authenticated = computed<boolean>(() => {
+        // the local token is the fast source, it decides on its own first
+        if (!this.localContextAuthenticated()) {
+            return false;
+        }
+
+        // the server check is async, it is idle before ready() and in flight right after a
+        // sign in. collapsing to false in those windows logs the user back out mid navigation,
+        // so the signed local token is trusted until the server actually answers.
+        const status = this._serverContextAuthenticated.status();
+        if (status !== 'resolved' && status !== 'error') {
+            return true;
+        }
+
+        return this.serverContextAuthenticated();
     });
+
+    // ▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬
+    public readonly publicid = computed<string | null>(() => {
+        return this.getPublicid();
+    })
 
     // ████ STATE DEBUGGER ██████████████████████████████████████████████
 
@@ -164,8 +275,11 @@ export class ContextProfileState extends SignalStateService implements AppModule
         sessionToken: this.sessionToken(),
         sessionPayload: this.sessionPayload(),
         sessionExpiry: this.sessionExpiry(),
-        isAuthenticated: this.isAuthenticated(),
-
+        handshaked: this.handshaked(),
+        localContextAuthenticated: this.localContextAuthenticated(),
+        serverContextAuthenticated: this.serverContextAuthenticated(),
+        authenticated: this.authenticated(),
+        redirectAfterAuth: this.redirectAfterAuth(),
     }));    
 
     constructor() {
@@ -175,7 +289,9 @@ export class ContextProfileState extends SignalStateService implements AppModule
         this.initializeSignalState();
 
         // load api service
+        this.api.sdk.graphql.use(ContextProfile);
         this.api.sdk.graphql.use(Session);
+
     }
     
     // ████ LISTENERS ███████████████████████████████████████████████████
@@ -192,6 +308,8 @@ export class ContextProfileState extends SignalStateService implements AppModule
         });
 
         this.registerDeactivationCleanup(() => registerEffect.destroy());
+
+        // the context authenticated resource resyncs itself, its params track ready() and authenticated()
     }
     public override onDeactivate(): void {
         
@@ -200,6 +318,18 @@ export class ContextProfileState extends SignalStateService implements AppModule
     // ████ SIGNAL METHODS ██████████████████████████████████████████████
     
     // SIGNAL SETTERS ▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬
+    public setRedirectAfterAuth(url: string | null): void {
+        this._redirectAfterAuth.set(url);
+    }
+    public setHandshaked(value: boolean): void {
+        this._handshaked.set(value);
+    }
+    public useRedirectAfterAuth(): string | null {
+        const url = this.redirectAfterAuth();
+        // must reset when used, only one time use
+        this.setRedirectAfterAuth(null);
+        return url;
+    }
     public setHostToken(value: string | null): void {
         this._hostToken.set(value);
     }
@@ -222,40 +352,61 @@ export class ContextProfileState extends SignalStateService implements AppModule
         // not in use
         //this._statefulToken_ldb.set(token);
     }
-    
+    public setStatefulInfo(info: ContextProfileStatefulInfo | null): void {
+        // set the expiry for stateful info
+        const exp = this.sessionExpiry();
+        if(exp && exp > 0) {
+            this.setNextCookiePersistSignalExpiry(
+                ContextProfileStateFieldEnum.STATEFUL_INFO,
+                new Date(exp),
+            );
+        }
+
+        this._statefulInfo.set(info);
+    }
+    private clearStatefulInfo(): void {
+        this.setStatefulInfo(null);
+    }
     // SESSION METHODS ▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬
-    public clearSessionToken(): void {
-        // sessionPayload, sessionExpiry, and isAuthenticated reset from this source signal.
-        this.setStatefulTokenCk(null);
-        /*
-        this.setStatefulTokenLs(null);
-        this.setStatefulTokenCk(null);
-        this.setStatefulTokenSs(null);
-        this.setStatefulTokenLdb(null);
-        */
+    public clearSession(): void {
+        // main session token
+        this.clearSessionToken();
+
+        // other required info to clear
+        this.clearStatefulInfo();
     }
     public setSessionToken(token: string | null): void {
-        // Updating the source token invalidates all derived session signals.
-        this.setStatefulTokenCk(token);
-
         // Angular memoizes this decoded payload until the token changes again.
-        const payload = this.sessionPayload();
+        const payload = this.decodeSessionToken(token);
         const exp = payload?.exp;
 
         if (
-            payload?.kl === true &&
+            payload?.kl &&
             typeof exp === 'number' &&
             Number.isFinite(exp)
         ) {
-            this.setNextCookiePersistedExpiry(
+            this.setNextCookiePersistSignalExpiry(
                 ContextProfileStateFieldEnum.STATEFUL_TOKEN,
                 new Date(exp * 1000),
             );
         }
 
+        // Updating the source token invalidates all derived session signals.
+        this.setStatefulTokenCk(token);
+
         // we are not using below states, just for reference
         /*
         this.setStatefulTokenLs(null);
+        this.setStatefulTokenSs(null);
+        this.setStatefulTokenLdb(null);
+        */
+    }
+    private clearSessionToken(): void {
+        // sessionPayload, sessionExpiry, and authenticated reset from this source signal.
+        this.setStatefulTokenCk(null);
+        /*
+        this.setStatefulTokenLs(null);
+        this.setStatefulTokenCk(null);
         this.setStatefulTokenSs(null);
         this.setStatefulTokenLdb(null);
         */
@@ -302,7 +453,7 @@ export class ContextProfileState extends SignalStateService implements AppModule
             ? exp * 1000
             : 0;
     }
-    private authenticatedSession(): boolean {
+    private isLocalContextAuthenticated(): boolean {
         const token = this.sessionToken();
         const expiry = this.sessionExpiry();
 
@@ -313,11 +464,140 @@ export class ContextProfileState extends SignalStateService implements AppModule
             Date.now() < expiry
         );
     }
+    private getPublicid(): string | null {
+        const ctxs = this.ctxs();
+
+        if(ctxs){
+            const pid = this.sign.toBase64(ctxs);
+            return pid;
+        }
+        return null;
+    }
+    // ████ STATEFUL INFO HELPER METHODS ██████████████████████████████████████
+    
+    // user
+    public get user_fullname(): string | null {
+        const user = this.statefulInfo()?.user;
+
+        const name = ((user?.fname ?? '') + ' ' + (user?.lname ?? '')).trim();
+        const alt = this.user_username ?? this.user_primary_email;
+
+        return name || alt || null;
+    }
+    public get user_url_slug(): string | null {
+        const user = this.statefulInfo()?.user;
+        return user?.url_slug ?? null;
+    }
+    public get user_username(): string | null {
+        const user = this.statefulInfo()?.user;
+        return user?.username ?? null;
+    }
+    public get user_primary_email(): string | null {
+        const user = this.statefulInfo()?.user;
+        return user?.primary_email ?? null;
+    }
+    public get user_primary_mobile(): string | null {
+        const user = this.statefulInfo()?.user;
+        return user?.primary_mobile ?? null;
+    }
+    public get user_primary_mobile_cc(): string | null {
+        const user = this.statefulInfo()?.user;
+        return user?.primary_mobile_cc ?? null;
+    }
+    public get user_whatsapp(): string | null {
+        const user = this.statefulInfo()?.user;
+        return user?.whatsapp ?? null;
+    }
+    public get user_whatsapp_cc(): string | null {
+        const user = this.statefulInfo()?.user;
+        return user?.whatsapp_cc ?? null;
+    }
+    public get user_file_profile_banner_url_direct(): string | null {
+        const user = this.statefulInfo()?.user;
+        return user?.file_profile_banner_url?.direct ?? null;
+    }
+    public get user_file_profile_photo_url_direct(): string | null {
+        const user = this.statefulInfo()?.user;
+        return user?.file_profile_photo_url?.direct ?? null;
+    }
+    public get user_file_profile_photo_url_thumb(): string | null {
+        const user = this.statefulInfo()?.user;
+        return user?.file_profile_photo_url?.thumb ?? null;
+    }
+    public get user_monogram_avatar(): string {
+        const user = this.statefulInfo()?.user;
+
+        const name = (user?.fname?.[0] ?? '') + (user?.lname?.[0] ?? '');
+        const alt = (this.user_username ?? this.user_primary_email ?? '').slice(0, 2);
+        const rand = String(Math.random() * 100 | 0).padStart(2, '0');
+
+        return (name || alt || rand).toUpperCase();
+    }
+    // udevice
+    public get udevice_user_defined_id(): string | null {
+        const udevice = this.statefulInfo()?.udevice;
+        return udevice?.user_defined_id ?? null;
+    }
+    public get udevice_user_defined_name(): string | null {
+        const udevice = this.statefulInfo()?.udevice;
+        return udevice?.user_defined_name ?? null;
+    }
+    // authorisation
+    public get authorisation_role_title(): string | null {
+        const authorisation = this.statefulInfo()?.authorisation;
+        return authorisation?.role_title ?? null;
+    }
+    // device
+    public get device_name(): string | null {
+        const device = this.statefulInfo()?.device;
+        return device?.name ?? null;
+    }
+    public get device_interface(): string | null {
+        const device = this.statefulInfo()?.device;
+        return device?.interface ?? null;
+    }
+    public get device_os(): string | null {
+        const device = this.statefulInfo()?.device;
+        return device?.os ?? null;
+    }
+
+
+    
 
     // ████ SIGNAL DATA VALIDATORS ██████████████████████████████████████
     
     public validateSessionToken(value: unknown): value is string | null {
         return typeof value === 'string' || value === null;
+    }
+    public validateRedirectAfterAuth(value: unknown): value is string | null {
+        return (
+            value === null ||
+            (
+                typeof value === 'string' &&
+                value.startsWith('/') &&
+                !value.startsWith('//')
+            )
+        );
+    }
+    public validateStatefulInfo(value: unknown): value is ContextProfileStatefulInfo | null {
+        return (
+            value === null ||
+            (
+                typeof value === 'object' &&
+                (value as any)?.user?.username !== '' &&
+                (value as any)?.authorisation?.role_title !== ''
+            )
+        );
+    }
+    public validateServerContextAuthenticated(value: unknown): value is boolean {
+        return typeof value === 'boolean';
+    }
+    public validatePublicid(id: string | null): boolean {
+        const pid = this.publicid();
+        
+        if(!id || !pid) return false;
+
+        return pid === id;
     }
 
     // ████ REGISTRATION AND CALLBACKS ██████████████████████████████████

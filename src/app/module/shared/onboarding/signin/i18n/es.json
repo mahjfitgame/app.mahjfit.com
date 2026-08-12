@@ -31,8 +31,6 @@
       "PASSWORD": "Contraseña",
       "OTP": "OTP",
       "KEEP_SIGNED_IN": "Mantener la sesión iniciada",
-      "CREATE_ACCOUNT": "Crear una cuenta nueva",
-      "FORGOT_PASSWORD": "¿Olvidó su contraseña?",
       "RESEND_OTP": "Reenviar OTP"
     },
     "FIELD_PLACEHOLDER": {
@@ -54,7 +52,8 @@
       "CONTINUE_WITH": "O continuar con"
     },
     "VALIDATION": {
-      "USER_NOT_FOUND": "Lo sentimos, usuario no encontrado."
+      "USER_NOT_FOUND": "Lo sentimos, usuario no encontrado.",
+      "ALREADY_SIGNED_IN": "Ya has iniciado sesión."
     }
   }
 }

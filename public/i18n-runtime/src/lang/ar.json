@@ -16,8 +16,12 @@
       "NEXT": "التالي",
       "BACK": "رجوع",
       "CONTINUE": "متابعة",
+      "PROCEED_FURTHER": "المضي قدمًا",
       "PREVIOUS": "السابق",
       "LOADING": "جارٍ التحميل...",
+      "PROCESSING": "جارٍ المعالجة...",
+      "REDIRECTING": "جارٍ إعادة التوجيه...",
+      "PREPARING": "جارٍ التحضير...",
       "NO_RECORDS": "لم يتم العثور على سجلات",
       "STEP": "الخطوة"
     },
@@ -74,7 +78,8 @@
         "FORGOT_PASSWORD": "نسيت كلمة المرور",
         "MY_ACCOUNT": "حسابي",
         "MY_PROFILE": "ملفي الشخصي",
-        "DASHBOARD": "لوحة التحكم"
+        "DASHBOARD": "لوحة التحكم",
+        "CREATE_ACCOUNT": "إنشاء حساب جديد"
       }
     }
   }

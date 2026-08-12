@@ -1,12 +1,20 @@
 // ./src/app/module/shared/onboarding/my-profile/route.ts
 
-import { Routes } from '@angular/router';
+import { inject, Service } from '@angular/core';
+import { ActivatedRoute, Router, Routes } from '@angular/router';
+import { FoundationModuleRouteType } from '@libs/foundation-module/type/route';
 import { UrlService } from '@libs/url/service';
 import { SLUG_MY_PROFILE } from '@module/shared/onboarding/my-profile/slug';
 import { SLUG_PRIVATE_AREA } from 'src/app/area/private/slug';
 
-export class MyProfileRoute {
+@Service({ autoProvided: false })
+export class MyProfileRoute implements FoundationModuleRouteType {
+    // CLASS PROPERTIES ▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬
     public static readonly moduleLevel = [SLUG_PRIVATE_AREA, SLUG_MY_PROFILE];
+
+    // DEPENDENCIES ▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬
+    public readonly activeRoute = inject(ActivatedRoute);
+    public readonly router = inject(Router);
 
     // ROUTES ▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬
     /**
@@ -14,7 +22,7 @@ export class MyProfileRoute {
      * need to merge with app routes [src/app/area/private/route.ts]
      */
     public static routes(): Routes {
-        
+
         const routes: Routes = [
             {
                 path: SLUG_MY_PROFILE,
@@ -25,7 +33,7 @@ export class MyProfileRoute {
                         label: 'My Profile',
                         alias: 'myProfile',
                         info: '',
-                        routeInterceptor: (routeLink: any, breadcrumb: any)=> {
+                        routeInterceptor: (routeLink: any, breadcrumb: any) => {
                             return routeLink;
                         }
                     },
@@ -36,7 +44,7 @@ export class MyProfileRoute {
         return routes;
     }
 
-    // ABSOLUTE PATH ▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬
+    // PATHS ▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬
     public static absolutePathArr(): string[] {
         const moduleLevel = this.moduleLevel;
         const params = {};
@@ -48,4 +56,8 @@ export class MyProfileRoute {
         const params = {};
         return UrlService.getAbsolutePath(moduleLevel, params);
     }
+
+    // NAVIGATION ▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬
+
+    // PARAM GETTERS ▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬
 }

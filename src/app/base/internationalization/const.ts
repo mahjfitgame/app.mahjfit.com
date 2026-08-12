@@ -1,4 +1,5 @@
 // file: ./src/app/base/internationalization/const.ts
+export const I18N_STATE_STORE_KEY = 'i18n' as const;
 export const I18N_GLOBAL_KEY = 'global' as const;
 export const I18N_KEY = 'app.base.internationalization' as const;
 

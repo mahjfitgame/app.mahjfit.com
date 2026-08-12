@@ -1,6 +1,5 @@
 // file: libs/src/signal-state/server.sync.ts
 import { Service, inject } from '@angular/core';
-import { SignatureService } from '../signature/service';
 import { SignalStateUtility } from './utility';
 import {
   SignalStateServerSyncEnvelopeType,
@@ -11,11 +10,6 @@ import {
 
 @Service()
 export class SignalStateServerSync {
-  /**
-   * Keeps the signature dependency or state holder used by this class.
-   * It is readonly so the service wiring stays stable for the instance lifetime.
-   */
-  private readonly signature = inject(SignatureService);
   /**
    * Keeps the utility dependency or state holder used by this class.
    * It is readonly so the service wiring stays stable for the instance lifetime.
@@ -49,18 +43,14 @@ export class SignalStateServerSync {
     state: T,
     version = 1,
     source?: SignalStateServerSyncSourceType,
+    plainValue = false,
   ): Promise<void> {
     const normalizedKey = this.utility.normalizeStorageKey(key);
 
-    this.utility.assertSerializable(state);
-
-    const envelope: SignalStateServerSyncEnvelopeType = {
-      v: version,
-      u: new Date().toISOString(),
-      s: this.signature.encryptJson(state),
-    };
-
-    await this.sourceFor(source).setValue(normalizedKey, envelope);
+    await this.sourceFor(source).setValue(
+      normalizedKey,
+      this.utility.buildRecord(state, version, plainValue),
+    );
   }
 
   /**
@@ -82,28 +72,12 @@ export class SignalStateServerSync {
         SignalStateServerSyncEnvelopeType | string
       >(normalizedKey);
 
-      if (!stored) {
+      // a plain record can be false, 0, or an empty string, only a missing record is null
+      if (stored === null || stored === undefined) {
         return null;
       }
 
-      const envelope = this.utility.parseEnvelope<SignalStateServerSyncEnvelopeType>(stored);
-      if (this.utility.isStorageEnvelope(envelope)) {
-        if (envelope.v !== expectedVersion) {
-          return null;
-        }
-
-        return {
-          v: envelope.v,
-          u: envelope.u,
-          s: this.signature.decryptJson<T>(envelope.s),
-        };
-      }
-
-      return {
-        v: expectedVersion,
-        u: new Date().toISOString(),
-        s: stored as T,
-      };
+      return this.utility.readRecord<T>(stored, expectedVersion);
     } catch {
       return null;
     }

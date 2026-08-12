@@ -1,10 +1,9 @@
 // file: src/app/module/business/game/phaser/scenes/managers/ui-layout.ts
 import Phaser from "phaser";
-import type { PassDirection } from "../../../model/tile";
-import type { TablePhase } from "../../../model/table-phase";
+
 import { COLOR_AVOCADO, COLOR_BLUE, COLOR_BLUE_NUM, COLOR_FUSHIA, COLOR_FUSHIA_NUM, COLOR_GRAY, FONT_FAMILY, ICON_DEADHAND_HOVER, ICON_DEADHAND_NORMAL, ICON_DEADHAND_PRESSED, ICON_HELP_HOVER, ICON_HELP_NORMAL, ICON_HELP_PRESSED, ICON_HINT_HOVER, ICON_HINT_NORMAL, ICON_HINT_PRESSED, ICON_SETTINGS_HOVER, ICON_SETTINGS_NORMAL, ICON_SETTINGS_PRESSED, ICON_SORT_HOVER, ICON_SORT_NORMAL, ICON_SORT_PRESSED } from "../../const";
-import { TableLayout } from "../../type";
-import { HamburgerMenuActionKey, HudActionKey, HudImageButton, LayoutStaticUiOptions, PassButtonStateOptions, PlayerLabelOverlayState, PointsOverlayState, TableSeat, UiLayoutCallbacks, WallCountOverlayState } from "../type";
+import { PassDirection, TableLayout, TablePhase } from "../../type";
+import { HamburgerMenuActionKey, HudActionKey, HudImageButton, LayoutStaticUiOptions, PassButtonStateOptions, PlayerLabelOverlayState, PointsOverlayState, TableSeat, UiLayoutCallbacks, WallCountOverlayState } from "../../type";
 
 
 /**

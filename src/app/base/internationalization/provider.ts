@@ -5,7 +5,7 @@ import { I18N_ALLOWED_LANG, I18N_DEFAULT_LANG } from '@base/internationalization
 import { I18nLoader } from '@base/internationalization/loader';
 import { I18nService } from '@base/internationalization/service';
 
-export function provideI18n() {
+export function provideI18nModule() {
     return [
         provideTransloco({
             config: {

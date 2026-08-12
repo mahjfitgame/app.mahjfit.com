@@ -3,7 +3,6 @@ import { inject, Service } from "@angular/core";
 import { Country, CountryFindInputDto, CountryFindOutputDto, CountryFindOutputRowsDto, CountryFindOutputSelectionSchema } from "@bfw/api-sdk/graphql/endpoints/shared";
 import { RecordSortDirectionEnum, RecordSortNullPositionEnum } from "@bfw/api-sdk/graphql/libs/crud.enum";
 import { PrivateAreaLayoutSlotEnum } from "@area/private/enum";
-import { CrudServiceSubType } from "@base/crud/sub";
 import { CrudDataLoadTypeEnum, CrudFieldUiTypeEnum, CrudActionUiLayoutEnum } from "@base/crud/enum";
 import { CrudService } from "@base/crud/service";
 import { CrudStateMutationFieldObjType, CrudStateListingFieldObjType, CrudStateSearchFilterFieldObjType, CrudFindInputType, CrudStateViewOptionFieldObjType, CrudStateListOperationFieldObjType, CrudSearchFilterInputType, CrudViewOptionInputType, CrudListOperationInputType } from "@base/crud/type";
@@ -18,13 +17,15 @@ import { SLUG_GEO_COUNTRY } from "@module/shared/geo/country/slug";
 import { I18nService } from "@base/internationalization/service";
 import { GEO_COUNTRY_I18N_KEY } from "@module/shared/geo/country/const";
 import { GeoCountryRoute } from "./route";
-import { AppModuleServiceType } from "@libs/utility/type";
+import { FoundationModuleServiceType } from "@libs/foundation-module/type/service";
 import { GeoCountryState } from "./state";
+import { CrudChildServiceType } from "src/app/base/crud/child/service";
 
 @Service({ autoProvided: false })
-export class GeoCountryService implements AppModuleServiceType, CrudServiceSubType {
+export class GeoCountryService implements FoundationModuleServiceType, CrudChildServiceType {
     public readonly crud = inject(CrudService);
 
+    public readonly route = inject(GeoCountryRoute);
     public readonly state = inject(GeoCountryState);
 
     public readonly conf = inject(ConfService);
@@ -33,320 +34,10 @@ export class GeoCountryService implements AppModuleServiceType, CrudServiceSubTy
 
     public readonly PrivateAreaLayoutSlotEnum = PrivateAreaLayoutSlotEnum;
 
-    public readonly LISTING_FIELD_OBJ: CrudStateListingFieldObjType = {
-        name: {
-            label: 'Name',
-            type: CrudFieldUiTypeEnum.TEXT,
-            sort: true,  
-            mat_icon_prepend: 'info',
-            sub: {
-                capital: {
-                    label: 'Capital',
-                    type: CrudFieldUiTypeEnum.TEXT,
-                    sort: true,
-                },
-                nationality: {
-                    label: 'Nationality',
-                    type: CrudFieldUiTypeEnum.TEXT,
-                    sort: true,
-                },
-                native: {
-                    label: 'Native',
-                    type: CrudFieldUiTypeEnum.TEXT,
-                    sort: true,
-                }
-            }
-        },
-        currency: {
-            label: 'Currency',
-            type: CrudFieldUiTypeEnum.TEXT,
-            sort: true,
-            sub: {
-                currency_name: {
-                    label: 'Currency Name',
-                    type: CrudFieldUiTypeEnum.TEXT,
-                    sort: true,
-                },
-                currency_symbol: {
-                    label: 'Currency Symbol',
-                    type: CrudFieldUiTypeEnum.TEXT,
-                    sort: true,
-                }
-            }
-        },
-        metadata: {
-            label: 'Metadata',
-            type: CrudFieldUiTypeEnum.NONE,
-            sort: false,
-            slot: true,
-            sub: {
-                emoji: {
-                    label: 'Flag',
-                    type: CrudFieldUiTypeEnum.TEXT,
-                    sort: false,
-                },
-                emoji_u: {
-                    label: 'Emoji U',
-                    type: CrudFieldUiTypeEnum.TEXT,
-                    sort: false, 
-                },
-                iso_ii: {
-                    label: 'ISO II',
-                    type: CrudFieldUiTypeEnum.TEXT,
-                    sort: true,
-                },
-                iso_iii: {
-                    label: 'ISO III',
-                    type: CrudFieldUiTypeEnum.TEXT,
-                    sort: true,
-                },
-                tld: {
-                    label: 'TLD',
-                    type: CrudFieldUiTypeEnum.TEXT,
-                    sort: true,
-                }
-            }
-        },
-        location: {
-            label: 'Location',
-            type: CrudFieldUiTypeEnum.NONE,
-            sort: false,
-            sub: {
-                region_id: {
-                    label: 'Region',
-                    type: CrudFieldUiTypeEnum.SELECT,
-                    sort: true,
-                    fr_field: 'fr_region.name',
-                },
-                subregion_id: {
-                    label: 'Subregion',
-                    type: CrudFieldUiTypeEnum.SELECT,
-                    sort: true,
-                    fr_field: 'fr_subregion.name',
-                },
-                latitude: {
-                    label: 'Latitude',
-                    type: CrudFieldUiTypeEnum.NUMBER,
-                    sort: true,
-                },
-                longitude: {
-                    label: 'Longitude',
-                    type: CrudFieldUiTypeEnum.NUMBER,
-                    sort: true,
-                },
-                numeric_code: {
-                    label: 'Phone Code',
-                    type: CrudFieldUiTypeEnum.NUMBER,
-                    sort: true,
-                }
-            }
-        },
-        audit: {
-            label: 'Audit',
-            type: CrudFieldUiTypeEnum.NONE,
-            sort: false,
-            sub: {
-                created: {
-                    label: 'Created',
-                    type: CrudFieldUiTypeEnum.DATETIME,
-                    sort: true,
-                    mat_icon_prepend: 'calendar_clock',
-                },
-                updated: {
-                    label: 'Updated',
-                    type: CrudFieldUiTypeEnum.FLAG,
-                    sort: true,
-                    flag_label: {
-                        is_null: 'Not updated yet',
-                        is_datetime: '',
-                    }
-                },
-                deleted: {
-                    label: 'Deleted',
-                    type: CrudFieldUiTypeEnum.FLAG,
-                    sort: true,
-                    flag_label: {
-                        is_null: 'No',
-                        is_datetime: '',
-                    }
-                },
-            }
-        }
-    };
-    public readonly SEARCH_QUERY_FIELD_OBJ: CrudStateSearchFilterFieldObjType = {
-
-        advance_search: {
-            label: 'Advance Search',
-            type: CrudFieldUiTypeEnum.NONE,
-            url_matrix_param: null,
-            mat_icon_append: 'search_insights',
-        },
-        name: {
-            label: 'Name',
-            type: CrudFieldUiTypeEnum.TEXT,
-            placeholder: 'Enter country name',
-            hint: 'Search by country name',
-            url_matrix_param: 'name',
-            value: null,
-            validation: {
-                min_length: {
-                    value: 3,
-                    message: 'Minimum length is 3 characters'
-                },
-                max_length: {
-                    value: 50,
-                    message: 'Maximum length is 50 characters'
-                }
-            }
-        },
-        region_id: {
-            label: 'Region',
-            type: CrudFieldUiTypeEnum.SELECT,
-            fr_field: 'fr_region.name',
-            url_matrix_param: 'region',
-            value: null,
-            option: {
-                1: 'Asia',
-                2: 'Europe',
-                3: 'North America',
-                4: 'South America',
-                5: 'Africa',
-                6: 'Oceania',
-                7: 'Antarctica',
-            },
-            option_default: {
-                '': 'Any',
-            },
-        },
-        test_hidden: {
-            label: 'Test Hidden',
-            type: CrudFieldUiTypeEnum.HIDDEN,
-            url_matrix_param: 'test',
-        },
-        test_radio: {
-            label: 'Test Radio',
-            hint: 'Choose any one country for test radio',
-            type: CrudFieldUiTypeEnum.RADIO,
-            url_matrix_param: 'test',
-            option: {
-                1: 'Asia',
-                2: 'Europe',
-                3: 'North America',
-                4: 'Congo Republic of South America',
-                5: 'Africa',
-                6: 'Oceania',
-                7: 'Antarctica',
-            },
-            option_default: {
-                '': 'Any',
-            },
-        },
-        test_checkbox: {
-            label: 'Test Checkbox',
-            hint: 'Choose any one or more countries for test checkbox',
-            type: CrudFieldUiTypeEnum.CHECKBOX,
-            url_matrix_param: 'test',
-            option: {
-                1: 'Asia',
-                2: 'Europe',
-                3: 'North America',
-                4: 'Congo Republic of South America',
-                5: 'Africa',
-                6: 'Oceania',
-                7: 'Antarctica',
-            },
-        },
-        test_number: {
-            label: 'Test Number',
-            type: CrudFieldUiTypeEnum.NUMBER,
-            hint: 'Enter any number for test number',
-            url_matrix_param: 'test',
-            value: null,
-            default: null,
-            validation: {
-                min: {
-                    message: 'Minimum value is 1',
-                    value: 1,
-                },
-                max: {
-                    message: 'Maximum value is 10',
-                    value: 10,
-                }
-            }
-        },
-        test_date: {
-            label: 'Test Date',
-            type: CrudFieldUiTypeEnum.DATE,
-            hint: 'Enter any date for test date',
-            url_matrix_param: 'test_date',
-            value: null,
-            default: null,
-            validation: {
-                min: {
-                    message: 'Minimum value is 01',
-                    value: new Date('2026-05-01'),
-                },
-                max: {
-                    message: 'Maximum value is today',
-                    value: new Date(),
-                }
-            }
-        },
-        test_time: {
-            label: 'Test Time',
-            type: CrudFieldUiTypeEnum.TIME,
-            hint: 'Enter any time for test',
-            url_matrix_param: 'test_time',
-            value: null,
-            default: null,
-        },
-        test_datetime: {
-            label: 'Test Datetime',
-            type: CrudFieldUiTypeEnum.DATETIME,
-            hint: 'Enter any datetime for test datetime',
-            url_matrix_param: 'test_datetime',
-            value: null,
-            default: null,
-        },
-        test_slot: {
-            label: 'Cdk Slot',
-            type: CrudFieldUiTypeEnum.TEXT,
-            url_matrix_param: 'test_slot',
-            slot: true,
-            value: null,
-            default: null,
-            validation: {
-                required: {
-                    message: 'Cdk Slot is required',
-                    value: true,
-                }
-            }
-        },
-        test_file: {
-            label: 'Test Image File',
-            type: CrudFieldUiTypeEnum.FILE,
-            hint: 'Upload Image file for test',
-            url_matrix_param: 'test_image_file',
-            value: null,
-            default: null,
-            validation: {
-                extension: {
-                    message: 'Allowed file extensions are ' + this.conf.fileFormatImage.join(', '),
-                    value: this.conf.fileFormatImage,
-                }
-            }
-        }
-    };
-    // TODO: once i finish sign in setup i need to start with mutation form and after search form and after apply finter in listing
-    // switching work due to requirement in game project
-    // after finish entire crud setup with this module so it can be used as reference
-
-    public readonly MUTATION_FIELD_OBJ: CrudStateMutationFieldObjType = this.SEARCH_QUERY_FIELD_OBJ as any;
-
     constructor() {
         // set module info
         this.setModuleInfo();
-        
+
         // alter breadcrumbs
         this.alterBreadcrumb();
 
@@ -358,7 +49,7 @@ export class GeoCountryService implements AppModuleServiceType, CrudServiceSubTy
 
         // set unique key
         this.setUniqueKey();
-        
+
         // set listing, mutation and query fields + any modification as needed
         this.initFieldObj();
 
@@ -370,7 +61,7 @@ export class GeoCountryService implements AppModuleServiceType, CrudServiceSubTy
 
         // [optional] set mutation page custom component
         this.setMutationPageCustomComponent();
-        
+
         // set selected rows
         this.setListingSelectedRowsInitialSource();
 
@@ -425,9 +116,9 @@ export class GeoCountryService implements AppModuleServiceType, CrudServiceSubTy
     }
     public initFieldObj(): void {
         this.crud.setFieldObj(
-            this.LISTING_FIELD_OBJ,
-            this.SEARCH_QUERY_FIELD_OBJ,
-            this.MUTATION_FIELD_OBJ
+            this.state.LISTING_FIELD_OBJ,
+            this.state.SEARCH_FILTER_FIELD_OBJ,
+            this.state.MUTATION_FIELD_OBJ
         );
 
         /**
@@ -482,19 +173,19 @@ export class GeoCountryService implements AppModuleServiceType, CrudServiceSubTy
         // set the targeted module for api call
         this.crud.api.sdk.graphql.use(Country);
 
-        const { 
-            SEARCH_FILTER_INPUT: sfIn, 
+        const {
+            SEARCH_FILTER_INPUT: sfIn,
             VIEW_OPTION_INPUT: voIn,
             LIST_OPERATION_INPUT: loIn,
             SKIP: skip,
         }: CrudFindInputType = input;
-        
+
         const fetch = async (
-                sfIn: CrudSearchFilterInputType, 
-                voIn: CrudViewOptionInputType, 
-                loIn: CrudListOperationInputType, 
-                skip: number
-            ) => {
+            sfIn: CrudSearchFilterInputType,
+            voIn: CrudViewOptionInputType,
+            loIn: CrudListOperationInputType,
+            skip: number
+        ) => {
             // create a reusable find call
             const selection: CountryFindOutputSelectionSchema = {
                 total: true,
@@ -502,7 +193,7 @@ export class GeoCountryService implements AppModuleServiceType, CrudServiceSubTy
                 remain: true,
                 pages: true,
                 pagination: {
-                    first:{
+                    first: {
                         count: true,
                         page: true,
                         skip: true
@@ -554,7 +245,7 @@ export class GeoCountryService implements AppModuleServiceType, CrudServiceSubTy
                         direction: RecordSortDirectionEnum.ASC,
                         nulls: RecordSortNullPositionEnum.LAST
                     }
-                    
+
                 },
                 withDeleted: false,
                 where: [
@@ -563,13 +254,13 @@ export class GeoCountryService implements AppModuleServiceType, CrudServiceSubTy
                     }
                 ]
             };
-            
+
             return await this.crud.api.sdk.graphql.country.find({
                 selection: selection,
                 filter: filter,
             });
         };
-        
+
         const http = await fetch(sfIn, voIn, loIn, skip);
         let data: CountryFindOutputDto = http.data;
 
@@ -579,14 +270,14 @@ export class GeoCountryService implements AppModuleServiceType, CrudServiceSubTy
          * We need various validation as we have data source from url matrix params
          * Any malicious data might be there
          */
-        
-        
+
+
         const normalizedInput = this.crud.normalizeFindInputAfterFind(input, Number(data.total ?? 0));
-        const { 
-            SEARCH_FILTER_INPUT: nsfIn, 
-            VIEW_OPTION_INPUT: nvfIn, 
-            LIST_OPERATION_INPUT: nloIn, 
-            SKIP: nskip 
+        const {
+            SEARCH_FILTER_INPUT: nsfIn,
+            VIEW_OPTION_INPUT: nvfIn,
+            LIST_OPERATION_INPUT: nloIn,
+            SKIP: nskip
         }: CrudFindInputType = normalizedInput;
 
         // if mismatch then place new call but do not intrrupt existing call
@@ -604,7 +295,7 @@ export class GeoCountryService implements AppModuleServiceType, CrudServiceSubTy
         this.crud.state.setListingDataSource<CountryFindOutputRowsDto>(data.rows);
 
         // on initial load we need to process inpuut after data received
-        if(type === CrudDataLoadTypeEnum.INITIAL) {
+        if (type === CrudDataLoadTypeEnum.INITIAL) {
             /**
              * now data is set in state so we might need to update few things as per url state
              * this is required to perform fieldpsecific normalisation process which required data to be loaded
@@ -613,7 +304,7 @@ export class GeoCountryService implements AppModuleServiceType, CrudServiceSubTy
              * 
              * action such as selected rows sync from url to show it as selected on screen
              */
-            this.initCrudStateFromUrl();    
+            this.initCrudStateFromUrl();
         }
 
         // set pagination

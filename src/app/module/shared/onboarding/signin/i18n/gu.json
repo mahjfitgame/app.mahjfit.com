@@ -31,8 +31,6 @@
       "PASSWORD": "પાસવર્ડ",
       "OTP": "ઓટીપી",
       "KEEP_SIGNED_IN": "મને સાઇન ઇન રાખો",
-      "CREATE_ACCOUNT": "નવું ખાતું બનાવો",
-      "FORGOT_PASSWORD": "પાસવર્ડ ભૂલી ગયા છો?",
       "RESEND_OTP": "ઓટીપી ફરી મોકલો"
     },
     "FIELD_PLACEHOLDER": {
@@ -54,7 +52,8 @@
       "CONTINUE_WITH": "અથવા આની સાથે આગળ વધો"
     },
     "VALIDATION": {
-      "USER_NOT_FOUND": "માફ કરશો, વપરાશકર્તા મળ્યો નથી."
+      "USER_NOT_FOUND": "માફ કરશો, વપરાશકર્તા મળ્યો નથી.",
+      "ALREADY_SIGNED_IN": "તમે પહેલેથી જ સાઇન ઇન છો."
     }
   }
 }

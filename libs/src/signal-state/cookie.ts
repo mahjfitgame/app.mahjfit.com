@@ -1,10 +1,8 @@
 // file: libs/src/signal-state/cookie.ts
 import { Service, inject } from '@angular/core';
 import { CookieService } from '../cookie/service';
-import { SignatureService } from '../signature/service';
 import { SignalStateUtility } from './utility';
 import {
-  SignalStateCookieEnvelopeType,
   SignalStateCookieSourceType,
   SignalStateCookieValueType,
   SignalStateScopeType,
@@ -17,11 +15,6 @@ export class SignalStateCookie {
    * It is readonly so the service wiring stays stable for the instance lifetime.
    */
   private readonly cookie = inject(CookieService);
-  /**
-   * Keeps the signature dependency or state holder used by this class.
-   * It is readonly so the service wiring stays stable for the instance lifetime.
-   */
-  private readonly signature = inject(SignatureService);
   /**
    * Keeps the utility dependency or state holder used by this class.
    * It is readonly so the service wiring stays stable for the instance lifetime.
@@ -45,20 +38,16 @@ export class SignalStateCookie {
     state: T,
     version = 1,
     options?: SignalStateCookieSourceType,
+    plainValue = false,
   ): Promise<void> {
     const normalizedKey = this.utility.normalizeStorageKey(key);
 
-    this.utility.assertSerializable(state);
-
-    const envelope: SignalStateCookieEnvelopeType = {
-      v: version,
-      u: new Date().toISOString(),
-      s: this.signature.encryptJson(state),
-    };
+    // cookies hold text only, a plain string is written as is and anything else as JSON
+    const record = this.utility.buildRecord(state, version, plainValue);
 
     await this.cookie.set({
       key: normalizedKey,
-      value: JSON.stringify(envelope),
+      value: typeof record === 'string' ? record : JSON.stringify(record),
       url: options?.url,
       path: options?.path,
       expires: options?.expires,
@@ -86,16 +75,7 @@ export class SignalStateCookie {
         return null;
       }
 
-      const envelope = this.utility.parseEnvelope<SignalStateCookieEnvelopeType>(stored);
-      if (!this.utility.isStorageEnvelope(envelope) || envelope.v !== expectedVersion) {
-        return null;
-      }
-
-      return {
-        v: envelope.v,
-        u: envelope.u,
-        s: this.signature.decryptJson<T>(envelope.s),
-      };
+      return this.utility.readRecord<T>(stored, expectedVersion);
     } catch {
       return null;
     }
@@ -108,7 +88,10 @@ export class SignalStateCookie {
   public async remove(key: string, options?: SignalStateCookieSourceType): Promise<void> {
     const normalizedKey = this.utility.maybeNormalizeStorageKey(key);
     if (normalizedKey) {
-      await this.cookie.delete(normalizedKey, { url: options?.url });
+      await this.cookie.delete(normalizedKey, {
+        url: options?.url,
+        path: options?.path,
+      });
     }
   }
 }

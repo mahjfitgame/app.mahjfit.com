@@ -1,8 +1,8 @@
-<!-- file: ./src/app/module/shared/onboarding/signin/template.html -->
+<!-- file: src/app/module/shared/onboarding/signin/template.html -->
 <div class="tw:flex tw:min-h-[75dvh] tw:md:min-h-[80dvh] tw:items-center tw:justify-center">
     <div class="tw:w-full tw:max-w-110">
         <mat-card class="tw:bg-transparent! tw:md:bfw-bg-gradient-b tw:mb-6 tw:rounded-4xl! tw:overflow-hidden tw:shadow-none! tw:md:shadow-sm!">
-            <mat-card-header>
+            <mat-card-header class="tw:flex-col! tw:items-stretch!">
                 <div class="tw:p-2 tw:w-100 tw:text-center tw:lg:text-start">
                     <!-- ██████████ HEADING AREA ██████████████████████████████████████ -->
                     @defer (on idle) {
@@ -17,22 +17,25 @@
                         </div>
                     }
                 </div>
+                <div>
+                    <app-notify-banner></app-notify-banner>
+                </div>
             </mat-card-header>
             <mat-card-content class="tw:p-6!">
-                <app-notify-banner></app-notify-banner>
                 <form (submit)="$event.preventDefault(); service.onSubmit()" class="tw:space-y-3" novalidate>
                     <!-- ██████████ USERNAME ██████████████████████████████████████ -->
                     @if(service.state.step() === service.SigninStepEnum.USERNAME) 
                     {
                         @let fo = service.state.mutationFieldObj().un_pe_pm;
                         @let fs = service.state.mutationForm.un_pe_pm();
+                        @let placeholder = fo.placeholder | transloco;
                         
                         <mat-form-field appearance="outline" class="tw:w-full">
                             <mat-label>{{ fo.label | transloco }}</mat-label>
                             <input
                                 matInput
                                 type="text"
-                                [placeholder]="fo.placeholder| transloco"
+                                [placeholder]="placeholder === fo.placeholder ? '' : placeholder"
                                 [formField]="service.state.mutationForm.un_pe_pm"
                                 (keydown.enter)="$event.preventDefault(); service.onSubmit()"
                                 (input)="service.state.clearMutationFormError()"
@@ -73,6 +76,7 @@
                                     matIconButton
                                     matSuffix
                                     type="button"
+                                    [disabled]="service.state.mutationFormProcessing()"
                                     (click)="service.toggleHidePassword()"
                                 >
                                     <mat-icon class="material-symbols-rounded">
@@ -182,6 +186,7 @@
                                     matIconButton
                                     matSuffix
                                     type="button"
+                                    [disabled]="service.state.mutationFormProcessing()"
                                     (click)="service.toggleHideVerificationInput()"
                                 >
                                     <mat-icon class="material-symbols-rounded">
@@ -205,21 +210,31 @@
                     <!-- ██████████ FINISH ██████████████████████████████████████ -->
                     @else if(service.state.step() === service.SigninStepEnum.FINISH) 
                     {
-                        <div class="tw:flex tw:items-center tw:justify-center tw:text-green-700">
-                            <mat-icon class="material-symbols-rounded tw:text-7xl! tw:h-18! tw:w-18!">
-                                verified_user
-                            </mat-icon>
-                            
+                        <div class="tw:flex tw:items-center tw:justify-center tw:text-center tw:text-green-700">
+                            <div>
+                                <mat-icon class="material-symbols-rounded tw:text-7xl! tw:h-18! tw:w-18!">
+                                    verified_user
+                                </mat-icon>
+                                <p class="tw:text-sm">{{ 'GL.COMMON.REDIRECTING' | transloco }}</p>
+                            </div>
                         </div>
                     }
 
                     <!-- ██████████ BUTTONS AREA ██████████████████████████████████████ -->
                     <div class="tw:flex tw:items-center tw:justify-end tw:gap-3">
                         @if(service.state.step() === service.SigninStepEnum.USERNAME) {
-                            <a matButton="text" [routerLink]="service.SignupRoute.absolutePath()">{{ 'ONBOARDING_SIGNIN.FIELD_LABEL.CREATE_ACCOUNT' | transloco }}</a>
+                            @defer (on idle){
+                                <a matButton="text" [routerLink]="service.SignupRoute.absolutePath()">
+                                    {{ 'GL.MODULE.ONBOARDING.CREATE_ACCOUNT' | transloco }}
+                                </a>
+                            } @placeholder (minimum 200ms) {
+                                <div class="tw:h-10 tw:w-32 tw:animate-pulse tw:rounded-full tw:bg-gray-100"></div>
+                            }
                         }
                         @if(service.state.step() === service.SigninStepEnum.PASSWORD) {
-                            <a matButton="text" [routerLink]="service.ForgotPasswordRoute.absolutePath()">{{ 'ONBOARDING_SIGNIN.FIELD_LABEL.FORGOT_PASSWORD' | transloco }}</a>
+                            <a matButton="text" [routerLink]="service.ForgotPasswordRoute.absolutePath()">
+                                {{ 'GL.MODULE.ONBOARDING.FORGOT_PASSWORD' | transloco }}
+                            </a>
                         }
                         @if(service.state.step() === service.SigninStepEnum.VERIFY) {
                             @if(service.state.disable_resend_otp() === false) {
@@ -246,14 +261,14 @@
                                 matButton="filled"
                                 type="submit"
                                 class="tw:relative tw:overflow-hidden"
-                                [disabled]="!service.isCurrentStepValid() || service.gpbs.processing"
+                                [disabled]="!service.isCurrentStepValid() || service.state.mutationFormProcessing() || service.gpbs.processing"
                             >{{ 'GL.COMMON.NEXT' | transloco }}
                             </button>
                         }
                     </div>
                     
                     <!-- ██████████ DEBUG AREA ██████████████████████████████████████ -->
-                    @if(service.conf.debug === true) {
+                    <!-- @if(service.conf.debug === true) {
                         <div class="tw:mt-4 tw:rounded-2xl tw:bg-black/5 tw:p-3 tw:text-xs tw:leading-relaxed tw:dark:bg-white/5">
                             <div class="tw:font-semibold">{{ 'GL.DEBUG.DEBUG_INFO' | transloco }}</div>
                             <pre class="tw:mt-1 tw:whitespace-pre-wrap tw:wrap-break-word">{{ service.ctxp.state.debugState() | json }}</pre>
@@ -261,7 +276,7 @@
                             <div class="tw:mt-2 tw:font-semibold">Data State</div>
                             <pre class="tw:mt-1 tw:whitespace-pre-wrap tw:wrap-break-word">{{ service.state.debugState() | json }}</pre>
                         </div>
-                    }
+                    } -->
                 </form>
             </mat-card-content>
         </mat-card>

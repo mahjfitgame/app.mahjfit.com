@@ -1,4 +1,4 @@
-// file: ./src/app/area/auth/service.ts
+// file: src/app/area/auth/service.ts
 import { inject, Service } from "@angular/core";
 import { AuthAreaLayoutState } from "@area/auth/state";
 import { ConfService } from "@libs/conf/service";

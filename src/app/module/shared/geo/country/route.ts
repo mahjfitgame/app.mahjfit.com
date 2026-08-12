@@ -1,14 +1,22 @@
 // file: ./src/app/module/shared/geo/country/route.ts
 
-import { Routes } from '@angular/router';
+import { inject, Service } from '@angular/core';
+import { ActivatedRoute, Router, Routes } from '@angular/router';
+import { FoundationModuleRouteType } from '@libs/foundation-module/type/route';
 import { SLUG_GEO_COUNTRY } from '@module/shared/geo/country/slug';
 import { SLUG_CRUD_CREATE, SLUG_CRUD_UPDATE } from '@base/crud/slug';
 import { SLUG_GEO } from '../slug';
 import { UrlService } from '@libs/url/service';
 import { SLUG_PRIVATE_AREA } from 'src/app/area/private/slug';
 
-export class GeoCountryRoute {
+@Service({ autoProvided: false })
+export class GeoCountryRoute implements FoundationModuleRouteType {
+    // CLASS PROPERTIES ▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬
     public static readonly moduleLevel = [SLUG_PRIVATE_AREA, SLUG_GEO, SLUG_GEO_COUNTRY];
+
+    // DEPENDENCIES ▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬
+    public readonly activeRoute = inject(ActivatedRoute);
+    public readonly router = inject(Router);
 
     // ROUTES ▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬
     /**
@@ -61,7 +69,7 @@ export class GeoCountryRoute {
         return routes;
     }
 
-    // ABSOLUTE PATH ▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬
+    // PATHS ▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬
     public static absolutePathArr(): string[] {
         const moduleLevel = this.moduleLevel;
         const params = {};
@@ -73,4 +81,8 @@ export class GeoCountryRoute {
         const params = {};
         return UrlService.getAbsolutePath(moduleLevel, params);
     }
+
+    // NAVIGATION ▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬
+
+    // PARAM GETTERS ▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬
 }

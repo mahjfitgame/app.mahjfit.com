@@ -24,7 +24,7 @@ export const NOTIFY_DEFAULT_CONFIG: Partial<GlobalConfig> = {
 export const NOTIFY_CONFIG =
     new InjectionToken<Partial<GlobalConfig>>('NOTIFY_CONFIG');
 
-export function provideNotify(
+export function provideNotifyModule(
     config: Partial<GlobalConfig> = {},
 ): EnvironmentProviders {
     const finalConfig: Partial<GlobalConfig> = {

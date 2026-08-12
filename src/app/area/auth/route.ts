@@ -1,12 +1,14 @@
-// ./src/app/area/auth/route.ts
+// file: src/app/area/auth/route.ts
 import { Routes } from '@angular/router';
 import { SLUG_AUTH_AREA } from '@area/auth/slug';
+import { AreaGuard } from 'src/app/area/guard';
 import { UrlService } from '@libs/url/service';
 import { SigninRoute } from '@module/shared/onboarding/signin/route';
 import { SLUG_SIGNIN } from '@module/shared/onboarding/signin/slug';
-import { SignoutRoute } from '@module/shared/onboarding/signout/route';
 import { ForgotPasswordRoute } from 'src/app/module/shared/onboarding/forgot-password/route';
 import { SignupRoute } from 'src/app/module/shared/onboarding/signup/route';
+import { SignoutRoute } from 'src/app/module/shared/onboarding/signout/route';
+import { RecoverPasswordRoute } from 'src/app/module/shared/onboarding/recover-password/route';
 
 export class AuthAreaRoute {
     public static readonly moduleLevel = [SLUG_AUTH_AREA];
@@ -21,6 +23,10 @@ export class AuthAreaRoute {
         const routes: Routes = [
             {
                 path: SLUG_AUTH_AREA,
+                canMatch: [],
+                canActivate: [],
+                canActivateChild: [],
+                canDeactivate: [],
                 loadComponent: () => import('@area/auth/component').then((c) => c.AuthAreaLayoutComponent),
                 children: [
                     {
@@ -32,6 +38,7 @@ export class AuthAreaRoute {
                     ...SigninRoute.routes(),
                     ...SignoutRoute.routes(),
                     ...ForgotPasswordRoute.routes(),
+                    ...RecoverPasswordRoute.routes(),
                 ]
             },
         ];

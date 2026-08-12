@@ -1,0 +1,28 @@
+{
+  "ONBOARDING_FORGOTPASSWORD": {
+    "MODULE": {
+      "TITLE": "Vous avez oublié votre mot de passe ?",
+      "HINT": "Saisissez les informations de votre compte pour réinitialiser votre mot de passe."
+    },
+    "MESSAGE": {
+      "SUCCESS": "Les instructions de récupération du mot de passe ont été envoyées. Consultez votre e-mail pour obtenir la suite des instructions.",
+      "ERROR": "Impossible de traiter votre demande. Veuillez réessayer."
+    },
+    "FIELD_LABEL": {
+      "USERNAME": "Identifiant, e-mail ou mobile",
+      "AROLE_ID": "Rôle",
+      "PASS_RECOVER_URL": "URL de récupération"
+    },
+    "FIELD_PLACEHOLDER": {
+      "USERNAME": "Saisissez votre identifiant, e-mail ou mobile",
+      "AROLE_ID": "Sélectionnez votre rôle",
+      "PASS_RECOVER_URL": "Saisissez l’URL de récupération du mot de passe"
+    },
+    "VALIDATION": {
+      "USERNAME": "L’identifiant, l’e-mail ou le mobile est obligatoire.",
+      "USERNAME_MIN_LENGTH": "L’identifiant, l’e-mail ou le mobile doit comporter au moins {{min_length}} caractères.",
+      "AROLE_ID": "Le rôle est obligatoire.",
+      "PASS_RECOVER_URL": "L’URL de récupération du mot de passe est obligatoire."
+    }
+  }
+}

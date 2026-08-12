@@ -1,7 +1,6 @@
 // file: libs/src/signal-state/local.db.ts
 import { Service, inject } from '@angular/core';
 import { AppStateRepository } from '@libs/sqlite/module/app-state/repository';
-import { SignatureService } from '../signature/service';
 import { SignalStateUtility } from './utility';
 import {
   SignalStateLocalDbEnvelopeType,
@@ -17,11 +16,6 @@ export class SignalStateLocalDb {
    * It is readonly so the service wiring stays stable for the instance lifetime.
    */
   private readonly appStateRepository = inject(AppStateRepository);
-  /**
-   * Keeps the signature dependency or state holder used by this class.
-   * It is readonly so the service wiring stays stable for the instance lifetime.
-   */
-  private readonly signature = inject(SignatureService);
   /**
    * Keeps the utility dependency or state holder used by this class.
    * It is readonly so the service wiring stays stable for the instance lifetime.
@@ -45,18 +39,14 @@ export class SignalStateLocalDb {
     state: T,
     version = 1,
     source?: SignalStateLocalDbSourceType,
+    plainValue = false,
   ): Promise<void> {
     const normalizedKey = this.utility.normalizeStorageKey(key);
 
-    this.utility.assertSerializable(state);
-
-    const envelope: SignalStateLocalDbEnvelopeType = {
-      v: version,
-      u: new Date().toISOString(),
-      s: this.signature.encryptJson(state),
-    };
-
-    await this.sourceFor(source).setValue(normalizedKey, envelope);
+    await this.sourceFor(source).setValue(
+      normalizedKey,
+      this.utility.buildRecord(state, version, plainValue),
+    );
   }
 
   /**
@@ -78,20 +68,12 @@ export class SignalStateLocalDb {
         normalizedKey,
       );
 
-      if (!stored) {
+      // a plain record can be false, 0, or an empty string, only a missing record is null
+      if (stored === null || stored === undefined) {
         return null;
       }
 
-      const envelope = this.utility.parseEnvelope<SignalStateLocalDbEnvelopeType>(stored);
-      if (!this.utility.isStorageEnvelope(envelope) || envelope.v !== expectedVersion) {
-        return null;
-      }
-
-      return {
-        v: envelope.v,
-        u: envelope.u,
-        s: this.signature.decryptJson<T>(envelope.s),
-      };
+      return this.utility.readRecord<T>(stored, expectedVersion);
     } catch {
       return null;
     }

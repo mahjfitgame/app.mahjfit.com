@@ -1,0 +1,15 @@
+{
+  "HOME": {
+    "MODULE": {
+      "TITLE": "Accueil",
+      "HINT": "Page d'accueil de l'application."
+    },
+    "HEADING": "Bienvenue",
+    "SUBHEADING": "Choisissez où vous voulez aller",
+    "BRAND_LOGO_ALT": "Logo de la marque",
+    "DB_VERSION": "Version actuelle de la BD : {{version}}",
+    "ACTION": {
+      "GEO_COUNTRY": "Déjà connecté ? Aller à Geo Pays"
+    }
+  }
+}

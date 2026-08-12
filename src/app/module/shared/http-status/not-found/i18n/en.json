@@ -1,0 +1,8 @@
+{
+  "HTTP_STATUS_NOT_FOUND": {
+    "MODULE": {
+      "TITLE": "Page Not Found",
+      "HINT": "The page you requested could not be found."
+    }
+  }
+}

@@ -1,17 +1,9 @@
 // file: src/app/module/business/game/phaser/scenes/managers/sound.ts
 import Phaser from "phaser";
-import type { TileVm } from "../../../model/tile";
-import type { GameHapticType } from "../../../platform/haptics.service";
+import { TableSfxConfig, TableSfxId } from "../../type";
+import { GameHapticType, TileVm } from "../../../type";
 
-type TableSfxId = "tile-select" | "tile-pass-waiting" | "tile-return" | "tile-drop" | "pass";
 
-type TableSfxConfig = {
-  key: string;
-  urls: string[];
-  volume: number;
-  poolSize: number;
-  throttleMs?: number;
-};
 
 /** Owns sound playback and haptic feedback for the table scene. */
 export class SoundManager {
@@ -32,7 +24,7 @@ export class SoundManager {
   private readonly lastSfxAt = new Map<TableSfxId, number>();
   private sfxReady = false;
 
-  constructor(private readonly scene: Phaser.Scene, private readonly onHaptic?: (type: GameHapticType) => void) {}
+  constructor(private readonly scene: Phaser.Scene, private readonly onHaptic?: (type: GameHapticType) => void) { }
 
   preload(): void { for (const config of Object.values(this.sfxConfig)) if (!this.scene.cache.audio.exists(config.key)) this.scene.load.audio(config.key, config.urls); for (const key of this.tileVoiceKeys) { const audioKey = this.tileVoiceAudioKey(key); if (!this.scene.cache.audio.exists(audioKey)) this.scene.load.audio(audioKey, [`assets/sounds/${key}.wav`]); } }
   create(): void { this.createSoundPools(); this.createTileVoiceSounds(); }

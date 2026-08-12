@@ -1,8 +1,8 @@
-// file: ./src/app/module/shared/onboarding/signin/type.ts
+// file: src/app/module/shared/onboarding/signin/type.ts
 import { SigninStepEnum, UserMultiFactorAuthenticationTypeEnumAddon } from "@bfw/api-sdk/graphql/endpoints/shared";
-import { CrudFormFieldInfoType } from "@base/crud/type";
+import { CrudFormFieldInfoType, CrudStateMutationFieldObjType } from "@base/crud/type";
 
-export interface SigninMutationFieldObjType {
+export interface SigninMutationFieldObjType extends CrudStateMutationFieldObjType {
   un_pe_pm: CrudFormFieldInfoType,
   identify: CrudFormFieldInfoType,
   keep_logged: CrudFormFieldInfoType,

@@ -8,6 +8,10 @@ export interface CookieUrlOptionsType {
   url?: string;
 }
 
+export interface RemoveCookieOptionsType extends CookieUrlOptionsType {
+  path?: SetCookieOptions['path'];
+}
+
 export interface CookieMapType {
   [key: string]: string;
 }

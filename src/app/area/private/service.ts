@@ -1,4 +1,4 @@
-// file: ./src/app/area/private/service.ts
+// file: src/app/area/private/service.ts
 import { inject, Service } from "@angular/core";
 import { BreakpointObserverService } from "@libs/breakpoint/service";
 import { ConfService } from "@libs/conf/service";
@@ -6,6 +6,7 @@ import { LogService } from "@libs/log/service";
 import { PAL_NOTIFICATION_TAB_KEY } from "@area/private/const";
 import { I18nService } from "@base/internationalization/service";
 import { PrivateAreaLayoutState } from "@area/private/state";
+import { ContextProfileService } from "@libs/context-profile/service";
 
 @Service({ autoProvided: false })
 export class PrivateAreaLayoutService {
@@ -19,6 +20,7 @@ export class PrivateAreaLayoutService {
 
     public readonly conf = inject(ConfService);
     public readonly log = inject(LogService);
+    public readonly ctxp = inject(ContextProfileService);
 
     constructor() {}
 

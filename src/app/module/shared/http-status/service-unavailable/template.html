@@ -1,0 +1,29 @@
+<!-- file: src/app/module/shared/http-status/service-unavailable/template.html -->
+
+<main class="bfw-safe-area-p tw:relative tw:grid tw:min-h-screen tw:place-items-center tw:overflow-hidden tw:px-4 tw:py-8 tw:text-white">
+    <div class="tw:fixed tw:inset-0 tw:z-0 tw:bg-[#080b18]" aria-hidden="true">
+        <img src="assets/space.webp" alt="" class="tw:size-full tw:object-cover" />
+        <div class="tw:absolute tw:inset-0 tw:bg-[#050814]/60"></div>
+    </div>
+
+    <section class="tw:relative tw:z-10 tw:w-full tw:max-w-3xl tw:text-center" aria-labelledby="under-maintenance-title">
+        <p class="tw:m-0 tw:text-[clamp(6rem,24vw,13rem)] tw:font-extrabold tw:leading-[0.85] tw:tracking-[-0.06em]">
+            {{ service.state.statusCode }}
+        </p>
+        <h1 id="under-maintenance-title" class="tw:mt-6 tw:mb-3 tw:text-[clamp(2rem,6vw,3.5rem)] tw:font-bold tw:leading-tight">
+            {{ 'HTTP_STATUS_UNDER_MAINTENANCE.MODULE.TITLE' | transloco }}
+        </h1>
+        <p class="tw:mx-auto tw:my-0 tw:max-w-xl tw:text-lg tw:leading-relaxed">
+            {{ 'HTTP_STATUS_UNDER_MAINTENANCE.MODULE.HINT' | transloco }}
+        </p>
+
+        <nav class="tw:mt-8 tw:flex tw:flex-wrap tw:justify-center tw:gap-3" aria-label="Under maintenance actions">
+            @for (action of service.navigationActions; track action.routerLink.join('/')) {
+                <a matButton="filled" [routerLink]="action.routerLink" class="tw:min-w-32">
+                    <mat-icon class="material-symbols-rounded">{{ action.icon }}</mat-icon>
+                    {{ action.label | transloco }}
+                </a>
+            }
+        </nav>
+    </section>
+</main>

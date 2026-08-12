@@ -1,7 +1,7 @@
 import { inject, Service } from "@angular/core";
 import { io } from 'socket.io-client';
 import { BfwApiSdk } from "@bfw/api-sdk/core";
-import { GraphLoginOutputDto, GraphSignupOutputDto } from '@bfw/api-sdk/graphql/endpoints/shared';
+import { GraphSigninOutputDto, GraphSignupOutputDto } from '@bfw/api-sdk/graphql/endpoints/shared';
 import { ConfService } from "@libs/conf/service";
 import { LogService } from "@libs/log/service";
 
@@ -130,7 +130,7 @@ export class BfwApiService {
             this.log.error(error);
         }
     }
-    public async refreshJwt(refreshToken: string): Promise<GraphLoginOutputDto> {
+    public async refreshJwt(refreshToken: string): Promise<GraphSigninOutputDto> {
         const http = await this.sdk.graphql.graph.refreshJWT({
             input: {
                 jwtRefreshToken: refreshToken,

@@ -1,4 +1,4 @@
-// file: ./src/app/area/auth/directive.ts
+// file: src/app/area/auth/directive.ts
 import { AfterViewInit, Directive, Input, OnDestroy, inject, input } from '@angular/core';
 import { CdkPortal } from '@angular/cdk/portal';
 import { AuthAreaLayoutStateRuntimeEnum } from '@area/auth/enum';

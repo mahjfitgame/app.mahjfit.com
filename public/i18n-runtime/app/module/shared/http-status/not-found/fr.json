@@ -1,0 +1,8 @@
+{
+  "HTTP_STATUS_NOT_FOUND": {
+    "MODULE": {
+      "TITLE": "Page introuvable",
+      "HINT": "La page demandée est introuvable."
+    }
+  }
+}

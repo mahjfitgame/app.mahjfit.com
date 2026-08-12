@@ -13,31 +13,32 @@ import { SplashScreenComponent } from '@base/splash-screen/component';
 import { SplashScreenService } from '@base/splash-screen/service';
 
 function provideSplashScreenComponent(): void {
-    let splashScreenComponentRef: ComponentRef<SplashScreenComponent> | null = null;
+  let splashScreenComponentRef: ComponentRef<SplashScreenComponent> | null = null;
 
-    const splash = inject(SplashScreenService);
-    const document = inject(DOCUMENT);
-    const applicationRef = inject(ApplicationRef);
-    const environmentInjector = inject(EnvironmentInjector);
+  const splash = inject(SplashScreenService);
+  const document = inject(DOCUMENT);
+  const applicationRef = inject(ApplicationRef);
+  const environmentInjector = inject(EnvironmentInjector);
 
-    splash.show();
+  // show the splash screen on app start, this behavior is global
+  splash.show();
 
-    if (splashScreenComponentRef) {
-        return;
-    }
+  if (splashScreenComponentRef) {
+    return;
+  }
 
-    const hostElement = document.createElement('app-splash-screen');
-    hostElement.setAttribute('data-bfw-provider-host', 'true');
-    document.body.prepend(hostElement);
+  const hostElement = document.createElement('app-splash-screen');
+  hostElement.setAttribute('data-bfw-provider-host', 'true');
+  document.body.prepend(hostElement);
 
-    splashScreenComponentRef = createComponent(SplashScreenComponent, {
-        environmentInjector,
-        hostElement,
-    });
+  splashScreenComponentRef = createComponent(SplashScreenComponent, {
+    environmentInjector,
+    hostElement,
+  });
 
-    applicationRef.attachView(splashScreenComponentRef.hostView);
+  applicationRef.attachView(splashScreenComponentRef.hostView);
 }
 
-export function provideSplashScreen(): EnvironmentProviders {
+export function provideSplashScreenModule(): EnvironmentProviders {
   return provideEnvironmentInitializer(provideSplashScreenComponent);
 }

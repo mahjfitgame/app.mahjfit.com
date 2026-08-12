@@ -1,54 +1,86 @@
 // file: ./libs/src/url/service.ts
 import {
-    DestroyRef,
     effect,
     inject,
     Service,
+    untracked,
 } from '@angular/core';
 import {
     ActivatedRoute,
-    NavigationEnd,
     Router,
 } from '@angular/router';
-import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { filter } from 'rxjs';
 import {
     UrlCleanParamsType,
     UrlHostInfoType,
-    UrlParamValueType,
     UrlParamsType,
-    PatchUrlStateInputType,
-    ReplaceUrlStateInputType,
 } from './type';
-import { Location } from '@angular/common';
 import { UrlState } from './state';
 
 @Service({ autoProvided: false })
 export class UrlService {
 
     private readonly router = inject(Router);
-    private readonly location = inject(Location);
-    private readonly aroute = inject(ActivatedRoute);
-    private readonly destroyRef = inject(DestroyRef);
 
-    private readonly state = inject(UrlState);
+    public readonly state = inject(UrlState);
+
+    // ████ SYNC ENGINE █████████████████████████████████████████████████
+    /**
+     * Both directions live here together. syncUrlToState() could sit in
+     * state.ts — it only reads the router and writes own signals — but the two
+     * are guarded by the shared reentrancy flags below. Splitting the pair
+     * would put a loop guard on one side of a file boundary.
+     *
+     * ⚠ Both flags are advisory. They still cover synchronous re-entry
+     * (initUrlSync() calling syncUrlToState() while an effect is mid-flush),
+     * but they no longer catch the post-navigation echo: effects are scheduled,
+     * so router.navigate()'s .finally() has already cleared syncingStateToUrl
+     * by the time the URL -> STATE effect runs. sameParams() in
+     * syncStateRuntimeToUrl() is what actually terminates that loop.
+     */
 
     private syncingUrlToState = false;
     private syncingStateToUrl = false;
 
     constructor() {
-        this.router.events
-            .pipe(
-                filter((event) => event instanceof NavigationEnd),
-                takeUntilDestroyed(this.destroyRef),
-            )
-            .subscribe(() => {
-                if (this.syncingStateToUrl) return;
-                if (!this.state.urlSyncEnabled()) return;
+        // URL -> STATE
+        effect(() => {
+            this.state.activatedRouteSnapshot(); // the only tracked dependency
+
+            /**
+             * Everything below reads and writes URL state. Run it untracked so
+             * those signals do not become dependencies of this effect and start
+             * a loop with the STATE -> URL effect below.
+             * Same idiom as base/crud/url.ts.
+             */
+            untracked(() => {
+                /**
+                 * Ownership release MUST come before the urlSyncEnabled check.
+                 * base/crud/child/service.ts documents calling
+                 * enableUrlSync(false) right after initUrlSync(), so a module
+                 * can own the URL with sync already off. Checking
+                 * urlSyncEnabled first would return early and strand that
+                 * claim forever.
+                 */
+                if (this.state.urlOwned() && this.state.urlOwnerPath() !== this.getModulePath()) {
+                    this.state.setUrlOwnerPath(null);
+                    this.state.setUrlSyncEnabled(false);
+                    this.state.clearUrlState();
+                    return;
+                }
+
+                if (!this.state.urlSyncEnabled()) {
+                    return;
+                }
+
+                if (this.syncingStateToUrl) {
+                    return;
+                }
 
                 this.syncUrlToState();
             });
+        });
 
+        // STATE -> URL
         effect(() => {
             if (!this.state.urlSyncEnabled()) return;
 
@@ -61,6 +93,7 @@ export class UrlService {
             this.syncStateRuntimeToUrl();
         });
     }
+
     public enableUrlSync(flag: boolean): void {
         this.state.setUrlSyncEnabled(flag);
     }
@@ -69,35 +102,33 @@ export class UrlService {
     }
     /**
      * Call once from child component/module.
+     * Reads the current URL into state, claims the URL for this module,
+     * then enables sync.
      */
     public initUrlSync(): void {
         this.syncUrlToState();
+        this.state.setUrlOwnerPath(this.getModulePath());
         this.enableUrlSync(true);
     }
 
     /**
      * URL -> State
+     *
+     * Writes three signals. The nine host setX() calls are gone — those
+     * signals derive themselves from window.location now.
+     *
+     * Reads live, because this also runs from initUrlSync() during route
+     * activation, before the route signals fire.
      */
     public syncUrlToState(): void {
-        const route = this.getActiveRoute();
+        const snapshot = this.state.getActivatedRouteSnapshot();
         const matrixParamRoute = this.getModuleActivatedRoute();
-        const hostInfo = this.getCurrentHostInfo();
 
         this.syncingUrlToState = true;
 
-        this.state.setProtocol(hostInfo.protocol);
-        this.state.setDomain(hostInfo.domain);
-        this.state.setHostname(hostInfo.hostname);
-        this.state.setPort(hostInfo.port);
-        this.state.setPath(hostInfo.path);
-        this.state.setSubdomain(hostInfo.subdomain);
-        this.state.setTld(hostInfo.tld);
-        this.state.setUsername(hostInfo.username);
-        this.state.setPassword(hostInfo.password);
-
         this.state.setMatrixParams(this.getCurrentMatrixParams(matrixParamRoute));
-        this.state.setQueryParams(this.cloneParams(route.snapshot.queryParams));
-        this.state.setFragment(route.snapshot.fragment ?? null);
+        this.state.setQueryParams(this.cloneParams(snapshot.queryParams));
+        this.state.setFragment(snapshot.fragment ?? null);
 
         this.syncingUrlToState = false;
     }
@@ -113,7 +144,7 @@ export class UrlService {
      * Does not write protocol/domain/port/etc.
      */
     public syncStateRuntimeToUrl(): void {
-        const route = this.getActiveRoute();
+        const snapshot = this.state.getActivatedRouteSnapshot();
         const matrixParamRoute = this.getModuleActivatedRoute();
 
         const nextMatrixParams = this.cleanParams(this.state.matrixParams());
@@ -121,9 +152,13 @@ export class UrlService {
         const nextFragment = this.state.fragment();
 
         const currentMatrixParams = this.cleanParams(this.getCurrentMatrixParams(matrixParamRoute));
-        const currentQueryParams = this.cleanParams(route.snapshot.queryParams);
-        const currentFragment = route.snapshot.fragment ?? null;
+        const currentQueryParams = this.cleanParams(snapshot.queryParams);
+        const currentFragment = snapshot.fragment ?? null;
 
+        /**
+         * Load-bearing: this is what terminates the post-navigation echo now
+         * that the reentrancy flags are advisory. See the sync engine note.
+         */
         if (
             this.sameParams(nextMatrixParams, currentMatrixParams) &&
             this.sameParams(nextQueryParams, currentQueryParams) &&
@@ -147,133 +182,13 @@ export class UrlService {
         });
     }
 
+    // ████ HOST INFO ███████████████████████████████████████████████████
     /**
-     * Patch multiple URL state values at once.
-     * Existing params are preserved unless same key is overwritten.
-     */
-    public patchUrlState(input: PatchUrlStateInputType): void {
-        if (input.matrixParams) {
-            this.state.patchMatrixParams(input.matrixParams);
-        }
-
-        if (input.queryParams) {
-            this.state.patchQueryParams(input.queryParams);
-        }
-
-        if (input.fragment) {
-            this.state.setFragment(input.fragment ?? null);
-        }
-    }
-
-    /**
-     * Replace multiple URL state values at once.
-     * Existing params are NOT preserved.
-     */
-    public replaceUrlState(input: ReplaceUrlStateInputType): void {
-        if (input.matrixParams) {
-            this.state.setMatrixParams(input.matrixParams);
-        }
-
-        if (input.queryParams) {
-            this.state.setQueryParams(input.queryParams);
-        }
-
-        if ('fragment' in input) {
-            this.state.setFragment(input.fragment ?? null);
-        }
-    }
-
-    public setMatrixParam(key: string, value: UrlParamValueType): void {
-        if (!key) return;
-
-        this.state.patchMatrixParams({
-            [key]: value,
-        });
-    }
-
-    public setQueryParam(key: string, value: UrlParamValueType): void {
-        if (!key) return;
-
-        this.state.patchQueryParams({
-            [key]: value,
-        });
-    }
-
-    public setMatrixParams(params: UrlParamsType): void {
-        this.state.patchMatrixParams(params);
-    }
-
-    public setQueryParams(params: UrlParamsType): void {
-        this.state.patchQueryParams(params);
-    }
-
-    public replaceMatrixParams(params: UrlParamsType): void {
-        this.state.setMatrixParams(params);
-    }
-
-    public replaceQueryParams(params: UrlParamsType): void {
-        this.state.setQueryParams(params);
-    }
-
-    public setFragment(value: string | null): void {
-        this.state.setFragment(value);
-    }
-
-    public removeMatrixParam(key: string): void {
-        if (!key) return;
-
-        const current = this.state.matrixParams();
-        const next: UrlParamsType = {};
-
-        for (const k in current) {
-            if (k !== key) {
-                next[k] = current[k];
-            }
-        }
-
-        this.state.setMatrixParams(next);
-    }
-
-    public removeQueryParam(key: string): void {
-        if (!key) return;
-
-        const current = this.state.queryParams();
-        const next: UrlParamsType = {};
-
-        for (const k in current) {
-            if (k !== key) {
-                next[k] = current[k];
-            }
-        }
-
-        this.state.setQueryParams(next);
-    }
-
-    public clearUrlState(): void {
-        this.state.setMatrixParams({});
-        this.state.setQueryParams({});
-        this.state.setFragment(null);
-    }
-
-    public getMatrixParams(): UrlParamsType {
-        return {
-            ...this.state.matrixParams(),
-        };
-    }
-
-    public getQueryParams(): UrlParamsType {
-        return {
-            ...this.state.queryParams(),
-        };
-    }
-
-    public getFragment(): string | null {
-        return this.state.fragment();
-    }
-
-    /**
-     * Separate URL info methods.
-     * These are read-only helpers.
+     * The live variants. The parse lives on UrlState as the static
+     * parseOrigin(), reached through state.getCurrentHostInfo(), so these
+     * delegate.
+     *
+     * Reactive callers use state.protocol() and friends instead.
      */
 
     public getProtocol(): string | null {
@@ -313,61 +228,45 @@ export class UrlService {
     }
 
     public getCurrentHostInfo(): UrlHostInfoType {
-        const url = new URL(window.location.href);
-        const hostname = url.hostname;
-        const hostParts = hostname.split('.');
-
-        let subdomain: string | null = null;
-        let tld: string | null = null;
-
-        if (hostParts.length > 1) {
-            tld = hostParts[hostParts.length - 1];
-        }
-
-        if (hostParts.length > 2) {
-            subdomain = hostParts.slice(0, hostParts.length - 2).join('.');
-        }
-
-        const info: UrlHostInfoType = {
-            protocol: url.protocol || null,
-            domain: url.host || null,
-            hostname: url.hostname || null,
-            port: url.port || null,
-            path: url.pathname || '',
-            subdomain,
-            tld,
-            username: url.username || null,
-            password: url.password || null,
-        };
-
-        return info;
+        return this.state.getCurrentHostInfo();
     }
 
-    public getStateHostInfo(): UrlHostInfoType {
-        const info: UrlHostInfoType = {
-            protocol: this.state.protocol(),
-            domain: this.state.domain(),
-            hostname: this.state.hostname(),
-            port: this.state.port(),
-            path: this.state.path(),
-            subdomain: this.state.subdomain(),
-            tld: this.state.tld(),
-            username: this.state.username(),
-            password: this.state.password(),
-        };
-        return info;
-    }
-
+    // ████ ROUTE POSITION ██████████████████████████████████████████████
     /**
-     * Helper methods
+     * Live router.routerState reads, no signals involved.
+     * getActiveRoute() is gone — every caller only wanted the leaf snapshot,
+     * which UrlState.getActivatedRouteSnapshot() provides.
+     * The ActivatedRoute walk survives only because syncStateRuntimeToUrl()
+     * passes getModuleActivatedRoute() as `relativeTo` to router.navigate().
      */
+
     public getRouteBasedModuleAlias(id: string): string {
-        const route = this.getModuleActivatedRoute();
-        const last = route.snapshot.url.at(-1);
-        const moduleSegment = last?.path ?? '';
+        const segments = this.getModuleActivatedRoute().snapshot.url;
+        const moduleSegment = segments.at(-1)?.path ?? '';
 
         return `${moduleSegment}~${id}`;
     }
+
+    /**
+     * Deepest route that actually mounts a component — the active module,
+     * regardless of how many componentless children sit below it, which is why
+     * country -> country/create is not a module change.
+     */
+    public getModuleComponentRoute(): ActivatedRoute {
+        let moduleRoute: ActivatedRoute = this.router.routerState.root;
+        let cursor: ActivatedRoute | null = this.router.routerState.root;
+
+        while (cursor) {
+            if (cursor.component || cursor.routeConfig?.loadComponent) {
+                moduleRoute = cursor;
+            }
+
+            cursor = cursor.firstChild;
+        }
+
+        return moduleRoute;
+    }
+
     /**
      * Gets the nearest active route segment.
      * This is where matrix params belong. A component can be loaded from an
@@ -375,25 +274,31 @@ export class UrlService {
      * matrix params is its parent (for example `country;cp=3`).
      */
     public getModuleActivatedRoute(): ActivatedRoute {
-        const routes = this.aroute.pathFromRoot;
+        const moduleRoute = this.getModuleComponentRoute();
 
-        for (let i = routes.length - 1; i >= 0; i--) {
-            if (routes[i].snapshot.url.length > 0) {
-                return routes[i];
+        let owner: ActivatedRoute | null = moduleRoute;
+
+        while (owner) {
+            if (owner.snapshot.url.length > 0) {
+                return owner;
             }
+
+            owner = owner.parent;
         }
 
-        return this.aroute;
+        return moduleRoute;
     }
-    public getActiveRoute(): ActivatedRoute {
-        let current = this.aroute;
 
-        while (current.firstChild) {
-            current = current.firstChild;
-        }
-
-        return current;
+    /** live url path of the mounted module, e.g. 'account/geo/country' */
+    public getModulePath(): string {
+        return this.getModuleComponentRoute()
+            .snapshot.pathFromRoot
+            .map((snapshot) => snapshot.url.map((segment) => segment.path).join('/'))
+            .filter(Boolean)
+            .join('/');
     }
+
+    // ████ PARAM UTILITIES █████████████████████████████████████████████
 
     private getCurrentMatrixParams(route: ActivatedRoute): UrlParamsType {
         const segments = route.snapshot.url;
@@ -461,19 +366,19 @@ export class UrlService {
     }
 
     /**
-     * @getAbsolutePathArr 
-     * provide absolute route array
+     * @getRelativePathArr
+     * provide relative route array
      * do not provide domin or protocol
-     * 
+     *
      * @param moduleLevel string[]
      * do not include domin or protocol
-     * 
+     *
      * @param params Record<string, string | number>
-     * 
+     *
      * @returns string[]
-     * provide '/' as first/leading element 
+     * do not provide '/' as first/leading element
      */
-    public static getAbsolutePathArr(
+    public static getRelativePathArr(
         moduleLevel: string[],
         params: Record<string, string | number> = {}
     ): string[] {
@@ -490,35 +395,78 @@ export class UrlService {
         const segments = fullPath.split('/') // removes empty strings
             .filter(seg => (seg && seg !== '' && !seg.startsWith(':')));
 
-        // must need '/' at the start for absolute route
-        return ['/', ...segments]; 
+        return segments;
     }
-
     /**
-     * @getAbsolutePath
-     * provide absolute path string
+     * @getRelativePath
+     * provide relative path string
      * do not provide domin or protocol
-     * 
+     *
      * @param moduleLevel string[]
      * do not include domin or protocol
-     * 
+     *
      * @param params Record<string, string | number>
-     * 
+     *
      * @returns string
-     * string with leading '/' 
+     * string with not-leading '/'
      */
+    public static getRelativePath(
+        moduleLevel: string[],
+        params: Record<string, string | number> = {},
+    ): string {
+        const routerLink = this.getRelativePathArr(moduleLevel, params);
+
+        const relative = routerLink.join('/');
+
+        return relative;
+    }
+    /**
+     * @getAbsolutePathArr
+     * provide absolute route array
+     * do not provide domin or protocol
+     *
+     * @param moduleLevel string[]
+     * do not include domin or protocol
+     *
+     * @param params Record<string, string | number>
+     *
+     * @returns string[]
+     * provide '/' as first/leading element
+     */
+    public static getAbsolutePathArr(
+        moduleLevel: string[],
+        params: Record<string, string | number> = {}
+    ): string[] {
+        const relativeArr = this.getRelativePathArr(moduleLevel, params);
+
+        // must need '/' at the start for absolute route
+        const absoluteArr = ['/', ...relativeArr];
+
+        return absoluteArr;
+    }
+    /**
+     * @getAbsolutePath
+     * provide relative path string
+     * do not provide domin or protocol
+     *
+     * @param moduleLevel string[]
+     * do not include domin or protocol
+     *
+     * @param params Record<string, string | number>
+     *
+     * @returns string
+     * string with leading '/'
+     */
+
     public static getAbsolutePath(
         moduleLevel: string[],
         params: Record<string, string | number> = {},
     ): string {
-        const routerLink = this.getAbsolutePathArr(moduleLevel, params);
-        
-        // remove first '/'
-        delete routerLink[0];
+        const relative = this.getRelativePath(moduleLevel, params);
 
-        const absolute = routerLink.join('/');
+        // must need '/' at the start for absolute path
+        const absolute = '/' + relative;
 
-        // must need '/' at the start for absolute route
-        return '/' + absolute;
+        return absolute
     }
 }

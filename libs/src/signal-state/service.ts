@@ -130,6 +130,13 @@ export abstract class SignalStateService {
   private readonly syncingStore = signal(false);
 
   /**
+   * Shared pending promise used by callers waiting for persisted state to become ready.
+   */
+  private readyPromise: Promise<void> | null = null;
+  private resolveReadyPromise: (() => void) | null = null;
+  private rejectReadyPromise: ((reason?: unknown) => void) | null = null;
+
+  /**
    * Keeps the ready dependency or state holder used by this class.
    * It is readonly so the service wiring stays stable for the instance lifetime.
    */
@@ -161,6 +168,29 @@ export abstract class SignalStateService {
    * All injected collaborators are resolved from field initializers.
    */
   constructor() {}
+
+  /**
+   * Resolves when this state service has finished loading its persisted signals.
+   * Concurrent callers share the same pending promise.
+   */
+  public whenReady(): Promise<void> {
+    if (this.ready()) {
+      return Promise.resolve();
+    }
+
+    if (this.destroyed) {
+      return Promise.reject(this.destroyedBeforeReadyError());
+    }
+
+    if (!this.readyPromise) {
+      this.readyPromise = new Promise<void>((resolve, reject) => {
+        this.resolveReadyPromise = resolve;
+        this.rejectReadyPromise = reject;
+      });
+    }
+
+    return this.readyPromise;
+  }
 
   /**
    * Creates a writable signal whose value is persisted in encrypted local storage.
@@ -329,7 +359,7 @@ export abstract class SignalStateService {
    * Overrides the expiry for the next write of one registered cookie field.
    * The registration's initialization-time cookie options remain unchanged.
    */
-  protected setNextCookiePersistedExpiry(field: string, expires: string | Date): void {
+  protected setNextCookiePersistSignalExpiry(field: string, expires: string | Date): void {
     const normalizedField = field?.trim();
     if (!normalizedField) {
       throw new Error('Cookie persisted signal field is required.');
@@ -462,11 +492,51 @@ export abstract class SignalStateService {
   }
 
   /**
-   * Handles the clearCookiePersistedField operation for signal-state persistence.
+   * Handles the clearCookiePersistSignal operation for signal-state persistence.
    * The method keeps callers on a single safe path for this behavior.
    */
-  public async clearCookiePersistedField(field: string): Promise<void> {
+  public async clearCookiePersistSignal(field: string): Promise<void> {
     await this.clearPersistedField('cookie', field);
+  }
+
+  /**
+   * Handles the reloadLocalStoragePersistedField operation for signal-state persistence.
+   * The method keeps callers on a single safe path for this behavior.
+   */
+  public async reloadLocalStoragePersistedField(field: string): Promise<void> {
+    await this.reloadPersistedField('local', field);
+  }
+
+  /**
+   * Handles the reloadSessionStoragePersistedField operation for signal-state persistence.
+   * The method keeps callers on a single safe path for this behavior.
+   */
+  public async reloadSessionStoragePersistedField(field: string): Promise<void> {
+    await this.reloadPersistedField('session', field);
+  }
+
+  /**
+   * Handles the reloadLocalDbPersistedField operation for signal-state persistence.
+   * The method keeps callers on a single safe path for this behavior.
+   */
+  public async reloadLocalDbPersistedField(field: string): Promise<void> {
+    await this.reloadPersistedField('localDb', field);
+  }
+
+  /**
+   * Handles the reloadServerSyncedField operation for signal-state persistence.
+   * The method keeps callers on a single safe path for this behavior.
+   */
+  public async reloadServerSyncedField(field: string): Promise<void> {
+    await this.reloadPersistedField('server', field);
+  }
+
+  /**
+   * Handles the reloadCookiePersistedField operation for signal-state persistence.
+   * The method keeps callers on a single safe path for this behavior.
+   */
+  public async reloadCookiePersistedField(field: string): Promise<void> {
+    await this.reloadPersistedField('cookie', field);
   }
 
   /**
@@ -542,6 +612,24 @@ export abstract class SignalStateService {
   }
 
   /**
+   * Handles the reloadPersistedField operation for signal-state persistence.
+   * The method keeps callers on a single safe path for this behavior.
+   */
+  private async reloadPersistedField(
+    storage: SignalStateStorageType,
+    field: string,
+  ): Promise<void> {
+    if (this.destroyed) {
+      return;
+    }
+
+    const registration = this.registrations.get(this.registrationKey(storage, field));
+    if (registration) {
+      await this.loadRegistration(registration);
+    }
+  }
+
+  /**
    * Handles the persistedSnapshot operation for signal-state persistence.
    * The method keeps callers on a single safe path for this behavior.
    */
@@ -583,6 +671,7 @@ export abstract class SignalStateService {
       serialize: options.serialize,
       deserialize: options.deserialize,
       deleteOnNull: options.deleteOnNull ?? false,
+      plainValue: options.plainValue ?? false,
       source: 'source' in options ? options.source : undefined,
     };
   }
@@ -681,6 +770,7 @@ export abstract class SignalStateService {
 
       if (loadSequence === this.loadAllSequence && !this.destroyed) {
         this.readyStore.set(true);
+        this.resolveWhenReady();
       }
     } finally {
       if (loadSequence === this.loadAllSequence && !this.destroyed) {
@@ -874,7 +964,12 @@ export abstract class SignalStateService {
       return;
     }
 
-    await this.sessionStorage.save(key, persistedValue, registration.options.version);
+    await this.sessionStorage.save(
+      key,
+      persistedValue,
+      registration.options.version,
+      registration.options.plainValue,
+    );
   }
 
   private async loadServerCrossTabSessionRegistration(
@@ -972,12 +1067,22 @@ export abstract class SignalStateService {
     cookieOptions?: SignalStateCookieSourceType,
   ): Promise<void> {
     if (registration.storage === 'local') {
-      await this.localStorage.save(key, persistedValue, registration.options.version);
+      await this.localStorage.save(
+        key,
+        persistedValue,
+        registration.options.version,
+        registration.options.plainValue,
+      );
       return;
     }
 
     if (registration.storage === 'session') {
-      await this.sessionStorage.save(key, persistedValue, registration.options.version);
+      await this.sessionStorage.save(
+        key,
+        persistedValue,
+        registration.options.version,
+        registration.options.plainValue,
+      );
       return;
     }
 
@@ -987,6 +1092,7 @@ export abstract class SignalStateService {
         persistedValue,
         registration.options.version,
         registration.options.source as SignalStateLocalDbSourceType | undefined,
+        registration.options.plainValue,
       );
       return;
     }
@@ -997,6 +1103,7 @@ export abstract class SignalStateService {
         persistedValue,
         registration.options.version,
         registration.options.source as SignalStateServerSyncSourceType | undefined,
+        registration.options.plainValue,
       );
       return;
     }
@@ -1006,6 +1113,7 @@ export abstract class SignalStateService {
       persistedValue,
       registration.options.version,
       cookieOptions ?? (registration.options.source as SignalStateCookieSourceType | undefined),
+      registration.options.plainValue,
     );
   }
 
@@ -1193,6 +1301,37 @@ export abstract class SignalStateService {
   }
 
   /**
+   * Resolves and clears the shared readiness promise after loading completes.
+   */
+  private resolveWhenReady(): void {
+    const resolve = this.resolveReadyPromise;
+    this.clearReadyPromise();
+    resolve?.();
+  }
+
+  /**
+   * Rejects and clears the shared readiness promise when the service is destroyed.
+   */
+  private rejectWhenReady(): void {
+    const reject = this.rejectReadyPromise;
+    this.clearReadyPromise();
+    reject?.(this.destroyedBeforeReadyError());
+  }
+
+  /**
+   * Clears references retained for the current readiness wait.
+   */
+  private clearReadyPromise(): void {
+    this.readyPromise = null;
+    this.resolveReadyPromise = null;
+    this.rejectReadyPromise = null;
+  }
+
+  private destroyedBeforeReadyError(): Error {
+    return new Error(`Signal state "${this.storeKey}" was destroyed before becoming ready.`);
+  }
+
+  /**
    * Handles the destroySignalState operation for signal-state persistence.
    * The method keeps callers on a single safe path for this behavior.
    */
@@ -1202,6 +1341,7 @@ export abstract class SignalStateService {
     }
 
     this.destroyed = true;
+    this.rejectWhenReady();
     this.onDeactivate();
 
     for (const cleanup of this.deactivationCleanups.splice(0).reverse()) {

@@ -5,36 +5,36 @@ import { LogService } from "@libs/log/service";
 import { SignalStateService } from "@libs/signal-state/service";
 import { GlobalProgressBarService } from "@base/global-progress-bar/service";
 import { ContextProfileService } from "@libs/context-profile/service";
-import { BfwApiService } from "@libs/third-party-apis/bfw-api";
-import { AppModuleStateType } from "@libs/utility/type";
+import { BfwApiService } from "@libs/third-party-apis/bfw-api/service";
+import { FoundationModuleStateType } from "@libs/foundation-module/type/state";
+import { ONBOARDING_SIGNOUT_STATE_STORE_KEY } from "./const";
 
-@Service()
-export class SignoutState extends SignalStateService implements AppModuleStateType {
+@Service({ autoProvided: false })
+export class SignoutState extends SignalStateService implements FoundationModuleStateType {
 
     // ████ DEPENDENCIES ████████████████████████████████████████████████
 
-    private readonly conf = inject(ConfService);
-    private readonly log = inject(LogService);
-    private readonly gpbs = inject(GlobalProgressBarService);
-    private readonly ctxp = inject(ContextProfileService);
-    private readonly api = inject(BfwApiService);
+    public readonly conf = inject(ConfService);
+    public readonly log = inject(LogService);
+    public readonly gpbs = inject(GlobalProgressBarService);
+    public readonly ctxp = inject(ContextProfileService);
+    public readonly api = inject(BfwApiService);
 
     // ████ CLASS PROPERTIES ████████████████████████████████████████████
 
     // required for persisted state
-    public override readonly storeKey = 'sout';
+    public override readonly storeKey = ONBOARDING_SIGNOUT_STATE_STORE_KEY;
 
     // ████ SIGNAL FORM PROPERTIES ██████████████████████████████████████
     // n/a
 
     // ████ SIGNAL PROPERTIES ███████████████████████████████████████████
-    // n/a
-
+    private readonly _error = signal<string | null>(null);
+    public readonly error = this._error.asReadonly();
 
     // ████ STATE DEBUGGER ██████████████████████████████████████████████
 
     // debug helper (template-friendly): shows the state info as set.
-    public readonly debug: boolean = true;
     public readonly debugState = computed(() => ({
 
     }));
@@ -47,6 +47,7 @@ export class SignoutState extends SignalStateService implements AppModuleStateTy
     // ████ LISTENERS ███████████████████████████████████████████████████
 
     public override onActivate(): void {
+        /*
         const registerEffect = effect(() => {
             if (!this.ready()) {
                 return;
@@ -54,6 +55,7 @@ export class SignoutState extends SignalStateService implements AppModuleStateTy
         });
 
         this.registerDeactivationCleanup(() => registerEffect.destroy());
+        */
     }
 
     public override onDeactivate(): void {
@@ -62,7 +64,9 @@ export class SignoutState extends SignalStateService implements AppModuleStateTy
 
 
     // ████ SIGNAL METHODS ██████████████████████████████████████████████
-    // n/a
+    public setError(error: string | null): void {
+        this._error.set(error);
+    }
 
 
     // ████ SIGNAL DATA VALIDATORS ██████████████████████████████████████

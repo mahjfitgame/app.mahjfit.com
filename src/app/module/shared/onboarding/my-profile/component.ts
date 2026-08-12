@@ -9,6 +9,7 @@ import { ServiceExample } from "@libs/signal-state/example/service";
 import { TranslocoModule } from "@jsverse/transloco";
 import { MatInputModule } from "@angular/material/input";
 import { MatButtonModule } from "@angular/material/button";
+import { MY_PROFILE_PROVIDER } from "./provider";
 @Component({
   selector: 'app-my-profile',
   standalone: true,
@@ -23,7 +24,7 @@ import { MatButtonModule } from "@angular/material/button";
     TranslocoModule
   ],
   providers: [
-    MyProfileService,
+    MY_PROFILE_PROVIDER,
 
     StateExample,
     ServiceExample

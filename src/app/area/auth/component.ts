@@ -1,4 +1,4 @@
-// file: ./src/app/area/auth/component.ts
+// file: src/app/area/auth/component.ts
 import { Component, OnDestroy, OnInit, inject } from '@angular/core';
 import { ActivatedRoute, RouterModule, RouterOutlet } from '@angular/router';
 import { PortalModule } from '@angular/cdk/portal';

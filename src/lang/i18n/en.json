@@ -16,8 +16,12 @@
       "NEXT": "Next",
       "BACK": "Back",
       "CONTINUE": "Continue",
+      "PROCEED_FURTHER": "Proceed Further",
       "PREVIOUS": "Previous",
       "LOADING": "Loading...",
+      "PROCESSING": "Processing...",
+      "REDIRECTING": "Redirecting...",
+      "PREPARING": "Preparing...",
       "NO_RECORDS": "No record found",
       "STEP": "Step"
     },
@@ -74,7 +78,8 @@
         "FORGOT_PASSWORD": "Forgot Password",
         "MY_ACCOUNT": "My Account",
         "MY_PROFILE": "My Profile",
-        "DASHBOARD": "Dashboard"
+        "DASHBOARD": "Dashboard",
+        "CREATE_ACCOUNT": "Create a new account"
       }
     }
   }
