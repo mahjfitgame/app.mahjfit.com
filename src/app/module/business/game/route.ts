@@ -2,16 +2,16 @@
 
 import { Routes } from '@angular/router';
 import { UrlService } from '@libs/url/service';
-import { SLUG_GAME, SLUG_GAME_KEYID } from './slug';
-import { SLUG_PRIVATE_AREA } from 'src/app/area/private/slug';
+import { SLUG_GAME, SLUG_GAME_KEYID, SLUG_GAME_PARAM_GKEYID } from './slug';
 import { SLUG_OPEN_AREA } from 'src/app/area/open/slug';
-import { AreaGuard } from 'src/app/area/guard';
 import { Service } from '@angular/core';
 import { GameGuard } from './gaurd';
+import { GameState } from './state/state';
 
 @Service({ autoProvided: false })
 export class GameRoute {
     public static readonly moduleLevel = [SLUG_OPEN_AREA, SLUG_GAME];
+    public static readonly moduleLevelWithGame = [SLUG_OPEN_AREA, SLUG_GAME_KEYID];
 
     // ROUTES ▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬
     /**
@@ -24,15 +24,18 @@ export class GameRoute {
             {
                 path: SLUG_GAME,
                 pathMatch: 'full',
-                canMatch: [
-                    GameGuard.CanMatchCreateNewAndRedirect
+                providers: [],
+                canActivate: [
+                    //GameGuard.CanMatchCreateNewAndRedirect
                 ],
-                //redirectTo: HttpStatusNotFoundRoute.absolutePath(),
+                // redirectTo: HttpStatusNotFoundRoute.absolutePath(),
+                loadComponent: () => import('./component').then((c) => c.GameComponent),
             },
             {
                 path: SLUG_GAME_KEYID,
-                canMatch: [
-                    GameGuard.CanMatchVerifyStartGame
+                providers: [],
+                canActivate: [
+                    //GameGuard.CanMatchVerifyStartGame
                 ],
                 title: 'Mahjfit Online - Play with your Mah Jongg Card',
                 loadComponent: () => import('./component').then((c) => c.GameComponent),
@@ -43,15 +46,24 @@ export class GameRoute {
     }
 
     // ABSOLUTE PATH ▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬
-    public static absolutePathArr(): string[] {
-        const moduleLevel = this.moduleLevel;
-        const params = {};
+    public static absolutePathArr(gkeyid?: string): string[] {
+        let moduleLevel = this.moduleLevel;
+        let params = {};
+        if (gkeyid) {
+            moduleLevel = this.moduleLevelWithGame;
+            params = { [`:${SLUG_GAME_PARAM_GKEYID}`]: gkeyid };
+        }
 
         return UrlService.getAbsolutePathArr(this.moduleLevel, params);
     }
-    public static absolutePath(): string {
-        const moduleLevel = this.moduleLevel;
-        const params = {};
+    public static absolutePath(gkeyid?: string): string {
+        let moduleLevel = this.moduleLevel;
+        let params = {};
+        if (gkeyid) {
+            moduleLevel = this.moduleLevelWithGame;
+            params = { [`:${SLUG_GAME_PARAM_GKEYID}`]: gkeyid };
+        }
+
         return UrlService.getAbsolutePath(moduleLevel, params);
     }
 }

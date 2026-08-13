@@ -10,3 +10,5 @@ export const GAME_PROVIDER: Provider[] = [
     GameHeptic,
     GameService,
 ];
+
+export const GAME_ROUTE_PROVIDER: Provider[] = []

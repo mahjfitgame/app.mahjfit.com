@@ -11,6 +11,10 @@ import {
   inject,
   input,
   output,
+  signal,
+  computed,
+  Injector,
+  runInInjectionContext,
 } from "@angular/core";
 import Phaser from "phaser";
 import { Capacitor } from "@capacitor/core";
@@ -23,12 +27,17 @@ import { GameHapticType, PassDirection, TileVm } from "../type";
 import { GameHeptic } from "../haptics";
 import { TablePhase } from "./type";
 import { PhaserLayoutDevice } from "./layout/device";
+import { PhaserLayoutGame } from "./layout/game";
 
 @Component({
   selector: "app-phaser",
   standalone: true,
   templateUrl: './template.html',
   styleUrl: './style.scss',
+  providers: [
+    PhaserLayoutDevice,
+    PhaserLayoutGame
+  ]
 })
 export class PhaserComponent implements AfterViewInit {
   @ViewChild("host", { static: true })
@@ -40,62 +49,6 @@ export class PhaserComponent implements AfterViewInit {
   @ViewChild("safeAreaProbe", { static: true })
   private readonly safeAreaProbeRef!: ElementRef<HTMLDivElement>;
 
-  @ViewChild("wallCountOverlay", { static: true })
-  private readonly wallCountOverlayRef!: ElementRef<HTMLDivElement>;
-
-  @ViewChild("wallIconOverlay", { static: true })
-  private readonly wallIconOverlayRef!: ElementRef<HTMLDivElement>;
-
-  @ViewChild("pointsOverlay", { static: true })
-  private readonly pointsOverlayRef!: ElementRef<HTMLDivElement>;
-
-  @ViewChild("pointsIconOverlay", { static: true })
-  private readonly pointsIconOverlayRef!: ElementRef<HTMLDivElement>;
-
-  @ViewChild("mobileDrawerOverlay", { static: true })
-  private readonly mobileDrawerOverlayRef!: ElementRef<HTMLDivElement>;
-
-  @ViewChild("instructionPanel", { static: true })
-  private readonly instructionPanelRef!: ElementRef<HTMLDivElement>;
-
-  @ViewChild("instructionPanelContent", { static: true })
-  private readonly instructionPanelContentRef!: ElementRef<HTMLDivElement>;
-
-  @ViewChild("instructionPanelTitle", { static: true })
-  private readonly instructionPanelTitleRef!: ElementRef<HTMLDivElement>;
-
-  @ViewChild("instructionPanelBody", { static: true })
-  private readonly instructionPanelBodyRef!: ElementRef<HTMLDivElement>;
-
-  @ViewChild("instructionPanelButton", { static: true })
-  private readonly instructionPanelButtonRef!: ElementRef<HTMLButtonElement>;
-
-  @ViewChild("deadHandSeatPicker", { static: true })
-  private readonly deadHandSeatPickerRef!: ElementRef<HTMLDivElement>;
-
-  @ViewChild("removePlayerPopup", { static: true })
-  private readonly removePlayerPopupRef!: ElementRef<HTMLDivElement>;
-
-  @ViewChild("joinTablePopup", { static: true })
-  private readonly joinTablePopupRef!: ElementRef<HTMLDivElement>;
-
-  @ViewChild("deadHandPopup", { static: true })
-  private readonly deadHandPopupRef!: ElementRef<HTMLDivElement>;
-
-  @ViewChild("mahjongWinPopup", { static: true })
-  private readonly mahjongWinPopupRef!: ElementRef<HTMLDivElement>;
-
-  @ViewChild("topPlayerLabelOverlay", { static: true })
-  private readonly topPlayerLabelOverlayRef!: ElementRef<HTMLDivElement>;
-
-  @ViewChild("rightPlayerLabelOverlay", { static: true })
-  private readonly rightPlayerLabelOverlayRef!: ElementRef<HTMLDivElement>;
-
-  @ViewChild("leftPlayerLabelOverlay", { static: true })
-  private readonly leftPlayerLabelOverlayRef!: ElementRef<HTMLDivElement>;
-
-  @ViewChild("bottomPlayerLabelOverlay", { static: true })
-  private readonly bottomPlayerLabelOverlayRef!: ElementRef<HTMLDivElement>;
 
   readonly rack = input.required<readonly TileVm[]>();
   readonly passDirection = input<PassDirection>("right");
@@ -131,13 +84,24 @@ export class PhaserComponent implements AfterViewInit {
   private joinTablePopupTimer?: number;
   private mahjongWinPopupTimer?: number;
 
-  private mobileDrawerOpen = false;
-  private wallCountOverlayState?: WallCountOverlayState;
-  private pointsOverlayState?: PointsOverlayState;
-  private playerLabelOverlayStates: readonly PlayerLabelOverlayState[] = [];
+  readonly wallCountState = signal<WallCountOverlayState | null>(null);
+  readonly pointsState = signal<PointsOverlayState | null>(null);
+  readonly playerLabelStates = signal<readonly PlayerLabelOverlayState[]>([]);
+  readonly instructionPanelState = signal<InstructionPanelOverlayState | null>(null);
+
+  readonly mobileDrawerState = signal<MobileDrawerOverlayState | null>(null);
+  readonly deadHandSelectionState = signal<DeadHandSeatSelectionState | null>(null);
+  readonly removePlayerNotice = signal<PlayerAwayNotice | null>(null);
+  readonly removePlayerRemaining = signal<number>(0);
+  readonly joinTableRequestState = signal<JoinTableRequest | null>(null);
+  readonly joinTableRemaining = signal<number>(0);
+  readonly deadHandClaimTarget = signal<Exclude<TableSeat, "bottom"> | null>(null);
+  readonly deadHandClaimReason = signal<DeadHandReason>("invalid-mahjong");
+  readonly mahjongWinResult = signal<MahjongWinCelebration | null>(null);
 
   readonly tablePhase = input<TablePhase>("playing");
   private readonly deviceLayout = inject(PhaserLayoutDevice);
+  private readonly injector = inject(Injector);
 
   /*constructor() {
     effect(() => {
@@ -218,34 +182,37 @@ export class PhaserComponent implements AfterViewInit {
     );
 
     this.zone.runOutsideAngular(() => {
-      const scene = new PhaserScene({
-        onSelectionChanged: (ids) => this.zone.run(() => this.selectionChanged.emit(ids)),
-        onPassCompleted: (payload) => this.zone.run(() => this.passCompleted.emit(payload)),
-        onHaptic: (type: GameHapticType) => {
-          void this.haptics.play(type);
-        },
-        getDeviceLayout: (width, height) =>
-          this.deviceLayout.forViewport(width, height),
-        onMobileHeaderChanged: (collapsed) =>
-          this.setMobileHeaderCollapsed(collapsed),
-        onWallCountOverlay: (state) => this.setWallCountOverlay(state),
-        onPlayerLabelOverlay: (states) => this.setPlayerLabelOverlays(states),
-        onPointsOverlay: (state) => this.setPointsOverlay(state),
-        onMobileDrawerVisibilityChanged: (open) => this.setMobileDrawerOpen(open),
-        onMobileDrawerOverlay: (state) => this.setMobileDrawerOverlay(state),
-        onInstructionPanelOverlay: (state) => this.setInstructionPanelOverlay(state),
-        onTableOverlayBlocked: (level) => this.setTableOverlayBlocked(level),
-        onDeadHandSeatSelection: (state) => this.setDeadHandSeatSelection(state),
-        onHeaderLogoLayout: (state) => this.setHeaderLogoLayout(state),
-        onTileCallDecision: (decision) =>
-          this.zone.run(() => this.tileCallDecision.emit(decision)),
-        onPlayerRemovalRequested: (request) =>
-          this.zone.run(() => this.playerRemovalRequested.emit(request)),
-        onDeadHandClaimPrompt: (targetSeat) => this.setDeadHandPopup(targetSeat),
-        onTemporaryDiscardCompleted: () =>
-          this.zone.run(() => this.temporaryDiscardCompleted.emit()),
-        onRestartGame: () => this.zone.run(() => this.restartGame.emit()),
-        onQuitGame: () => this.zone.run(() => this.quitGame.emit()),
+      let scene!: PhaserScene;
+      runInInjectionContext(this.injector, () => {
+        scene = new PhaserScene({
+          onSelectionChanged: (ids) => this.zone.run(() => this.selectionChanged.emit(ids)),
+          onPassCompleted: (payload) => this.zone.run(() => this.passCompleted.emit(payload)),
+          onHaptic: (type: GameHapticType) => {
+            void this.haptics.play(type);
+          },
+          getDeviceLayout: (width, height) =>
+            this.deviceLayout.forViewport(width, height),
+          onMobileHeaderChanged: (collapsed) =>
+            this.setMobileHeaderCollapsed(collapsed),
+          onWallCountOverlay: (state) => this.setWallCountOverlay(state),
+          onPlayerLabelOverlay: (states) => this.setPlayerLabelOverlays(states),
+          onPointsOverlay: (state) => this.setPointsOverlay(state),
+          onMobileDrawerVisibilityChanged: (open) => this.setMobileDrawerOpen(open),
+          onMobileDrawerOverlay: (state) => this.setMobileDrawerOverlay(state),
+          onInstructionPanelOverlay: (state) => this.setInstructionPanelOverlay(state),
+          onTableOverlayBlocked: (level) => this.setTableOverlayBlocked(level),
+          onDeadHandSeatSelection: (state) => this.setDeadHandSeatSelection(state),
+          onHeaderLogoLayout: (state) => this.setHeaderLogoLayout(state),
+          onTileCallDecision: (decision) =>
+            this.zone.run(() => this.tileCallDecision.emit(decision)),
+          onPlayerRemovalRequested: (request) =>
+            this.zone.run(() => this.playerRemovalRequested.emit(request)),
+          onDeadHandClaimPrompt: (targetSeat) => this.setDeadHandPopup(targetSeat),
+          onTemporaryDiscardCompleted: () =>
+            this.zone.run(() => this.temporaryDiscardCompleted.emit()),
+          onRestartGame: () => this.zone.run(() => this.restartGame.emit()),
+          onQuitGame: () => this.zone.run(() => this.quitGame.emit()),
+        });
       });
 
       this.game = new Phaser.Game({
@@ -282,15 +249,6 @@ export class PhaserComponent implements AfterViewInit {
         canvas.style.height = '100%';
       }
 
-      // Bound once, outside the Angular zone. The Phaser scene owns whether the
-      // action is currently allowed, exactly as the old Phaser button did.
-      this.instructionPanelButtonRef.nativeElement.addEventListener(
-        "pointerdown",
-        (event) => {
-          event.stopPropagation();
-          this.game?.events.emit("instruction-panel:primary-action");
-        },
-      );
 
       this.game.events.once("table:ready", () => {
         this.sceneReady = true;
@@ -438,49 +396,12 @@ export class PhaserComponent implements AfterViewInit {
    * to own the tile icon and all layout calculations.
    */
   private setWallCountOverlay(state: WallCountOverlayState): void {
-    this.wallCountOverlayState = state;
-    const element = this.wallCountOverlayRef.nativeElement;
-    const icon = this.wallIconOverlayRef.nativeElement;
-    const visible = state.visible && !this.mobileDrawerOpen;
-    element.style.display = visible ? "block" : "none";
-    icon.style.display = visible ? "block" : "none";
-    if (!visible) return;
-
-    const fontSize = Math.round(state.fontSize);
-    element.textContent = state.text;
-    element.style.left = `${Math.round(state.x)}px`;
-    // Phaser supplies a centre Y position; line-height is exactly one em.
-    element.style.top = `${Math.round(state.y - fontSize / 2)}px`;
-    element.style.fontSize = `${fontSize}px`;
-    element.style.color = COLOR_BLUE;
-
-    const iconSize = Math.round(state.iconSize);
-    icon.style.color = COLOR_BLUE;
-    icon.style.left = `${Math.round(state.iconX - iconSize / 2)}px`;
-    icon.style.top = `${Math.round(state.iconY - iconSize / 2)}px`;
-    icon.style.fontSize = `${iconSize}px`;
+    this.wallCountState.set(state);
   }
 
   /** Uses native text for the mobile points value; Phaser still draws its icon. */
   private setPointsOverlay(state: PointsOverlayState): void {
-    this.pointsOverlayState = state;
-    const element = this.pointsOverlayRef.nativeElement;
-    const icon = this.pointsIconOverlayRef.nativeElement;
-    const visible = state.visible && !this.mobileDrawerOpen;
-    element.style.display = visible ? "block" : "none";
-    icon.style.display = visible ? "block" : "none";
-    if (!visible) return;
-
-    const fontSize = Math.round(state.fontSize);
-    element.textContent = state.text;
-    element.style.left = `${Math.round(state.x)}px`;
-    element.style.top = `${Math.round(state.y - fontSize / 2)}px`;
-    element.style.fontSize = `${fontSize}px`;
-
-    const iconSize = Math.round(state.iconSize);
-    icon.style.left = `${Math.round(state.iconX - iconSize / 2)}px`;
-    icon.style.top = `${Math.round(state.iconY - iconSize / 2)}px`;
-    icon.style.fontSize = `${iconSize}px`;
+    this.pointsState.set(state);
   }
 
   /**
@@ -488,32 +409,7 @@ export class PhaserComponent implements AfterViewInit {
    * label text sharply at every viewport size.
    */
   private setPlayerLabelOverlays(states: readonly PlayerLabelOverlayState[]): void {
-    this.playerLabelOverlayStates = states;
-    const elements: Record<PlayerLabelOverlayKey, HTMLDivElement> = {
-      top: this.topPlayerLabelOverlayRef.nativeElement,
-      right: this.rightPlayerLabelOverlayRef.nativeElement,
-      left: this.leftPlayerLabelOverlayRef.nativeElement,
-      bottom: this.bottomPlayerLabelOverlayRef.nativeElement,
-    };
-
-    for (const state of states) {
-      const element = elements[state.key];
-      const visible = state.visible && !this.mobileDrawerOpen;
-      element.style.display = visible ? "block" : "none";
-      if (!visible) continue;
-
-      element.textContent = state.text;
-      element.style.fontSize = `${Math.round(state.fontSize)}px`;
-      element.style.color = state.color;
-      element.style.transform = state.angle === 0 ? "none" : `rotate(${state.angle}deg)`;
-
-      // CSS rotates around the element centre. Its layout box remains
-      // unrotated, so all four labels use their native width/height here.
-      const width = element.offsetWidth;
-      const height = element.offsetHeight;
-      element.style.left = `${Math.round(state.x - width / 2)}px`;
-      element.style.top = `${Math.round(state.y - height / 2)}px`;
-    }
+    this.playerLabelStates.set(states);
   }
 
   /**
@@ -524,84 +420,11 @@ export class PhaserComponent implements AfterViewInit {
   private setMobileDrawerOpen(open: boolean): void {
     // The native drawer itself now covers the menu region, so sharp labels
     // remain visible outside it and never need a blurry Phaser fallback.
-    this.mobileDrawerOpen = false;
-    this.hostRef.nativeElement.classList.remove("mobile-drawer-open");
-    if (this.wallCountOverlayState) this.setWallCountOverlay(this.wallCountOverlayState);
-    if (this.pointsOverlayState) this.setPointsOverlay(this.pointsOverlayState);
-    if (this.playerLabelOverlayStates.length > 0) {
-      this.setPlayerLabelOverlays(this.playerLabelOverlayStates);
-    }
   }
 
 
   private setMobileDrawerOverlay(state: MobileDrawerOverlayState): void {
-    const panel = this.mobileDrawerOverlayRef.nativeElement;
-    panel.style.display = state.visible ? "block" : "none";
-    if (!state.visible) return;
-    panel.style.left = `${Math.round(state.x)}px`;
-    panel.style.top = `${Math.round(state.y)}px`;
-    panel.style.width = `${Math.round(state.width)}px`;
-    // Phaser supplies the interaction height for rows only. The native
-    // drawer also renders a title and CSS padding, so reserve that space here
-    // to keep every submenu item visible on tablet and desktop.
-    const nativeRowHeight = 29;
-    const nativeTitleHeight = state.title ? 38 : 0;
-    const nativePaddingHeight = state.title ? 30 : 72;
-    const requiredHeight = nativeTitleHeight + nativePaddingHeight + state.items.length * nativeRowHeight;
-    panel.style.height = `${Math.max(Math.round(state.height), requiredHeight)}px`;
-    panel.style.paddingTop = state.title ? "16px" : "58px";
-    panel.style.paddingRight = "18px";
-    panel.style.paddingBottom = "14px";
-    panel.style.paddingLeft = "18px";
-    panel.style.pointerEvents = "auto";
-    panel.style.borderRadius = "22px";
-    panel.style.background = "#ffffff";
-    panel.style.boxShadow = "0 8px 14px rgb(7 20 47 / 28%)";
-    panel.replaceChildren();
-    const close = document.createElement("div");
-    close.className = "mobile-drawer-overlay__close";
-    close.textContent = "×";
-    close.style.position = "absolute";
-    close.style.left = "14px";
-    close.style.top = "6px";
-    close.style.pointerEvents = "auto";
-    close.style.cursor = "pointer";
-    close.style.color = COLOR_FUSHIA;
-    close.style.fontSize = "40px";
-    close.style.fontWeight = "700";
-    close.style.lineHeight = "1";
-    close.addEventListener("click", () => this.game?.events.emit("mobile-drawer:close"));
-    panel.append(close);
-    if (state.title) {
-      const title = document.createElement("div");
-      title.className = "mobile-drawer-overlay__title";
-      title.textContent = state.title;
-      title.style.marginLeft = "42px";
-      title.style.marginBottom = "14px";
-      title.style.fontSize = "20px";
-      title.style.fontWeight = "700";
-      title.style.lineHeight = "1.2";
-      title.style.color = COLOR_BLUE;
-      panel.append(title);
-    }
-    for (const item of state.items) {
-      const row = document.createElement("div");
-      row.className = "mobile-drawer-overlay__item";
-      row.style.color = COLOR_FUSHIA;
-      row.style.fontSize = "16px";
-      row.style.fontWeight = "600";
-      row.style.lineHeight = "1.55";
-      row.style.whiteSpace = "nowrap";
-      row.style.marginBottom = "4px";
-      row.textContent = item;
-      row.style.pointerEvents = "auto";
-      row.style.cursor = "pointer";
-      row.addEventListener("pointerdown", (event) => {
-        event.stopPropagation();
-        this.game?.events.emit("hamburger:html-action", item);
-      });
-      panel.append(row);
-    }
+    this.mobileDrawerState.set(state);
   }
 
   /**
@@ -621,57 +444,69 @@ export class PhaserComponent implements AfterViewInit {
     host.toggle("table-popup-screen", level === "screen");
   }
 
+  public onMobileDrawerClose(): void {
+    this.game?.events.emit("mobile-drawer:close");
+  }
+
+  public onMobileDrawerItemClick(item: string): void {
+    this.game?.events.emit("hamburger:html-action", item);
+  }
+
+  public getMobileDrawerHeight(state: MobileDrawerOverlayState): number {
+    const nativeRowHeight = 29;
+    const nativeTitleHeight = state.title ? 38 : 0;
+    const nativePaddingHeight = state.title ? 30 : 72;
+    const requiredHeight = nativeTitleHeight + nativePaddingHeight + state.items.length * nativeRowHeight;
+    return Math.max(Math.round(state.height), requiredHeight);
+  }
+
+  public getInstructionButtonBackground(enabled: boolean): string {
+    const color = enabled ? COLOR_FUSHIA : "#777777";
+    return `linear-gradient(180deg, rgb(255 255 255 / 12%), rgb(255 255 255 / 0%) 48%), ${color}`;
+  }
+
+  public getInstructionButtonShadow(action: any): string {
+    const alpha = action.enabled ? 34 : 20;
+    return `0 ${action.shadowY}px ${action.shadowBlur}px rgb(7 20 47 / ${alpha}%)`;
+  }
+
+  public onDeadHandSeatSelect(seat: TableSeat): void {
+    this.game?.events.emit("dead-hand:select-seat", seat);
+  }
+
+  public onDeadHandCancel(): void {
+    this.game?.events.emit("dead-hand:cancel");
+  }
+
+  public getFormattedElapsed(notice: PlayerAwayNotice): string {
+    const elapsed = Math.max(0, Date.now() - notice.awaySinceMs);
+    return `${Math.floor(elapsed / 60000)}:${String(Math.floor(elapsed / 1000) % 60).padStart(2, "0")}`;
+  }
+
+  public getFormattedLimit(notice: PlayerAwayNotice): string {
+    const limit = notice.removeAfterMs ?? 120000;
+    return `${Math.floor(limit / 60000)}:${String(Math.floor(limit / 1000) % 60).padStart(2, "0")}`;
+  }
+
+  public getFormattedRemaining(remaining: number): string {
+    return `${Math.floor(remaining / 60000)}:${String(Math.floor(remaining / 1000) % 60).padStart(2, "0")}`;
+  }
+
+  public getDeadHandTargetLabel(targetSeat: Exclude<TableSeat, "bottom">): string {
+    const labels: Record<Exclude<TableSeat, "bottom">, string> = {
+      top: "PLAYER 1 (TOP)", right: "PLAYER 2 (RIGHT)", left: "PLAYER 3 (LEFT)",
+    };
+    return labels[targetSeat];
+  }
+
   private setInstructionPanelOverlay(state: InstructionPanelOverlayState): void {
-    const panel = this.instructionPanelRef.nativeElement;
-    const content = this.instructionPanelContentRef.nativeElement;
-    const title = this.instructionPanelTitleRef.nativeElement;
-    const body = this.instructionPanelBodyRef.nativeElement;
-    const button = this.instructionPanelButtonRef.nativeElement;
+    this.instructionPanelState.set(state);
+  }
 
-    panel.style.display = state.visible ? "block" : "none";
-    if (!state.visible) return;
-
-    // The layout engine reserves the card rect; the border is drawn inside it
-    // so the panel never grows past the space the engine set aside for it.
-    panel.style.left = `${state.x}px`;
-    panel.style.top = `${state.y}px`;
-    panel.style.width = `${state.width}px`;
-    panel.style.height = `${state.height}px`;
-    panel.style.borderWidth = `${state.borderWidth}px`;
-    panel.style.borderRadius = `${state.radius}px`;
-    panel.style.boxShadow = `0 ${state.shadowY}px ${state.shadowBlur}px rgb(7 20 47 / 30%)`;
-
-    // Children position against the padding box, which starts one border width
-    // inside the card rect that the published coordinates are relative to.
-    const inset = state.borderWidth;
-    content.style.left = `${-inset}px`;
-    content.style.width = `${state.width}px`;
-    content.style.top = `${state.contentTop - inset}px`;
-    content.style.height = `${Math.max(0, state.contentBottom - state.contentTop)}px`;
-
-    title.textContent = state.title;
-    title.style.fontSize = `${state.titleFontSize}px`;
-    title.style.marginBottom = state.body ? `${state.titleGap}px` : "0px";
-
-    body.textContent = state.body;
-    body.style.fontSize = `${state.bodyFontSize}px`;
-
-    const action = state.button;
-    button.textContent = action.label;
-    button.style.left = `${action.x - inset}px`;
-    button.style.top = `${action.y - inset}px`;
-    button.style.width = `${action.width}px`;
-    button.style.height = `${action.height}px`;
-    button.style.borderRadius = `${action.radius}px`;
-    button.style.fontSize = `${action.fontSize}px`;
-    // Subtle top-down sheen over the flat body, as in the reference design.
-    button.style.background =
-      `linear-gradient(180deg, rgb(255 255 255 / 12%), rgb(255 255 255 / 0%) 48%), ` +
-      (action.enabled ? COLOR_FUSHIA : "#777777");
-    button.style.opacity = action.enabled ? "1" : "0.65";
-    button.style.boxShadow =
-      `0 ${action.shadowY}px ${action.shadowBlur}px rgb(7 20 47 / ${action.enabled ? 34 : 20}%)`;
-    button.setAttribute("aria-disabled", String(!action.enabled));
+  public onInstructionPanelClick(): void {
+    const state = this.instructionPanelState();
+    if (!state || !state.button.enabled) return;
+    this.game?.events.emit("instruction-panel:primary-action");
   }
 
   /**
@@ -680,160 +515,42 @@ export class PhaserComponent implements AfterViewInit {
    * dimmer, arrows, and copy so the text is sharp at any pixel ratio.
    */
   private setDeadHandSeatSelection(state: DeadHandSeatSelectionState): void {
-    const panel = this.deadHandSeatPickerRef.nativeElement;
-    panel.style.display = state.visible ? "block" : "none";
-    panel.setAttribute("aria-hidden", String(!state.visible));
-    panel.replaceChildren();
-    if (!state.visible) return;
-
-    for (const option of state.options) {
-      // Phaser stroked the highlight centred on the rect path, so grow the
-      // border-box by half the stroke to cover the same pixels.
-      const inset = state.borderWidth / 2;
-      const target = document.createElement("button");
-      target.type = "button";
-      target.className = "dead-hand-seats__target";
-      target.setAttribute("aria-label", `Call the ${option.seat} hand dead`);
-      Object.assign(target.style, {
-        position: "absolute",
-        boxSizing: "border-box",
-        margin: "0",
-        padding: "0",
-        left: `${option.x - inset}px`,
-        top: `${option.y - inset}px`,
-        width: `${option.width + state.borderWidth}px`,
-        height: `${option.height + state.borderWidth}px`,
-        border: `${state.borderWidth}px solid #f6c542`,
-        background: "rgb(185 42 144 / 22%)",
-        cursor: "pointer",
-      });
-
-      const arrow = document.createElement("button");
-      arrow.type = "button";
-      arrow.className = "dead-hand-seats__arrow";
-      arrow.tabIndex = -1;
-      arrow.textContent = option.arrowIcon;
-      arrow.setAttribute("aria-hidden", "true");
-      Object.assign(arrow.style, {
-        position: "absolute",
-        margin: "0",
-        padding: "0",
-        border: "0",
-        background: "none",
-        left: `${option.arrowX}px`,
-        top: `${option.arrowY}px`,
-        transform: "translate(-50%, -50%)",
-        color: "#ffffff",
-        fontFamily: '"Material Symbols Rounded"',
-        fontSize: `${state.arrowFontSize}px`,
-        fontWeight: "normal",
-        fontStyle: "normal",
-        lineHeight: "1",
-        cursor: "pointer",
-      });
-
-      for (const element of [target, arrow]) {
-        element.addEventListener("pointerdown", (event) => {
-          event.stopPropagation();
-          this.game?.events.emit("dead-hand:select-seat", option.seat);
-        });
-      }
-
-      panel.append(target, arrow);
-    }
-
-    const instruction = document.createElement("div");
-    instruction.className = "dead-hand-seats__instruction";
-    instruction.textContent = state.instruction;
-    Object.assign(instruction.style, {
-      position: "absolute",
-      margin: "0",
-      left: `${state.centerX}px`,
-      top: `${state.centerY}px`,
-      transform: "translate(-50%, -50%)",
-      textAlign: "center",
-      whiteSpace: "pre-line",
-      color: "#ffffff",
-      fontFamily: "Poppins, Arial, sans-serif",
-      fontSize: `${state.instructionFontSize}px`,
-      fontWeight: "700",
-      lineHeight: "1.25",
-      pointerEvents: "none",
-    });
-
-    const cancel = document.createElement("button");
-    cancel.type = "button";
-    cancel.className = "dead-hand-seats__cancel";
-    cancel.textContent = "×";
-    cancel.setAttribute("aria-label", "Cancel");
-    Object.assign(cancel.style, {
-      position: "absolute",
-      margin: "0",
-      padding: "0",
-      border: "0",
-      background: "none",
-      left: `${state.centerX}px`,
-      top: `${state.centerY - 54}px`,
-      transform: "translate(-50%, -50%)",
-      color: "#ffffff",
-      fontFamily: "Poppins, Arial, sans-serif",
-      fontSize: "30px",
-      fontWeight: "500",
-      lineHeight: "1",
-      cursor: "pointer",
-    });
-    cancel.addEventListener("pointerdown", (event) => {
-      event.stopPropagation();
-      this.game?.events.emit("dead-hand:cancel");
-    });
-
-    panel.append(instruction, cancel);
+    this.deadHandSelectionState.set(state);
   }
 
-  private setRemovePlayerPopup(notice: PlayerAwayNotice | null): void {
-    const panel = this.removePlayerPopupRef.nativeElement;
-    panel.replaceChildren();
-    panel.style.display = notice ? "grid" : "none";
-    if (!notice) return;
-    panel.style.position = "absolute";
-    panel.style.inset = "0";
-    panel.style.zIndex = "100";
-    panel.style.placeItems = "center";
-    panel.style.background = "rgb(7 20 47 / 38%)";
-    const limit = notice.removeAfterMs ?? 120000;
-    const elapsed = Math.max(0, Date.now() - notice.awaySinceMs);
-    const remaining = Math.max(0, limit - elapsed);
-    const format = (value: number): string => `${Math.floor(value / 60000)}:${String(Math.floor(value / 1000) % 60).padStart(2, "0")}`;
+  private removePlayerPopupTimer?: number;
 
-    // Built with createElement/textContent (never innerHTML) so a malicious
-    // player display name can never inject markup into the popup.
-    const card = document.createElement("section");
-    Object.assign(card.style, { width: "min(420px, calc(100% - 32px))", padding: "24px", boxSizing: "border-box", border: "2px solid #B92A90", borderRadius: "14px", background: "#07142f", color: "#ffffff", textAlign: "center", fontFamily: "Outfit, Arial, sans-serif" });
-    const heading = document.createElement("h2");
-    heading.textContent = "REMOVE PLAYER?";
-    Object.assign(heading.style, { margin: "0 0 12px", fontSize: "22px" });
-    const detail = document.createElement("p");
-    detail.textContent = `${notice.playerName} has been away for ${format(elapsed)}.`;
-    detail.style.margin = "0 0 8px";
-    const rule = document.createElement("small");
-    rule.textContent = remaining === 0
-      ? `The ${format(limit)} away limit has been reached.`
-      : `Removal available in ${format(remaining)}.`;
-    Object.assign(rule.style, { display: "block", marginBottom: "16px", color: "#f6c542" });
-    const remove = document.createElement("button");
-    remove.textContent = "REMOVE PLAYER";
-    remove.disabled = remaining > 0;
-    const keep = document.createElement("button");
-    keep.textContent = "KEEP WAITING";
-    for (const button of [remove, keep]) {
-      Object.assign(button.style, { display: "block", minWidth: "150px", margin: "8px auto 0", padding: "9px 16px", border: "0", borderRadius: "8px", color: "#ffffff", fontFamily: "Outfit, Arial, sans-serif", fontWeight: "600" });
+  private setRemovePlayerPopup(notice: PlayerAwayNotice | null): void {
+    this.removePlayerNotice.set(notice);
+    this.clearRemovePlayerPopupTimer();
+
+    if (!notice) return;
+
+    const limit = notice.removeAfterMs ?? 120000;
+
+    const refreshCountdown = (): void => {
+      const elapsed = Math.max(0, Date.now() - notice.awaySinceMs);
+      const remaining = Math.max(0, limit - elapsed);
+      this.removePlayerRemaining.set(remaining);
+    };
+
+    this.removePlayerPopupTimer = window.setInterval(refreshCountdown, 250);
+    refreshCountdown();
+  }
+
+  private clearRemovePlayerPopupTimer(): void {
+    if (this.removePlayerPopupTimer !== undefined) {
+      window.clearInterval(this.removePlayerPopupTimer);
+      this.removePlayerPopupTimer = undefined;
     }
-    remove.style.background = COLOR_FUSHIA;
-    keep.style.background = COLOR_GRAY;
-    remove.addEventListener("click", () => this.zone.run(() => this.playerRemovalRequested.emit({ seat: notice.seat, requestId: notice.requestId })));
-    keep.addEventListener("click", () => this.setRemovePlayerPopup(null));
-    card.append(heading, detail, rule, remove, keep);
-    panel.append(card);
+  }
+
+  public onRemovePlayer(notice: PlayerAwayNotice): void {
+    this.zone.run(() => this.playerRemovalRequested.emit({ seat: notice.seat, requestId: notice.requestId }));
+  }
+
+  public onKeepWaitingPlayer(): void {
+    this.setRemovePlayerPopup(null);
   }
 
   /**
@@ -841,70 +558,31 @@ export class PhaserComponent implements AfterViewInit {
    * controls sharp, responsive, and above the game table on every device.
    */
   private setJoinTablePopup(request: JoinTableRequest | null): void {
+    this.joinTableRequestState.set(request);
     this.clearJoinTablePopupTimer();
-    const panel = this.joinTablePopupRef.nativeElement;
-    panel.replaceChildren();
-    panel.style.display = request ? "grid" : "none";
-    panel.setAttribute("aria-hidden", String(!request));
+
     if (!request) return;
-
-    Object.assign(panel.style, {
-      position: "absolute", inset: "0", zIndex: "100", display: "grid",
-      placeItems: "center", background: "rgb(7 20 47 / 38%)",
-    });
-
-    const card = document.createElement("section");
-    Object.assign(card.style, {
-      width: "min(380px, calc(100% - 32px))", padding: "24px",
-      boxSizing: "border-box", border: `2px solid ${COLOR_FUSHIA}`,
-      borderRadius: "14px", background: "#07142f", color: "#ffffff",
-      textAlign: "center", fontFamily: "Outfit, Arial, sans-serif",
-    });
-    const title = document.createElement("h2");
-    title.textContent = "JOIN TABLE REQUEST";
-    Object.assign(title.style, { margin: "0 0 12px", fontSize: "22px" });
-    const detail = document.createElement("p");
-    detail.textContent = `${request.playerName} wants to join.`;
-    detail.style.margin = "0 0 8px";
-    const countdown = document.createElement("small");
-    Object.assign(countdown.style, { display: "block", marginBottom: "16px", color: "#f6c542" });
-    const accept = document.createElement("button");
-    accept.textContent = "ACCEPT";
-    const decline = document.createElement("button");
-    decline.textContent = "DECLINE";
-    for (const button of [accept, decline]) {
-      Object.assign(button.style, {
-        display: "block", minWidth: "150px", margin: "8px auto 0",
-        padding: "9px 16px", border: "0", borderRadius: "8px", color: "#ffffff",
-        fontFamily: "Outfit, Arial, sans-serif", fontWeight: "600", cursor: "pointer",
-      });
-    }
-    accept.style.background = COLOR_FUSHIA;
-    decline.style.background = COLOR_GRAY;
-    const decide = (action: JoinTableRequestDecision["action"]): void => {
-      this.zone.run(() => this.joinTableRequestDecision.emit({ requestId: request.requestId, action }));
-      this.setJoinTablePopup(null);
-    };
-    accept.addEventListener("click", () => decide("accept"));
-    decline.addEventListener("click", () => decide("decline"));
-    card.append(title, detail, countdown, accept, decline);
-    panel.append(card);
 
     const expiresAt = request.expiresAtMs ?? Date.now() + 15_000;
     const refreshCountdown = (): void => {
       const seconds = Math.max(0, Math.ceil((expiresAt - Date.now()) / 1000));
-      countdown.textContent = `${seconds} second${seconds === 1 ? "" : "s"} remaining`;
+      this.joinTableRemaining.set(seconds);
       if (seconds === 0) this.setJoinTablePopup(null);
     };
     this.joinTablePopupTimer = window.setInterval(refreshCountdown, 250);
     refreshCountdown();
   }
 
-  /** Clears the one active join-request countdown; no render-loop work is used. */
   private clearJoinTablePopupTimer(): void {
-    if (this.joinTablePopupTimer === undefined) return;
-    window.clearInterval(this.joinTablePopupTimer);
-    this.joinTablePopupTimer = undefined;
+    if (this.joinTablePopupTimer !== undefined) {
+      window.clearInterval(this.joinTablePopupTimer);
+      this.joinTablePopupTimer = undefined;
+    }
+  }
+
+  public onJoinTableAction(request: JoinTableRequest, action: JoinTableRequestDecision["action"]): void {
+    this.zone.run(() => this.joinTableRequestDecision.emit({ requestId: request.requestId, action }));
+    this.setJoinTablePopup(null);
   }
 
   /**
@@ -912,76 +590,23 @@ export class PhaserComponent implements AfterViewInit {
    * seat arrows; this overlay owns the readable reason-selection controls.
    */
   private setDeadHandPopup(targetSeat: Exclude<TableSeat, "bottom"> | null): void {
-    const panel = this.deadHandPopupRef.nativeElement;
-    panel.replaceChildren();
-    panel.style.display = targetSeat ? "grid" : "none";
-    panel.setAttribute("aria-hidden", String(!targetSeat));
-    if (!targetSeat) return;
-
-    Object.assign(panel.style, {
-      position: "absolute", inset: "0", zIndex: "100", display: "grid",
-      placeItems: "center", background: "rgb(7 20 47 / 38%)",
-    });
-    const labels: Record<Exclude<TableSeat, "bottom">, string> = {
-      top: "PLAYER 1 (TOP)", right: "PLAYER 2 (RIGHT)", left: "PLAYER 3 (LEFT)",
-    };
-    const card = document.createElement("section");
-    Object.assign(card.style, {
-      width: "min(460px, calc(100% - 32px))", padding: "24px",
-      boxSizing: "border-box", border: `2px solid ${COLOR_FUSHIA}`,
-      borderRadius: "14px", background: "#07142f", color: "#ffffff",
-      textAlign: "center", fontFamily: "Outfit, Arial, sans-serif",
-    });
-    const title = document.createElement("h2");
-    title.textContent = `DECLARE ${labels[targetSeat]} DEAD`;
-    Object.assign(title.style, { margin: "0 0 10px", fontSize: "22px" });
-    const warning = document.createElement("small");
-    warning.textContent = "An incorrect claim can make your hand dead.";
-    Object.assign(warning.style, { display: "block", marginBottom: "16px", color: "#f6c542" });
-    card.append(title, warning);
-
-    let selectedReason: DeadHandReason = "invalid-mahjong";
-    const reasonButtons: HTMLButtonElement[] = [];
-    const setSelectedReason = (reason: DeadHandReason): void => {
-      selectedReason = reason;
-      for (const button of reasonButtons) {
-        button.style.background = button.dataset["reason"] === reason ? COLOR_FUSHIA : COLOR_GRAY;
-      }
-    };
-    const reasons: readonly { readonly id: DeadHandReason; readonly label: string }[] = [
-      { id: "invalid-mahjong", label: "INVALID MAH JONGG" },
-      { id: "hand-not-viable", label: "HAND NOT VIABLE" },
-      { id: "incorrect-tile-count", label: "INCORRECT TILE COUNT" },
-    ];
-    for (const reason of reasons) {
-      const button = document.createElement("button");
-      button.dataset["reason"] = reason.id;
-      button.textContent = reason.label;
-      reasonButtons.push(button);
-      button.addEventListener("click", () => setSelectedReason(reason.id));
-      card.append(button);
+    this.deadHandClaimTarget.set(targetSeat);
+    if (targetSeat) {
+      this.deadHandClaimReason.set("invalid-mahjong");
     }
-    const submit = document.createElement("button");
-    submit.textContent = "SUBMIT CLAIM";
-    const cancel = document.createElement("button");
-    cancel.textContent = "CANCEL";
-    for (const button of [...reasonButtons, submit, cancel]) {
-      Object.assign(button.style, {
-        display: "block", minWidth: "190px", margin: "8px auto 0",
-        padding: "9px 16px", border: "0", borderRadius: "8px", color: "#ffffff",
-        fontFamily: "Outfit, Arial, sans-serif", fontWeight: "600", cursor: "pointer",
-      });
-    }
-    setSelectedReason(selectedReason);
-    submit.style.background = COLOR_FUSHIA;
-    cancel.style.background = COLOR_GRAY;
-    submit.addEventListener("click", () => {
-      this.zone.run(() => this.deadHandClaimed.emit({ targetSeat, reason: selectedReason }));
-      this.setDeadHandPopup(null);
-    });
-    cancel.addEventListener("click", () => this.setDeadHandPopup(null));
-    card.append(submit, cancel);
-    panel.append(card);
+  }
+
+  public onDeadHandReasonSelect(reason: DeadHandReason): void {
+    this.deadHandClaimReason.set(reason);
+  }
+
+  public onSubmitDeadHandClaim(targetSeat: Exclude<TableSeat, "bottom">, reason: DeadHandReason): void {
+    this.zone.run(() => this.deadHandClaimed.emit({ targetSeat, reason }));
+    this.setDeadHandPopup(null);
+  }
+
+  public onCancelDeadHandClaim(): void {
+    this.setDeadHandPopup(null);
   }
 
   /**
@@ -989,30 +614,25 @@ export class PhaserComponent implements AfterViewInit {
    * overlay; the browser paints the card, confetti and all copy so the text
    * stays sharp at any device pixel ratio.
    */
-  private setMahjongWinPopup(result: MahjongWinCelebration | null): void {
-    this.clearMahjongWinPopupTimer();
-    const panel = this.mahjongWinPopupRef.nativeElement;
-    panel.replaceChildren();
-    panel.style.display = result ? "grid" : "none";
-    panel.setAttribute("aria-hidden", String(!result));
+  readonly mahjongConfetti = signal<any[]>([]);
 
+  private setMahjongWinPopup(result: MahjongWinCelebration | null): void {
+    this.mahjongWinResult.set(result);
+    this.clearMahjongWinPopupTimer();
     this.setTableOverlayBlocked(result ? "screen" : "none");
 
     if (!result) return;
 
-    // Tell Phaser so it can clear its call/swap windows if open
     this.game?.events.emit("mahjong:win", result);
-
     void this.haptics.play("pass-submit" as any);
 
-    // Confetti
     const vw = window.innerWidth;
     const vh = window.innerHeight;
     const particleCount = Math.max(36, Math.min(88, Math.round(vw / 13)));
     const colors = ["#f6c542", "#B92A90", "#60a5fa", "#34d399", "#ffffff"];
+    const confettiList = [];
+
     for (let i = 0; i < particleCount; i++) {
-      const confetti = document.createElement("div");
-      confetti.className = "mahjong-win-popup__confetti";
       const size = 5 + Math.random() * 5;
       const startX = Math.random() * vw;
       const startY = -(Math.random() * vh * 0.25);
@@ -1020,49 +640,22 @@ export class PhaserComponent implements AfterViewInit {
       const endRotate = startRotate + 240 + Math.random() * 300;
       const duration = 1300 + Math.random() * 1100;
       const delay = Math.random() * 450;
-      Object.assign(confetti.style, {
+
+      confettiList.push({
         left: `${startX}px`,
         top: `${startY}px`,
         width: `${size}px`,
         height: `${Math.round(size * 0.55)}px`,
         background: colors[i % colors.length],
+        fallDuration: `${Math.round(duration)}ms`,
+        fallDelay: `${Math.round(delay)}ms`,
+        startRotate: `${startRotate}deg`,
+        endRotate: `${endRotate}deg`,
+        fallDistance: `${vh + 24 - startY}px`
       });
-      panel.append(confetti);
-
-      confetti.animate(
-        [
-          { transform: `translateY(0px) rotate(${startRotate}deg)` },
-          { transform: `translateY(${vh + 24 - startY}px) rotate(${endRotate}deg)` }
-        ],
-        {
-          duration: Math.round(duration),
-          delay: Math.round(delay),
-          easing: "cubic-bezier(0.55, 0.085, 0.68, 0.53)",
-          fill: "forwards",
-        }
-      );
     }
 
-    // Card
-    const card = document.createElement("div");
-    card.className = "mahjong-win-popup__card";
-
-    const title = document.createElement("div");
-    title.className = "mahjong-win-popup__title";
-    title.textContent = "MAH JONGG!";
-
-    const winner = document.createElement("div");
-    winner.className = "mahjong-win-popup__winner";
-    winner.textContent = result.winner === "bottom" ? "YOU WIN!" : `${result.winner.toUpperCase()} WINS!`;
-
-    const dismiss = document.createElement("div");
-    dismiss.className = "mahjong-win-popup__dismiss";
-    dismiss.textContent = "TAP TO CONTINUE";
-
-    card.append(title, winner, dismiss);
-    panel.append(card);
-
-    panel.addEventListener("pointerup", () => this.setMahjongWinPopup(null), { once: true });
+    this.mahjongConfetti.set(confettiList);
 
     this.mahjongWinPopupTimer = window.setTimeout(() => {
       this.mahjongWinPopupTimer = undefined;
@@ -1070,10 +663,17 @@ export class PhaserComponent implements AfterViewInit {
     }, 4200);
   }
 
+  public onDismissMahjongWinPopup(): void {
+    if (this.mahjongWinPopupTimer !== undefined) {
+      this.setMahjongWinPopup(null);
+    }
+  }
+
   private clearMahjongWinPopupTimer(): void {
-    if (this.mahjongWinPopupTimer === undefined) return;
-    window.clearTimeout(this.mahjongWinPopupTimer);
-    this.mahjongWinPopupTimer = undefined;
+    if (this.mahjongWinPopupTimer !== undefined) {
+      window.clearTimeout(this.mahjongWinPopupTimer);
+      this.mahjongWinPopupTimer = undefined;
+    }
   }
 
   /** Aligns the DOM logo to the exact Phaser hamburger HUD centre. */

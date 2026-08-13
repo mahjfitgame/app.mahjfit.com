@@ -6,7 +6,7 @@ import { PhaserLayoutDevice } from "./device";
 import { ZERO_SAFE_AREA } from "../const";
 
 
-@Service({ autoProvided: true })
+@Service({ autoProvided: false })
 export class PhaserLayoutGame {
   public readonly deviceLayout = inject(PhaserLayoutDevice);
 

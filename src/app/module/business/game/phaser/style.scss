@@ -541,3 +541,119 @@
         height: 28px;
     }
 }
+.dead-hand-seats__target {
+    position: absolute;
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    background: rgb(185 42 144 / 22%);
+    cursor: pointer;
+}
+
+.dead-hand-seats__arrow {
+    position: absolute;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    background: none;
+    transform: translate(-50%, -50%);
+    color: #ffffff;
+    font-family: "Material Symbols Rounded";
+    font-weight: normal;
+    font-style: normal;
+    line-height: 1;
+    cursor: pointer;
+}
+
+.dead-hand-seats__instruction {
+    position: absolute;
+    margin: 0;
+    transform: translate(-50%, -50%);
+    text-align: center;
+    white-space: pre-line;
+    color: #ffffff;
+    font-family: Poppins, Arial, sans-serif;
+    font-weight: 700;
+    line-height: 1.25;
+    pointer-events: none;
+}
+
+.dead-hand-seats__cancel {
+    position: absolute;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    background: none;
+    transform: translate(-50%, -50%);
+    color: #ffffff;
+    font-family: Poppins, Arial, sans-serif;
+    font-size: 30px;
+    font-weight: 500;
+    line-height: 1;
+    cursor: pointer;
+}
+
+.join-table-popup, .dead-hand-popup {
+    position: absolute;
+    inset: 0;
+    z-index: 100;
+    place-items: center;
+    background: rgb(7 20 47 / 38%);
+    font-family: Outfit, Arial, sans-serif;
+}
+
+.join-table-popup section, .dead-hand-popup section {
+    width: min(380px, calc(100% - 32px));
+    padding: 24px;
+    border: 2px solid #B92A90;
+    border-radius: 14px;
+    background: #07142f;
+    color: #fff;
+    text-align: center;
+    box-sizing: border-box;
+}
+
+.dead-hand-popup section {
+    width: min(460px, calc(100% - 32px));
+}
+
+.join-table-popup h2, .dead-hand-popup h2 {
+    margin: 0 0 12px;
+    font-size: 22px;
+}
+
+.join-table-popup p, .dead-hand-popup p {
+    margin: 0 0 8px;
+}
+
+.join-table-popup small, .dead-hand-popup small {
+    display: block;
+    margin-bottom: 16px;
+    color: #f6c542;
+}
+
+.join-table-popup button, .dead-hand-popup button {
+    display: block;
+    width: auto;
+    min-width: 150px;
+    margin: 8px auto 0;
+    padding: 9px 16px;
+    border: 0;
+    border-radius: 8px;
+    background: #B92A90;
+    color: #fff;
+    font: 600 15px Outfit, Arial, sans-serif;
+    cursor: pointer;
+}
+
+.dead-hand-popup button {
+    min-width: 190px;
+}
+
+.popup-button-secondary {
+    background: #475569 !important;
+}
+
+.popup-button-active {
+    background: #B92A90 !important;
+}

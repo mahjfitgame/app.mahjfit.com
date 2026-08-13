@@ -7,6 +7,8 @@ For first we set the fixed player and created 3 links to implement join function
 First we decided to start the game with the realplayer and after that we extend and attache the remain things and feature functionality so you guys can Test the app with the live demo. 
 After your testing and feedbacks we will work on it.
 
+Tried 1x tiles with the mobile device. 
+
 2]
 Worked on connect WS as with the real game play. Implement with the 
 
@@ -19,6 +21,14 @@ Today, I continue work on game play area and make API call of create game and st
 I will keep you posted on work progress.
 Thank you!
 
+
+==========
+ [tech][Frontend Development][D1] Start Game implementation - setup state for game and prepare seat
+ 
+[tech][Frontend Development][D1] Start Game implementation make create game and start game API call
+
+
+==========
 
 
 ==================================

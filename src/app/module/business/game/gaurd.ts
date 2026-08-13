@@ -1,10 +1,10 @@
 import { CanMatchFn, GuardResult, PartialMatchRouteSnapshot, Route, Router, UrlSegment } from "@angular/router";
 import { SigninRoute } from "../../shared/onboarding/signin/route";
-import { GameService } from "./service";
 import { inject } from "@angular/core";
 import { SLUG_OPEN_AREA } from "src/app/area/open/slug";
 import { SLUG_GAME, SLUG_GAME_KEYID } from "./slug";
 import { UrlService } from "@libs/url/service";
+import { GameState } from "./state/state";
 
 // file: src/app/module/business/game/gaurd.ts
 export class GameGuard {
@@ -13,12 +13,12 @@ export class GameGuard {
         segments: UrlSegment[],
         currentSnapshot: PartialMatchRouteSnapshot
     ): Promise<GuardResult> => {
-        const service = inject(GameService);
+        const state = inject(GameState);
         const router = inject(Router);
 
         const moduleLevel = [SLUG_OPEN_AREA, SLUG_GAME];
 
-        const gameCreatedResp = await service.createGame();
+        const gameCreatedResp = await state.createGame();
 
         if (!gameCreatedResp) return false;
 
@@ -36,12 +36,13 @@ export class GameGuard {
         segments: UrlSegment[],
         currentSnapshot: PartialMatchRouteSnapshot
     ): Promise<GuardResult> => {
-        const service = inject(GameService);
+        const state = inject(GameState);
         const router = inject(Router);
 
         const redirect = '/game';
 
-        service.startGame();
+        await state.whenReady();
+        state.startGame();
 
         // verify game is started 
         return true;

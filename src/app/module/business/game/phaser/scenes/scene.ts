@@ -623,8 +623,8 @@ export class PhaserScene extends Phaser.Scene {
     if (needs1xAtlas) {
       this.load.atlas(
         TILE_ATLAS_1X_KEY,
-        "assets/game/tiles/1xnew/tiles_1x.png",
-        "assets/game/tiles/1xnew/tiles_1x.json",
+        "assets/game/tiles/1x/tiles_1x.png",//"assets/game/tiles/1xnew/tiles_1x.png",
+        "assets/game/tiles/1x/tiles_1x.json",//"assets/game/tiles/1xnew/tiles_1x.json",
       );
     }
 

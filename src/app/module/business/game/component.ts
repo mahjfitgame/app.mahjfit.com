@@ -1,5 +1,5 @@
 // file: src/app/module/business/game/game-shell/component.ts
-import { Component, effect, inject, input, signal } from "@angular/core";
+import { AfterViewInit, Component, effect, inject, input, OnInit, signal } from "@angular/core";
 import { Router } from "@angular/router";
 import { PhaserComponent } from "./phaser/component";
 import { DeadHandClaim, DemoDiscardRequest, JoinTableRequest, JoinTableRequestDecision, MahjongWinCelebration, PlayerAwayNotice, PlayerRemovalRequest, TileCallDecision, TileCallOffer } from "./phaser/type";
@@ -8,6 +8,8 @@ import { GameService } from "./service";
 import { GAME_PROVIDER } from "./provider";
 import { TablePhase } from "./phaser/type";
 import { PassDirection, TileVm } from "./type";
+import { GameRoute } from "./route";
+import { GameHeptic } from "./haptics";
 
 
 @Component({
@@ -20,7 +22,7 @@ import { PassDirection, TileVm } from "./type";
     GAME_PROVIDER
   ]
 })
-export class GameComponent {
+export class GameComponent implements OnInit, AfterViewInit {
   public readonly gkeyid = input<string>();
 
   protected readonly service = inject(GameService);
@@ -69,6 +71,27 @@ export class GameComponent {
     });
   }
 
+  async ngOnInit(): Promise<void> {
+    await this.service.state.whenReady();
+    //this.service.state.setGkeyid(this.gkeyid());
+
+    if (this.gkeyid()) {
+      const gameStartedResp = await this.service.state.startGame();
+
+    } else {
+      const gameCreatedResp = await this.service.state.createGame();
+
+      if (!gameCreatedResp) return;
+
+      if (gameCreatedResp?.keyid) {
+        const redirect = GameRoute.absolutePath(gameCreatedResp.keyid);
+        // if accessing authenticated route without being authenticated then redirect to signin page
+        this.router.navigateByUrl(redirect);
+        return;
+      }
+    }
+  }
+
   public async ngAfterViewInit(): Promise<void> {
     await this.init();
   }
@@ -100,7 +123,7 @@ export class GameComponent {
     // Phaser object individually. It guarantees a clean rack and table UI.
     this.boardVisible.set(false);
     try {
-      await this.service.startGame();
+      await this.service.state.startGame();
     } finally {
       this.boardVisible.set(true);
     }

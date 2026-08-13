@@ -58,31 +58,40 @@ export class GameService implements FoundationModuleServiceType {
             soundKey: this.resolveTileSoundKey(input),
         };
     }
-    private resolveTileSoundKey(tile: {
-        suit: TileSuit;
-        rank?: number;
-        name?: string;
-        isJoker?: boolean;
-        isFlower?: boolean;
-    }): TileSoundKey {
-        if (tile.isJoker) return "joker";
-        if (tile.isFlower) return "flower";
+    private resolveTileSoundKey(tile: TileVmInput): TileSoundKey {
+        if (tile.suit === "joker" || (tile as any).isJoker) return "joker";
+        if (tile.suit === "flower" || (tile as any).isFlower) return "flower";
 
-        if (tile.name === "soap") return "soap";
-        if (tile.name === "east") return "east";
-        if (tile.name === "south") return "south";
-        if (tile.name === "west") return "west";
-        if (tile.name === "north") return "north";
-        if (tile.name === "red") return "red";
-        if (tile.name === "green") return "green";
+        if (tile.suit === "dragon") {
+            const lbl = (tile.label || "").toLowerCase();
+            const nm = ((tile as any).name || "").toLowerCase();
+            if (nm === "soap" || tile.code === "W" || tile.code === "S" || tile.code === "0" || lbl.includes("soap") || lbl.includes("white")) return "soap";
+            if (nm === "red" || tile.code === "R" || lbl.includes("red")) return "red";
+            if (nm === "green" || tile.code === "G" || lbl.includes("green")) return "green";
+        }
 
-        if (!tile.rank) {
+        if (tile.suit === "wind") {
+            const lbl = (tile.label || "").toLowerCase();
+            const nm = ((tile as any).name || "").toLowerCase();
+            if (nm === "east" || tile.code.startsWith("E") || lbl.includes("east")) return "east";
+            if (nm === "south" || tile.code.startsWith("S") || lbl.includes("south")) return "south";
+            if (nm === "west" || tile.code.startsWith("W") || lbl.includes("west")) return "west";
+            if (nm === "north" || tile.code.startsWith("N") || lbl.includes("north")) return "north";
+        }
+
+        let rank = tile.rank;
+        if (!rank && tile.code) {
+            const match = tile.code.match(/\d+/);
+            if (match) rank = parseInt(match[0], 10);
+        }
+
+        if (!rank) {
             throw new Error(`Missing tile rank for sound key: ${JSON.stringify(tile)}`);
         }
 
-        if (tile.suit === "bam") return `${tile.rank}-bam` as TileSoundKey;
-        if (tile.suit === "char") return `${tile.rank}-char` as TileSoundKey;
-        if (tile.suit === "dot") return `${tile.rank}-dot` as TileSoundKey;
+        if (tile.suit === "bam") return `${rank}-bam` as TileSoundKey;
+        if (tile.suit === "char") return `${rank}-crack` as TileSoundKey;
+        if (tile.suit === "dot") return `${rank}-dot` as TileSoundKey;
 
         throw new Error(`Unsupported tile sound: ${JSON.stringify(tile)}`);
     }
@@ -131,18 +140,18 @@ export class GameService implements FoundationModuleServiceType {
          * - tablets / iPad
          * - desktop
          */
-        return { atlasKey: TILE_ATLAS_2X_KEY, suffix: "@2x" };
-        /* if (this.isMobilePortraitOnly()) {
-          return { atlasKey: TILE_ATLAS_1X_KEY, suffix: "" };
+        //return { atlasKey: TILE_ATLAS_2X_KEY, suffix: "@2x" };
+        if (this.isMobilePortraitOnly()) {
+            return { atlasKey: TILE_ATLAS_1X_KEY, suffix: "" };
         }
-      
+
         const dpr = window.devicePixelRatio || 1;
-      
+
         if (tileDisplayWidth >= 48 || dpr >= 2) {
-          return { atlasKey: TILE_ATLAS_2X_KEY, suffix: "@2x" };
+            return { atlasKey: TILE_ATLAS_2X_KEY, suffix: "@2x" };
         }
-      
-        return { atlasKey: TILE_ATLAS_1X_KEY, suffix: "" }; */
+
+        return { atlasKey: TILE_ATLAS_1X_KEY, suffix: "" };
     }
 
     private selectTileAtlasOLD(tileDisplayWidth = 0): TileAtlasSelection {
@@ -167,143 +176,7 @@ export class GameService implements FoundationModuleServiceType {
 
 
     // ████ API CALLS ██████████████████████████████████████████████
-    public async createGame(): Promise<GameCreateOutputDto | false> {
-        try {
-            const gameCreateInput: GameCreateInputDto = {
-                allow_join: GameAllowJoinEnum.PUBLIC,
-                botlvl_id: BotLevelModeEnum.FAST,
-                grule_id: 5,
-                mode: GameModeEnum.FOUR_PLAYERS,
-                owner_u_id: 65,
-                dealer_u_id: 65,
-                current_turn_u_id: 65,
-                tilest_id: 1,
-            }
 
-            const http: BfwApiSdkResponse<GameCreateOutputDto[]> = await this.api.sdk.graphql.game.create({
-                selection: {
-                    allow_join: true,
-                    created: true,
-                    current_turn_u_id: true,
-                    dealer_u_id: true,
-                    deleted: true,
-                    id: true,
-                    keyid: true,
-                    hint: true,
-                    mode: true,
-                    owner_u_id: true,
-                    suspended: true,
-                    grule_id: true,
-                    tilest_id: true,
-                    botlvl_id: true,
-                    jwt: true,
-                },
-                input: [
-                    gameCreateInput
-                ]
-            });
-
-            if (http.data.length > 0) {
-                const arrResponse = http.data[0];
-                this.state.setCreatedGame(arrResponse);
-                return arrResponse;
-            }
-        } catch (e: any | BfwApiSdkError) {
-            this.log.error('GAME CREATE ERROR', e);
-        }
-        return false;
-    }
-    public async startGame() {
-        try {
-            const gkeyid = this.state.gkeyid();
-
-            const createdGame = this.state.createdGame();
-
-
-            const gameStartInput: GameStatePublicStartInputDto = ({
-                ...createdGame,
-                // ensure required fields for GameStatePublicStartInputDto
-                owner_u_id: createdGame?.owner_u_id ?? createdGame?.current_turn_u_id ?? 0,
-            } as unknown) as GameStatePublicStartInputDto;
-
-            const startResp: BfwApiSdkResponse<GameStateOutputDto> = await this.api.sdk.graphql.gameEngine.publicStart({
-                selection: {
-                    current_turn_rack_id: true,
-                    current_turn_seat_id: true,
-                    phase: true,
-                    turn_stage: true,
-                    wall_count: true,
-                    pass: {
-                        count: true,
-                        direction: true,
-                        round: true,
-                        submissions: true,
-                        second_votes: true,
-                        stage: true,
-                    },
-                    claim: {
-                        from_seat: true,
-                        deadline_at: true,
-                        intents: true,
-                        tile: {
-                            id: true,
-                            tile_id: true,
-                            gseat_id: true,
-                            in_exposer_one: true,
-                            in_rack_one: true,
-                            sort_exposer_one: true,
-                            sort_rack_one: true,
-                            in_exposer_two: true,
-                            in_rack_two: true,
-                            sort_exposer_two: true,
-                            sort_rack_two: true,
-                            updated: true,
-                        }
-                    },
-                    game: {
-                        id: true,
-                        allow_join: true,
-                        mode: true,
-                        botlvl_id: true,
-                        current_turn_u_id: true,
-                        grule_id: true,
-                    },
-                    seats: true,
-                    all_tiles: true,
-                    bot_profile: {
-                        id: true,
-                        botlvl_id: true,
-                        title: true,
-                        think_time_min_ms: true,
-                        think_time_max_ms: true,
-                        claim_aggression: true,
-                        defense_weight: true,
-                        hand_reading_weight: true,
-                        discard_safety_weight: true,
-                        joker_usage_weight: true,
-                        exposure_preference: true,
-                        error_rate: true,
-                        randomness: true,
-                        react_to_danger: true,
-                        charleston_quality: true,
-                        active: true,
-                        deleted: true,
-                    }
-                },
-                input: gameStartInput
-            });
-
-            if (startResp?.data) {
-                this.state.setGame(startResp.data);
-                return startResp;
-            }
-        } catch (error) {
-            this.log.error('ERROR START GAME', error);
-            return false;
-        }
-        return false;
-
-    }
 
     public async afterGameStart(): Promise<void> {
         // connect to web socket to listen the game live events
