@@ -301,6 +301,7 @@ export class GameService implements FoundationModuleServiceType {
             this.log.error('ERROR START GAME', error);
             return false;
         }
+        return false;
 
     }
 

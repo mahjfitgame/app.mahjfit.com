@@ -94,9 +94,9 @@
 }
 
 /*
-    * Centre "YOUR TURN" card. Phaser supplies every coordinate; the browser
-    * paints it so the copy and button label stay sharp at any pixel ratio.
-    */
+       * Centre "YOUR TURN" card. Phaser supplies every coordinate; the browser
+       * paints it so the copy and button label stay sharp at any pixel ratio.
+       */
 .instruction-panel {
     position: absolute;
     z-index: 25;
@@ -109,10 +109,10 @@
 }
 
 /*
-    * Copy occupies the band between the top inset and the button, and is
-    * centred inside it. Overflow is clipped rather than allowed to spill
-    * over the button on very small cards.
-    */
+       * Copy occupies the band between the top inset and the button, and is
+       * centred inside it. Overflow is clipped rather than allowed to spill
+       * over the button on very small cards.
+       */
 .instruction-panel__content {
     position: absolute;
     display: flex;
@@ -205,10 +205,10 @@
 }
 
 /*
-    * Dead Hand seat picker. The dimmer sits above the whole native overlay
-    * layer, so the HUD and instruction card are dimmed rather than hidden,
-    * and it swallows taps to block table interaction while it is open.
-    */
+       * Dead Hand seat picker. The dimmer sits above the whole native overlay
+       * layer, so the HUD and instruction card are dimmed rather than hidden,
+       * and it swallows taps to block table interaction while it is open.
+       */
 .dead-hand-seats {
     position: absolute;
     inset: 0;
@@ -220,11 +220,11 @@
 }
 
 /*
-    * The picker's children are built at runtime, so they never receive this
-    * component's emulated-encapsulation attribute and no rule written here
-    * would match them. Their styles are applied inline in
-    * setDeadHandSeatSelection(), as with the other dynamic popups above.
-    */
+       * The picker's children are built at runtime, so they never receive this
+       * component's emulated-encapsulation attribute and no rule written here
+       * would match them. Their styles are applied inline in
+       * setDeadHandSeatSelection(), as with the other dynamic popups above.
+       */
 
 .remove-player-popup {
     position: absolute;
@@ -283,9 +283,9 @@
 }
 
 /*
-    * Native MAH JONGG win celebration. Replaces the Phaser canvas popup so
-    * the title, subtitle and dismiss text stay sharp at every pixel ratio.
-    */
+       * Native MAH JONGG win celebration. Replaces the Phaser canvas popup so
+       * the title, subtitle and dismiss text stay sharp at every pixel ratio.
+       */
 .mahjong-win-popup {
     position: absolute;
     inset: 0;
@@ -399,13 +399,13 @@
 }
 
 /*
-    * A Phaser popup is drawn on the canvas, which the browser paints below
-    * every HTML overlay. These rules stand the native layer down so the
-    * popup is genuinely the topmost thing on screen.
-    *
-    * A centred popup only needs the instruction card to move aside; a
-    * full-screen dimmer needs the whole native HUD to go with it.
-    */
+       * A Phaser popup is drawn on the canvas, which the browser paints below
+       * every HTML overlay. These rules stand the native layer down so the
+       * popup is genuinely the topmost thing on screen.
+       *
+       * A centred popup only needs the instruction card to move aside; a
+       * full-screen dimmer needs the whole native HUD to go with it.
+       */
 :host(.table-popup-center) .instruction-panel,
 :host(.table-popup-screen) .instruction-panel,
 :host(.table-popup-screen) .hud-wall-count,
@@ -455,26 +455,6 @@
     opacity: 0;
     visibility: hidden;
     transform: translateY(-12px) translateZ(0);
-}
-
-.mobile-header-toggle {
-    position: absolute;
-    z-index: 20;
-    display: none;
-    padding: 0;
-    border: 0;
-    background: transparent;
-    pointer-events: auto;
-    cursor: pointer;
-    font-family: "Material Symbols Rounded";
-    font-weight: normal;
-    font-style: normal;
-    font-size: 30px;
-    line-height: 1;
-    color: #264089;
-    -webkit-font-smoothing: antialiased;
-    text-rendering: geometricPrecision;
-    transform: translate(-50%, -50%);
 }
 
 ::ng-deep .mahjong-win-popup {

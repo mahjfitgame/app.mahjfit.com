@@ -1,5 +1,4 @@
 // file: src/app/module/business/game/phaser/scenes/type.ts
-
 import { GameHapticType, TileVm } from "../../type";
 import { DeviceLayoutState, PassDirection, TableLayout, TablePhase } from "../type";
 
@@ -104,8 +103,6 @@ export interface TableSceneCallbacks {
   readonly onPlayerLabelOverlay: (states: readonly PlayerLabelOverlayState[]) => void;
   /** Updates the crisp native points value beside the Phaser points icon. */
   readonly onPointsOverlay: (state: PointsOverlayState) => void;
-  /** Positions the native mobile header toggle arrow. */
-  readonly onMobileHeaderToggle: (state: MobileHeaderToggleState) => void;
   /** Lets native overlays yield while a mobile Phaser drawer is open. */
   readonly onMobileDrawerVisibilityChanged: (open: boolean) => void;
   readonly onMobileDrawerOverlay: (state: MobileDrawerOverlayState) => void;
@@ -207,8 +204,6 @@ export interface UiLayoutCallbacks {
   readonly onMobileDrawerOverlay?: (state: MobileDrawerOverlayState) => void;
   /** Positions and fills the native instruction card over the table centre. */
   readonly onInstructionPanelOverlay?: (state: InstructionPanelOverlayState) => void;
-  /** Positions the native mobile header toggle arrow. */
-  readonly onMobileHeaderToggle?: (state: MobileHeaderToggleState) => void;
   readonly logoTextureKey?: string;
 }
 
@@ -234,14 +229,6 @@ export interface PlayerLabelOverlayState {
   readonly fontSize: number;
   readonly color: string;
   readonly angle: 0 | 90 | -90;
-  readonly visible: boolean;
-}
-
-/** Browser-native mobile header toggle arrow. */
-export interface MobileHeaderToggleState {
-  readonly icon: string;
-  readonly x: number;
-  readonly y: number;
   readonly visible: boolean;
 }
 
@@ -428,45 +415,4 @@ export interface InteractionRect {
 
 export interface GameLayoutOptions {
   readonly mobileHeaderCollapsed?: boolean;
-}
-
-
-export interface PassWaitingTileAnimation {
-  readonly id: string;
-  readonly image?: Phaser.GameObjects.Image;
-}
-
-export interface AnimationPoint { readonly x: number; readonly y: number; }
-export interface AnimationSize { readonly width: number; readonly height: number; }
-export type WallPickClone = Phaser.GameObjects.Image | Phaser.GameObjects.Container;
-
-
-/**
- * Scene-owned decisions and external effects used by the future pass flow.
- */
-export interface PassFlowCallbacks {
-  readonly isPassPhaseAllowed: () => boolean;
-  readonly validateSubmission: () => boolean;
-  readonly approveSubmission: () => boolean;
-  readonly onPassCompleted: (payload: {
-    readonly tileIds: readonly string[];
-    readonly direction: PassDirection;
-  }) => void;
-  readonly notifyNetworking: (payload: {
-    readonly tileIds: readonly string[];
-    readonly direction: PassDirection;
-  }) => void;
-  readonly emitExternalEvent: (event: string, payload?: unknown) => void;
-  readonly requestPassUiUpdate: () => void;
-}
-
-export interface PassResultCallbacks {
-  readonly onTileRemoved: (runtime: TileRuntime) => void;
-  readonly onCloseButtonRemoved: (tileId: string) => void;
-  readonly onSelectionChanged: () => void;
-  readonly onPassCompleted: (payload: {
-    readonly tileIds: readonly string[];
-    readonly direction: PassDirection;
-  }) => void;
-  readonly onLayoutRequested: () => void;
 }

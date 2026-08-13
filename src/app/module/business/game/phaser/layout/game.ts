@@ -1,23 +1,16 @@
-// src/app/game/phaser/game-layout.engine.ts
-import { DeviceLayoutState, GameTableConfig, Rect, ResponsiveMetrics, SafeAreaInsets, TableLayout, TileLayout } from "./type";
 import { inject, Service } from "@angular/core";
-import { PhaserService } from "./service";
-import { DeviceLayout } from "./device.layout";
 
-// Keep the layout engine as the public entry point for its related layout types.
-const ZERO_SAFE_AREA: SafeAreaInsets = {
-  top: 0,
-  right: 0,
-  bottom: 0,
-  left: 0,
-};
+import { ExposurePanelMode, GameTableConfig, Rect, ResponsiveMetrics, SafeAreaInsets, TableLayout, TileLayout } from "../type";
+import { DeviceLayoutState } from "../type";
+import { PhaserLayoutDevice } from "./device";
+import { ZERO_SAFE_AREA } from "../const";
 
-@Service({ autoProvided: false })
-export class GameLayoutEngine {
-  protected readonly service = inject(PhaserService);
-  protected readonly deviceLS = inject(DeviceLayout);
 
-  public compute(
+@Service({ autoProvided: true })
+export class PhaserLayoutGame {
+  public readonly deviceLayout = inject(PhaserLayoutDevice);
+
+  compute(
     viewportOrWidth: DeviceLayoutState | number,
     heightOrTileCount: number,
     tileCountOrConfig: number | GameTableConfig,
@@ -31,7 +24,7 @@ export class GameLayoutEngine {
           height: heightOrTileCount,
           orientation:
             heightOrTileCount >= viewportOrWidth ? "portrait" : "landscape",
-          layout: this.deviceLS.resolveDeviceLayout(viewportOrWidth, heightOrTileCount),
+          layout: this.deviceLayout.resolveDeviceLayout(viewportOrWidth, heightOrTileCount),
         }
         : viewportOrWidth;
     const tileCount =
@@ -99,7 +92,7 @@ export class GameLayoutEngine {
         );
     }
   }
-  public computeDesktopLandscape(
+  computeDesktopLandscape(
     width: number,
     height: number,
     tileCount: number,
@@ -329,9 +322,9 @@ export class GameLayoutEngine {
 
     const bottomTileLayout = this.computeTileLayout(bottomRack, count, width, config);
 
-    const labelY = this.service.horizontalLabelCenterRatio("desktop");
-    const leftLabelX = this.service.leftLabelCenterRatio("desktop");
-    const rightLabelX = this.service.rightLabelCenterRatio("desktop");
+    const labelY = this.horizontalLabelCenterRatio("desktop");
+    const leftLabelX = this.leftLabelCenterRatio("desktop");
+    const rightLabelX = this.rightLabelCenterRatio("desktop");
 
     return {
       canvas: { x: 0, y: 0, width, height },
@@ -431,7 +424,7 @@ export class GameLayoutEngine {
     };
     const bottomTileLayout = this.computeTileLayout(bottomRack, count, width, config);
     const panelRatios =
-      this.service.exposureLipRatio("tablet") + this.service.exposureNameStripRatio("tablet");
+      this.exposureLipRatio("tablet") + this.exposureNameStripRatio("tablet");
     const exposureThickness = Math.ceil(
       (bottomTileLayout.height + 2) / (1 - panelRatios),
     );
@@ -449,13 +442,9 @@ export class GameLayoutEngine {
 
     const topExposureHeight = exposureThickness;
 
-    // Increase the gap between the exposures and the table border
-    const unifiedExtraMargin = tableOuter.width * 0.0125;
-    const unifiedExposureMargin = tablePadX + unifiedExtraMargin;
-
     const topExposure: Rect = {
       x: safeCenterX - topExposureWidth / 2,
-      y: tableOuter.y + unifiedExposureMargin,
+      y: tableOuter.y + tablePadTop,
       width: topExposureWidth,
       height: topExposureHeight,
     };
@@ -470,7 +459,7 @@ export class GameLayoutEngine {
 
     const bottomExposure: Rect = {
       x: safeCenterX - bottomExposureWidth / 2,
-      y: bottomRack.y - bottomExposureHeight - unifiedExposureMargin,
+      y: bottomRack.y - bottomExposureHeight - tablePadX,
       width: bottomExposureWidth,
       height: bottomExposureHeight,
     };
@@ -494,14 +483,14 @@ export class GameLayoutEngine {
     );
 
     const leftExposure: Rect = {
-      x: tableOuter.x + unifiedExposureMargin,
+      x: tableOuter.x + tablePadX,
       y: sideExposureY,
       width: sideExposureWidth,
       height: sideExposureHeight,
     };
 
     const rightExposure: Rect = {
-      x: tableOuter.x + tableOuter.width - unifiedExposureMargin - sideExposureWidth,
+      x: tableOuter.x + tableOuter.width - tablePadX - sideExposureWidth,
       y: sideExposureY,
       width: sideExposureWidth,
       height: sideExposureHeight,
@@ -593,9 +582,9 @@ export class GameLayoutEngine {
      * Tablet strip ratio comes from exposure-panel.tokens.ts.
      * Centers label exactly inside each name strip.
      */
-    const labelY = this.service.horizontalLabelCenterRatio("tablet");
-    const leftLabelX = this.service.leftLabelCenterRatio("tablet");
-    const rightLabelX = this.service.rightLabelCenterRatio("tablet");
+    const labelY = this.horizontalLabelCenterRatio("tablet");
+    const leftLabelX = this.leftLabelCenterRatio("tablet");
+    const rightLabelX = this.rightLabelCenterRatio("tablet");
 
     return {
       canvas: { x: 0, y: 0, width, height },
@@ -696,7 +685,7 @@ export class GameLayoutEngine {
       config,
     );
     const panelRatios =
-      this.service.exposureLipRatio("tablet") + this.service.exposureNameStripRatio("tablet");
+      this.exposureLipRatio("tablet") + this.exposureNameStripRatio("tablet");
     const provisionalExposureThickness = Math.ceil(
       (provisionalTileLayout.height + 2) / (1 - panelRatios),
     );
@@ -729,13 +718,9 @@ export class GameLayoutEngine {
 
     const topExposureHeight = exposureThickness;
 
-    // Increase the gap between the exposures and the table border
-    const unifiedExtraMargin = tableOuter.width * 0.0125;
-    const unifiedExposureMargin = tablePadX + unifiedExtraMargin;
-
     const topExposure: Rect = {
       x: safeCenterX - topExposureWidth / 2,
-      y: tableOuter.y + unifiedExposureMargin,
+      y: tableOuter.y + tablePadTop,
       width: topExposureWidth,
       height: topExposureHeight,
     };
@@ -750,7 +735,7 @@ export class GameLayoutEngine {
 
     const bottomExposure: Rect = {
       x: safeCenterX - bottomExposureWidth / 2,
-      y: bottomRack.y - bottomExposureHeight - unifiedExposureMargin,
+      y: bottomRack.y - bottomExposureHeight - tablePadX,
       width: bottomExposureWidth,
       height: bottomExposureHeight,
     };
@@ -762,15 +747,26 @@ export class GameLayoutEngine {
      */
     const sideExposureWidth = exposureThickness;
 
+    /* const sideExposureY =
+      topExposure.y + topExposure.height + tableOuter.height * 0.045;
+
+    const sideExposureBottom =
+      bottomExposure.y - tableOuter.height * 0.045;
+
+    const sideExposureHeight = Math.max(
+      220,
+      sideExposureBottom - sideExposureY,
+    ); */
+
     /**
      * Full-height side rails for tablet landscape.
      * They now use almost the full table height instead of only the
      * space between topExposure and bottomExposure.
      */
-    const sideExposureY = tableOuter.y + unifiedExposureMargin;
+    const sideExposureY = tableOuter.y + tablePadX;
 
     const sideExposureBottom =
-      tableOuter.y + tableOuter.height - unifiedExposureMargin;
+      tableOuter.y + tableOuter.height - tablePadX;
 
     const sideExposureHeight = Math.max(
       220,
@@ -778,14 +774,14 @@ export class GameLayoutEngine {
     );
 
     const leftExposure: Rect = {
-      x: tableOuter.x + unifiedExposureMargin,
+      x: tableOuter.x + tablePadX,
       y: sideExposureY,
       width: sideExposureWidth,
       height: sideExposureHeight,
     };
 
     const rightExposure: Rect = {
-      x: tableOuter.x + tableOuter.width - unifiedExposureMargin - sideExposureWidth,
+      x: tableOuter.x + tableOuter.width - tablePadX - sideExposureWidth,
       y: sideExposureY,
       width: sideExposureWidth,
       height: sideExposureHeight,
@@ -877,9 +873,9 @@ export class GameLayoutEngine {
     /**
      * Tablet uses the shared tablet exposure strip ratio.
      */
-    const labelY = this.service.horizontalLabelCenterRatio("tablet");
-    const leftLabelX = this.service.leftLabelCenterRatio("tablet");
-    const rightLabelX = this.service.rightLabelCenterRatio("tablet");
+    const labelY = this.horizontalLabelCenterRatio("tablet");
+    const leftLabelX = this.leftLabelCenterRatio("tablet");
+    const rightLabelX = this.rightLabelCenterRatio("tablet");
 
     return {
       canvas: { x: 0, y: 0, width, height },
@@ -983,8 +979,8 @@ export class GameLayoutEngine {
     };
     const bottomTileLayout = this.computeTileLayout(bottomRack, count, width, config);
     const panelRatios =
-      this.service.exposureLipRatio("mobile-landscape") +
-      this.service.exposureNameStripRatio("mobile-landscape");
+      this.exposureLipRatio("mobile-landscape") +
+      this.exposureNameStripRatio("mobile-landscape");
     // The rendered inner horizontal tray is exactly one rack-tile high.
     const exposureThickness = Math.ceil(
       (bottomTileLayout.height + 2) / (1 - panelRatios),
@@ -1002,15 +998,10 @@ export class GameLayoutEngine {
     );
 
     const topExposureHeight = exposureThickness;
-    const discardPanelGap = this.discardPanelGap(tableOuter);
-
-    // Increase the gap between the exposures and the table border
-    const unifiedExtraMargin = tableOuter.width * 0.0125;
-    const unifiedExposureMargin = tablePadX + unifiedExtraMargin;
 
     const topExposure: Rect = {
       x: safeCenterX - topExposureWidth / 2,
-      y: tableOuter.y + unifiedExposureMargin,
+      y: tableOuter.y + tablePadTop,
       width: topExposureWidth,
       height: topExposureHeight,
     };
@@ -1026,17 +1017,71 @@ export class GameLayoutEngine {
 
     const bottomExposure: Rect = {
       x: safeCenterX - bottomExposureWidth / 2,
-      y: bottomRack.y - bottomExposureHeight - unifiedExposureMargin,
+      y: bottomRack.y - bottomExposureHeight - tablePadX,
       width: bottomExposureWidth,
       height: bottomExposureHeight,
     };
 
-    const sideExposureWidth = exposureThickness;
+    /**
+    * Side exposures:
+    * Dynamically fit between top exposure and bottom exposure.
+    * This prevents the huge overlap seen in the screenshot.
+    */
+    /* const sideExposureWidth = this.clamp(
+      tableOuter.width * 0.060,
+      44,
+      62,
+    ); */
+    /* const sideExposureWidth = this.clamp(
+      //tableOuter.width * 0.078,
+      tableOuter.width * 0.078,
+      58,
+      78,
+    ); */
+    /* const sideExposureWidth = this.clamp(
+      tableOuter.width * 0.078,
+      34,
+      42,
+    );
 
-    const sideExposureY = tableOuter.y + unifiedExposureMargin;
+
+    const sideExposureY =
+      topExposure.y + topExposure.height + tableOuter.height * 0.050;
 
     const sideExposureBottom =
-      tableOuter.y + tableOuter.height - unifiedExposureMargin;
+      bottomExposure.y - tableOuter.height * 0.040;
+
+    const sideExposureHeight = Math.max(
+      this.clamp(tableOuter.height * 0.320, 92, 130),
+      sideExposureBottom - sideExposureY,
+    );
+    
+
+    const finalSideExposureHeight = Math.min(
+      sideExposureHeight,
+      Math.max(80, sideExposureBottom - sideExposureY),
+    );
+
+    const leftExposure: Rect = {
+      x: tableOuter.x + tablePadX,
+      y: sideExposureY,
+      width: sideExposureWidth,
+      height: finalSideExposureHeight,
+    };
+
+    const rightExposure: Rect = {
+      x: tableOuter.x + tableOuter.width - tablePadX - sideExposureWidth,
+      y: sideExposureY,
+      width: sideExposureWidth,
+      height: finalSideExposureHeight,
+    }; */
+
+    const sideExposureWidth = exposureThickness;
+
+    const sideExposureY = tableOuter.y + tablePadX;
+
+    const sideExposureBottom =
+      tableOuter.y + tableOuter.height - tablePadX;
 
     const finalSideExposureHeight = Math.max(
       80,
@@ -1044,14 +1089,14 @@ export class GameLayoutEngine {
     );
 
     const leftExposure: Rect = {
-      x: tableOuter.x + unifiedExposureMargin,
+      x: tableOuter.x + tablePadX,
       y: sideExposureY,
       width: sideExposureWidth,
       height: finalSideExposureHeight,
     };
 
     const rightExposure: Rect = {
-      x: tableOuter.x + tableOuter.width - unifiedExposureMargin - sideExposureWidth,
+      x: tableOuter.x + tableOuter.width - tablePadX - sideExposureWidth,
       y: sideExposureY,
       width: sideExposureWidth,
       height: finalSideExposureHeight,
@@ -1073,6 +1118,14 @@ export class GameLayoutEngine {
       78,
     );
 
+
+
+    /* const instructionBar: Rect = {
+      x: safeCenterX - instructionWidth / 2,
+      y: tableOuter.y + tableOuter.height * 0.330,
+      width: instructionWidth,
+      height: instructionHeight,
+    }; */
     const instructionBar: Rect = {
       x: Math.round(safeCenterX - instructionWidth / 2),
       y: Math.round(
@@ -1111,16 +1164,18 @@ export class GameLayoutEngine {
     * Discard area:
     * Centered available space, not allowed to overlap panels.
     */
+    const discardPanelGap = this.discardPanelGap(tableOuter);
+    const discardAreaTop = topExposure.y + topExposure.height + discardPanelGap;
 
-    // Explicitly use a small 4px gap to ensure the discard area doesn't overlap the exposures,
-    // while allowing the discard area to naturally shrink if the exposures are pushed inward.
-    const discardAreaTop = topExposure.y + topExposure.height + 4;
-    const discardAreaBottom = bottomExposure.y - 4;
+    const discardAreaBottom = bottomExposure.y - discardPanelGap;
 
     const discardArea: Rect = {
-      x: leftExposure.x + leftExposure.width + 4,
+      x: leftExposure.x + leftExposure.width + tableOuter.width * 0.040,
       y: discardAreaTop,
-      width: rightExposure.x - (leftExposure.x + leftExposure.width) - 8,
+      width:
+        rightExposure.x -
+        (leftExposure.x + leftExposure.width) -
+        tableOuter.width * 0.080,
       height: Math.max(48, discardAreaBottom - discardAreaTop),
     };
 
@@ -1131,9 +1186,9 @@ export class GameLayoutEngine {
       height: hudHeight,
     };
 
-    const labelY = this.service.horizontalLabelCenterRatio("mobile-landscape");
-    const leftLabelX = this.service.leftLabelCenterRatio("mobile-landscape");
-    const rightLabelX = this.service.rightLabelCenterRatio("mobile-landscape");
+    const labelY = this.horizontalLabelCenterRatio("mobile-landscape");
+    const leftLabelX = this.leftLabelCenterRatio("mobile-landscape");
+    const rightLabelX = this.rightLabelCenterRatio("mobile-landscape");
 
     return {
       canvas: { x: 0, y: 0, width, height },
@@ -1278,8 +1333,8 @@ export class GameLayoutEngine {
       config,
     );
     const panelRatios =
-      this.service.exposureLipRatio("mobile-portrait") +
-      this.service.exposureNameStripRatio("mobile-portrait");
+      this.exposureLipRatio("mobile-portrait") +
+      this.exposureNameStripRatio("mobile-portrait");
     // The rendered inner horizontal tray is exactly one rack-tile high.
     const exposureThickness = Math.ceil(
       (bottomTileLayout.height + 2) / (1 - panelRatios),
@@ -1297,8 +1352,8 @@ export class GameLayoutEngine {
      * Keep side panels inside the pink table border,
      * but give them enough width for exposed tiles.
      */
-    const sideInsetExtra = tableOuter.width * 0.030;
-    const sideInsetX = this.tableEdgeInset(tableOuter) + sideInsetExtra;
+    const sideInsetX = this.tableEdgeInset(tableOuter);
+
 
     const leftExposure: Rect = {
       x: tableOuter.x + sideInsetX,
@@ -1328,14 +1383,10 @@ export class GameLayoutEngine {
     );
 
     const topExposureHeight = exposureThickness;
-    const discardPanelGap = this.discardPanelGap(tableOuter);
-
-    // Move top/bottom exposures inwards without squishing the discard area.
-    const topInsetExtra = Math.max(0, Math.min(tableOuter.height * 0.015, discardPanelGap - 2));
 
     const topExposure: Rect = {
       x: safeCenterX - topExposureWidth / 2,
-      y: tableOuter.y + tablePaddingTop + topInsetExtra,
+      y: tableOuter.y + tablePaddingTop,
       width: topExposureWidth,
       height: topExposureHeight,
     };
@@ -1351,7 +1402,7 @@ export class GameLayoutEngine {
 
     const bottomExposure: Rect = {
       x: safeCenterX - bottomExposureWidth / 2,
-      y: bottomRack.y - bottomExposureHeight - tablePaddingTop - topInsetExtra,
+      y: bottomRack.y - bottomExposureHeight - tablePaddingTop,
       width: bottomExposureWidth,
       height: bottomExposureHeight,
     };
@@ -1423,17 +1474,18 @@ export class GameLayoutEngine {
      * Give the center most of the remaining vertical space.
      */
 
-    const discardAreaTop = topExposure.y + topExposure.height + discardPanelGap - topInsetExtra;
+    const discardPanelGap = this.discardPanelGap(tableOuter);
+    const discardAreaTop = topExposure.y + topExposure.height + discardPanelGap;
 
-    const discardAreaBottom = bottomExposure.y - discardPanelGap + topInsetExtra;
+    const discardAreaBottom = bottomExposure.y - discardPanelGap;
 
     const discardArea: Rect = {
-      x: leftExposure.x + leftExposure.width + tableOuter.width * 0.005,
+      x: leftExposure.x + leftExposure.width + tableOuter.width * 0.035,
       y: discardAreaTop,
       width:
         rightExposure.x -
         (leftExposure.x + leftExposure.width) -
-        tableOuter.width * 0.010,
+        tableOuter.width * 0.070,
       height: Math.max(70, discardAreaBottom - discardAreaTop),
     };
 
@@ -1445,9 +1497,9 @@ export class GameLayoutEngine {
     };
 
 
-    const labelY = this.service.horizontalLabelCenterRatio("mobile-portrait");
-    const leftLabelX = this.service.leftLabelCenterRatio("mobile-portrait");
-    const rightLabelX = this.service.rightLabelCenterRatio("mobile-portrait");
+    const labelY = this.horizontalLabelCenterRatio("mobile-portrait");
+    const leftLabelX = this.leftLabelCenterRatio("mobile-portrait");
+    const rightLabelX = this.rightLabelCenterRatio("mobile-portrait");
     return {
       canvas: { x: 0, y: 0, width, height },
       tableOuter,
@@ -1731,4 +1783,43 @@ export class GameLayoutEngine {
   private discardPanelGap(table: Rect): number {
     return this.clamp(Math.min(table.width, table.height) * 0.012, 5, 12);
   }
+
+  public exposureLipRatio(mode: ExposurePanelMode): number {
+    if (mode === "mobile-portrait") return 0.10;
+    if (mode === "mobile-landscape") return 0.10;
+    if (mode === "tablet") return 0.13;
+
+    return 0.14;
+  }
+
+  public exposureNameStripRatio(mode: ExposurePanelMode): number {
+    /**
+     * Desktop currently looks good with 0.225.
+     * Mobile needs smaller strip so the exposure tile area is not consumed.
+     */
+    // Reserve a little more strip width/height around the rotated player name.
+    // The layout engine compensates panel thickness, so the exposed-tile area
+    // remains rack-tile sized.
+    if (mode === "mobile-portrait") return 0.18;
+    if (mode === "mobile-landscape") return 0.18;
+    if (mode === "tablet") return 0.17;
+
+    return 0.225;
+  }
+
+  public horizontalLabelCenterRatio(mode: ExposurePanelMode): number {
+    const strip = this.exposureNameStripRatio(mode);
+    return 1 - strip / 2;
+  }
+
+  public leftLabelCenterRatio(mode: ExposurePanelMode): number {
+    const strip = this.exposureNameStripRatio(mode);
+    return 1 - strip / 2;
+  }
+
+  public rightLabelCenterRatio(mode: ExposurePanelMode): number {
+    const strip = this.exposureNameStripRatio(mode);
+    return strip / 2;
+  }
+
 }

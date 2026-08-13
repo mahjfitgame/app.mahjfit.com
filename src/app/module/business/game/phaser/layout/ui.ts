@@ -1,16 +1,15 @@
 // file: src/app/module/business/game/phaser/scenes/managers/ui-layout.ts
 import Phaser from "phaser";
-
-import { COLOR_AVOCADO, COLOR_BLUE, COLOR_BLUE_NUM, COLOR_FUSHIA, COLOR_FUSHIA_NUM, COLOR_GRAY, FONT_FAMILY, ICON_DEADHAND_HOVER, ICON_DEADHAND_NORMAL, ICON_DEADHAND_PRESSED, ICON_HELP_HOVER, ICON_HELP_NORMAL, ICON_HELP_PRESSED, ICON_HINT_HOVER, ICON_HINT_NORMAL, ICON_HINT_PRESSED, ICON_SETTINGS_HOVER, ICON_SETTINGS_NORMAL, ICON_SETTINGS_PRESSED, ICON_SORT_HOVER, ICON_SORT_NORMAL, ICON_SORT_PRESSED } from "../../const";
-import { PassDirection, TableLayout, TablePhase } from "../../type";
-import { HamburgerMenuActionKey, HudActionKey, HudImageButton, LayoutStaticUiOptions, PassButtonStateOptions, PlayerLabelOverlayState, PointsOverlayState, TableSeat, UiLayoutCallbacks, WallCountOverlayState } from "../../type";
+import { COLOR_AVOCADO, COLOR_BLUE, COLOR_BLUE_NUM, COLOR_FUSHIA, COLOR_FUSHIA_NUM, COLOR_GRAY, FONT_FAMILY, ICON_DEADHAND_HOVER, ICON_DEADHAND_NORMAL, ICON_DEADHAND_PRESSED, ICON_HELP_HOVER, ICON_HELP_NORMAL, ICON_HELP_PRESSED, ICON_HINT_HOVER, ICON_HINT_NORMAL, ICON_HINT_PRESSED, ICON_SETTINGS_HOVER, ICON_SETTINGS_NORMAL, ICON_SETTINGS_PRESSED, ICON_SORT_HOVER, ICON_SORT_NORMAL, ICON_SORT_PRESSED } from "../const";
+import { PassDirection, TableLayout, TablePhase } from "../type";
+import { HamburgerMenuActionKey, HudActionKey, HudImageButton, LayoutStaticUiOptions, PassButtonStateOptions, PlayerLabelOverlayState, PointsOverlayState, TableSeat, UiLayoutCallbacks, WallCountOverlayState } from "../scenes/type";
 
 
 /**
  * Owns Phaser UI objects and responsive UI presentation state.
  * Gameplay actions remain callbacks owned by TableScene.
  */
-export class UiLayoutManager {
+export class PhaserLayoutUi {
   hudTextObjects: Phaser.GameObjects.Text[] = [];
   hudActionIconImage: Phaser.GameObjects.Image[] = [];
   playerLabels: Phaser.GameObjects.Text[] = [];
@@ -224,7 +223,7 @@ export class UiLayoutManager {
     };
   constructor(private readonly callbacks: UiLayoutCallbacks = {}) { }
 
-  public createStaticUi(scene: Phaser.Scene): void {
+  createStaticUi(scene: Phaser.Scene): void {
     /**
      * New explicit PSD HUD.
      * Keep hudTextObjects empty so old array-based HUD cannot duplicate.
@@ -358,7 +357,7 @@ export class UiLayoutManager {
   }
 
   /** The mobile HUD overlays the table and can be hidden without relayout. */
-  public setMobileHeaderVisible(visible: boolean): void {
+  setMobileHeaderVisible(visible: boolean): void {
     // When visible, let the normal HUD layout decide which mobile/desktop
     // controls are active. Forcing the desktop action container visible on a
     // phone creates invisible interactive controls above the hamburger.
@@ -528,7 +527,7 @@ export class UiLayoutManager {
       .setDepth(25);
   }
 
-  public createHudPointsIcon(scene: Phaser.Scene): Phaser.GameObjects.Container {
+  createHudPointsIcon(scene: Phaser.Scene): Phaser.GameObjects.Container {
     const graphics = scene.add.graphics();
 
     return scene.add
@@ -536,7 +535,7 @@ export class UiLayoutManager {
       .setDepth(25);
   }
 
-  public layoutStaticUi(options: LayoutStaticUiOptions): void {
+  layoutStaticUi(options: LayoutStaticUiOptions): void {
     const {
       layout,
       renderDpr,
@@ -634,14 +633,14 @@ export class UiLayoutManager {
   }
 
   /** Closes either mobile drawer from its native HTML close control. */
-  public closeMobileDrawers(): void {
+  closeMobileDrawers(): void {
     this.hamburgerMenuOpen = false;
     this.mobileActionMenuOpen = false;
     this.mobileActionSubmenu = undefined;
     this.renderOpenMenusNow();
   }
 
-  public handleHtmlDrawerItem(label: string): void {
+  handleHtmlDrawerItem(label: string): void {
     const actions: Record<string, HamburgerMenuActionKey> = {
       "Gameplay Settings": "gameplay-settings", "Your level/play history": "play-history",
       "Account/billing": "account-billing", "Restart Game": "restart-game",
@@ -690,7 +689,7 @@ export class UiLayoutManager {
    * their existing Phaser copies so the drawer can cover only the portions it
    * overlaps instead of hiding every label across the entire table.
    */
-  public setNativeTextFallbackVisible(visible: boolean): void {
+  setNativeTextFallbackVisible(visible: boolean): void {
     if (!this.lastLayout?.metrics.isMobile) return;
 
     this.hudWallIcon?.setDepth(visible ? 25 : 19).setVisible(visible);
@@ -1834,7 +1833,7 @@ export class UiLayoutManager {
     graphics.lineBetween(coinW / 2, startY, coinW / 2, startY + coinH * 2.4);
   }
 
-  public updateTextResolution(renderDpr: number): void {
+  updateTextResolution(renderDpr: number): void {
     for (const text of [
       ...this.hudTextObjects,
       ...this.hudActionIconTexts,
@@ -1869,7 +1868,7 @@ export class UiLayoutManager {
   }
 
 
-  public updateInstruction(
+  updateInstruction(
     phase: TablePhase,
     pickTargetSeat: TableSeat,
     passDirection: PassDirection,
@@ -2030,7 +2029,7 @@ export class UiLayoutManager {
 
     return Phaser.Math.Clamp(dpr, 1.5, 2.5);
   }
-  public updatePlayerNames(
+  updatePlayerNames(
     layout: TableLayout,
     renderDpr: number,
     activeSeat: TableSeat,
@@ -2195,7 +2194,7 @@ export class UiLayoutManager {
     ]);
   }
 
-  public updateWallTiles(wallTileCount: number): void {
+  updateWallTiles(wallTileCount: number): void {
     const text = `${wallTileCount} LEFT`;
     this.wallCountText?.setText(text);
     if (this.wallCountOverlayState) {
@@ -2255,7 +2254,7 @@ export class UiLayoutManager {
       radius,
     );
   }
-  public layoutHudPointsIcon(layout: TableLayout, x: number, y: number): void {
+  layoutHudPointsIcon(layout: TableLayout, x: number, y: number): void {
     if (!this.hudPointsIcon) return;
 
     const hud = layout.hud;
@@ -2275,7 +2274,7 @@ export class UiLayoutManager {
     graphics.fillStyle(0x172447, 1);
     graphics.fillCircle(0, 0, size * 0.13);
   }
-  public createHudActions(scene: Phaser.Scene): Phaser.GameObjects.Container {
+  createHudActions(scene: Phaser.Scene): Phaser.GameObjects.Container {
     /**
      * Desktop/tablet HUD action icons.
      *
@@ -2541,7 +2540,7 @@ export class UiLayoutManager {
       tooltipY + tooltipHeight / 2,
     );
   }
-  public layoutHudActions(layout: TableLayout): void {
+  layoutHudActions(layout: TableLayout): void {
     if (!this.hudActionsContainer) return;
 
     const compact = this.isCompactHud(layout);
@@ -2616,7 +2615,7 @@ export class UiLayoutManager {
       );
     }
   }
-  public layoutHudDropdown(layout: TableLayout): void {
+  layoutHudDropdown(layout: TableLayout): void {
     if (!this.hudDropdownBg || !this.hudActionsContainer) return;
 
     for (const item of this.hudDropdownItems) {

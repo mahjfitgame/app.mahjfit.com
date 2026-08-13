@@ -1,4 +1,137 @@
 
+
+================ POINTS ==================
+1]
+Make API call to create the new game.
+For first we set the fixed player and created 3 links to implement join functionality.
+First we decided to start the game with the realplayer and after that we extend and attache the remain things and feature functionality so you guys can Test the app with the live demo. 
+After your testing and feedbacks we will work on it.
+
+2]
+Worked on connect WS as with the real game play. Implement with the 
+
+
+
+================ REPLYS ==================
+FOR CLIENT]
+Today, I continue work on game play area and make API call of create game and start game. Next I will start work on WS connection, ant it's event. Also reviewed the ilovemahj for siamese game play.
+
+I will keep you posted on work progress.
+Thank you!
+
+
+
+==================================
+-----------------
+MEETING UPDATE
+-----------------
+Progress meeting: 12 AUG 2026 5 PM PDT
+https://meet.google.com/moh-ueie-fqo
+
++++++++++++++++
+FOR DESIGNER]
+Actually, we would like to have all the assets used in the complete design, including:
+- Icons
+- Background images
+- Vector images
+- Shapes
+- Colors
+- Any other design assets
+Please upload all of these assets to Dropbox.
+
+For now, we are focusing on the game board, so if possible, please prioritize uploading all game-board-related assets to Dropbox.
+
+A few items that I know are still missing from the Dropbox are:
+- Game board icons – We currently have the action icons, but I noticed that two icons are still missing: the tile count icon and the points icon.
+- 1x tile atlas
+- Favicon
+- Final app icons, including the foreground and background assets.
++++++++++++++++
+
+1]
+During last week we had an issue with apple test flight access.
+Issue was solved and test flight link provided
+https://testflight.apple.com/join/AY14KUmN
+
+2]
+As per your design feedback we have corrected the things as mentioned.
+For now, We uploaded the demo on web with the latest design change.
+
+URL: 
+https://mahjfit-com.thatsend.dev/
+
+We will upload the demo on web for quick fix related things, this is because updating ios and android app required some procedures to complete everytime and it takes around couple of hours. So, we will update and deploy those demo when we will have major updates. This is to save time from less important task and focus on productivity.
+
+3]
+Here are complated points:
+- Use HEX blue from Carolyn assets on border around entire screen.
+- Deeoer shadow around game board, should look 2D
+- Add Game board texture and correct HEX color
+- Drop shadow around racks
+- Drop shadow around tiles
+- Match tile and point icons size.
+- Use Carolyn's Icons for meunes
+- Use Carolyn's Design(fonts/shapes/color)
+
+All of those are done
+
+4]
+Upgrade the animation of tiles movement as suggested during last meeting.
+When user pick tile or discard tile the animation should be smooth and natural.
+This has been adjusted as per requirement.
+This include,
+- call action tiles 
+- move the tile from the rack to the call area
+
+5]
+During last upgrade we detected an issue with blur UI with fonts.
+This was due to Phase rendering process with paint on canvas or WebGL.
+The issue was, in small device some layout elements were looking blur that includes
+- fonts
+- shadows
+This happen because Phaser Text is not rendered like normal browser HTML text. Phaser creates an internal canvas for each Text object, uses the Canvas fillText API, turns that into a texture, and then renders or scales that texture. That extra rasterization or scaling step is why Poppins/Outfit can look noticeably softer or blue than the exact same font in Angular HTML.
+
+so, we moved popups, menus, labels, buttons, icons, and normal UI text to custom Angular/HTML and pass to Phaser and adjust location on canvas and thats the correct architectural solution.
+
+Now, UI is sharp and clear, no blur effect.
+
+For more information on this point search google or ask to AI
+"angular phase blur issue with ui font and shadow"
+
+6]
+We tested intial design after all corrections.
+Tested app with real device and an iPad simulator to cross-check the design and make the necessary adjustments for different devices
+
+7]
+Analysed Bam, Dot, Crack reference app for new one more feature also provided feedback on this.
+
+8]
+As mentioned before functional part of game play with the API implementation is alredy started and duringlast last week it has be extended with some API and client side wrapper implementation.
+
+9] 
+Remain design parts
+- Siamese game play
+- Game board icons – We currently have the action icons, but I noticed that two icons are still missing: the tile count icon and the points icon.
+- 1x tile atlas
+- Favicon
+- Final app icons, including the foreground and background assets (mobile app icon)
+
+10]
+At this moment we sent an email yesterday with frontend game play area with Phaser codebase zip for Imtiaz. It's from initial work we are still working with that. It't not final, too manny things are still comming in development. The provided code is also not full setup, as everth8ing is half completed we just shared game play related things.
+
+
+[END OF UPDATE]
+
+
+FOR DEVELOPER]
+- chcck ilovemahj for 2 player
+- As per the level of game hardness we will adjust tile animation as harder animation will be faster.
+- 13" macbook-air has design layout issue.  So, we need to test the app with more resolution, its required.
+ 
+ ########################################
+ ########################################
+ ########################################
+
 Points
 1]
 Upgrade the animation of tiles movement, When user pick tile or discard tile the animation should be smooth and natural.
@@ -45,8 +178,9 @@ Analysed Bam, Dot, Crack reference app for new one more feature
 Upgrade API and client side wrapper.
 
 6]
+Started game play with the API implementation.
 
-
+7]
 Remain design parts
 - Siamese game play
 - Game board icons – We currently have the action icons, but I noticed that two icons are still missing: the tile count icon and the points icon.
@@ -55,10 +189,14 @@ Remain design parts
 - Final app icons, including the foreground and background assets
 
 
-For now, I have uploaded the demo on web with the latest design change. 
+For now, We uploaded the demo on web with the latest design change.
 
 URL: 
 https://mahjfit-com.thatsend.dev/
+
+And for now, We will upload the demo on web only, once I finished the game play full implementation we will deploy it on the TestFlight and also provide APK for android. 
+
+
 
 
 

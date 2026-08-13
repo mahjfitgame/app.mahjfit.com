@@ -23,7 +23,7 @@
     >
       Test Haptic
     </button> -->
-<app-phaser-board *ngIf="boardVisible()" [rack]="rack()" [passDirection]="passDirection()" [tablePhase]="tablePhase()"
+<app-phaser *ngIf="boardVisible()" [rack]="rack()" [passDirection]="passDirection()" [tablePhase]="tablePhase()"
     [tileCallOffer]="tileCallOffer()" [demoDiscard]="demoDiscard()" [mahjongWin]="mahjongWin()"
     [playerAway]="playerAway()" [joinTableRequest]="joinTableRequest()"
     (tileCallDecision)="handleTileCallDecision($event)" (playerRemovalRequested)="handlePlayerRemoval($event)"

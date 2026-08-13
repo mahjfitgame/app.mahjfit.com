@@ -14,32 +14,28 @@ import {
 } from "@angular/core";
 import Phaser from "phaser";
 import { Capacitor } from "@capacitor/core";
-import { TileVm, PassDirection } from "../type";
-import { TableScene } from "./scenes/scene";
-import { DeadHandClaim, DeadHandReason, DeadHandSeatSelectionState, DemoDiscardRequest, HeaderLogoLayoutState, InstructionPanelOverlayState, JoinTableRequest, JoinTableRequestDecision, MahjongWinCelebration, MobileDrawerOverlayState, PlayerAwayNotice, PlayerLabelOverlayKey, PlayerLabelOverlayState, PlayerRemovalRequest, PointsOverlayState, TableOverlayBlockLevel, TableSeat, TileCallDecision, TileCallOffer, WallCountOverlayState } from "./type";
 
-import { GameHeptic } from "../haptics";
+import { PhaserScene } from "./scenes/scene";
+import { DeadHandClaim, DeadHandReason, DeadHandSeatSelectionState, DemoDiscardRequest, HeaderLogoLayoutState, InstructionPanelOverlayState, JoinTableRequest, JoinTableRequestDecision, MahjongWinCelebration, MobileDrawerOverlayState, PlayerAwayNotice, PlayerLabelOverlayKey, PlayerLabelOverlayState, PlayerRemovalRequest, PointsOverlayState, TableOverlayBlockLevel, TableSeat, TileCallDecision, TileCallOffer, WallCountOverlayState } from "./scenes/type";
 
 import { COLOR_BLUE, COLOR_FUSHIA, COLOR_GRAY } from "./const";
-import { GameHapticType } from "../type";
+import { GameHapticType, PassDirection, TileVm } from "../type";
+import { GameHeptic } from "../haptics";
 import { TablePhase } from "./type";
-import { DeviceLayout } from "./device.layout";
+import { PhaserLayoutDevice } from "./layout/device";
 
 @Component({
-  selector: "app-phaser-board",
+  selector: "app-phaser",
   standalone: true,
-  templateUrl: 'template.html',
+  templateUrl: './template.html',
   styleUrl: './style.scss',
 })
-export class PhaserBoardComponent implements AfterViewInit {
+export class PhaserComponent implements AfterViewInit {
   @ViewChild("host", { static: true })
   private readonly hostRef!: ElementRef<HTMLDivElement>;
 
   @ViewChild("headerLogo", { static: true })
   private readonly headerLogoRef!: ElementRef<HTMLImageElement>;
-
-  @ViewChild("mobileHeaderToggle", { static: true })
-  private readonly mobileHeaderToggleRef!: ElementRef<HTMLButtonElement>;
 
   @ViewChild("safeAreaProbe", { static: true })
   private readonly safeAreaProbeRef!: ElementRef<HTMLDivElement>;
@@ -141,7 +137,7 @@ export class PhaserBoardComponent implements AfterViewInit {
   private playerLabelOverlayStates: readonly PlayerLabelOverlayState[] = [];
 
   readonly tablePhase = input<TablePhase>("playing");
-  private readonly deviceLayout = inject(DeviceLayout);
+  private readonly deviceLayout = inject(PhaserLayoutDevice);
 
   /*constructor() {
     effect(() => {
@@ -222,39 +218,30 @@ export class PhaserBoardComponent implements AfterViewInit {
     );
 
     this.zone.runOutsideAngular(() => {
-      const scene = new TableScene({
-        onSelectionChanged: (ids: any) => this.zone.run(() => this.selectionChanged.emit(ids)),
-        onPassCompleted: (payload: any) => this.zone.run(() => this.passCompleted.emit(payload)),
+      const scene = new PhaserScene({
+        onSelectionChanged: (ids) => this.zone.run(() => this.selectionChanged.emit(ids)),
+        onPassCompleted: (payload) => this.zone.run(() => this.passCompleted.emit(payload)),
         onHaptic: (type: GameHapticType) => {
           void this.haptics.play(type);
         },
-        getDeviceLayout: (width: number, height: number) =>
+        getDeviceLayout: (width, height) =>
           this.deviceLayout.forViewport(width, height),
-        onMobileHeaderChanged: (collapsed: boolean) =>
+        onMobileHeaderChanged: (collapsed) =>
           this.setMobileHeaderCollapsed(collapsed),
-        onWallCountOverlay: (state: any) => this.setWallCountOverlay(state),
-        onPlayerLabelOverlay: (states: any) => this.setPlayerLabelOverlays(states),
-        onPointsOverlay: (state: any) => this.setPointsOverlay(state),
-        onMobileDrawerVisibilityChanged: (open: boolean) => this.setMobileDrawerOpen(open),
-        onMobileDrawerOverlay: (state: any) => this.setMobileDrawerOverlay(state),
-        onInstructionPanelOverlay: (state: any) => this.setInstructionPanelOverlay(state),
-        onMobileHeaderToggle: (state: any) => {
-          const btn = this.mobileHeaderToggleRef.nativeElement;
-          const visible = state.visible && !this.mobileDrawerOpen;
-          btn.style.display = visible ? "block" : "none";
-          if (!visible) return;
-          btn.style.left = `${Math.round(state.x)}px`;
-          btn.style.top = `${Math.round(state.y)}px`;
-          btn.textContent = state.icon;
-        },
-        onTableOverlayBlocked: (level: any) => this.setTableOverlayBlocked(level),
-        onDeadHandSeatSelection: (state: any) => this.setDeadHandSeatSelection(state),
-        onHeaderLogoLayout: (state: any) => this.setHeaderLogoLayout(state),
-        onTileCallDecision: (decision: any) =>
+        onWallCountOverlay: (state) => this.setWallCountOverlay(state),
+        onPlayerLabelOverlay: (states) => this.setPlayerLabelOverlays(states),
+        onPointsOverlay: (state) => this.setPointsOverlay(state),
+        onMobileDrawerVisibilityChanged: (open) => this.setMobileDrawerOpen(open),
+        onMobileDrawerOverlay: (state) => this.setMobileDrawerOverlay(state),
+        onInstructionPanelOverlay: (state) => this.setInstructionPanelOverlay(state),
+        onTableOverlayBlocked: (level) => this.setTableOverlayBlocked(level),
+        onDeadHandSeatSelection: (state) => this.setDeadHandSeatSelection(state),
+        onHeaderLogoLayout: (state) => this.setHeaderLogoLayout(state),
+        onTileCallDecision: (decision) =>
           this.zone.run(() => this.tileCallDecision.emit(decision)),
-        onPlayerRemovalRequested: (request: any) =>
+        onPlayerRemovalRequested: (request) =>
           this.zone.run(() => this.playerRemovalRequested.emit(request)),
-        onDeadHandClaimPrompt: (targetSeat: any) => this.setDeadHandPopup(targetSeat),
+        onDeadHandClaimPrompt: (targetSeat) => this.setDeadHandPopup(targetSeat),
         onTemporaryDiscardCompleted: () =>
           this.zone.run(() => this.temporaryDiscardCompleted.emit()),
         onRestartGame: () => this.zone.run(() => this.restartGame.emit()),
@@ -337,10 +324,6 @@ export class PhaserBoardComponent implements AfterViewInit {
 
         );
       });
-    });
-
-    this.mobileHeaderToggleRef.nativeElement.addEventListener("click", () => {
-      this.game?.events.emit("mobile-header-toggle:clicked");
     });
 
     const resizeObserver = new ResizeObserver(() => {

@@ -1,13 +1,13 @@
 // file: src/app/module/business/game/phaser/scenes/managers/state.ts
 import Phaser from "phaser";
-import { PassDirection, TableLayout, TablePhase } from "../../type";
-import { TableSeat, TileRuntime } from "../type";
-import { TileVm } from "../../../type";
+import { PassDirection, TableLayout, TablePhase } from "./type";
+import { TableSeat, TileRuntime } from "./scenes/type";
+import { TileVm } from "../type";
 
 /**
  * Owns mutable table, rack, pass, and interaction state.
  */
-export class StateManager {
+export class PhaserState {
   layout!: TableLayout;
 
   wallTileCount = 93;

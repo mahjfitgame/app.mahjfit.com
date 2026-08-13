@@ -1,7 +1,7 @@
 // file: src/app/module/business/game/game-shell/component.ts
 import { Component, effect, inject, input, signal } from "@angular/core";
 import { Router } from "@angular/router";
-import { PhaserBoardComponent } from "./phaser/component";
+import { PhaserComponent } from "./phaser/component";
 import { DeadHandClaim, DemoDiscardRequest, JoinTableRequest, JoinTableRequestDecision, MahjongWinCelebration, PlayerAwayNotice, PlayerRemovalRequest, TileCallDecision, TileCallOffer } from "./phaser/type";
 import { Haptics, ImpactStyle, NotificationType } from "@capacitor/haptics";
 import { GameService } from "./service";
@@ -15,7 +15,7 @@ import { PassDirection, TileVm } from "./type";
   standalone: true,
   templateUrl: './template.html',
   styleUrl: './style.scss',
-  imports: [PhaserBoardComponent],
+  imports: [PhaserComponent],
   providers: [
     GAME_PROVIDER
   ]

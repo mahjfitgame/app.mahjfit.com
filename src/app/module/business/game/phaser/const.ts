@@ -1,4 +1,4 @@
-import { GameTableConfig } from "./type";
+import { GameTableConfig, ExposurePanelMode, SafeAreaInsets } from "./type";
 
 export const ICON_SORT_NORMAL = "icon_sort_normal";
 export const ICON_SORT_HOVER = "icon_sort_hover";
@@ -48,9 +48,8 @@ export const FONT_FAMILY = "Poppins, Arial";
 
 export const ANIMATION_SPEED = 900;
 
-export const BOT_PASS_WAITING_PAUSE_MS = 320;
-export const BOT_PASS_MOVE_DURATION_MS = 620;
-export const BOT_PASS_COMMIT_DURATION_MS = 520;
+
+
 
 export const GAME_TABLE_CONFIG: GameTableConfig = {
     colors: {
@@ -59,7 +58,7 @@ export const GAME_TABLE_CONFIG: GameTableConfig = {
         discard: 0x324f9a,
         panel: 0x2f4592,
         accent: 0xcb2aa3,
-        lime: "#e4f22c",
+        lime: COLOR_AVOCADO, //"#e4f22c",
         white: "#ffffff",
     },
     rack: {
@@ -75,3 +74,11 @@ export const GAME_TABLE_CONFIG: GameTableConfig = {
         dragReturnMs: 180,
     },
 };
+
+export const ZERO_SAFE_AREA: SafeAreaInsets = {
+    top: 0,
+    right: 0,
+    bottom: 0,
+    left: 0,
+};
+

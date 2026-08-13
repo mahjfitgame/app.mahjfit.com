@@ -1,39 +1,37 @@
 // src/app/game/scenes/table.scene.ts
 import Phaser from "phaser";
-import { GameLayoutEngine } from "../game.layout";
 import { ExposurePanelMode, PassAnimationItem, PassDirection, Point, Rect, SafeAreaInsets, TableLayout, TablePhase } from "../type";
-import { PassFlowManager } from "./managers/pass.flow";
-import { SoundManager } from "./managers/sound";
-import { StateManager } from "./managers/state";
-import { TileInteractionManager } from "./managers/tile.interaction";
-import { UiLayoutManager } from "./managers/ui.layout";
-
-import { ANIMATION_SPEED, BOT_PASS_COMMIT_DURATION_MS, BOT_PASS_MOVE_DURATION_MS, BOT_PASS_WAITING_PAUSE_MS, COLOR_BLUE, COLOR_BLUE_NUM, COLOR_FUSHIA, COLOR_FUSHIA_NUM, COLOR_GRAY_NUM, COLOR_LAVENDER_NUM, FONT_FAMILY, GAME_TABLE_CONFIG, ICON_DEADHAND_HOVER, ICON_DEADHAND_NORMAL, ICON_DEADHAND_PRESSED, ICON_HELP_HOVER, ICON_HELP_NORMAL, ICON_HELP_PRESSED, ICON_HINT_HOVER, ICON_HINT_NORMAL, ICON_HINT_PRESSED, ICON_SETTINGS_HOVER, ICON_SETTINGS_NORMAL, ICON_SETTINGS_PRESSED, ICON_SORT_HOVER, ICON_SORT_NORMAL, ICON_SORT_PRESSED } from "../const";
-import { BotPassVisualTile, CharlestonVisualTransfer, DemoDiscardRequest, DiscardGrid, HamburgerMenuActionKey, HudActionKey, MahjongWinCelebration, TableOverlayBlockLevel, TableSceneCallbacks, TableSeat, TileCallOffer, TileRuntime, TableSfxConfig, TableSfxId } from "../type";
-import { GameHapticType, TileVm } from "../../type";
-import { PhaserService } from "../service";
+import { PhaserAnimation } from "../animation";
+import { PhaserFlow } from "../flow";
+import { PhaserSound } from "../sound";
+import { PhaserState } from "../state";
+import { PhaserInteraction } from "../interaction";
+import { PhaserLayoutUi } from "../layout/ui";
+import { ANIMATION_SPEED, COLOR_BLUE, COLOR_BLUE_NUM, COLOR_FUSHIA, COLOR_FUSHIA_NUM, COLOR_GRAY_NUM, COLOR_LAVENDER_NUM, FONT_FAMILY, GAME_TABLE_CONFIG, ICON_DEADHAND_HOVER, ICON_DEADHAND_NORMAL, ICON_DEADHAND_PRESSED, ICON_HELP_HOVER, ICON_HELP_NORMAL, ICON_HELP_PRESSED, ICON_HINT_HOVER, ICON_HINT_NORMAL, ICON_HINT_PRESSED, ICON_SETTINGS_HOVER, ICON_SETTINGS_NORMAL, ICON_SETTINGS_PRESSED, ICON_SORT_HOVER, ICON_SORT_NORMAL, ICON_SORT_PRESSED } from "../const";
+import { BotPassVisualTile, CharlestonVisualTransfer, DemoDiscardRequest, DiscardGrid, HamburgerMenuActionKey, HudActionKey, MahjongWinCelebration, TableOverlayBlockLevel, TableSceneCallbacks, TableSeat, TileCallOffer, TileRuntime, TableSfxConfig, TableSfxId } from "./type";
+import { PhaserLayoutGame } from "../layout/game";
 import { inject } from "@angular/core";
+import { GameHapticType, TileVm } from "../../type";
 import { TILE_ATLAS_1X_KEY, TILE_ATLAS_2X_KEY } from "../../const";
 import { GameService } from "../../service";
-import { GameAnimation } from "../animation";
 
-export class TableScene extends Phaser.Scene {
-  protected readonly service = inject(PhaserService);
-  protected readonly gmService = inject(GameService);
-  protected readonly gmAnimation = inject(GameAnimation);
+
+export class PhaserScene extends Phaser.Scene {
+  private readonly gameLayout = inject(PhaserLayoutGame);
+  private readonly gameService = inject(GameService);
+
 
   private readonly callbacks: TableSceneCallbacks;
-  private readonly layoutEngine = new GameLayoutEngine();
   private readonly config = GAME_TABLE_CONFIG;
 
   // Manager skeletons; existing Scene logic remains the active implementation.
-  private readonly tileInteractionManager: TileInteractionManager;
-  private readonly passFlowManager: PassFlowManager;
-
+  private readonly tileInteractionManager: PhaserInteraction;
+  private readonly passFlowManager: PhaserFlow;
+  private readonly animationManager = new PhaserAnimation(this);
   //private readonly uiLayoutManager = new UiLayoutManager();
-  private readonly uiLayoutManager: UiLayoutManager;
-  private readonly soundManager: SoundManager;
-  private readonly stateManager = new StateManager();
+  private readonly uiLayoutManager: PhaserLayoutUi;
+  private readonly soundManager: PhaserSound;
+  private readonly stateManager = new PhaserState();
 
   private readonly logoTextureKey = "majhfit-logo";
 
@@ -97,6 +95,8 @@ export class TableScene extends Phaser.Scene {
   private renderDpr = 1;
   private mobileHeaderCollapsed = true;
   private mobileDrawerOpen = false;
+  private mobileHeaderToggle?: Phaser.GameObjects.Container;
+  private mobileHeaderToggleLabel?: Phaser.GameObjects.Text;
   private pendingTileCallOffer?: TileCallOffer;
   private tileCallWindow?: Phaser.GameObjects.Container;
   private pendingTileCallImage?: Phaser.GameObjects.Image;
@@ -125,6 +125,7 @@ export class TableScene extends Phaser.Scene {
   private set hudMenuOpen(value: boolean) { this.uiLayoutManager.hudMenuOpen = value; }
   private get hudMenuItems(): Phaser.GameObjects.Text[] { return this.uiLayoutManager.hudMenuItems; }
   private set hudMenuItems(value: Phaser.GameObjects.Text[]) { this.uiLayoutManager.hudMenuItems = value; }
+
 
   private get dragStartByTileId(): Map<string, { x: number; y: number }> { return this.stateManager.dragStartByTileId; }
   private get dragThresholdPx(): number { return this.stateManager.dragThresholdPx; }
@@ -170,51 +171,59 @@ export class TableScene extends Phaser.Scene {
   private lastSubmittedPassDestination?: TableSeat;
   private botAutoStagedDestination?: TableSeat;
 
+  private readonly botPassWaitingPauseMs = 320;
+  private readonly botPassMoveDurationMs = 620;
+  private readonly botPassCommitDurationMs = 520;
+
 
   constructor(callbacks: TableSceneCallbacks) {
     super({ key: "table-scene" });
     this.callbacks = callbacks;
 
-    this.uiLayoutManager = new UiLayoutManager({
+    this.uiLayoutManager = new PhaserLayoutUi({
       logoTextureKey: this.logoTextureKey,
-      onHudAction: (action: any) => this.handleHudAction(action),
-      onSortRequested: (mode: any) => this.sortRackTilesForDebug(mode),
+      onHudAction: (action) => this.handleHudAction(action),
+      onSortRequested: (mode) => this.sortRackTilesForDebug(mode),
       onPrimaryAction: () => this.handlePrimaryAction(),
-      onPickSeatChange: (seat: any) => {
+      onPickSeatChange: (seat) => {
         this.pickTargetSeat = seat;
         this.setActiveSeat(seat);
         this.updateInstructionText();
       },
-      onHamburgerMenuAction: (action: any) => this.handleHamburgerMenuAction(action),
-      onWallCountOverlay: (state: any) => this.callbacks.onWallCountOverlay(state),
-      onPlayerLabelOverlay: (states: any) => this.callbacks.onPlayerLabelOverlay(states),
-      onPointsOverlay: (state: any) => this.callbacks.onPointsOverlay(state),
-      onMobileDrawerVisibilityChanged: (open: any) => {
+      onHamburgerMenuAction: (action) => this.handleHamburgerMenuAction(action),
+      onWallCountOverlay: (state) => this.callbacks.onWallCountOverlay(state),
+      onPlayerLabelOverlay: (states) => this.callbacks.onPlayerLabelOverlay(states),
+      onPointsOverlay: (state) => this.callbacks.onPointsOverlay(state),
+      onMobileDrawerVisibilityChanged: (open) => {
         this.mobileDrawerOpen = open;
+        // Draw below the 260-depth drawer when open, so the close button
+        // remains the topmost target only where the two controls overlap.
+        this.mobileHeaderToggle?.setDepth(open ? 240 : 300);
         this.layoutMobileHeaderToggle();
         this.callbacks.onMobileDrawerVisibilityChanged(open);
       },
-      onMobileDrawerOverlay: (state: any) => this.callbacks.onMobileDrawerOverlay(state),
-      onInstructionPanelOverlay: (state: any) => this.callbacks.onInstructionPanelOverlay(state),
+      onMobileDrawerOverlay: (state) => this.callbacks.onMobileDrawerOverlay(state),
+      onInstructionPanelOverlay: (state) => this.callbacks.onInstructionPanelOverlay(state),
     });
 
-    this.tileInteractionManager = new TileInteractionManager({
-      canSelectTile: (runtime: TileRuntime) => runtime.zone === "rack",
-      canStartDrag: (runtime: TileRuntime) => runtime.zone !== "pass",
+    this.tileInteractionManager = new PhaserInteraction({
+      canSelectTile: (runtime) => runtime.zone === "rack",
+      canStartDrag: (runtime) => runtime.zone !== "pass",
       canDropTile: () => true,
-      canDiscard: (runtime: TileRuntime, x: number, y: number) =>
+      canDiscard: (runtime, x, y) =>
         this.tablePhase === "playing" && runtime.zone === "rack" && this.isInsidePlayableDiscardArea(x, y),
-      canPass: (runtime: TileRuntime, x: number, y: number) =>
+      canPass: (runtime, x, y) =>
         this.isPassingPhase() && runtime.zone === "rack" && this.isInsidePassWaitingArea(x, y),
       onTileSelected: () => undefined,
       onTileDropped: () => undefined,
       onDragFinished: () => undefined,
       requestAnimation: () => undefined,
     });
-    this.soundManager = new SoundManager(this, callbacks.onHaptic);
+    this.soundManager = new PhaserSound(this, callbacks.onHaptic);
 
-    this.passFlowManager = new PassFlowManager(
+    this.passFlowManager = new PhaserFlow(
       this.stateManager,
+      this.animationManager,
       this.uiLayoutManager,
       {
         isPassPhaseAllowed: () => this.tablePhase === "passing",
@@ -511,7 +520,7 @@ export class TableScene extends Phaser.Scene {
     this.cameras.main.setZoom(1);
     this.cameras.main.setScroll(0, 0);
 
-    this.layout = this.layoutEngine.compute(
+    this.layout = this.gameLayout.compute(
       this.callbacks.getDeviceLayout(width, height),
       this.activeRackLayoutTileCount(),
       this.config,
@@ -562,7 +571,7 @@ export class TableScene extends Phaser.Scene {
     this.cameras.main.setZoom(1);
     this.cameras.main.setScroll(0, 0);
 
-    this.layout = this.layoutEngine.compute(
+    this.layout = this.gameLayout.compute(
       this.callbacks.getDeviceLayout(width, height),
       this.rackTiles.length || 14,
       this.config,
@@ -603,7 +612,7 @@ export class TableScene extends Phaser.Scene {
     if (!needs1xAtlas && !needs2xAtlas) {
       this.reconcileRackTiles();
       const tileWidth = Math.round(this.layout.bottomTileLayout.width);
-      this.activeRackAtlasKey = this.gmService.selectTileAtlas(tileWidth).atlasKey;
+      this.activeRackAtlasKey = this.gameService.selectTileAtlas(tileWidth).atlasKey;
       return;
     }
 
@@ -630,7 +639,7 @@ export class TableScene extends Phaser.Scene {
     this.load.once(Phaser.Loader.Events.COMPLETE, () => {
       this.reconcileRackTiles();
       const tileWidth = Math.round(this.layout.bottomTileLayout.width);
-      this.activeRackAtlasKey = this.gmService.selectTileAtlas(tileWidth).atlasKey;
+      this.activeRackAtlasKey = this.gameService.selectTileAtlas(tileWidth).atlasKey;
     });
 
     if (!this.load.isLoading()) {
@@ -677,7 +686,7 @@ export class TableScene extends Phaser.Scene {
 
       const tileWidth = Math.round(this.layout.bottomTileLayout.width);
       const tileHeight = Math.round(this.layout.bottomTileLayout.height);
-      const texture = this.gmService.resolve(tile, tileWidth);
+      const texture = this.gameService.resolve(tile, tileWidth);
 
       if (!this.textures.exists(texture.atlasKey)) {
         console.error("[TILE ATLAS MISSING]", texture.atlasKey, tile);
@@ -720,7 +729,7 @@ export class TableScene extends Phaser.Scene {
       if (!runtime) continue;
       if (runtime.zone !== "rack") continue;
 
-      const texture = this.gmService.resolve(runtime.vm, tileWidth);
+      const texture = this.gameService.resolve(runtime.vm, tileWidth);
 
       if (!this.textures.exists(texture.atlasKey)) {
         continue;
@@ -736,7 +745,7 @@ export class TableScene extends Phaser.Scene {
   }
   private refreshRackTexturesIfAtlasChanged(): void {
     const tileWidth = Math.round(this.layout.bottomTileLayout.width);
-    const atlas = this.gmService.selectTileAtlas(tileWidth);
+    const atlas = this.gameService.selectTileAtlas(tileWidth);
 
     if (this.activeRackAtlasKey === atlas.atlasKey) {
       return;
@@ -754,7 +763,7 @@ export class TableScene extends Phaser.Scene {
   }
   private ensureTileAtlasLoaded(onReady: () => void): void {
     const tileWidth = Math.round(this.layout.bottomTileLayout.width);
-    const atlas = this.gmService.selectTileAtlas(tileWidth);
+    const atlas = this.gameService.selectTileAtlas(tileWidth);
 
     if (this.textures.exists(atlas.atlasKey)) {
       onReady();
@@ -996,7 +1005,7 @@ export class TableScene extends Phaser.Scene {
     const slot = this.slotFor(runtime);
     const selectedOffset = runtime.selected ? -this.layout.bottomTileLayout.height * 0.18 : 0;
 
-    this.gmAnimation.animateRackTileSelection(
+    this.animationManager.animateRackTileSelection(
       runtime.image,
       slot.x,
       slot.y + selectedOffset,
@@ -1022,7 +1031,7 @@ export class TableScene extends Phaser.Scene {
       ? -this.layout.bottomTileLayout.height * 0.18
       : 0;
 
-    this.gmAnimation.animateRackTileReturn(
+    this.animationManager.animateRackTileReturn(
       runtime.image,
       Math.round(slot.x),
       Math.round(slot.y + selectedOffset),
@@ -1185,7 +1194,7 @@ export class TableScene extends Phaser.Scene {
     // so it looks like a real 3D shadow rather than distinct rectangles.
     const innerShadowTopLeft = 0x01050a;     // Matches the new #030d1c border
     const innerShadowBottomRight = 0x1e2430; // Matches the new #303845 border
-    const maxSpread = this.layout.metrics.isMobile ? 10 : 22; // How far the shadow extends inward (in pixels)
+    const maxSpread = 22; // How far the shadow extends inward (in pixels)
 
     for (let i = 0; i < maxSpread; i++) {
       const progress = i / maxSpread;
@@ -1346,9 +1355,9 @@ export class TableScene extends Phaser.Scene {
     const modeKey = this.exposurePanelMode();
 
 
-    const lipRatio = this.service.exposureLipRatio(modeKey);
+    const lipRatio = this.gameLayout.exposureLipRatio(modeKey);
 
-    const nameStripRatio = this.service.exposureNameStripRatio(modeKey);
+    const nameStripRatio = this.gameLayout.exposureNameStripRatio(modeKey);
 
     const lipW = Math.max(
       compactMobile ? 4 : 8,
@@ -1366,13 +1375,12 @@ export class TableScene extends Phaser.Scene {
     const dividerFill = active ? 0x9b9722 : 0x8ea4d0;
 
     // --- FIXED SHADOW SYSTEM ---
-    const reduceShadow = this.layout.metrics.isMobile || this.layout.metrics.isTablet;
-    const maxSpread = reduceShadow ? 6 : 16; // Reduce spread on mobile/tablet
+    const maxSpread = 16; // Larger spread for a softer shadow
     const shadowColor = 0x000000;
 
     // Slight directional offset for 3D feel
-    const shadowOffsetX = side === "left" ? (reduceShadow ? 1 : 4) : side === "right" ? (reduceShadow ? -1 : -4) : 0;
-    const shadowOffsetY = reduceShadow ? 3 : 8;
+    const shadowOffsetX = side === "left" ? 4 : side === "right" ? -4 : 0;
+    const shadowOffsetY = 8;
 
     for (let i = maxSpread; i >= 0; i--) {
       const progress = i / maxSpread;
@@ -1521,8 +1529,8 @@ export class TableScene extends Phaser.Scene {
 
     const modeKey = this.exposurePanelMode();
 
-    const lipRatio = this.service.exposureLipRatio(modeKey);
-    const nameStripRatio = this.service.exposureNameStripRatio(modeKey);
+    const lipRatio = this.gameLayout.exposureLipRatio(modeKey);
+    const nameStripRatio = this.gameLayout.exposureNameStripRatio(modeKey);
 
     const topLipH = Math.max(
       this.layout.metrics.isMobile ? 4 : 8,
@@ -1551,10 +1559,9 @@ export class TableScene extends Phaser.Scene {
     const dividerFill = active ? 0x9b9722 : 0x8ea4d0;
 
     // --- FIXED SHADOW SYSTEM ---
-    const reduceShadow = this.layout.metrics.isMobile || this.layout.metrics.isTablet;
-    const maxSpread = reduceShadow ? 6 : 16; // Reduce spread on mobile/tablet
+    const maxSpread = 16; // Larger spread for a softer shadow
     const shadowColor = 0x000000;
-    const shadowOffsetY = reduceShadow ? 3 : 8; // Reduce offset on mobile/tablet
+    const shadowOffsetY = 8;
 
     for (let i = maxSpread; i >= 0; i--) {
       const progress = i / maxSpread;
@@ -1711,9 +1718,34 @@ export class TableScene extends Phaser.Scene {
   }
 
   private createMobileHeaderToggle(): void {
-    // We now use a native DOM button for the toggle to ensure the Material Icons
-    // web font renders sharply and never gets cached prematurely as a text fallback.
-    this.game.events.on("mobile-header-toggle:clicked", () => {
+    const background = this.add.graphics();
+    // Keep an empty Graphics child for the transparent touch target; the
+    // Material arrow intentionally has no coloured button background.
+
+    const label = this.add
+      .text(0, 0, "keyboard_arrow_up", {
+        // This web font is loaded globally in index.html. Its ligature names
+        // render the rounded Material keyboard-arrow icons in Phaser canvas.
+        fontFamily: "Material Symbols Rounded",
+        fontSize: "30px",
+        fontStyle: "normal",
+        color: COLOR_BLUE,
+      })
+      // Use a fixed width for horizontal centring, but retain the glyph's
+      // natural height so Phaser centres it vertically by its real bounds.
+      .setFixedSize(28, 0)
+      .setAlign("center")
+      .setOrigin(0.5, 0.5)
+      .setPosition(0, 0);
+
+    this.mobileHeaderToggleLabel = label;
+    this.mobileHeaderToggle = this.add
+      .container(0, 0, [background, label])
+      .setDepth(300)
+      .setSize(28, 48)
+      .setInteractive({ useHandCursor: true });
+
+    this.mobileHeaderToggle.on("pointerup", () => {
       if (!this.layout?.metrics.isMobile) return;
 
       this.mobileHeaderCollapsed = !this.mobileHeaderCollapsed;
@@ -1724,19 +1756,14 @@ export class TableScene extends Phaser.Scene {
   }
 
   private layoutMobileHeaderToggle(): void {
-    if (!this.layout) return;
+    if (!this.mobileHeaderToggle || !this.layout) return;
 
     const isMobile = this.layout.metrics.isMobile;
+    // Drawers are depth 260; this toggle is lowered to 240 while one is open
+    // so it stays visible outside the menu but never covers its close button.
+    this.mobileHeaderToggle.setVisible(isMobile);
 
-    if (!isMobile) {
-      this.callbacks.onMobileHeaderToggle?.({
-        icon: "",
-        x: 0,
-        y: 0,
-        visible: false,
-      });
-      return;
-    }
+    if (!isMobile) return;
 
     const topExposure = this.layout.topExposure;
     const portrait = this.layout.metrics.isPortrait;
@@ -1752,13 +1779,13 @@ export class TableScene extends Phaser.Scene {
       : topExposure.y + topExposure.height / 2 + (this.mobileHeaderCollapsed
         ? 0
         : Math.round(Phaser.Math.Clamp(topExposure.height * 0.18, 10, 16)));
-
-    this.callbacks.onMobileHeaderToggle?.({
-      icon: this.mobileHeaderCollapsed ? "keyboard_arrow_down" : "keyboard_arrow_up",
-      x: toggleX,
-      y: toggleY,
-      visible: true,
-    });
+    this.mobileHeaderToggle.setPosition(
+      toggleX,
+      Math.round(toggleY),
+    );
+    this.mobileHeaderToggleLabel?.setText(
+      this.mobileHeaderCollapsed ? "keyboard_arrow_down" : "keyboard_arrow_up",
+    );
   }
 
   /** Receives an opponent discard from the future API/WebSocket. */
@@ -1988,7 +2015,7 @@ export class TableScene extends Phaser.Scene {
     const exposure = this.layout.bottomExposure;
     const mode = this.exposurePanelMode();
     const contentHeight = exposure.height * (
-      1 - this.service.exposureLipRatio(mode) - this.service.exposureNameStripRatio(mode)
+      1 - this.gameLayout.exposureLipRatio(mode) - this.gameLayout.exposureNameStripRatio(mode)
     );
     const rackTile = this.layout.bottomTileLayout;
     const height = Math.min(
@@ -2007,9 +2034,9 @@ export class TableScene extends Phaser.Scene {
   private calledBottomExposureTilePosition(index: number): Point {
     const exposure = this.layout.bottomExposure;
     const tile = this.calledBottomExposureTileSize();
-    const topLipHeight = exposure.height * this.service.exposureLipRatio(this.exposurePanelMode());
+    const topLipHeight = exposure.height * this.gameLayout.exposureLipRatio(this.exposurePanelMode());
     const contentHeight = exposure.height * (
-      1 - this.service.exposureLipRatio(this.exposurePanelMode()) - this.service.exposureNameStripRatio(this.exposurePanelMode())
+      1 - this.gameLayout.exposureLipRatio(this.exposurePanelMode()) - this.gameLayout.exposureNameStripRatio(this.exposurePanelMode())
     );
     const gap = Math.max(2, Math.round(tile.width * 0.05));
     const startX = exposure.x + Math.max(5, Math.round(tile.width * 0.18)) + tile.width / 2;
@@ -2380,7 +2407,7 @@ export class TableScene extends Phaser.Scene {
     this.closeTileCallWindow();
 
     const grid = this.discardGrid();
-    const texture = this.gmService.resolve(discard, grid.tileWidth);
+    const texture = this.gameService.resolve(discard, grid.tileWidth);
     if (!this.textures.exists(texture.atlasKey) || !this.textures.get(texture.atlasKey).has(texture.frameKey)) {
       return;
     }
@@ -2729,7 +2756,7 @@ export class TableScene extends Phaser.Scene {
 
     this.tweens.killTweensOf(runtime.image);
 
-    this.gmAnimation.animateDiscardDrop(
+    this.animationManager.animateDiscardDrop(
       runtime.image,
       Math.round(slot.x),
       Math.round(slot.y),
@@ -2794,7 +2821,7 @@ export class TableScene extends Phaser.Scene {
         continue;
       }
 
-      this.gmAnimation.layoutRackTile(
+      this.animationManager.layoutRackTile(
         runtime.image,
         tileWidth,
         tileHeight,
@@ -2891,7 +2918,7 @@ export class TableScene extends Phaser.Scene {
     );
   }
   public playCharlestonRound(items: readonly PassAnimationItem[]): void {
-    this.gmAnimation.playCharlestonRound(
+    this.animationManager.playCharlestonRound(
       items,
       this.layout,
       () => {
@@ -3125,7 +3152,7 @@ export class TableScene extends Phaser.Scene {
     const targets = this.passAreaTargets(this.currentPassDestination, ids.length);
     const angle = this.passTileAngle(this.currentPassDestination);
     const size = this.passTileDisplaySize(this.currentPassDestination);
-    this.gmAnimation.layoutPassWaitingTiles(
+    this.animationManager.layoutPassWaitingTiles(
       ids.map((id) => ({ id, image: this.tileMap.get(id)?.image })),
       targets,
       size,
@@ -3425,7 +3452,7 @@ export class TableScene extends Phaser.Scene {
     const destination = this.currentPassDestination;
     const endTargets = this.seatRackTargets(destination, ids.length);
     const endAngle = this.passTileAngle(destination);
-    this.gmAnimation.animatePassWaitingTilesIntoSeatRack(
+    this.animationManager.animatePassWaitingTilesIntoSeatRack(
       ids.map((id) => ({ id, image: this.tileMap.get(id)?.image })),
       endTargets,
       this.passTileDisplaySize(destination),
@@ -3515,7 +3542,7 @@ export class TableScene extends Phaser.Scene {
 
       if (transfersFinished < transfers.length) return;
 
-      this.time.delayedCall(BOT_PASS_WAITING_PAUSE_MS, () => {
+      this.time.delayedCall(this.botPassWaitingPauseMs, () => {
         this.commitBotPassVisualTilesToRacks(() => {
           this.isBotPassVisualAnimating = false;
           onFinished();
@@ -3595,7 +3622,7 @@ export class TableScene extends Phaser.Scene {
         x: Math.round(target.x),
         y: Math.round(target.y),
         angle: endAngle,
-        duration: BOT_PASS_MOVE_DURATION_MS,
+        duration: this.botPassMoveDurationMs,
         delay: index * 55,
         ease: "Sine.easeInOut",
         onComplete: finishOneTile,
@@ -3666,7 +3693,7 @@ export class TableScene extends Phaser.Scene {
           scaleX: 0.74,
           scaleY: 0.74,
           alpha: 0,
-          duration: BOT_PASS_COMMIT_DURATION_MS,
+          duration: this.botPassCommitDurationMs,
           delay: index * 45,
           ease: "Sine.easeInOut",
           onComplete: () => {
@@ -4000,7 +4027,7 @@ export class TableScene extends Phaser.Scene {
           0,
         );
 
-    this.gmAnimation.animateWallPick(
+    this.animationManager.animateWallPick(
       clone,
       target,
       this.pickTileAngleForSeat(seat),
@@ -4039,9 +4066,11 @@ export class TableScene extends Phaser.Scene {
       height <= 900;
 
     if (seat === "bottom") {
-      // The bottom seat tile clone is created with the exact dimensions of the target rack slot.
-      // Returning a scale of 1 ensures it scales smoothly to that exact size and perfectly matches
-      // the real tile when it is placed, eliminating any "popping" or resizing glitch.
+      if (isPhonePortrait) return 0.46;
+      if (isPhoneLandscape) return 0.48;
+      if (isTabletPortrait) return 0.64;
+      if (isTabletLandscape) return 0.68;
+
       return 1;
     }
 
@@ -4085,7 +4114,7 @@ export class TableScene extends Phaser.Scene {
     width: number,
     height: number,
   ): Phaser.GameObjects.Image {
-    const texture = this.gmService.resolve(tile, Math.round(width));
+    const texture = this.gameService.resolve(tile, Math.round(width));
 
     if (
       !this.textures.exists(texture.atlasKey) ||
@@ -4144,7 +4173,7 @@ export class TableScene extends Phaser.Scene {
 
   private pickTargetPointForSeat(seat: TableSeat): Point {
     if (seat === "bottom") {
-      const nextLayout = this.layoutEngine.compute(
+      const nextLayout = this.gameLayout.compute(
         this.callbacks.getDeviceLayout(this.scale.width, this.scale.height),
         //this.rackTiles.length + 1,
         Math.max(14, this.rackOrder.length + 1),

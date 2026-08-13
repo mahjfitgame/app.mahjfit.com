@@ -1,12 +1,12 @@
 // file: src/app/module/business/game/phaser/scenes/managers/sound.ts
 import Phaser from "phaser";
-import { TableSfxConfig, TableSfxId } from "../../type";
-import { GameHapticType, TileVm } from "../../../type";
+import { GameHapticType, TileVm } from "../type";
+import { TableSfxConfig, TableSfxId } from "./scenes/type";
 
 
 
 /** Owns sound playback and haptic feedback for the table scene. */
-export class SoundManager {
+export class PhaserSound {
   private readonly tileVoiceVolume = 0.85;
   private readonly tileVoiceKeys = ["1-bam", "2-bam", "3-bam", "4-bam", "5-bam", "6-bam", "7-bam", "8-bam", "9-bam", "1-crack", "2-crack", "3-crack", "4-crack", "5-crack", "6-crack", "7-crack", "8-crack", "9-crack", "1-dot", "2-dot", "3-dot", "4-dot", "5-dot", "6-dot", "7-dot", "8-dot", "9-dot", "east", "south", "west", "north", "red", "green", "soap", "joker", "flower"] as const;
   private readonly tileVoiceSounds = new Map<string, Phaser.Sound.BaseSound>();

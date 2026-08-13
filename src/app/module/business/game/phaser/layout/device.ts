@@ -4,13 +4,12 @@ import { BehaviorSubject, distinctUntilChanged } from "rxjs";
 import {
   ScreenOrientation,
   type OrientationLockType,
-  type ScreenOrientationResult,
 } from "@capacitor/screen-orientation";
 import type { PluginListenerHandle } from "@capacitor/core";
-import { DeviceLayoutMode, DeviceLayoutState, NativeOrientation } from "./type";
+import { DeviceLayoutMode, DeviceLayoutState, NativeOrientation } from "../type";
 
 @Service({ autoProvided: false })
-export class DeviceLayout implements OnDestroy {
+export class PhaserLayoutDevice implements OnDestroy {
   private readonly stateSubject = new BehaviorSubject<DeviceLayoutState>(
     this.readState(),
   );
@@ -51,6 +50,7 @@ export class DeviceLayout implements OnDestroy {
       layout: this.resolveDeviceLayout(normalizedWidth, normalizedHeight),
     };
   }
+
   public resolveDeviceLayout(width: number, height: number): DeviceLayoutMode {
     const orientation = height >= width ? "portrait" : "landscape";
 
