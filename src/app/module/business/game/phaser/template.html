@@ -18,6 +18,16 @@
   }
 }
 
+@if (mobileHeaderToggleOverlay(); as state) {
+  @if (state.visible) {
+    <button type="button" class="mobile-header-toggle" aria-hidden="true" tabindex="-1"
+            [style.left.px]="state.x" [style.top.px]="state.y"
+            (pointerdown)="$event.stopPropagation(); toggleMobileHeader()">
+        {{ state.icon }}
+    </button>
+  }
+}
+
 @if (pointsState(); as state) {
   @if (state.visible) {
     <div class="hud-points" aria-hidden="false"

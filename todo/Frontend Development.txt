@@ -10,6 +10,8 @@ After your testing and feedbacks we will work on it.
 Tried 1x tiles with the mobile device. 
 
 2]
+Set up the game seat as per the response and implement the logic with it.
+
 Worked on connect WS as with the real game play. Implement with the 
 
 
@@ -24,15 +26,28 @@ Thank you!
 
 
 
-264 × 2048px
+FOR CLIENT]
+Consider, November starting or mid, what I was thinking is a we have any issue then we will just break the requirements and we will launch earlier and after we will keep up with development as DevOps. This will be clear once our game play area is ready. So basically, to speed up we will start with login, signup, home page, leader board and game play and we will allow user to play the game for free. In anyway, we will not have too much traffic at initial time so free game play might be advantage for us and later on after initial launch we will offer premium services and advertisement related things. So this is something plan and a secondary plan to make project live. We will discuss in next meeting so you guys can prepare questions if you have any. So everything depends on our main part; game play area. 
+If you guys have some other plan or idea please share with me ASAP. We can keep continue here in email for this topic. This way I can adjust the development.
 
-But the tiles_1x.json says the atlas should be:
-509 × 3944px
+One more thing, I would like to mentioned is we are utilising the AI also in our development to speedup the process and we are doing it from the begining time.
+So basically whatever the work we are doing is basically logical workflow, use cases, and testing.
+Major labour work is getting done through AI. So we are at maximum capability to controll the time, infect this is the latest and modern way to work and we are already align with that. 
+
+We are using below AI modules
+- ChatGPT Plus and Sometime Pro
+- Claude Pro
+- Google AI Pro (Gemini)
+- Elevenlabs
+And sometime Cursor (Very less)
+
+So we are hardnessing the power of AI in our workflow to minimise the time and we are doing it from the begining.
+
+So I will try my best for the commitment.
+
+Thank you!
 
 
-The JSON also has 50 frames, all marked as trimmed: true, with tile frame sizes around 169 × 232 or 170 × 232
-So again, the PNG and JSON do not match.
-That means 42 tiles are outside the actual PNG bounds according to the JSON. Phaser will not load this correctly.
 
 
 ==========
@@ -43,7 +58,23 @@ That means 42 tiles are outside the actual PNG bounds according to the JSON. Pha
 
 
 ==========
+ AI 
+ I think we lost the before changes, which I asked for below
 
+1]
+Reduce the all exposure shadow in the mobile device only.
+2]
+In the mobile landscap can we increase little bit space beetween the exposure and the table 
+3]
+It works but need to liitle bit reduce, half of it
+4]
+Okay, now reduce the table border shadow for mobile only 
+5]
+Now also want to increase the gap between the exposure and the table border for the table device as well
+6]
+Also recude the exposure shadow for the tablet 
+7]
+In the mobile device arrow toggle some time not load the icon it shows as K 
 
 ==================================
 -----------------

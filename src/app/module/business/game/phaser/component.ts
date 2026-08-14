@@ -20,7 +20,29 @@ import Phaser from "phaser";
 import { Capacitor } from "@capacitor/core";
 
 import { PhaserScene } from "./scenes/scene";
-import { DeadHandClaim, DeadHandReason, DeadHandSeatSelectionState, DemoDiscardRequest, HeaderLogoLayoutState, InstructionPanelOverlayState, JoinTableRequest, JoinTableRequestDecision, MahjongWinCelebration, MobileDrawerOverlayState, PlayerAwayNotice, PlayerLabelOverlayKey, PlayerLabelOverlayState, PlayerRemovalRequest, PointsOverlayState, TableOverlayBlockLevel, TableSeat, TileCallDecision, TileCallOffer, WallCountOverlayState } from "./scenes/type";
+import {
+  DeadHandClaim,
+  DeadHandReason,
+  DeadHandSeatSelectionState,
+  DemoDiscardRequest,
+  HeaderLogoLayoutState,
+  InstructionPanelOverlayState,
+  JoinTableRequest,
+  JoinTableRequestDecision,
+  MahjongWinCelebration,
+  MobileDrawerOverlayState,
+  MobileHeaderToggleOverlayState,
+  PlayerAwayNotice,
+  PlayerLabelOverlayKey,
+  PlayerLabelOverlayState,
+  PlayerRemovalRequest,
+  PointsOverlayState,
+  TableOverlayBlockLevel,
+  TableSeat,
+  TileCallDecision,
+  TileCallOffer,
+  WallCountOverlayState
+} from "./scenes/type";
 
 import { COLOR_BLUE, COLOR_FUSHIA, COLOR_GRAY } from "./const";
 import { GameHapticType, PassDirection, TileVm } from "../type";
@@ -88,6 +110,7 @@ export class PhaserComponent implements AfterViewInit {
   readonly pointsState = signal<PointsOverlayState | null>(null);
   readonly playerLabelStates = signal<readonly PlayerLabelOverlayState[]>([]);
   readonly instructionPanelState = signal<InstructionPanelOverlayState | null>(null);
+  readonly mobileHeaderToggleOverlay = signal<MobileHeaderToggleOverlayState | null>(null);
 
   readonly mobileDrawerState = signal<MobileDrawerOverlayState | null>(null);
   readonly deadHandSelectionState = signal<DeadHandSeatSelectionState | null>(null);
@@ -199,6 +222,7 @@ export class PhaserComponent implements AfterViewInit {
           onPointsOverlay: (state) => this.setPointsOverlay(state),
           onMobileDrawerVisibilityChanged: (open) => this.setMobileDrawerOpen(open),
           onMobileDrawerOverlay: (state) => this.setMobileDrawerOverlay(state),
+          onMobileHeaderToggleOverlay: (state) => this.setMobileHeaderToggleOverlay(state),
           onInstructionPanelOverlay: (state) => this.setInstructionPanelOverlay(state),
           onTableOverlayBlocked: (level) => this.setTableOverlayBlocked(level),
           onDeadHandSeatSelection: (state) => this.setDeadHandSeatSelection(state),
@@ -422,10 +446,19 @@ export class PhaserComponent implements AfterViewInit {
     // remain visible outside it and never need a blurry Phaser fallback.
   }
 
+  toggleMobileHeader(): void {
+    if (!this.game) return;
+    this.game.events.emit("mobile-header:toggle");
+  }
 
   private setMobileDrawerOverlay(state: MobileDrawerOverlayState): void {
     this.mobileDrawerState.set(state);
   }
+
+  private setMobileHeaderToggleOverlay(state: MobileHeaderToggleOverlayState): void {
+    this.mobileHeaderToggleOverlay.set(state);
+  }
+
 
   /**
    * Centre instruction card. Phaser resolves every coordinate from the layout

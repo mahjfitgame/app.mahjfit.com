@@ -1776,6 +1776,16 @@ export class PhaserLayoutGame {
 
   /** Small, consistent blue-table gutter around exposure panels and racks. */
   private tableEdgeInset(table: Rect): number {
+    const isMobile = table.width < 640;
+    const isTablet = table.width >= 640 && table.width < 1024;
+    const isLandscape = table.width > table.height;
+
+    if (isMobile && isLandscape) {
+      return this.clamp(Math.min(table.width, table.height) * 0.028, 12, 24);
+    }
+    if (isTablet) {
+      return this.clamp(Math.min(table.width, table.height) * 0.025, 12, 24);
+    }
     return this.clamp(Math.min(table.width, table.height) * 0.018, 8, 18);
   }
 

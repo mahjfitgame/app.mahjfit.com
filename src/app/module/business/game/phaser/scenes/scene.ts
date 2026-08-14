@@ -95,8 +95,7 @@ export class PhaserScene extends Phaser.Scene {
   private renderDpr = 1;
   private mobileHeaderCollapsed = true;
   private mobileDrawerOpen = false;
-  private mobileHeaderToggle?: Phaser.GameObjects.Container;
-  private mobileHeaderToggleLabel?: Phaser.GameObjects.Text;
+
   private pendingTileCallOffer?: TileCallOffer;
   private tileCallWindow?: Phaser.GameObjects.Container;
   private pendingTileCallImage?: Phaser.GameObjects.Image;
@@ -198,7 +197,7 @@ export class PhaserScene extends Phaser.Scene {
         this.mobileDrawerOpen = open;
         // Draw below the 260-depth drawer when open, so the close button
         // remains the topmost target only where the two controls overlap.
-        this.mobileHeaderToggle?.setDepth(open ? 240 : 300);
+
         this.layoutMobileHeaderToggle();
         this.callbacks.onMobileDrawerVisibilityChanged(open);
       },
@@ -1194,7 +1193,8 @@ export class PhaserScene extends Phaser.Scene {
     // so it looks like a real 3D shadow rather than distinct rectangles.
     const innerShadowTopLeft = 0x01050a;     // Matches the new #030d1c border
     const innerShadowBottomRight = 0x1e2430; // Matches the new #303845 border
-    const maxSpread = 22; // How far the shadow extends inward (in pixels)
+    const isMobileTable = table.width < 640;
+    const maxSpread = isMobileTable ? 10 : 22; // How far the shadow extends inward (in pixels)
 
     for (let i = 0; i < maxSpread; i++) {
       const progress = i / maxSpread;
@@ -1375,12 +1375,17 @@ export class PhaserScene extends Phaser.Scene {
     const dividerFill = active ? 0x9b9722 : 0x8ea4d0;
 
     // --- FIXED SHADOW SYSTEM ---
-    const maxSpread = 16; // Larger spread for a softer shadow
+    const isMobile = this.layout.tableOuter.width < 640;
+    const isTablet = this.layout.tableOuter.width >= 640 && this.layout.tableOuter.width < 1024;
+    const maxSpread = isMobile ? 4 : isTablet ? 10 : 16; 
     const shadowColor = 0x000000;
 
     // Slight directional offset for 3D feel
-    const shadowOffsetX = side === "left" ? 4 : side === "right" ? -4 : 0;
-    const shadowOffsetY = 8;
+    const mobileOffsetX = side === "left" ? 2 : side === "right" ? -2 : 0;
+    const tabletOffsetX = side === "left" ? 3 : side === "right" ? -3 : 0;
+    const defaultOffsetX = side === "left" ? 4 : side === "right" ? -4 : 0;
+    const shadowOffsetX = isMobile ? mobileOffsetX : isTablet ? tabletOffsetX : defaultOffsetX;
+    const shadowOffsetY = isMobile ? 4 : isTablet ? 6 : 8;
 
     for (let i = maxSpread; i >= 0; i--) {
       const progress = i / maxSpread;
@@ -1559,9 +1564,11 @@ export class PhaserScene extends Phaser.Scene {
     const dividerFill = active ? 0x9b9722 : 0x8ea4d0;
 
     // --- FIXED SHADOW SYSTEM ---
-    const maxSpread = 16; // Larger spread for a softer shadow
+    const isMobile = this.layout.tableOuter.width < 640;
+    const isTablet = this.layout.tableOuter.width >= 640 && this.layout.tableOuter.width < 1024;
+    const maxSpread = isMobile ? 4 : isTablet ? 10 : 16;
     const shadowColor = 0x000000;
-    const shadowOffsetY = 8;
+    const shadowOffsetY = isMobile ? 4 : isTablet ? 6 : 8;
 
     for (let i = maxSpread; i >= 0; i--) {
       const progress = i / maxSpread;
@@ -1693,7 +1700,8 @@ export class PhaserScene extends Phaser.Scene {
       "dead-hand:cancel",
       () => this.closeDeadHandSeatSelection(),
     );
-    this.createMobileHeaderToggle();
+    this.game.events.on("mobile-header:toggle", this.toggleMobileHeader, this);
+
     this.layoutStaticUi();
   }
   private layoutStaticUi(): void {
@@ -1717,53 +1725,29 @@ export class PhaserScene extends Phaser.Scene {
     );
   }
 
-  private createMobileHeaderToggle(): void {
-    const background = this.add.graphics();
-    // Keep an empty Graphics child for the transparent touch target; the
-    // Material arrow intentionally has no coloured button background.
 
-    const label = this.add
-      .text(0, 0, "keyboard_arrow_up", {
-        // This web font is loaded globally in index.html. Its ligature names
-        // render the rounded Material keyboard-arrow icons in Phaser canvas.
-        fontFamily: "Material Symbols Rounded",
-        fontSize: "30px",
-        fontStyle: "normal",
-        color: COLOR_BLUE,
-      })
-      // Use a fixed width for horizontal centring, but retain the glyph's
-      // natural height so Phaser centres it vertically by its real bounds.
-      .setFixedSize(28, 0)
-      .setAlign("center")
-      .setOrigin(0.5, 0.5)
-      .setPosition(0, 0);
 
-    this.mobileHeaderToggleLabel = label;
-    this.mobileHeaderToggle = this.add
-      .container(0, 0, [background, label])
-      .setDepth(300)
-      .setSize(28, 48)
-      .setInteractive({ useHandCursor: true });
+  private toggleMobileHeader(): void {
+    if (!this.layout?.metrics.isMobile) return;
 
-    this.mobileHeaderToggle.on("pointerup", () => {
-      if (!this.layout?.metrics.isMobile) return;
-
-      this.mobileHeaderCollapsed = !this.mobileHeaderCollapsed;
-      if (this.mobileHeaderCollapsed) this.uiLayoutManager.closeMobileDrawers();
-      this.callbacks.onMobileHeaderChanged(this.mobileHeaderCollapsed);
-      this.resize(this.scale.width, this.scale.height);
-    });
+    this.mobileHeaderCollapsed = !this.mobileHeaderCollapsed;
+    if (this.mobileHeaderCollapsed) this.uiLayoutManager.closeMobileDrawers();
+    this.callbacks.onMobileHeaderChanged(this.mobileHeaderCollapsed);
+    this.resize(this.scale.width, this.scale.height);
   }
 
   private layoutMobileHeaderToggle(): void {
-    if (!this.mobileHeaderToggle || !this.layout) return;
+    if (!this.callbacks.onMobileHeaderToggleOverlay) return;
 
-    const isMobile = this.layout.metrics.isMobile;
-    // Drawers are depth 260; this toggle is lowered to 240 while one is open
-    // so it stays visible outside the menu but never covers its close button.
-    this.mobileHeaderToggle.setVisible(isMobile);
-
-    if (!isMobile) return;
+    if (!this.layout || !this.layout.metrics.isMobile) {
+      this.callbacks.onMobileHeaderToggleOverlay({
+        visible: false,
+        x: 0,
+        y: 0,
+        icon: "",
+      });
+      return;
+    }
 
     const topExposure = this.layout.topExposure;
     const portrait = this.layout.metrics.isPortrait;
@@ -1779,13 +1763,13 @@ export class PhaserScene extends Phaser.Scene {
       : topExposure.y + topExposure.height / 2 + (this.mobileHeaderCollapsed
         ? 0
         : Math.round(Phaser.Math.Clamp(topExposure.height * 0.18, 10, 16)));
-    this.mobileHeaderToggle.setPosition(
-      toggleX,
-      Math.round(toggleY),
-    );
-    this.mobileHeaderToggleLabel?.setText(
-      this.mobileHeaderCollapsed ? "keyboard_arrow_down" : "keyboard_arrow_up",
-    );
+
+    this.callbacks.onMobileHeaderToggleOverlay({
+      visible: true,
+      x: Math.round(toggleX),
+      y: Math.round(toggleY),
+      icon: this.mobileHeaderCollapsed ? "keyboard_arrow_down" : "keyboard_arrow_up",
+    });
   }
 
   /** Receives an opponent discard from the future API/WebSocket. */
@@ -2277,9 +2261,9 @@ export class PhaserScene extends Phaser.Scene {
 
     const { width, height } = this.layout.canvas;
     const arrows: Record<Exclude<TableSeat, "bottom">, string> = {
-      top: "keyboard_arrow_up",
-      left: "keyboard_arrow_left",
-      right: "keyboard_arrow_right",
+      top: "\ue316",
+      left: "\ue314",
+      right: "\ue315",
     };
     const targets: readonly Exclude<TableSeat, "bottom">[] = ["top", "left", "right"];
 
