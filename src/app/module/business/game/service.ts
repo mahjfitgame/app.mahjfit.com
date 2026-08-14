@@ -140,8 +140,8 @@ export class GameService implements FoundationModuleServiceType {
          * - tablets / iPad
          * - desktop
          */
-        //return { atlasKey: TILE_ATLAS_2X_KEY, suffix: "@2x" };
-        if (this.isMobilePortraitOnly()) {
+        return { atlasKey: TILE_ATLAS_2X_KEY, suffix: "@2x" };
+        /* if (this.isMobilePortraitOnly()) {
             return { atlasKey: TILE_ATLAS_1X_KEY, suffix: "" };
         }
 
@@ -151,7 +151,7 @@ export class GameService implements FoundationModuleServiceType {
             return { atlasKey: TILE_ATLAS_2X_KEY, suffix: "@2x" };
         }
 
-        return { atlasKey: TILE_ATLAS_1X_KEY, suffix: "" };
+        return { atlasKey: TILE_ATLAS_1X_KEY, suffix: "" }; */
     }
 
     private selectTileAtlasOLD(tileDisplayWidth = 0): TileAtlasSelection {

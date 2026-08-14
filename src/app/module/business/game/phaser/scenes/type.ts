@@ -106,6 +106,8 @@ export interface TableSceneCallbacks {
   /** Lets native overlays yield while a mobile Phaser drawer is open. */
   readonly onMobileDrawerVisibilityChanged: (open: boolean) => void;
   readonly onMobileDrawerOverlay: (state: MobileDrawerOverlayState) => void;
+  /** Positions the native mobile header toggle arrow. */
+  readonly onMobileHeaderToggleOverlay?: (state: MobileHeaderToggleOverlayState) => void;
   /** Renders the crisp native "YOUR TURN" card, its copy, and its button. */
   readonly onInstructionPanelOverlay: (state: InstructionPanelOverlayState) => void;
   /** Lets native overlays yield so a Phaser popup can sit above them. */
@@ -202,6 +204,8 @@ export interface UiLayoutCallbacks {
   /** Reports whether a hamburger or action drawer currently covers the table. */
   readonly onMobileDrawerVisibilityChanged?: (open: boolean) => void;
   readonly onMobileDrawerOverlay?: (state: MobileDrawerOverlayState) => void;
+  /** Positions the native mobile header toggle arrow. */
+  readonly onMobileHeaderToggleOverlay?: (state: MobileHeaderToggleOverlayState) => void;
   /** Positions and fills the native instruction card over the table centre. */
   readonly onInstructionPanelOverlay?: (state: InstructionPanelOverlayState) => void;
   readonly logoTextureKey?: string;
@@ -242,6 +246,14 @@ export interface PointsOverlayState {
   readonly iconX: number;
   readonly iconY: number;
   readonly iconSize: number;
+}
+
+/** Browser-native toggle button for the mobile header layout. */
+export interface MobileHeaderToggleOverlayState {
+  readonly visible: boolean;
+  readonly x: number;
+  readonly y: number;
+  readonly icon: string;
 }
 
 /**
