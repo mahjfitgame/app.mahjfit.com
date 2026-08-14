@@ -16,15 +16,29 @@ Worked on connect WS as with the real game play. Implement with the
 
 ================ REPLYS ==================
 FOR CLIENT]
-Today, I continue work on game play area and make API call of create game and start game. Next I will start work on WS connection, ant it's event. Also reviewed the ilovemahj for siamese game play.
+Today, I continue work on game play area and make API call of create game and start game. 
+Next, I will  continue work and setup state for game and prepare seat
 
 I will keep you posted on work progress.
 Thank you!
 
 
+
+264 × 2048px
+
+But the tiles_1x.json says the atlas should be:
+509 × 3944px
+
+
+The JSON also has 50 frames, all marked as trimmed: true, with tile frame sizes around 169 × 232 or 170 × 232
+So again, the PNG and JSON do not match.
+That means 42 tiles are outside the actual PNG bounds according to the JSON. Phaser will not load this correctly.
+
+
 ==========
  [tech][Frontend Development][D1] Start Game implementation - setup state for game and prepare seat
- 
+  [tech][Frontend Development][D1] Try 1x tile atlast for bottom seat rack
+  [tech][Frontend Development][D1] Try 1x tile atlast for bottom seat rack [tech][Frontend Development][D1] Try 1x tile atlast for bottom seat rack
 [tech][Frontend Development][D1] Start Game implementation make create game and start game API call
 
 
