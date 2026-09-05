@@ -1,0 +1,200 @@
+<!-- file: src/app/area/protected/template.html -->
+<!--
+  ⚠ a HEADER + PAGE + FOOTER shell, not a console. the private area's two
+  drawers, tab group and six portal slots are deliberately absent — this is the
+  website's signed in chrome. see component.ts for why
+
+  ⚠ the three <app-protected-nav /> hosts below each render a DIFFERENT branch
+  of nav/template.html, chosen by [position]. the markup for a menu lives there,
+  never here — this file only says where each menu sits
+-->
+<div class="tw:flex tw:min-h-dvh tw:flex-col">
+  <!-- ██ [1] ██ HEADER ████████ -->
+  <header class="tw:sticky tw:top-0 tw:z-20 tw:backdrop-blur-sm">
+    <div class="bfw-safe-area-pt bfw-safe-area-px tw:relative">
+      <mat-toolbar class="tw:flex tw:items-center tw:min-w-0 tw:bg-transparent!">
+        <!-- BRAND -->
+        <a
+          routerLink="/"
+          class="tw:flex tw:shrink-0 tw:items-center tw:gap-2 tw:no-underline tw:text-inherit"
+        >
+          <img
+            src="assets/logo.png"
+            [alt]="'GL.APP.BRAND_LOGO_ALT' | transloco"
+            class="tw:h-10 tw:w-10 tw:object-contain"
+          />
+          <span class="tw:hidden tw:sm:block tw:leading-tight">
+            <span class="tw:block tw:text-sm">{{ 'GL.APP.BRAND_NAME' | transloco }}</span>
+            <small class="tw:block tw:text-xs tw:opacity-75">{{ 'GL.APP.BRAND_VENDOR' | transloco }}</small>
+          </span>
+        </a>
+
+        <!-- MAIN MENU — nav_position TOP. hidden on small screens, see the drawer below -->
+        <div class="tw:ms-4 tw:hidden tw:md:flex tw:min-w-0">
+          <app-protected-nav [position]="service.FoundationNavPositionEnum.TOP" />
+        </div>
+
+        <div class="tw:ms-auto tw:flex tw:shrink-0 tw:items-center tw:gap-2">
+          <!-- MODULE SLOT — the routed module's own header actions -->
+          <ng-template
+            [cdkPortalOutlet]="
+              service.state.slotMainHeaderToolbarExtension() ?? DEF_SLOT_MAIN_HEADER_TOOLBAR_EXTENSION
+            "
+          >
+          </ng-template>
+
+          <!-- AVATAR MENU — nav_position ONBOARDING, holds Sign Out today -->
+          @if (service.ctxp.state.authenticated()) {
+            <button
+              type="button"
+              [matMenuTriggerFor]="BfwProtectedAccountMenu"
+              [attr.aria-label]="'GL.COMMON.ACCOUNT_MENU' | transloco"
+              class="tw:group tw:flex tw:cursor-pointer tw:items-center tw:gap-2 tw:rounded-full tw:p-1 tw:transition-all tw:hover:bg-primary/20 tw:dark:hover:bg-primary/30"
+            >
+              @if (service.ctxp.state.user_file_profile_photo_url_thumb; as photoUrl) {
+                <img
+                  [src]="photoUrl"
+                  [alt]="service.ctxp.state.user_fullname"
+                  loading="lazy"
+                  class="tw:h-9 tw:w-9 tw:shrink-0 tw:rounded-full tw:object-cover"
+                />
+              } @else {
+                <span class="tw:flex tw:h-9 tw:w-9 tw:shrink-0 tw:items-center tw:justify-center tw:rounded-full tw:bg-primary tw:text-on-primary tw:text-sm tw:font-semibold">
+                  {{ service.ctxp.state.user_monogram_avatar }}
+                </span>
+              }
+              <span class="tw:hidden tw:sm:block tw:max-w-40 tw:truncate tw:text-sm">
+                {{ service.ctxp.state.user_fullname }}
+              </span>
+            </button>
+
+            <mat-menu #BfwProtectedAccountMenu="matMenu" yPosition="below" xPosition="before">
+              @for (item of nav.state.onboardingNav; track item.registry_key) {
+                @if (item.divider) {
+                  <mat-divider></mat-divider>
+                }
+                <a mat-menu-item [routerLink]="item.url" [ngClass]="item.css_class">
+                  <mat-icon class="material-symbols-rounded" [ngClass]="item.css_class">{{ item.icon }}</mat-icon>
+                  <span>{{ item.label | transloco }}</span>
+                </a>
+              }
+            </mat-menu>
+          }
+
+          <!-- MOBILE MENU TOGGLE -->
+          <button
+            matIconButton
+            class="tw:md:hidden"
+            (click)="toggleMobileMenu()"
+            [attr.aria-label]="(mobileMenuOpen ? 'GL.COMMON.CLOSE' : 'GL.COMMON.OPEN') | transloco"
+          >
+            <mat-icon class="material-symbols-rounded">{{ mobileMenuOpen ? 'close' : 'menu' }}</mat-icon>
+          </button>
+        </div>
+      </mat-toolbar>
+
+      <!--
+        SMALL SCREEN MENU — the SAME TOP rows, stacked. (navigated) closes it,
+        which is why ProtectedNavComponent carries that output
+      -->
+      @if (mobileMenuOpen) {
+        <div class="tw:md:hidden tw:px-2 tw:pb-2">
+          <app-protected-nav
+            [position]="service.FoundationNavPositionEnum.TOP"
+            (navigated)="closeMobileMenuIfSmAndDown()"
+          />
+        </div>
+      }
+    </div>
+  </header>
+
+  <!-- ██ [2] ██ MAIN ████████ -->
+  <main class="bfw-main bfw-safe-area-px tw:flex-1">
+    <!-- MODULE HEADING — published by the routed module's setModuleInfo() -->
+    @if (service.state.moduleInfo(); as info) {
+      @if (info.title || info.i18n?.title) {
+        <div class="tw:mx-2 tw:mt-2 tw:flex tw:min-w-0 tw:items-center tw:gap-3">
+          @if (info.icon) {
+            <span class="tw:flex tw:h-10 tw:w-10 tw:shrink-0 tw:items-center tw:justify-center tw:rounded-lg tw:bg-primary tw:text-on-primary">
+              <mat-icon class="material-symbols-rounded">{{ info.icon }}</mat-icon>
+            </span>
+          }
+          <span class="tw:flex tw:min-w-0 tw:flex-col tw:leading-tight tw:text-primary">
+            <h1 class="tw:m-0 tw:text-base tw:font-semibold tw:truncate">
+              @if (info.i18n?.title) {
+                {{ $safeNavigationMigration(info.i18n?.title) | transloco }}
+              } @else {
+                {{ info.title }}
+              }
+            </h1>
+            @if (info.hint || info.i18n?.hint) {
+              <small class="tw:text-xs tw:opacity-80 tw:truncate">
+                @if (info.i18n?.hint) {
+                  {{ $safeNavigationMigration(info.i18n?.hint) | transloco }}
+                } @else {
+                  {{ info.hint }}
+                }
+              </small>
+            }
+          </span>
+        </div>
+      }
+    }
+
+    <div class="tw:flex tw:flex-col tw:gap-1 tw:mx-2!">
+      <app-notify-banner></app-notify-banner>
+    </div>
+
+    <router-outlet></router-outlet>
+  </main>
+
+  <!-- ██ [3] ██ FOOTER ████████ -->
+  <footer>
+    <div class="bfw-safe-area-pb bfw-safe-area-px">
+      <mat-toolbar class="tw:h-auto! tw:bg-transparent! tw:py-2! tw:px-2!">
+        <ng-template
+          [cdkPortalOutlet]="
+            service.state.slotMainFooterToolbarExtension() ?? DEF_SLOT_MAIN_FOOTER_TOOLBAR_EXTENSION
+          "
+        >
+        </ng-template>
+      </mat-toolbar>
+
+      <!-- ⚠ same breadcrumb block as private/template.html:243-265, one host deeper -->
+      <div class="tw:flex tw:w-full tw:justify-center tw:text-secondary tw:mb-2">
+        <xng-breadcrumb [separator]="BreadcrumbSeparator">
+          <ng-container *xngBreadcrumbItem="let breadcrumb; let info = info">
+            <span
+              class="tw:bg-primary-container tw:shadow-sm tw:px-1 tw:rounded-sm tw:inline-flex tw:items-center tw:gap-1"
+              [matTooltip]="info?.tooltip || ''"
+              [matTooltipDisabled]="!info?.tooltip"
+            >
+              @if (info?.icon) {
+                <mat-icon class="material-symbols-rounded xng-breadcrumb-link-icon tw:p-1">{{ info.icon }}</mat-icon>
+              }
+              @if (!info?.iconOnly) {
+                <ng-container>{{ breadcrumb | transloco }}</ng-container>
+              }
+            </span>
+          </ng-container>
+        </xng-breadcrumb>
+        <ng-template #BreadcrumbSeparator>
+          <mat-icon class="material-symbols-rounded">chevron_right</mat-icon>
+        </ng-template>
+      </div>
+
+      <div class="tw:flex tw:w-full tw:justify-center tw:items-center tw:text-secondary tw:gap-2">
+        <p class="tw:m-0 tw:text-xs">
+          {{ 'GL.APP.COPYRIGHT' | transloco: { year: service.utility.currentYear() } }}
+        </p>
+        <span class="tw:text-xs">|</span>
+        <!-- ⚠ nav_position BOTTOM. no (navigated) binding: nothing to close here -->
+        <app-protected-nav [position]="service.FoundationNavPositionEnum.BOTTOM" />
+      </div>
+    </div>
+  </footer>
+</div>
+
+<!-- ng-template DEFAULT FALLBACKS -->
+<ng-template cdkPortal #DEF_SLOT_MAIN_HEADER_TOOLBAR_EXTENSION="cdkPortal"></ng-template>
+<ng-template cdkPortal #DEF_SLOT_MAIN_FOOTER_TOOLBAR_EXTENSION="cdkPortal"></ng-template>

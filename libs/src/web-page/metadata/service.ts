@@ -1,19 +1,15 @@
 import {DOCUMENT} from '@angular/common';
-import {Injectable, Renderer2, RendererFactory2, inject} from '@angular/core';
+import {Renderer2, RendererFactory2, Service, inject} from '@angular/core';
 import {Meta} from '@angular/platform-browser';
 import {PreconnectLink, WebAppMetadataType} from './type';
 
-@Injectable({providedIn: 'root'})
+@Service()
 export class WebPageMetadataService {
     private readonly document = inject(DOCUMENT);
     private readonly meta = inject(Meta);
-    private readonly renderer: Renderer2;
+    private readonly renderer: Renderer2 = inject(RendererFactory2).createRenderer(null, null);
 
     private readonly preconnectAttribute = 'data-app-preconnect';
-
-    public constructor(rendererFactory: RendererFactory2) {
-        this.renderer = rendererFactory.createRenderer(null, null);
-    }
 
     public init(metadata: WebAppMetadataType): void {
         this.updateApplicationMetadata(metadata);

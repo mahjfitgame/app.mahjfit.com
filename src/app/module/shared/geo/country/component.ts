@@ -1,4 +1,4 @@
-// file: ./src/app/module/shared/geo/country/component.ts
+// file: src/app/module/shared/geo/country/component.ts
 import { Component, inject, OnDestroy, OnInit } from '@angular/core';
 import { RouterModule } from '@angular/router';
 import { CommonModule } from '@angular/common';
@@ -10,6 +10,7 @@ import { CrudLayoutDirective } from '@base/crud/directive';
 import { MatIcon } from '@angular/material/icon';
 import { TermHighlightDirective } from '@libs/utility/directive/term.highlight.directive';
 import { MatSnackBarModule } from '@angular/material/snack-bar';
+import { TranslocoModule } from '@jsverse/transloco';
 import { CRUD_PROVIDER } from '@base/crud/provider';
 import { GEO_COUNTRY_PROVIDER } from './provider';
 
@@ -31,6 +32,9 @@ import { GEO_COUNTRY_PROVIDER } from './provider';
     MatIcon,
     MatSnackBarModule,
 
+    // slot templates below render field labels, which are i18n keys
+    TranslocoModule,
+
         // custom components
         CrudLayoutDirective,
         TermHighlightDirective,
@@ -44,8 +48,6 @@ import { GEO_COUNTRY_PROVIDER } from './provider';
 export class GeoCountryComponent implements OnInit, OnDestroy {
   public readonly service = inject(GeoCountryService);
   constructor() {}
-  public ngOnInit(): void {
-    this.service.initI18n();
-  }
+  public ngOnInit(): void {}
   public ngOnDestroy(): void {}
 }

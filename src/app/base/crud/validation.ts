@@ -1,4 +1,4 @@
-// file: ./src/app/base/crud/validation.ts
+// file: src/app/base/crud/validation.ts
 import { inject, Service } from "@angular/core";
 import { formatDate } from '@angular/common';
 import { SchemaPathTree, email, hidden, maxLength, minLength, pattern, required, validate, max, min } from "@angular/forms/signals";
@@ -8,6 +8,7 @@ import { ConfService } from "@libs/conf/service";
 import { LogService } from "@libs/log/service";
 import { CrudUtility } from "@base/crud/utility";
 import { CrudState } from "@base/crud/state";
+import { I18nService } from "@base/internationalization/service";
 
 @Service({ autoProvided: false })
 export class CrudValidation {
@@ -16,6 +17,7 @@ export class CrudValidation {
 
     private readonly conf = inject(ConfService);
     private readonly log = inject(LogService);
+    private readonly i18n = inject(I18nService);
 
     constructor() {}
 
@@ -56,9 +58,9 @@ export class CrudValidation {
         const encIfNeeded = (value: any): any => {
             if(fi.apply_enc && fi.apply_enc === true && !isEmpty(value)) {
                 if (Array.isArray(value)) {
-                    return value.map((item) => this.utility.encId(item));
+                    return value.map((item) => this.utility.encPrimaryKey(item));
                 }
-                return this.utility.encId(value);    
+                return this.utility.encPrimaryKey(value);    
             }
             return value;
         };
@@ -264,11 +266,25 @@ export class CrudValidation {
 
             [CrudFieldUiTypeEnum.FLAG]: (v: any, fi: CrudListingFieldInfoType, r: any) => {
                 if (fi.flag_label) {
+                    /**
+                     * flag_label holds i18n KEYS. Resolved here, not returned as
+                     * keys, for the same reason as SWITCH below: this formatter
+                     * feeds BOTH the listing cell and applyQuickSearch()'s text
+                     * match, and the cell is printed without `| transloco`.
+                     *
+                     * An empty string is a deliberate 'no text here' (is_datetime
+                     * is usually blank, meaning no prefix in front of the date),
+                     * so it is passed through rather than looked up.
+                     */
+                    const label = (key: string): string => {
+                        return key ? this.i18n.translate(key) : '';
+                    };
+
                     if (isEmpty(v)) {
-                        return fi.flag_label.is_null;
+                        return label(fi.flag_label.is_null);
                     }
 
-                    return `${fi.flag_label.is_datetime}${formatDateSafe(v, this.conf.formatDateTime)}`;
+                    return `${label(fi.flag_label.is_datetime)}${formatDateSafe(v, this.conf.formatDateTime)}`;
                 }
 
                 return v;
@@ -276,12 +292,18 @@ export class CrudValidation {
 
             [CrudFieldUiTypeEnum.SWITCH]: (v: any, fi: CrudListingFieldInfoType, r: any) => {
                 if (this.isSwitchOptionType(fi.option)) {
+                    /**
+                     * Resolved here, not returned as a key: this formatter feeds
+                     * BOTH the listing cell and applyQuickSearch()'s text match.
+                     * Returning a key would make quick search compare against
+                     * 'GL.FIELD.SWITCH.ON' instead of what the user can see.
+                     */
                     if (v === fi.option.on) {
-                        return 'On';
+                        return this.i18n.translate('GL.FIELD.SWITCH.ON');
                     }
 
                     if (v === fi.option.off) {
-                        return 'Off';
+                        return this.i18n.translate('GL.FIELD.SWITCH.OFF');
                     }
                 }
 
@@ -316,6 +338,11 @@ export class CrudValidation {
                 return v;
             },
 
+            [CrudFieldUiTypeEnum.SLIDER]: (v: any, fi: CrudListingFieldInfoType, r: any) => {
+                return v;
+            },
+
+            // RANGE holds one half of the pair; the sibling field formats itself
             [CrudFieldUiTypeEnum.RANGE]: (v: any, fi: CrudListingFieldInfoType, r: any) => {
                 return v;
             },
@@ -636,7 +663,7 @@ export class CrudValidation {
             }
 
             try {
-                const decrypted = this.utility.descId(v);
+                const decrypted = this.utility.descPrimaryKey(v);
                 return decrypted ?? v;
             } catch {
                 return v;
@@ -654,7 +681,7 @@ export class CrudValidation {
             }
 
             try {
-                return this.utility.encId(v);
+                return this.utility.encPrimaryKey(v);
             } catch {
                 return v;
             }
@@ -1038,11 +1065,30 @@ export class CrudValidation {
                 const src = getSourceValue(v, fi, r, mode);
 
                 if (this.isSwitchOptionType(fi.option)) {
-                    if (src === fi.option.on || src === 'On') {
+                    /**
+                     * Matched against the field's OWN option pair — for rbin
+                     * that is CRUD_RECYCLE_BIN_STATUS { on: 1, off: 0 } — never
+                     * against the words 'On'/'Off'.
+                     *
+                     * Those two literals used to be accepted here as a second
+                     * chance at a match. They could not be translated (the
+                     * stored value must not shift with the active language) and
+                     * they were unreachable anyway: only the SWITCH *formatter*
+                     * produces them, and its output goes to the listing cell and
+                     * quick search, never back into normalization.
+                     *
+                     * Compared as strings because the URL hands every matrix
+                     * param over as text: `rb=1` arrives as "1" while option.on
+                     * is the number 1, which strict === missed. Works the same
+                     * for a boolean pair { on: true, off: false }.
+                     */
+                    const srcText = String(src);
+
+                    if (srcText === String(fi.option.on)) {
                         return fi.option.on;
                     }
 
-                    if (src === fi.option.off || src === 'Off') {
+                    if (srcText === String(fi.option.off)) {
                         return fi.option.off;
                     }
 
@@ -1139,6 +1185,16 @@ export class CrudValidation {
                 return toStringSafe(src, fi, r, mode);
             },
 
+            [CrudFieldUiTypeEnum.SLIDER]: (
+                v: any,
+                fi: CrudFormFieldInfoType,
+                r: any,
+                mode: CrudFieldNormalizeModeEnum,
+            ) => {
+                return toNumberSafe(getSourceValue(v, fi, r, mode), fi, r, mode);
+            },
+
+            // RANGE holds one half of the pair; each key normalizes as a plain number
             [CrudFieldUiTypeEnum.RANGE]: (
                 v: any,
                 fi: CrudFormFieldInfoType,
@@ -1315,7 +1371,7 @@ export class CrudValidation {
         const validator: CrudFormFieldValueValidatorLookUpType = {
             [CrudFieldValidationEnum.REQUIRED]: (v: any) => {
                 return isEmpty(v)
-                    ? fail(v, 'Required')
+                    ? fail(v, 'GL.VALIDATION.REQUIRED')
                     : success(v);
             },
 
@@ -1327,7 +1383,7 @@ export class CrudValidation {
                 const value = toStringValue(v);
                 return value.length >= Number(minLength)
                     ? success(v)
-                    : fail(v, `Minimum length is ${minLength}`);
+                    : fail(v, this.i18n.translate('GL.VALIDATION.MIN_LENGTH', { min_length: minLength }));
             },
 
             [CrudFieldValidationEnum.MAX_LENGTH]: (v: any, fi: CrudFormFieldInfoType) => {
@@ -1338,7 +1394,7 @@ export class CrudValidation {
                 const value = toStringValue(v);
                 return value.length <= Number(maxLength)
                     ? success(v)
-                    : fail(v, `Maximum length is ${maxLength}`);
+                    : fail(v, this.i18n.translate('GL.VALIDATION.MAX_LENGTH', { max_length: maxLength }));
             },
 
             [CrudFieldValidationEnum.MIN]: (v: any, fi: CrudFormFieldInfoType) => {
@@ -1350,17 +1406,17 @@ export class CrudValidation {
                 const min = toNumberValue(minValue);
 
                 if (!Number.isNaN(n) && !Number.isNaN(min)) {
-                    return n >= min ? success(v) : fail(v, `Minimum value is ${minValue}`);
+                    return n >= min ? success(v) : fail(v, this.i18n.translate('GL.VALIDATION.MIN', { min: minValue }));
                 }
 
                 // fallback: date compare
                 const dt = new Date(v as any).getTime();
                 const minDt = new Date(minValue as any).getTime();
                 if (!Number.isNaN(dt) && !Number.isNaN(minDt)) {
-                    return dt >= minDt ? success(v) : fail(v, `Minimum value is ${minValue}`);
+                    return dt >= minDt ? success(v) : fail(v, this.i18n.translate('GL.VALIDATION.MIN', { min: minValue }));
                 }
 
-                return fail(v, 'Invalid value');
+                return fail(v, 'GL.VALIDATION.FN');
             },
 
             [CrudFieldValidationEnum.MAX]: (v: any, fi: CrudFormFieldInfoType) => {
@@ -1372,17 +1428,17 @@ export class CrudValidation {
                 const max = toNumberValue(maxValue);
 
                 if (!Number.isNaN(n) && !Number.isNaN(max)) {
-                    return n <= max ? success(v) : fail(v, `Maximum value is ${maxValue}`);
+                    return n <= max ? success(v) : fail(v, this.i18n.translate('GL.VALIDATION.MAX', { max: maxValue }));
                 }
 
                 // fallback: date compare
                 const dt = new Date(v as any).getTime();
                 const maxDt = new Date(maxValue as any).getTime();
                 if (!Number.isNaN(dt) && !Number.isNaN(maxDt)) {
-                    return dt <= maxDt ? success(v) : fail(v, `Maximum value is ${maxValue}`);
+                    return dt <= maxDt ? success(v) : fail(v, this.i18n.translate('GL.VALIDATION.MAX', { max: maxValue }));
                 }
 
-                return fail(v, 'Invalid value');
+                return fail(v, 'GL.VALIDATION.FN');
             },
 
             [CrudFieldValidationEnum.PATTERN]: (v: any, fi: CrudFormFieldInfoType) => {
@@ -1393,7 +1449,7 @@ export class CrudValidation {
                 const regex = patternValue instanceof RegExp ? patternValue : new RegExp(String(patternValue));
                 return regex.test(toStringValue(v))
                     ? success(v)
-                    : fail(v, 'Invalid pattern');
+                    : fail(v, 'GL.VALIDATION.PATTERN');
             },
 
             [CrudFieldValidationEnum.EMAIL]: (v: any) => {
@@ -1401,14 +1457,14 @@ export class CrudValidation {
                 const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
                 return emailRegex.test(toStringValue(v))
                     ? success(v)
-                    : fail(v, 'Invalid email');
+                    : fail(v, 'GL.VALIDATION.EMAIL');
             },
 
             [CrudFieldValidationEnum.DATE]: (v: any) => {
                 if (isEmpty(v)) return success(v);
                 return isValidDateValue(v)
                     ? success(v)
-                    : fail(v, 'Invalid date');
+                    : fail(v, 'GL.VALIDATION.DATE');
             },
 
             [CrudFieldValidationEnum.TIME]: (v: any) => {
@@ -1416,16 +1472,16 @@ export class CrudValidation {
                 const timeRegex = /^([01]?[0-9]|2[0-3]):[0-5][0-9](:[0-5][0-9])?(\s?[AP]M)?$/i;
                 return timeRegex.test(toStringValue(v))
                     ? success(v)
-                    : fail(v, 'Invalid time');
+                    : fail(v, 'GL.VALIDATION.TIME');
             },
 
             [CrudFieldValidationEnum.DATETIME]: (v: any) => {
                 if (isEmpty(v)) return success(v);
-                if (!isValidDateValue(v)) return fail(v, 'Invalid datetime');
+                if (!isValidDateValue(v)) return fail(v, 'GL.VALIDATION.DATETIME');
 
                 const s = toStringValue(v);
                 const hasTime = /[0-9]:[0-9]/.test(s);
-                return hasTime ? success(v) : fail(v, 'Invalid datetime');
+                return hasTime ? success(v) : fail(v, 'GL.VALIDATION.DATETIME');
             },
 
             [CrudFieldValidationEnum.URL]: (v: any) => {
@@ -1433,7 +1489,7 @@ export class CrudValidation {
                 const urlRegex = /^(https?|ftp):\/\/[^\s$.?#].[^\s]*$/i;
                 return urlRegex.test(toStringValue(v))
                     ? success(v)
-                    : fail(v, 'Invalid URL');
+                    : fail(v, 'GL.VALIDATION.URL');
             },
 
             [CrudFieldValidationEnum.MATCH_FIELD]: (v: any, fi: CrudFormFieldInfoType, r?: Record<string, any>) => {
@@ -1441,7 +1497,7 @@ export class CrudValidation {
                 if (!matchField || !r) return success(v);
                 return v === r[matchField]
                     ? success(v)
-                    : fail(v, 'Field values do not match');
+                    : fail(v, this.i18n.translate('GL.VALIDATION.MATCH_FIELD', { expected: matchField }));
             },
 
             [CrudFieldValidationEnum.COLOR]: (v: any) => {
@@ -1449,14 +1505,14 @@ export class CrudValidation {
                 const hexRegex = /^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/;
                 return hexRegex.test(toStringValue(v))
                     ? success(v)
-                    : fail(v, 'Invalid color');
+                    : fail(v, 'GL.VALIDATION.COLOR');
             },
 
             [CrudFieldValidationEnum.DIGIT]: (v: any) => {
                 if (isEmpty(v)) return success(v);
                 return /^\d+$/.test(toStringValue(v))
                     ? success(v)
-                    : fail(v, 'Invalid digit');
+                    : fail(v, 'GL.VALIDATION.DIGIT');
             },
 
             [CrudFieldValidationEnum.DECIMAL]: (v: any) => {
@@ -1464,7 +1520,7 @@ export class CrudValidation {
                 const decimalRegex = /^[+-]?([0-9]*[.])?[0-9]+$/;
                 return decimalRegex.test(toStringValue(v))
                     ? success(v)
-                    : fail(v, 'Invalid decimal');
+                    : fail(v, 'GL.VALIDATION.DECIMAL');
             },
 
             [CrudFieldValidationEnum.TEXT]: (v: any) => {
@@ -1473,7 +1529,7 @@ export class CrudValidation {
                 const s = toStringValue(v);
                 return textOnlyRegex.test(s)
                     ? success(v)
-                    : fail(v, 'Invalid text');
+                    : fail(v, 'GL.VALIDATION.TEXT');
             },
 
             [CrudFieldValidationEnum.EXTENSION]: (v: any, fi: CrudFormFieldInfoType) => {
@@ -1484,12 +1540,12 @@ export class CrudValidation {
 
                 const fileName = toStringValue(v);
                 const dotIndex = fileName.lastIndexOf('.');
-                if (dotIndex < 0) return fail(v, 'Invalid file extension');
+                if (dotIndex < 0) return fail(v, this.i18n.translate('GL.VALIDATION.EXTENSION', { allowed: allowed.join(', ') }));
 
                 const fileExt = fileName.substring(dotIndex).toLowerCase();
                 const ok = allowed.some((ext) => ext.toLowerCase() === fileExt);
 
-                return ok ? success(v) : fail(v, 'Invalid file extension');
+                return ok ? success(v) : fail(v, this.i18n.translate('GL.VALIDATION.EXTENSION', { allowed: allowed.join(', ') }));
             },
 
             [CrudFieldValidationEnum.OPTION_RANGE]: (v: any, fi: CrudFormFieldInfoType) => {
@@ -1504,7 +1560,7 @@ export class CrudValidation {
 
                 return isValid
                     ? success(v)
-                    : fail(v, 'Invalid option');
+                    : fail(v, 'GL.VALIDATION.OPTION_RANGE');
             },
 
             [CrudFieldValidationEnum.FN]: (v: any, fi: CrudFormFieldInfoType, r?: Record<string, any>) => {
@@ -1516,7 +1572,7 @@ export class CrudValidation {
                 const result = fn(v, fi, r);
 
                 if (typeof result === 'boolean') {
-                    return result ? success(v) : fail(v, 'Invalid value');
+                    return result ? success(v) : fail(v, 'GL.VALIDATION.FN');
                 }
 
                 if (

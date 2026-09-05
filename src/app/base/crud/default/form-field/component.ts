@@ -1,4 +1,4 @@
-// file: ./src/app/base/crud/default/form-field/component.ts
+// file: src/app/base/crud/default/form-field/component.ts
 import { Component, computed, inject, input } from '@angular/core';
 import { CrudService } from '@base/crud/service';
 import { MatIconModule } from '@angular/material/icon';
@@ -10,6 +10,7 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatDividerModule } from '@angular/material/divider';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
+import { MatSliderModule } from '@angular/material/slider';
 import { KeyValuePipe, NgTemplateOutlet } from '@angular/common';
 import { CrudFieldObj, CrudFieldObjInput } from '@base/crud/type';
 import { MatRadioModule } from '@angular/material/radio';
@@ -18,6 +19,7 @@ import { OwlDateTimeModule, OwlNativeDateTimeModule } from '@danielmoncada/angul
 import { FormsModule } from '@angular/forms';
 import { provideDateTimeFormat } from '@libs/date-time/provider';
 import { CrudFieldSlotPortalKeyPrefixEnum } from '@base/crud/enum';
+import { TranslocoModule } from '@jsverse/transloco';
 
 @Component({
   selector: 'app-crud-default-form-field',
@@ -27,6 +29,7 @@ import { CrudFieldSlotPortalKeyPrefixEnum } from '@base/crud/enum';
   imports: [
     KeyValuePipe,
     NgTemplateOutlet,
+    TranslocoModule,
     MatIconModule,
     MatButtonModule,
     MatButtonToggleModule,
@@ -36,6 +39,7 @@ import { CrudFieldSlotPortalKeyPrefixEnum } from '@base/crud/enum';
     MatDividerModule,
     MatTooltipModule,
     MatSlideToggleModule,
+    MatSliderModule,
     MatRadioModule,
     MatCheckboxModule,
     FormsModule,
@@ -51,12 +55,15 @@ export class CrudDefaultFormFieldComponent {
   public readonly slotPrefix = input<CrudFieldSlotPortalKeyPrefixEnum>();
 
   // accepts object OR array of objects
-  public readonly fieldObj = input<CrudFieldObjInput>(null);
+  public readonly formFieldObj = input<CrudFieldObjInput>(null);
+
+  // accepts class object
+  public readonly formState = input<any>(null);
 
   // always gives array, so template stays simple
-  public readonly fieldObjList = computed<CrudFieldObj[]>(() => {
-    const value = this.fieldObj();
+  public readonly formFieldObjList = computed<CrudFieldObj[]>(() => {
+    const value = this.formFieldObj();
     if (!value) return [];
     return Array.isArray(value) ? value : [value];
   });
-}
+} 

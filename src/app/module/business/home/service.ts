@@ -7,15 +7,16 @@ import { ContextProfileService } from "@libs/context-profile/service";
 import { GlobalProgressBarService } from "@base/global-progress-bar/service";
 import { I18nService } from "@base/internationalization/service";
 import { BfwApiService } from "@libs/third-party-apis/bfw-api/service";
-import { FoundationModuleServiceType } from "@libs/foundation-module/type/service";
+import { FoundationModuleServiceType } from "@libs/foundation/module/type";
 import { AppConfigRepository } from "@libs/sqlite/module/app-config/repository";
 import { OpenAreaRoute } from "@area/open/route";
 import { SignoutRoute } from "@module/shared/onboarding/signout/route";
-import { SigninRoute } from "@module/shared/onboarding/signin/route";
-import { GameRoute } from "src/app/module/business/game/route";
-import { FoundationModuleNavigationActionType } from "@libs/foundation-module/type/common";
+import { SigninRoute } from "@module/shared/preboarding/signin/route";
+import { FoundationNavigationActionType } from "@libs/foundation/type";
 import { HOME_I18N_KEY } from "./const";
 import { HomeState } from "./state";
+import { GeoCountryRoute } from "../../shared/geo/country/route";
+import { GameRoute } from "../game/route";
 
 @Service({ autoProvided: false })
 export class HomeService implements FoundationModuleServiceType {
@@ -45,26 +46,37 @@ export class HomeService implements FoundationModuleServiceType {
 
     public readonly brandLogoSrc = 'assets/majhfit-logo-blue.png';
 
-    public readonly navigationActions: FoundationModuleNavigationActionType[] = [
-        /* {
-            label: 'GL.MODULE.ONBOARDING.SIGNIN',
+    public navigationActions: FoundationNavigationActionType[] = [
+
+        /*{
+            label: 'GL.MODULE.PREBOARDING.SIGNIN',
             icon: 'lock_open',
             routerLink: SigninRoute.absolutePathArr(),
         },
         {
             label: 'HOME.ACTION.GEO_COUNTRY',
             icon: 'dashboard',
-            routerLink: ['/account/geo/country'],
-        }, */
-        {
-            label: "Start Game",
-            icon: "gamepad",
-            routerLink: GameRoute.absolutePathArr(),
+            //  * ⚠ was the literal ['/account/geo/country'], which the private area
+            //  * slug rename ('account' -> 'private') turned into a dead link. a
+            //  * class field is safe for Rule 7 — DI constructs this service long
+            //  * after AreaRoute.routes() filled FoundationModulePath
+            
+            routerLink: GeoCountryRoute.absolutePathArr(),
         },
+        */
     ];
 
     constructor() {
+        // █████ FoundationModuleServiceType
+        // load this module's translations first, before any label can render.
+        // constructor, not component ngOnInit - see I18nService.useModule() for why
+        this.initI18n();
 
+        // set module info
+        this.setModuleInfo();
+
+        // alter breadcrumbs
+        this.alterBreadcrumb();
     }
 
     // ████ MODULE METHODS ██████████████████████████████████████████████
@@ -94,6 +106,28 @@ export class HomeService implements FoundationModuleServiceType {
             this.log.error(e);
             this.state.setError('Unable to read the local database version.');
         }
+    }
+    public genNavigationActions(): FoundationNavigationActionType[] {
+        if (this.ctxp.state.authenticated()) {
+            this.navigationActions.push({
+                label: 'Start Game',
+                icon: 'dashboard',
+                routerLink: GameRoute.absolutePathArr(),
+            });
+            this.navigationActions.push({
+                label: 'Signout',
+                icon: 'logout',
+                routerLink: SignoutRoute.absolutePathArr(),
+            });
+
+        } else {
+            this.navigationActions.push({
+                label: 'Signin',
+                icon: 'lock_open',
+                routerLink: SigninRoute.absolutePathArr(),
+            });
+        }
+        return this.navigationActions;
     }
 
     // ████ WEB SOCKET CALLS ████████████████████████████████████████████

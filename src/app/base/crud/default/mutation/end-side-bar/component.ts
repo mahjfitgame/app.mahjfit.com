@@ -1,4 +1,4 @@
-// file: ./src/app/base/crud/default/mutation/end-side-bar/component.ts
+// file: src/app/base/crud/default/mutation/end-side-bar/component.ts
 import { Component, inject } from '@angular/core';
 import { NgComponentOutlet } from '@angular/common';
 import { CrudService } from '@base/crud/service';
@@ -6,6 +6,7 @@ import { CdkPortal } from '@angular/cdk/portal';
 import { PrivateAreaLayoutDirective } from '@area/private/directive';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
+import { TranslocoModule } from '@jsverse/transloco';
 
 @Component({
   selector: 'app-crud-default-mutation-end-side-bar',
@@ -15,6 +16,8 @@ import { MatIconModule } from '@angular/material/icon';
   imports: [
     CdkPortal,
     PrivateAreaLayoutDirective,
+
+    TranslocoModule,
 
     MatIconModule,
     MatButtonModule,

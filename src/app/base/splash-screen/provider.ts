@@ -1,4 +1,4 @@
-// file: ./src/app/base/splash-screen/provider.ts
+// file: src/app/base/splash-screen/provider.ts
 import { DOCUMENT } from '@angular/common';
 import {
   ApplicationRef,
@@ -13,30 +13,30 @@ import { SplashScreenComponent } from '@base/splash-screen/component';
 import { SplashScreenService } from '@base/splash-screen/service';
 
 function provideSplashScreenComponent(): void {
-  let splashScreenComponentRef: ComponentRef<SplashScreenComponent> | null = null;
+    let splashScreenComponentRef: ComponentRef<SplashScreenComponent> | null = null;
 
-  const splash = inject(SplashScreenService);
-  const document = inject(DOCUMENT);
-  const applicationRef = inject(ApplicationRef);
-  const environmentInjector = inject(EnvironmentInjector);
+    const splash = inject(SplashScreenService);
+    const document = inject(DOCUMENT);
+    const applicationRef = inject(ApplicationRef);
+    const environmentInjector = inject(EnvironmentInjector);
 
-  // show the splash screen on app start, this behavior is global
-  splash.show();
+    // show the splash screen on app start, this behavior is global
+    splash.show();
 
-  if (splashScreenComponentRef) {
-    return;
-  }
+    if (splashScreenComponentRef) {
+        return;
+    }
 
-  const hostElement = document.createElement('app-splash-screen');
-  hostElement.setAttribute('data-bfw-provider-host', 'true');
-  document.body.prepend(hostElement);
+    const hostElement = document.createElement('app-splash-screen');
+    hostElement.setAttribute('data-bfw-provider-host', 'true');
+    document.body.prepend(hostElement);
 
-  splashScreenComponentRef = createComponent(SplashScreenComponent, {
-    environmentInjector,
-    hostElement,
-  });
+    splashScreenComponentRef = createComponent(SplashScreenComponent, {
+        environmentInjector,
+        hostElement,
+    });
 
-  applicationRef.attachView(splashScreenComponentRef.hostView);
+    applicationRef.attachView(splashScreenComponentRef.hostView);
 }
 
 export function provideSplashScreenModule(): EnvironmentProviders {

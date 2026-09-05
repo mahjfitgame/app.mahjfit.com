@@ -3,13 +3,13 @@ import { effect, inject, Service, signal } from "@angular/core";
 import { ConfService } from "@libs/conf/service";
 import { LogService } from "@libs/log/service";
 import { SignalStateService } from "@libs/signal-state/service";
-import { EndSideBarOnCloseType, PrivateAreaModuleInfoType, SlotEndSideBarTabBodyType, SlotEndSideBarTabLabelType } from "@area/private/type";
+import { EndSideBarOnCloseCallbackType, PrivateAreaModuleInfoType, SlotEndSideBarTabBodyType, SlotEndSideBarTabLabelType } from "@area/private/type";
 import { Portal } from "@angular/cdk/portal";
 import { PrivateAreaLayoutSlotEnum } from "@area/private/enum";
 import { GlobalProgressBarService } from "@base/global-progress-bar/service";
 import { ContextProfileService } from "@libs/context-profile/service";
 import { BfwApiService } from "@libs/third-party-apis/bfw-api/service";
-import { FoundationModuleStateType } from "@libs/foundation-module/type/state";
+import { FoundationModuleStateType } from "@libs/foundation/module/type";
 import { PRIVATE_AREA_STATE_STORE_KEY } from "./const";
 
 @Service({ autoProvided: false })
@@ -35,11 +35,11 @@ export class PrivateAreaLayoutState extends SignalStateService implements Founda
     private readonly _moduleInfo = signal<PrivateAreaModuleInfoType | null>(null);
     public readonly moduleInfo = this._moduleInfo.asReadonly();
 
-    private readonly _endSideBarOpen = signal<boolean>(false);
-    public readonly endSideBarOpen = this._endSideBarOpen.asReadonly();
+    private readonly _endSideBarIsOpen = signal<boolean>(false);
+    public readonly endSideBarIsOpen = this._endSideBarIsOpen.asReadonly();
 
-    private readonly _endSideBarOnClose = signal<EndSideBarOnCloseType | null>(null);
-    public readonly endSideBarOnClose = this._endSideBarOnClose.asReadonly();
+    private readonly _endSideBarOnCloseCallback = signal<EndSideBarOnCloseCallbackType | null>(null);
+    public readonly endSideBarOnCloseCallback = this._endSideBarOnCloseCallback.asReadonly();
 
     private readonly _endSideBarOpenTabIndex = signal<number>(0);
     public readonly endSideBarOpenTabIndex = this._endSideBarOpenTabIndex.asReadonly();
@@ -101,14 +101,15 @@ export class PrivateAreaLayoutState extends SignalStateService implements Founda
     public clearModuleInfo(): void {
         this._moduleInfo.set(null);
     }
-    public setEndSideBarOpen(open: boolean): void {
-        this._endSideBarOpen.set(open);
+    public setEndSideBarIsOpen(open: boolean): void {
+        this._endSideBarIsOpen.set(open);
     }
-    public setEndSideBarOnClose(onClose: EndSideBarOnCloseType | null): void {
-        this._endSideBarOnClose.set(onClose);
+    public setEndSideBarOnCloseCallback(callback: EndSideBarOnCloseCallbackType | null): void {
+        this._endSideBarOnCloseCallback.set(callback);
     }
-    public addEndSideBarOnClose(key: string, fn: (() => void)): void {
-        this._endSideBarOnClose.update(onClose => {
+
+    public addEndSideBarOnCloseCallback(key: string, fn: (() => void)): void {
+        this._endSideBarOnCloseCallback.update(onClose => {
             // if onClose is null/undefined, fall back to an empty object
             return {
                 ...(onClose ?? {}),
@@ -116,8 +117,8 @@ export class PrivateAreaLayoutState extends SignalStateService implements Founda
             };
         });
     }
-    public removeEndSideBarOnClose(key: keyof EndSideBarOnCloseType): void {
-        this._endSideBarOnClose.update(onClose => {
+    public removeEndSideBarOnCloseCallback(key: keyof EndSideBarOnCloseCallbackType): void {
+        this._endSideBarOnCloseCallback.update(onClose => {
             // if it's already null/undefined, there's nothing to remove
             if (!onClose) return onClose;
 
@@ -128,9 +129,9 @@ export class PrivateAreaLayoutState extends SignalStateService implements Founda
             return updated;
         });
     }
-    public runEndSideBarOnClose(): void {
-        for (const key in this.endSideBarOnClose()) {
-            this.endSideBarOnClose()?.[key]?.();
+    public runEndSideBarOnCloseCallback(): void {
+        for(const key in this.endSideBarOnCloseCallback()) {
+            this.endSideBarOnCloseCallback()?.[key]?.();
         }
     }
     public setEndSideBarOpenTabIndex(index: number): void {
@@ -266,8 +267,8 @@ export class PrivateAreaLayoutState extends SignalStateService implements Founda
     }
     public setDefault(): void {
         this.clearModuleInfo();
-        this.setEndSideBarOpen(false);
-        this.setEndSideBarOnClose(null);
+        this.setEndSideBarIsOpen(false);
+        this.setEndSideBarOnCloseCallback(null);
         this.setEndSideBarOpenTabIndex(0);
         this.setEndSideBarTabIndexByLabel(null);
         this.setSlotStartSideBarExtension(null);

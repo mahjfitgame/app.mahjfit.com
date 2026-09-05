@@ -1,4 +1,4 @@
-// file: ./src/app/base/notify/type.ts
+// file: src/app/base/notify/type.ts
 import { IndividualConfig } from 'ngx-toastr';
 import { NotifyTypeEnum } from '@base/notify/enum';
 

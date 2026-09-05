@@ -1,4 +1,4 @@
-// file: ./src/app/base/internationalization/component.ts
+// file: src/app/base/internationalization/component.ts
 
 import { Component, inject, OnInit } from '@angular/core';
 import { NgClass } from '@angular/common';

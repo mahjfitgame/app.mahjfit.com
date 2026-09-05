@@ -1,4 +1,4 @@
-// file: ./src/app/base/notify-banner/service.ts
+// file: src/app/base/notify-banner/service.ts
 import { inject, Injectable, Service } from "@angular/core";
 import { ConfService } from "@libs/conf/service";
 import { LogService } from "@libs/log/service";

@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-08-13T11:58:07.934Z",
+  "generated_at": "2026-09-05T05:53:41.629Z",
   "items": [
     {
       "key": "global",
@@ -47,6 +47,20 @@
       "key": "app.module.business.home",
       "source": "src/app/module/business/home/i18n",
       "path": "/i18n-runtime/app/module/business/home",
+      "langs": [
+        "ar",
+        "en",
+        "es",
+        "fr",
+        "gu",
+        "hi"
+      ],
+      "global": false
+    },
+    {
+      "key": "app.module.shared.dashboard",
+      "source": "src/app/module/shared/dashboard/i18n",
+      "path": "/i18n-runtime/app/module/shared/dashboard",
       "langs": [
         "ar",
         "en",
@@ -114,65 +128,9 @@
       "global": false
     },
     {
-      "key": "app.module.shared.onboarding.dashboard",
-      "source": "src/app/module/shared/onboarding/dashboard/i18n",
-      "path": "/i18n-runtime/app/module/shared/onboarding/dashboard",
-      "langs": [
-        "ar",
-        "en",
-        "es",
-        "fr",
-        "gu",
-        "hi"
-      ],
-      "global": false
-    },
-    {
-      "key": "app.module.shared.onboarding.forgot-password",
-      "source": "src/app/module/shared/onboarding/forgot-password/i18n",
-      "path": "/i18n-runtime/app/module/shared/onboarding/forgot-password",
-      "langs": [
-        "ar",
-        "en",
-        "es",
-        "fr",
-        "gu",
-        "hi"
-      ],
-      "global": false
-    },
-    {
       "key": "app.module.shared.onboarding.my-profile",
       "source": "src/app/module/shared/onboarding/my-profile/i18n",
       "path": "/i18n-runtime/app/module/shared/onboarding/my-profile",
-      "langs": [
-        "ar",
-        "en",
-        "es",
-        "fr",
-        "gu",
-        "hi"
-      ],
-      "global": false
-    },
-    {
-      "key": "app.module.shared.onboarding.recover-password",
-      "source": "src/app/module/shared/onboarding/recover-password/i18n",
-      "path": "/i18n-runtime/app/module/shared/onboarding/recover-password",
-      "langs": [
-        "ar",
-        "en",
-        "es",
-        "fr",
-        "gu",
-        "hi"
-      ],
-      "global": false
-    },
-    {
-      "key": "app.module.shared.onboarding.signin",
-      "source": "src/app/module/shared/onboarding/signin/i18n",
-      "path": "/i18n-runtime/app/module/shared/onboarding/signin",
       "langs": [
         "ar",
         "en",
@@ -198,9 +156,51 @@
       "global": false
     },
     {
-      "key": "app.module.shared.onboarding.signup",
-      "source": "src/app/module/shared/onboarding/signup/i18n",
-      "path": "/i18n-runtime/app/module/shared/onboarding/signup",
+      "key": "app.module.shared.preboarding.forgot-password",
+      "source": "src/app/module/shared/preboarding/forgot-password/i18n",
+      "path": "/i18n-runtime/app/module/shared/preboarding/forgot-password",
+      "langs": [
+        "ar",
+        "en",
+        "es",
+        "fr",
+        "gu",
+        "hi"
+      ],
+      "global": false
+    },
+    {
+      "key": "app.module.shared.preboarding.recover-password",
+      "source": "src/app/module/shared/preboarding/recover-password/i18n",
+      "path": "/i18n-runtime/app/module/shared/preboarding/recover-password",
+      "langs": [
+        "ar",
+        "en",
+        "es",
+        "fr",
+        "gu",
+        "hi"
+      ],
+      "global": false
+    },
+    {
+      "key": "app.module.shared.preboarding.signin",
+      "source": "src/app/module/shared/preboarding/signin/i18n",
+      "path": "/i18n-runtime/app/module/shared/preboarding/signin",
+      "langs": [
+        "ar",
+        "en",
+        "es",
+        "fr",
+        "gu",
+        "hi"
+      ],
+      "global": false
+    },
+    {
+      "key": "app.module.shared.preboarding.signup",
+      "source": "src/app/module/shared/preboarding/signup/i18n",
+      "path": "/i18n-runtime/app/module/shared/preboarding/signup",
       "langs": [
         "ar",
         "en",

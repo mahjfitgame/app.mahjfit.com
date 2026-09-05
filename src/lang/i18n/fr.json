@@ -1,93 +1,203 @@
 {
-  "GL": {
-    "LANGUAGE": "Langue",
-    "ENGLISH": "Anglais",
-    "HINDI": "Hindi",
-    "GUJARATI": "Gujarati",
-    "SPANISH": "Espagnol",
-    "FRENCH": "Français",
-    "ARABIC": "Arabe",
-
-    "COMMON": {
-      "SAVE": "Enregistrer",
-      "CANCEL": "Annuler",
-      "DELETE": "Supprimer",
-      "RESTORE": "Restaurer",
-      "MOVE_TO_TRASH": "Déplacer d'un dossier dans la corbeille",
-      "CREATE": "Ajouter",
-      "UPDATE": "独特 Mettre à jour",
-      "SEARCH": "Rechercher",
-      "RESET": "Réinitialiser",
-      "TRY_AGAIN": "Réessayer",
-      "NEXT": "Suivant",
-      "BACK": "Retour",
-      "CONTINUE": "Continuer",
-      "PROCEED_FURTHER": "Poursuivre",
-      "PREVIOUS": "Précédent",
-      "LOADING": "Chargement...",
-      "PROCESSING": "Traitement en cours...",
-      "REDIRECTING": "Redirection en cours...",
-      "PREPARING": "Préparation en cours...",
-      "NO_RECORDS": "Aucun enregistrement trouvé",
-      "STEP": "Étape"
-    },
-    "DEBUG": {
-      "DEBUG_INFO": "Informations de débogage"
-    },
-    "ACTION": {
-      "CREATE": "Ajouter",
-      "UPDATE": "Mettre à jour",
-      "SEARCH": "Rechercher",
-      "TRASH": "Corbeille",
-      "DELETE": "Supprimer",
-      "RESTORE": "Restaurer"
-    },
-    "NUMBER": {
-      "0": "0",
-      "1": "1",
-      "2": "2",
-      "3": "3",
-      "4": "4",
-      "5": "5",
-      "6": "6",
-      "7": "7",
-      "8": "8",
-      "9": "9"
-    },
-
-    "VALIDATION": {
-      "REQUIRED": "Le champ {{field}} est obligatoire.",
-      "MIN_LENGTH": "Le champ {{field}} doit contenir au moins {{min_length}} caractères.",
-      "MAX_LENGTH": "Le champ {{field}} ne peut pas dépasser {{max_length}} caractères.",
-      "MIN": "La valeur minimale autorisée pour {{field}} est {{min}}.",
-      "MAX": "La valeur maximale autorisée pour {{field}} est {{max}}.",
-      "PATTERN": "Le format du champ {{field}} est invalide.",
-      "EMAIL": "Veuillez saisir une adresse e-mail valide.",
-      "DATE": "Veuillez saisir une date valide.",
-      "TIME": "Veuillez saisir une heure valide.",
-      "DATETIME": "Veuillez saisir une date et une heure valides.",
-      "URL": "Veuillez saisir une URL valide.",
-      "MATCH_FIELD": "Le champ {{field}} doit correspondre à {{expected}}.",
-      "COLOR": "Veuillez sélectionner une couleur valide.",
-      "DIGIT": "Le champ {{field}} doit être un nombre entier.",
-      "DECIMAL": "Le champ {{field}} doit être un nombre ou un décimal valide.",
-      "TEXT": "Veuillez saisir un texte valide.",
-      "EXTENSION": "Format de fichier invalide. Formats autorisés : {{allowed}}.",
-      "OPTION_RANGE": "La valeur sélectionnée pour {{field}} est hors limites.",
-      "FN": "La valeur fournie pour {{field}} est invalide."
-    },
-    "MODULE": {
-      "HOME": "Accueil",
-      "ONBOARDING": {
-        "SIGNUP": "S'inscrire",
-        "SIGNIN": "Se connecter",
-        "SIGNOUT": "Se déconnecter",
-        "FORGOT_PASSWORD": "Mot de passe oublié",
-        "MY_ACCOUNT": "Mon compte",
-        "MY_PROFILE": "Mon profil",
-        "DASHBOARD": "Tableau de bord",
-        "CREATE_ACCOUNT": "Créer un nouveau compte"
-      }
+    "GL": {
+        "APP": {
+            "TITLE": "Bfw Angular AWP",
+            "BRAND_NAME": "BFW AWP",
+            "BRAND_DESCRIPTOR": "ERP",
+            "BRAND_VENDOR": "par Thats End",
+            "BRAND_LOGO_ALT": "Logo",
+            "COPYRIGHT": "© {{year}} Thats End."
+        },
+        "LANGUAGE": {
+            "LABEL": "Langue",
+            "ENGLISH": "Anglais",
+            "HINDI": "Hindi",
+            "GUJARATI": "Gujarati",
+            "SPANISH": "Espagnol",
+            "FRENCH": "Français",
+            "ARABIC": "Arabe"
+        },
+        "COMMON": {
+            "ADD_NEW": "Ajouter un nouveau",
+            "SAVE": "Enregistrer",
+            "CANCEL": "Annuler",
+            "DELETE": "Supprimer",
+            "RESTORE": "Restaurer",
+            "MOVE_TO_TRASH": "Déplacer d'un dossier dans la corbeille",
+            "CREATE": "Ajouter",
+            "UPDATE": "独特 Mettre à jour",
+            "SEARCH": "Rechercher",
+            "RESET": "Réinitialiser",
+            "TRY_AGAIN": "Réessayer",
+            "NEXT": "Suivant",
+            "BACK": "Retour",
+            "CONTINUE": "Continuer",
+            "PROCEED_FURTHER": "Poursuivre",
+            "PREVIOUS": "Précédent",
+            "LOADING": "Chargement...",
+            "PROCESSING": "Traitement en cours...",
+            "REDIRECTING": "Redirection en cours...",
+            "PREPARING": "Préparation en cours...",
+            "NO_RECORDS": "Aucun enregistrement trouvé",
+            "NO_DATA": "Aucune donnée trouvée.",
+            "SELECT_ALL": "Tout sélectionner",
+            "SELECT_RECORD": "Sélectionner l'enregistrement",
+            "SELECTED_RECORD_ACTION": "Action groupée",
+            "OPEN": "Ouvrir",
+            "CLOSE": "Fermer",
+            "ACCOUNT_MENU": "Menu du compte",
+            "CONTROL_CENTRE": "Centre de contrôle",
+            "NOTIFICATION": "Notification",
+            "TAB": "Onglet {{number}}",
+            "FOOTER_NAVIGATION": "Navigation du pied de page",
+            "APPLY": "Appliquer",
+            "ACTIONS_MENU": "Menu des actions",
+            "MODULE_ACTIONS": "Actions du module",
+            "RECORD_KEY": "Clé de l'enregistrement",
+            "DATA_LOADING_FAILED": "Échec du chargement des données.",
+            "STEP": "Étape"
+        },
+        "PAGINATION": {
+            "PAGE": "Page",
+            "PAGE_OF_TOTAL": "sur {total}",
+            "GO": "Aller",
+            "ITEMS_PER_PAGE": "Éléments par page :",
+            "NEXT_PAGE": "Page suivante",
+            "PREVIOUS_PAGE": "Page précédente",
+            "FIRST_PAGE": "Première page",
+            "LAST_PAGE": "Dernière page"
+        },
+        "DEBUG": {
+            "DEBUG_INFO": "Informations de débogage"
+        },
+        "ACTION": {
+            "CREATE": "Ajouter",
+            "DELETE": "Supprimer",
+            "DUPLICATE": "Dupliquer",
+            "EXPORT": "Exporter",
+            "FILE_RELOCATION": "Déplacer le fichier",
+            "IMPORT": "Importer",
+            "INSIGHT": "Analyse",
+            "PRINT": "Imprimer",
+            "QUICK_UPDATE": "Mise à jour rapide",
+            "RESTORE": "Restaurer",
+            "SEARCH": "Rechercher",
+            "SHARE": "Partager",
+            "TRASH": "Corbeille",
+            "UPDATE": "Modifier",
+            "UPLOAD": "Téléverser",
+            "UPLOAD_DELETE": "Supprimer le fichier",
+            "VIEW": "Voir"
+        },
+        "NUMBER": {
+            "0": "0",
+            "1": "1",
+            "2": "2",
+            "3": "3",
+            "4": "4",
+            "5": "5",
+            "6": "6",
+            "7": "7",
+            "8": "8",
+            "9": "9"
+        },
+        "VALIDATION": {
+            "REQUIRED": "Veuillez saisir une valeur valide.",
+            "MIN_LENGTH": "Doit contenir au moins {{min_length}} caractères.",
+            "MAX_LENGTH": "Ne peut pas dépasser {{max_length}} caractères.",
+            "MIN": "La valeur minimale autorisée est {{min}}.",
+            "MAX": "La valeur maximale autorisée est {{max}}.",
+            "PATTERN": "Le format est invalide.",
+            "EMAIL": "Veuillez saisir une adresse e-mail valide.",
+            "DATE": "Veuillez saisir une date valide.",
+            "TIME": "Veuillez saisir une heure valide.",
+            "DATETIME": "Veuillez saisir une date et une heure valides.",
+            "URL": "Veuillez saisir une URL valide.",
+            "MATCH_FIELD": "Doit correspondre à {{expected}}.",
+            "COLOR": "Veuillez sélectionner une couleur valide.",
+            "DIGIT": "Doit être un nombre entier.",
+            "DECIMAL": "Doit être un nombre ou un décimal valide.",
+            "TEXT": "Veuillez saisir un texte valide.",
+            "EXTENSION": "Format de fichier invalide. Formats autorisés : {{allowed}}.",
+            "OPTION_RANGE": "La valeur sélectionnée est hors limites.",
+            "FN": "La valeur fournie est invalide."
+        },
+        "FIELD": {
+            "COMMON": {
+                "CLEAR": "Effacer",
+                "SELECT": "Sélectionner",
+                "ACTION": "Action",
+                "ALL": "Tout",
+                "DESELECT": "Désélectionner",
+                "SELECTED_COUNT": "{{count}} sélectionnés",
+                "TEMPLATE_MISSING": "Modèle de champ manquant"
+            },
+            "SWITCH": {
+                "ON": "Activé",
+                "OFF": "Désactivé"
+            },
+            "FLAG": {
+                "NOT_SET": "Non",
+                "SET": "Oui"
+            },
+            "PASSWORD": {
+                "SHOW": "Afficher le mot de passe",
+                "HIDE": "Masquer le mot de passe"
+            },
+            "COLOR": {
+                "SELECT": "Sélectionner une couleur"
+            },
+            "URL": {
+                "OPEN": "Ouvrir le lien"
+            },
+            "DATE": {
+                "CLEAR": "Effacer la date",
+                "SELECT": "Sélectionner la date"
+            },
+            "TIME": {
+                "CLEAR": "Effacer l'heure",
+                "SELECT": "Sélectionner l'heure"
+            },
+            "DATETIME": {
+                "CLEAR": "Effacer la date et l'heure",
+                "SELECT": "Sélectionner la date et l'heure"
+            }
+        },
+        "AREA": {
+            "AUTH": {
+                "BANNER_ALT": "Bannière d'authentification"
+            },
+            "PRIVATE": {
+                "TITLE": "Back-office"
+            },
+            "PROTECTED": {
+                "TITLE": "Mon compte"
+            }
+        },
+        "MODULE": {
+            "HOME": "Accueil",
+            "DASHBOARD": "Tableau de bord",
+            "PREBOARDING": {
+                "SIGNUP": "S'inscrire",
+                "SIGNIN": "Se connecter",
+                "FORGOT_PASSWORD": "Mot de passe oublié",
+                "CREATE_ACCOUNT": "Créer un nouveau compte",
+                "RECOVER_PASSWORD": "Récupérer le mot de passe"
+            },
+            "ONBOARDING": {
+                "SIGNOUT": "Se déconnecter",
+                "MY_ACCOUNT": "Mon compte",
+                "MY_PROFILE": "Mon profil"
+            },
+            "GEO": {
+                "TITLE": "Géographie",
+                "COUNTRY": "Pays",
+                "STATE": "État"
+            },
+            "HTTP_STATUS": {
+                "NOT_FOUND": "Page introuvable",
+                "SERVICE_UNAVAILABLE": "En maintenance"
+            }
+        }
     }
-  }
 }

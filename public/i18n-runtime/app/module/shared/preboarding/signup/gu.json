@@ -1,0 +1,49 @@
+{
+  "PREBOARDING_SIGNUP": {
+    "MODULE": {
+      "TITLE": "સાઇન અપ કરો",
+      "HINT": "શરૂઆત કરવા માટે તમારું ખાતું બનાવો."
+    },
+    "MESSAGE": {
+      "SUCCESS": "તમારું ખાતું બનાવવામાં આવ્યું છે. હવે તમે સાઇન ઇન કરી શકો છો.",
+      "ERROR": "તમારું ખાતું બનાવી શકાયું નથી. કૃપા કરીને ફરી પ્રયાસ કરો."
+    },
+    "FIELD_LABEL": {
+      "AROLE_ID": "ભૂમિકા",
+      "CONNSRC_ID": "કનેક્શન સ્ત્રોત",
+      "IDENTIFY": "પાસવર્ડ",
+      "IDENTIFY_CONFIRM": "પાસવર્ડની પુષ્ટિ કરો",
+      "PRIMARY_EMAIL": "ઇમેઇલ",
+      "PRIMARY_MOBILE": "મોબાઇલ",
+      "PRIMARY_MOBILE_CC": "દેશ કોડ",
+      "USERNAME": "યુઝરનેમ"
+    },
+    "FIELD_PLACEHOLDER": {
+      "AROLE_ID": "તમારી ભૂમિકા પસંદ કરો",
+      "CONNSRC_ID": "તમારો કનેક્શન સ્ત્રોત પસંદ કરો",
+      "IDENTIFY": "તમારો પાસવર્ડ દાખલ કરો",
+      "IDENTIFY_CONFIRM": "તમારા પાસવર્ડની પુષ્ટિ કરો",
+      "PRIMARY_EMAIL": "તમારું ઇમેઇલ દાખલ કરો",
+      "PRIMARY_MOBILE": "તમારો મોબાઇલ નંબર દાખલ કરો",
+      "PRIMARY_MOBILE_CC": "તમારો દેશ કોડ દાખલ કરો",
+      "USERNAME": "તમારું યુઝરનેમ દાખલ કરો"
+    },
+    "VALIDATION": {
+      "AROLE_ID": "ભૂમિકા આવશ્યક છે.",
+      "CONNSRC_ID": "કનેક્શન સ્ત્રોત આવશ્યક છે.",
+      "IDENTIFY": "પાસવર્ડ આવશ્યક છે.",
+      "IDENTIFY_CONFIRM": "પાસવર્ડની પુષ્ટિ આવશ્યક છે.",
+      "IDENTIFY_MIN_LENGTH": "પાસવર્ડ ઓછામાં ઓછા {{min_length}} અક્ષરોનો હોવો જોઈએ.",
+      "IDENTIFY_PATTERN": "મોટો અક્ષર, નાનો અક્ષર, અંક અને વિશિષ્ટ અક્ષર વાપરો; સળંગ 3 સમાન અક્ષરો ટાળો.",
+      "IDENTIFY_MISMATCH": "પાસવર્ડ મેળ ખાતા નથી.",
+      "PRIMARY_EMAIL": "ઇમેઇલ આવશ્યક છે.",
+      "PRIMARY_EMAIL_FORMAT": "કૃપા કરીને માન્ય ઇમેઇલ સરનામું દાખલ કરો.",
+      "PRIMARY_MOBILE": "મોબાઇલ નંબર આવશ્યક છે.",
+      "PRIMARY_MOBILE_MAX_LENGTH": "મોબાઇલ નંબર {{max_length}} અંકોથી વધુ ન હોઈ શકે.",
+      "PRIMARY_MOBILE_CC": "દેશ કોડ આવશ્યક છે.",
+      "PRIMARY_MOBILE_CC_MAX_LENGTH": "દેશ કોડ {{max_length}} અંકોથી વધુ ન હોઈ શકે.",
+      "USERNAME": "યુઝરનેમ આવશ્યક છે.",
+      "USERNAME_MIN_LENGTH": "યુઝરનેમ ઓછામાં ઓછા {{min_length}} અક્ષરોનું હોવું જોઈએ."
+    }
+  }
+}

@@ -1,27 +1,22 @@
 import {DOCUMENT} from '@angular/common';
-import {Injectable, Renderer2, RendererFactory2, inject} from '@angular/core';
-import {Meta, Title} from '@angular/platform-browser';
+import {Renderer2, RendererFactory2, Service, inject} from '@angular/core';
+import {Meta} from '@angular/platform-browser';
 import {
     HreflangLink,
     JsonLdObject,
     OnPageSeoType,
 } from './type';
 
-@Injectable({providedIn: 'root'})
+@Service()
 export class WebPageOnPageSeoService {
     private readonly document = inject(DOCUMENT);
-    public readonly title = inject(Title);
     public readonly meta = inject(Meta);
 
-    private readonly renderer: Renderer2;
+    private readonly renderer: Renderer2 = inject(RendererFactory2).createRenderer(null, null);
 
     private readonly canonicalElementId = 'app-seo-canonical';
     private readonly jsonLdElementId = 'app-seo-jsonld';
     private readonly hreflangAttribute = 'data-app-seo-hreflang';
-
-    public constructor(rendererFactory: RendererFactory2) {
-        this.renderer = rendererFactory.createRenderer(null, null);
-    }
 
     public update(seo: OnPageSeoType): void {
         this.updateBasicSeo(seo);
@@ -33,10 +28,6 @@ export class WebPageOnPageSeoService {
     }
 
     public updateBasicSeo(seo: OnPageSeoType): void {
-        if (seo.title) {
-            this.title.setTitle(seo.title);
-        }
-
         if (seo.description) {
             this.meta.updateTag({
                 name: 'description',

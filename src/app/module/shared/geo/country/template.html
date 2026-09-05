@@ -1,4 +1,4 @@
-<!-- file: ./src/app/module/shared/geo/country/template.html -->
+<!-- file: src/app/module/shared/geo/country/template.html -->
 <app-crud></app-crud>
 
 @if (service.crud.shouldShowCrudListingLayout()) {
@@ -10,24 +10,31 @@
     let-fkey="fkey"
     let-finfo="finfo"
 >
+    <!--
+    Labels come from finfo.sub, the same LISTING_FIELD_OBJ entries the default
+    layout would have used - this slot replaces the rendering, not the field
+    definitions, so it must not restate them. `fips` is the exception: it is
+    displayed here but is not a declared listing field, so it reads its label
+    straight from the module bundle.
+    -->
     <div class="tw:flex tw:flex-col tw:text-sm tw:text-[13px]!" [termHighlight]="service.crud.state.getQuickSearchValue()">
-        <p><strong class="tw:text-black/70 tw:dark:text-white/50">Flag(s): </strong>{{ row.emoji }}</p>
+        <p><strong class="tw:text-black/70 tw:dark:text-white/50">{{ finfo.sub.emoji.label | transloco }}: </strong>{{ row.emoji }}</p>
         <p>
-            <strong class="tw:text-black/70 tw:dark:text-white/50">Emoji U: </strong>
+            <strong class="tw:text-black/70 tw:dark:text-white/50">{{ finfo.sub.emoji_u.label | transloco }}: </strong>
             {{ row.emoji_u }}
         </p>
         @if(row.fips){
             <p>
-                <strong class="tw:text-black/70 tw:dark:text-white/50">Fips: </strong>
+                <strong class="tw:text-black/70 tw:dark:text-white/50">{{ 'GEO_COUNTRY.FIELD_OBJ.FIPS.LABEL' | transloco }}: </strong>
                 <a routerLink="/" class="">{{ row.fips }}</a>
             </p>
         }
         @if(row.iso_ii){
-        <p><strong class="tw:text-black/70 tw:dark:text-white/50">ISO II: </strong>{{ row.iso_ii }}</p>
+        <p><strong class="tw:text-black/70 tw:dark:text-white/50">{{ finfo.sub.iso_ii.label | transloco }}: </strong>{{ row.iso_ii }}</p>
         }
         @if(row.iso_iii){
         <p class="tw:flex tw:gap-1">
-            <strong class="tw:text-black/70 tw:dark:text-white/50">ISO III: </strong>
+            <strong class="tw:text-black/70 tw:dark:text-white/50">{{ finfo.sub.iso_iii.label | transloco }}: </strong>
             <a routerLink="/" target="_blank" class="tw:flex tw:gap-1 tw:hover:text-primary tw:items-center!">
                 <span>{{ row.iso_iii }}</span>
                 <mat-icon class="material-symbols-rounded tw:text-sm! tw:w-4! tw:h-4! tw:leading-none!">
@@ -38,7 +45,7 @@
         }
         @if(row.tld){
             <p>
-                <strong class="tw:text-black/70 tw:dark:text-white/50">TLD: </strong>
+                <strong class="tw:text-black/70 tw:dark:text-white/50">{{ finfo.sub.tld.label | transloco }}: </strong>
                 {{ row.tld }}
             </p>
         }
@@ -53,21 +60,21 @@
     let-finfo="finfo"
     let-fstate="fstate"
     let-hasError="hasError"
-    let-fieldObj="fieldObj"
+    let-ffObj="ffObj"
 >
 <div class="tw:border">
-<label>CDK Slot Portal Field Trial</label>
-    <input 
-        matInput 
-        [attr.name]="fkey" 
-        [attr.id]="fkey" 
-        [attr.placeholder]="finfo.placeholder || ''" 
+<label>{{ finfo.label | transloco }}</label>
+    <input
+        matInput
+        [attr.name]="fkey"
+        [attr.id]="fkey"
+        [attr.placeholder]="(finfo.placeholder | transloco) || ''"
         [attr.minlength]="finfo?.validation?.min_length?.value ?? null"
         [attr.maxlength]="finfo?.validation?.max_length?.value ?? null"
         [value]="finfo.value"
         class="tw:border"
     />
-    <small>This section is coming from child module via cdkPortal</small>
+    <small>{{ 'GEO_COUNTRY.FIELD_OBJ.TEST_SLOT.SLOT_NOTE' | transloco }}</small>
 </div>
 </ng-template>
 

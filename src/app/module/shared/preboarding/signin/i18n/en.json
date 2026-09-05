@@ -1,0 +1,67 @@
+{
+  "PREBOARDING_SIGNIN": {
+    "MODULE": {
+      "TITLE": "Sign In",
+      "HINT": "Sign in to your account."
+    },
+    "STEP": {
+      "USERNAME": { 
+        "HEADING": "Sign In", 
+        "SUBHEADING": "Welcome back! It's good to see you again." 
+      },
+      "PASSWORD": { 
+        "HEADING": "Enter Password", 
+        "SUBHEADING": "Please verify your identity to continue." 
+      },
+      "MFA_OPTION": { 
+        "HEADING": "2FA Verification", 
+        "SUBHEADING": "Select a verification method." 
+      },
+      "VERIFY_OTP": { 
+        "HEADING": "Verify Your Access", 
+        "SUBHEADING": "Enter your security verification code."
+      },
+      "VERIFY_SQ_ANSWER": { 
+        "HEADING": "Verify Your Access", 
+        "SUBHEADING": "Enter your answer for your security question."
+      },
+      "FINISH": { 
+        "HEADING": "Welcome Aboard", 
+        "SUBHEADING": "You have signed in successfully." 
+      }
+    },
+    "FIELD_LABEL": {
+      "USERNAME": "Username, Email, or Mobile",
+      "PASSWORD": "Password",
+      "OTP": "OTP",
+      "SQ_ANSWER": "Answer",
+      "KEEP_SIGNED_IN": "Keep me signed in",
+      "RESEND_OTP": "Resend OTP",
+      "MFA_OPTION": "Multi Factor Authentication Option"
+    },
+    "FIELD_PLACEHOLDER": {
+      "USERNAME": "Enter your username, email, or mobile",
+      "PASSWORD": "Enter your password",
+      "OTP": "Enter your verification code",
+      "SQ_ANSWER": "Enter your security answer"
+    },
+    "MFA": {
+      "APP": { 
+        "HEADING": "Authenticator App", 
+        "SUBHEADING": "Get a code from your registered 2FA application." 
+      },
+      "EMAIL": { 
+        "HEADING": "Email Verification", 
+        "SUBHEADING": "Receive a one-time verification code via email." 
+      }
+    },
+    "OAUTH_OPTION": {
+      "CONTINUE_WITH": "Or continue with"
+    },
+    "VALIDATION": {
+      "INVALID_USER": "Sorry, user not found.",
+      "INVALID_IDENTIFY": "Sorry, password is incorrect.",
+      "ALREADY_SIGNED_IN": "You are already signed in."
+    }
+  }
+}

@@ -1,7 +1,8 @@
-<!-- file: ./src/app/base/crud/default/mutation/form/template.html -->
+<!-- file: src/app/base/crud/default/mutation/form/template.html -->
 <form id="crudMutationForm" (submit)="$event.preventDefault(); service.submitMutationForm()" novalidate>
       <app-crud-default-form-field 
-         [fieldObj]="[service.state.mutationFieldObj()]"
+         [formFieldObj]="[service.state.mutationFieldObj()]"
+         [formState]="service.state.mutationForm"
          [slotPrefix]="service.CrudFieldSlotPortalKeyPrefixEnum.MUTATION"
       >
       </app-crud-default-form-field>

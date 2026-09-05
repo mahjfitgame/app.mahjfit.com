@@ -248,55 +248,6 @@ export class PhaserLayoutGame {
     };
 
     /**
-     * Center white action card from PSD.
-     */
-
-    /* const instructionWidth = this.clamp(tableOuter.width * 0.205, 360, 460);
-    const instructionHeight = this.clamp(tableOuter.height * 0.175, 150, 205); */
-
-    /* const instructionWidth = this.clamp(tableOuter.width * 0.215, 370, 480);
-    const instructionHeight = this.clamp(tableOuter.height * 0.205, 175, 230); */
-
-    const instructionWidth = this.clamp(tableOuter.width * 0.205, 360, 460);
-    const instructionHeight = this.clamp(tableOuter.height * 0.175, 175, 230);
-
-    /* const instructionBar: Rect = {
-      x: safeCenterX - instructionWidth / 2,
-      y: tableOuter.y + tableOuter.height * 0.31,
-      width: instructionWidth,
-      height: instructionHeight,
-    }; */
-
-    const instructionBar: Rect = {
-      x: Math.round(safeCenterX - instructionWidth / 2),
-      y: Math.round(
-        tableOuter.y +
-        tableOuter.height / 2 -
-        instructionHeight / 2,
-      ),
-      width: instructionWidth,
-      height: instructionHeight,
-    };
-
-    /* const passButtonWidth = this.clamp(instructionWidth * 0.44, 126, 168);
-    const passButtonHeight = this.clamp(instructionHeight * 0.31, 38, 54); */
-    const passButtonWidth = this.clamp(instructionWidth * 0.42, 128, 170);
-    const passButtonHeight = this.clamp(instructionHeight * 0.27, 40, 56);
-
-    /* const passButton: Rect = {
-      x: instructionBar.x + instructionBar.width / 2 - passButtonWidth / 2,
-      y: instructionBar.y + instructionBar.height - passButtonHeight - instructionHeight * 0.15,
-      width: passButtonWidth,
-      height: passButtonHeight,
-    }; */
-    const passButton: Rect = {
-      x: instructionBar.x + instructionBar.width / 2 - passButtonWidth / 2,
-      y: instructionBar.y + instructionBar.height - passButtonHeight - instructionHeight * 0.105,
-      width: passButtonWidth,
-      height: passButtonHeight,
-    };
-
-    /**
      * Discard area should be mostly invisible felt space.
      */
     const discardPanelGap = this.discardPanelGap(tableOuter);
@@ -311,6 +262,33 @@ export class PhaserLayoutGame {
         bottomExposure.y -
         (topExposure.y + topExposure.height) -
         discardPanelGap * 2,
+    };
+
+    /**
+     * Center white action card from PSD.
+     */
+    const instructionWidth = this.clamp(tableOuter.width * 0.13, 220, 280);
+    const instructionHeight = this.clamp(tableOuter.height * 0.11, 100, 130);
+
+    const instructionBar: Rect = {
+      x: Math.round(safeCenterX - instructionWidth / 2),
+      y: Math.round(
+        discardArea.y +
+        discardArea.height / 2 -
+        instructionHeight / 2,
+      ),
+      width: instructionWidth,
+      height: instructionHeight,
+    };
+
+    const passButtonWidth = this.clamp(instructionWidth * 0.35, 70, 95);
+    const passButtonHeight = this.clamp(instructionHeight * 0.25, 24, 32);
+
+    const passButton: Rect = {
+      x: instructionBar.x + instructionBar.width / 2 - passButtonWidth / 2,
+      y: instructionBar.y + instructionBar.height - passButtonHeight - instructionHeight * 0.105,
+      width: passButtonWidth,
+      height: passButtonHeight,
     };
 
     const hud: Rect = {
@@ -497,62 +475,6 @@ export class PhaserLayoutGame {
     };
 
     /**
-     * Instruction popup:
-     * Tablet portrait can use a comfortable mid-size card.
-     */
-    const instructionWidth = this.clamp(
-      tableOuter.width * 0.430,
-      280,
-      360,
-    );
-
-    const instructionHeight = this.clamp(
-      tableOuter.height * 0.125,
-      110,
-      145,
-    );
-
-    /* const instructionBar: Rect = {
-      x: safeCenterX - instructionWidth / 2,
-      y: tableOuter.y + tableOuter.height * 0.335,
-      width: instructionWidth,
-      height: instructionHeight,
-    }; */
-    const instructionBar: Rect = {
-      x: Math.round(safeCenterX - instructionWidth / 2),
-      y: Math.round(
-        tableOuter.y +
-        tableOuter.height / 2 -
-        instructionHeight / 2,
-      ),
-      width: instructionWidth,
-      height: instructionHeight,
-    };
-
-    const passButtonWidth = this.clamp(
-      instructionWidth * 0.400,
-      104,
-      140,
-    );
-
-    const passButtonHeight = this.clamp(
-      instructionHeight * 0.265,
-      32,
-      44,
-    );
-
-    const passButton: Rect = {
-      x: instructionBar.x + instructionBar.width / 2 - passButtonWidth / 2,
-      y:
-        instructionBar.y +
-        instructionBar.height -
-        passButtonHeight -
-        instructionHeight * 0.105,
-      width: passButtonWidth,
-      height: passButtonHeight,
-    };
-
-    /**
      * Discard/play area:
      * Use remaining center space, never overlap the card/rack panels.
      */
@@ -569,6 +491,56 @@ export class PhaserLayoutGame {
         (leftExposure.x + leftExposure.width) -
         tableOuter.width * 0.110,
       height: Math.max(130, discardAreaBottom - discardAreaTop),
+    };
+
+    /**
+     * Instruction popup:
+     * Tablet portrait can use a comfortable mid-size card.
+     */
+    const instructionWidth = this.clamp(
+      tableOuter.width * 0.30,
+      190,
+      270,
+    );
+
+    const instructionHeight = this.clamp(
+      tableOuter.height * 0.085,
+      90,
+      120,
+    );
+
+    const instructionBar: Rect = {
+      x: Math.round(safeCenterX - instructionWidth / 2),
+      y: Math.round(
+        discardArea.y +
+        discardArea.height / 2 -
+        instructionHeight / 2,
+      ),
+      width: instructionWidth,
+      height: instructionHeight,
+    };
+
+    const passButtonWidth = this.clamp(
+      instructionWidth * 0.350,
+      60,
+      85,
+    );
+
+    const passButtonHeight = this.clamp(
+      instructionHeight * 0.250,
+      22,
+      30,
+    );
+
+    const passButton: Rect = {
+      x: instructionBar.x + instructionBar.width / 2 - passButtonWidth / 2,
+      y:
+        instructionBar.y +
+        instructionBar.height -
+        passButtonHeight -
+        instructionHeight * 0.165,
+      width: passButtonWidth,
+      height: passButtonHeight,
     };
 
     const hud: Rect = {
@@ -788,63 +760,6 @@ export class PhaserLayoutGame {
     };
 
     /**
-     * Instruction card:
-     * Comfortable tablet size; positioned in center without overlap.
-     */
-    const instructionWidth = this.clamp(
-      tableOuter.width * 0.330,
-      300,
-      390,
-    );
-
-    const instructionHeight = this.clamp(
-      tableOuter.height * 0.155,
-      110,
-      145,
-    );
-
-    /* const instructionBar: Rect = {
-      x: safeCenterX - instructionWidth / 2,
-      y: tableOuter.y + tableOuter.height * 0.320,
-      width: instructionWidth,
-      height: instructionHeight,
-    }; */
-
-    const instructionBar: Rect = {
-      x: Math.round(safeCenterX - instructionWidth / 2),
-      y: Math.round(
-        tableOuter.y +
-        tableOuter.height / 2 -
-        instructionHeight / 2,
-      ),
-      width: instructionWidth,
-      height: instructionHeight,
-    };
-
-    const passButtonWidth = this.clamp(
-      instructionWidth * 0.400,
-      112,
-      150,
-    );
-
-    const passButtonHeight = this.clamp(
-      instructionHeight * 0.265,
-      34,
-      46,
-    );
-
-    const passButton: Rect = {
-      x: instructionBar.x + instructionBar.width / 2 - passButtonWidth / 2,
-      y:
-        instructionBar.y +
-        instructionBar.height -
-        passButtonHeight -
-        instructionHeight * 0.105,
-      width: passButtonWidth,
-      height: passButtonHeight,
-    };
-
-    /**
      * Discard/play area:
      * Remaining center area, protected from panels.
      */
@@ -861,6 +776,56 @@ export class PhaserLayoutGame {
         (leftExposure.x + leftExposure.width) -
         tableOuter.width * 0.110,
       height: Math.max(120, discardAreaBottom - discardAreaTop),
+    };
+
+    /**
+     * Instruction card:
+     * Comfortable tablet size; positioned in center without overlap.
+     */
+    const instructionWidth = this.clamp(
+      tableOuter.width * 0.16,
+      175,
+      240,
+    );
+
+    const instructionHeight = this.clamp(
+      tableOuter.height * 0.150,
+      72,
+      105,
+    );
+
+    const instructionBar: Rect = {
+      x: Math.round(safeCenterX - instructionWidth / 2),
+      y: Math.round(
+        discardArea.y +
+        discardArea.height / 2 -
+        instructionHeight / 2,
+      ),
+      width: instructionWidth,
+      height: instructionHeight,
+    };
+
+    const passButtonWidth = this.clamp(
+      instructionWidth * 0.350,
+      60,
+      85,
+    );
+
+    const passButtonHeight = this.clamp(
+      instructionHeight * 0.250,
+      20,
+      28,
+    );
+
+    const passButton: Rect = {
+      x: instructionBar.x + instructionBar.width / 2 - passButtonWidth / 2,
+      y:
+        instructionBar.y +
+        instructionBar.height -
+        passButtonHeight -
+        instructionHeight * 0.165,
+      width: passButtonWidth,
+      height: passButtonHeight,
     };
 
     const hud: Rect = {
@@ -1103,64 +1068,6 @@ export class PhaserLayoutGame {
     };
 
     /**
-    * Instruction card:
-    * Smaller and placed in the free center area.
-    */
-    const instructionWidth = this.clamp(
-      tableOuter.width * 0.255,
-      180,
-      240,
-    );
-
-    const instructionHeight = this.clamp(
-      tableOuter.height * 0.190,
-      60,
-      78,
-    );
-
-
-
-    /* const instructionBar: Rect = {
-      x: safeCenterX - instructionWidth / 2,
-      y: tableOuter.y + tableOuter.height * 0.330,
-      width: instructionWidth,
-      height: instructionHeight,
-    }; */
-    const instructionBar: Rect = {
-      x: Math.round(safeCenterX - instructionWidth / 2),
-      y: Math.round(
-        tableOuter.y +
-        tableOuter.height / 2 -
-        instructionHeight / 2,
-      ),
-      width: instructionWidth,
-      height: instructionHeight,
-    };
-
-    const passButtonWidth = this.clamp(
-      instructionWidth * 0.360,
-      62,
-      86,
-    );
-
-    const passButtonHeight = this.clamp(
-      instructionHeight * 0.260,
-      20,
-      28,
-    );
-
-    const passButton: Rect = {
-      x: instructionBar.x + instructionBar.width / 2 - passButtonWidth / 2,
-      y:
-        instructionBar.y +
-        instructionBar.height -
-        passButtonHeight -
-        instructionHeight * 0.120,
-      width: passButtonWidth,
-      height: passButtonHeight,
-    };
-
-    /**
     * Discard area:
     * Centered available space, not allowed to overlap panels.
     */
@@ -1177,6 +1084,56 @@ export class PhaserLayoutGame {
         (leftExposure.x + leftExposure.width) -
         tableOuter.width * 0.080,
       height: Math.max(48, discardAreaBottom - discardAreaTop),
+    };
+
+    /**
+    * Instruction card:
+    * Smaller and placed in the free center area.
+    */
+    const instructionWidth = this.clamp(
+      tableOuter.width * 0.17,
+      115,
+      165,
+    );
+
+    const instructionHeight = this.clamp(
+      tableOuter.height * 0.14,
+      40,
+      56,
+    );
+
+    const instructionBar: Rect = {
+      x: Math.round(safeCenterX - instructionWidth / 2),
+      y: Math.round(
+        discardArea.y +
+        discardArea.height / 2 -
+        instructionHeight / 2,
+      ),
+      width: instructionWidth,
+      height: instructionHeight,
+    };
+
+    const passButtonWidth = this.clamp(
+      instructionWidth * 0.350,
+      40,
+      55,
+    );
+
+    const passButtonHeight = this.clamp(
+      instructionHeight * 0.250,
+      14,
+      20,
+    );
+
+    const passButton: Rect = {
+      x: instructionBar.x + instructionBar.width / 2 - passButtonWidth / 2,
+      y:
+        instructionBar.y +
+        instructionBar.height -
+        passButtonHeight -
+        instructionHeight * 0.165,
+      width: passButtonWidth,
+      height: passButtonHeight,
     };
 
     const hud: Rect = {
@@ -1408,68 +1365,6 @@ export class PhaserLayoutGame {
     };
 
     /**
-     * Instruction card:
-     * Smaller and higher than desktop card.
-     * Must not cover the rack or pass selector.
-     */
-
-    const instructionWidth = this.clamp(
-      tableOuter.width * 0.60,
-      180,
-      220,
-    );
-
-    const instructionHeight = this.clamp(
-      tableOuter.height * 0.078,
-      120,
-      180,
-    );
-
-    //const instructionWidth = this.clamp(tableOuter.width * 0.72, 250, 340);
-    //const instructionHeight = this.clamp(tableOuter.height * 0.22, 150, 190);
-
-    /* const instructionBar: Rect = {
-      x: safeCenterX - instructionWidth / 2,
-      y: tableOuter.y + tableOuter.height * 0.325,
-      width: instructionWidth,
-      height: instructionHeight,
-    }; */
-
-    const instructionBar: Rect = {
-      x: Math.round(safeCenterX - instructionWidth / 2),
-      y: Math.round(
-        tableOuter.y +
-        tableOuter.height / 2 -
-        instructionHeight / 2,
-      ),
-      width: instructionWidth,
-      height: instructionHeight,
-    };
-
-    const passButtonWidth = this.clamp(
-      instructionWidth * 0.34,
-      62,
-      86,
-    );
-
-    const passButtonHeight = this.clamp(
-      instructionHeight * 0.25,
-      20,
-      28,
-    );
-
-    const passButton: Rect = {
-      x: instructionBar.x + instructionBar.width / 2 - passButtonWidth / 2,
-      y:
-        instructionBar.y +
-        instructionBar.height -
-        passButtonHeight -
-        instructionHeight * 0.12,
-      width: passButtonWidth,
-      height: passButtonHeight,
-    };
-
-    /**
      * Discard area:
      * Give the center most of the remaining vertical space.
      */
@@ -1487,6 +1382,58 @@ export class PhaserLayoutGame {
         (leftExposure.x + leftExposure.width) -
         tableOuter.width * 0.070,
       height: Math.max(70, discardAreaBottom - discardAreaTop),
+    };
+
+    /**
+     * Instruction card:
+     * Smaller and higher than desktop card.
+     * Must not cover the rack or pass selector.
+     */
+
+    const instructionWidth = this.clamp(
+      tableOuter.width * 0.35,
+      120,
+      155,
+    );
+
+    const instructionHeight = this.clamp(
+      tableOuter.height * 0.06,
+      85,
+      120,
+    );
+
+    const instructionBar: Rect = {
+      x: Math.round(safeCenterX - instructionWidth / 2),
+      y: Math.round(
+        discardArea.y +
+        discardArea.height / 2 -
+        instructionHeight / 2,
+      ),
+      width: instructionWidth,
+      height: instructionHeight,
+    };
+
+    const passButtonWidth = this.clamp(
+      instructionWidth * 0.32,
+      42,
+      60,
+    );
+
+    const passButtonHeight = this.clamp(
+      instructionHeight * 0.23,
+      14,
+      20,
+    );
+
+    const passButton: Rect = {
+      x: instructionBar.x + instructionBar.width / 2 - passButtonWidth / 2,
+      y:
+        instructionBar.y +
+        instructionBar.height -
+        passButtonHeight -
+        instructionHeight * 0.165,
+      width: passButtonWidth,
+      height: passButtonHeight,
     };
 
     const hud: Rect = {

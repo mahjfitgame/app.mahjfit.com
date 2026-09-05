@@ -1,4 +1,4 @@
-<!-- file: ./src/app/base/crud/default/mutation/end-drawer/template.html -->
+<!-- file: src/app/base/crud/default/mutation/end-drawer/template.html -->
 <!-- End Drawer is not suitable option for CRUD, this is just in case reference, avaoid using it -->
 <mat-drawer
     #BfwCrudDefaultMutationEndDrawer 
@@ -6,9 +6,9 @@
     mode="over"
     role="region" 
     class="tw:fixed! tw:z-20! tw:border-l! tw:border-gray-200! tw:dark:border-gray-200/10!"
-    [opened]="service.state.mutationEndDrawerOpen()"
+    [opened]="service.state.mutationEndDrawerIsOpen()"
     (closedStart)="service.state.runMutationEndDrawerOnCloseCallBack()"
-    (openedChange)="service.state.setMutationEndDrawerOpen($event)"
+    (openedChange)="service.state.setMutationEndDrawerIsOpen($event)"
 >
     <header class="tw:sticky tw:top-0 tw:backdrop-blur-md tw:z-10">
         <div class="bfw-safe-area-pt bfw-safe-area-pe tw:relative">
@@ -19,7 +19,7 @@
                     </span>
                     <div class="tw:min-w-0">
                         <h2 class="tw:m-0 tw:text-xl! tw:leading-none tw:font-bold tw:truncate">
-                            <span>{{ service.getMutationTitle() }}</span>
+                            <span>{{ service.getMutationTitle() | transloco }}</span>
                         </h2>
                     </div>
                 </div>
@@ -27,7 +27,9 @@
                     matIconButton
                     (click)="service.toggleMutationEndDrawer()"
                     class="tw:shrink-0"
-                    [attr.aria-label]="BfwCrudDefaultMutationEndDrawer.opened ? 'Close' : 'Open'"
+                    [attr.aria-label]="
+                        (BfwCrudDefaultMutationEndDrawer.opened ? 'GL.COMMON.CLOSE' : 'GL.COMMON.OPEN') | transloco
+                    "
                 >
                     <mat-icon class="material-symbols-rounded">close</mat-icon>
                 </button>
@@ -42,10 +44,10 @@
     <footer class="tw:sticky tw:bottom-0 tw:z-10 tw:w-full tw:backdrop-blur-md tw:mbs-auto">
         <div class="tw:flex tw:gap-2 tw:p-3!">
             <button mat-button  type="reset" form="crudMutationForm" class="tw:flex-1">
-                Reset
+                {{ 'GL.COMMON.RESET' | transloco }}
             </button>
             <button mat-flat-button type="submit" form="crudMutationForm" color="primary" class="tw:flex-1">
-                Save
+                {{ 'GL.COMMON.SAVE' | transloco }}
             </button>
         </div>    
     </footer>

@@ -1,3 +1,71 @@
 {
-  
+    "CRUD": {
+        "MODULE": {
+            "TITLE": "",
+            "HINT": ""
+        },
+        "LIST_OPERATION": {
+            "QUICK_SEARCH": {
+                "LABEL": "Recherche rapide",
+                "PLACEHOLDER": "Saisissez pour rechercher",
+                "HINT": "Recherche rapide parmi les enregistrements listés.",
+                "CLEAR_SEARCH": "Effacer la recherche",
+                "OPEN_QUICK_SEARCH": "Ouvrir la recherche rapide",
+                "VALIDATION": {
+                    "MAX_LENGTH": "Le texte de recherche est trop long."
+                }
+            },
+            "LISTING_COLUMN_POSITION": {
+                "LABEL": "Position des colonnes",
+                "VALIDATION": {
+                    "OPTION_RANGE": "Sélection de colonne invalide."
+                }
+            },
+            "ROWS_PER_PAGE": {
+                "LABEL": "Lignes par page",
+                "VALIDATION": {
+                    "DIGIT": "Le nombre de lignes par page doit être un nombre."
+                }
+            },
+            "CURRENT_PAGE": {
+                "LABEL": "Page actuelle",
+                "VALIDATION": {
+                    "MIN": "La page actuelle doit être supérieure à zéro."
+                }
+            },
+            "LISTING_SELECTED_ROWS": {
+                "LABEL": "Lignes sélectionnées"
+            }
+        },
+        "VIEW_OPTION": {
+            "VIEW_OPTION": {
+                "LABEL": "Option d'affichage"
+            },
+            "DISPLAY_FIELDS": {
+                "LABEL": "Champs affichés",
+                "PLACEHOLDER": "Sélectionnez les champs à afficher à l'écran",
+                "HINT": "Afficher/masquer les champs dans la mise en page des données.",
+                "VALIDATION": {
+                    "OPTION_RANGE": "Sélection de champ invalide."
+                }
+            },
+            "SORT_FIELDS_AND_DIRECTION": {
+                "LABEL": "Champs et sens de tri",
+                "PLACEHOLDER": "Sélectionnez les champs et le sens du tri",
+                "HINT": "Triez par champ et par sens pour affiner vos données.",
+                "VALIDATION": {
+                    "OPTION_RANGE": "Champ de tri invalide."
+                }
+            },
+            "RBIN": {
+                "LABEL": "Corbeille",
+                "PLACEHOLDER": "Afficher les enregistrements de la corbeille",
+                "HINT": "Cliquez pour voir les enregistrements de la corbeille."
+            }
+        },
+        "SEARCH_FILTER": {
+            "OPEN_LABEL": "Ouvrir le filtre de recherche",
+            "TAB_NAME": "Filtre"
+        }
+    }
 }

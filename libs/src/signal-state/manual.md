@@ -296,6 +296,7 @@ Common behavior for all five:
 6. Repeated JSON-equivalent snapshots are not saved again.
 7. If `scope` is configured and no active ID exists, the field uses its initial in-memory value and does not read or write.
 8. If `crossTab: true`, successful saves/removals publish the resolved key and other matching state instances reload that field.
+9. `options.createSignalOptions` is forwarded to the underlying `signal(initialValue, options)`, so `equal` and `debugName` work exactly as they do on a native signal. See §5.6.
 
 Examples:
 
@@ -337,6 +338,19 @@ private readonly affiliateCodeStore = this.cookiePersistSignal<string | null>(
     source: {
       path: '/',
       expires: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toUTCString(),
+    },
+  },
+);
+
+private readonly recentSearchesStore = this.localStoragePersistSignal<string[]>(
+  'recent-searches',
+  [],
+  {
+    validate: (value): value is string[] =>
+      Array.isArray(value) && value.every((entry) => typeof entry === 'string'),
+    createSignalOptions: {
+      debugName: 'recentSearches',
+      equal: (a, b) => a.length === b.length && a.every((entry, index) => entry === b[index]),
     },
   },
 );
@@ -558,6 +572,7 @@ interface PersistSignalOptionsBaseType<T> {
   deserialize?: (value: unknown) => T;
   deleteOnNull?: boolean;
   plainValue?: boolean;
+  createSignalOptions?: CreateSignalOptions<T>;
 }
 ```
 
@@ -601,6 +616,7 @@ interface SignalStateServerSyncSourceType {
 | `crossTab`     | No                     | `false`                   | Publishes exact-key notifications after successful save/remove.                                                       |
 | `plainValue`   | No                     | `false`                   | Stores the raw value instead of an encrypted envelope. Plain records carry no version, so `version` cannot invalidate them. |
 | `source`       | Local DB/server/cookie | Backend-specific default. | Custom DB/server adapter or cookie options. Cookie `path`/`expires` apply on save; `url` applies on save/load/delete. |
+| `createSignalOptions` | No              | `undefined`               | Native signal options forwarded to `signal()`. `equal` controls change detection for user writes and restores; `debugName` is DevTools-only. |
 
 ### 5.1 Validation
 
@@ -721,6 +737,57 @@ When `crossTab: true`:
 - simultaneous writes are not merged; the receiving side loads whatever the backend returns.
 
 `SignalStateCrossTabSync` uses `BrowserTabsSyncService` broadcast and local-storage-event plumbing. Session-storage fields can be notified, but each tab reloads from its own tab-scoped session storage. Cookie fields reload from the cookie backend for the resolved key. Server-sync fields with `crossTab: true` additionally mirror loaded/saved server payloads into session storage for temporary per-tab fallback.
+
+### 5.6 Create-signal options (`equal` and `debugName`)
+
+`createSignalOptions` is passed straight to the native `signal()` call that backs the field:
+
+```ts
+signal(initialValue, options.createSignalOptions);
+```
+
+```ts
+interface CreateSignalOptions<T> {
+  equal?: (a: T, b: T) => boolean;
+  debugName?: string;
+}
+```
+
+`debugName` only labels the signal in Angular DevTools. It has no effect on persistence.
+
+`equal` matters more, because a persisted write passes through two suppression layers:
+
+1. **`equal`** — the native signal gate. `.set()`/`.update()` with a value the comparator calls equal does not change the signal, so no dependent recomputes and the save effect never reruns.
+2. **JSON snapshot comparison** — the persistence gate in §5.4. It runs only when the signal actually changed.
+
+`equal` is therefore the cheaper gate: it stops the work before serialization and stringification happen. Use it for object/array fields that are rebuilt on every update but are frequently structurally identical.
+
+Defaults and semantics:
+
+- without `equal`, Angular's default `Object.is`-style referential comparison applies;
+- `equal` receives runtime values of `T`, not the persisted representation, so it runs before `serialize`;
+- `equal` also gates the service's own restore writes: initial load, scope-change reloads, `reload*PersistedField()`, and `reset*PersistedState()`;
+- restore paths read the value back from the signal after setting it, so `lastSavedSnapshot` always reflects what the signal really holds, even when `equal` rejects a restore.
+
+Cautions:
+
+- an over-loose `equal` silently stops persistence for every change it calls equal — the value never changes, so nothing is ever scheduled;
+- an `equal` that returns `true` too often also blocks restored values from replacing the current in-memory value;
+- keep `equal` pure, total, and cheap; it runs on every write;
+- deep-equality by `JSON.stringify` inside `equal` duplicates work the snapshot layer already does. Prefer a targeted structural comparison.
+
+```ts
+private readonly filtersStore = this.sessionStoragePersistSignal<FiltersType>(
+  'filters',
+  defaultFilters,
+  {
+    validate: isFiltersType,
+    createSignalOptions: {
+      equal: (a, b) => a.page === b.page && a.size === b.size && a.term === b.term,
+    },
+  },
+);
+```
 
 ---
 
@@ -1054,6 +1121,7 @@ protected override onActivate(): void {
 ```text
 state.setQuery('ameri')
   -> private queryStore.set('ameri')
+  -> optional equal from createSignalOptions (equal value stops here)
   -> Angular effect tracking registration.state() reruns
   -> optional serialize
   -> JSON snapshot comparison
@@ -1356,6 +1424,7 @@ export class SearchState extends SignalStateService {
 17. Do not manually deactivate a state; Angular injector destruction owns lifecycle.
 18. Keep writable stores private and expose read-only signals.
 19. Do not store high-impact secrets in browser/local app state.
+20. A custom `equal` in `createSignalOptions` gates the service's restore writes as well as user writes; an over-loose comparator silently stops both persistence and restoration.
 
 Correct immutable update:
 
@@ -1439,6 +1508,7 @@ Before adding a persisted field:
 - [ ] Are `serialize` and `deserialize` logical inverses?
 - [ ] Does schema evolution require a version bump and migration plan?
 - [ ] Is the default 200 ms debounce appropriate?
+- [ ] Does this field need a custom `equal` (structural comparison for objects/arrays), and is that comparator strict enough to still allow real changes and restores?
 - [ ] Should cross-tab notification be enabled?
 - [ ] Does UI/workflow code wait for `ready()` where required?
 - [ ] Are reset and clear semantics correct for logout/restore-default workflows?

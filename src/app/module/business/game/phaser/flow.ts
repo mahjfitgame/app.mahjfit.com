@@ -1,5 +1,6 @@
 // file: src/app/module/business/game/phaser/scenes/managers/pass-flow.ts
 import { PassDirection, PassFlowCallbacks, PassResultCallbacks } from "./type";
+import { GamePhaseFirstRoundDirectionEnum, GamePhaseSecondRoundDirectionEnum } from "@bfw/api-sdk/graphql/endpoints/business";
 import { TableSeat, TileRuntime } from "./scenes/type";
 import { PhaserAnimation } from "./animation";
 import { PhaserState } from "./state";
@@ -18,16 +19,16 @@ export class PhaserFlow {
     readonly callbacks: PassFlowCallbacks,
   ) { }
 
-  addPassWaitingTile(tileId: string): void {
+  addPassWaitingTile(tileId: number): void {
     this.state.passWaitingTileIds.push(tileId);
   }
 
-  removePassWaitingTile(tileId: string): void {
+  removePassWaitingTile(tileId: number): void {
     const index = this.state.passWaitingTileIds.indexOf(tileId);
     if (index >= 0) this.state.passWaitingTileIds.splice(index, 1);
   }
 
-  hasPassWaitingTile(tileId: string): boolean {
+  hasPassWaitingTile(tileId: number): boolean {
     return this.state.passWaitingTileIds.includes(tileId);
   }
 
@@ -43,10 +44,17 @@ export class PhaserFlow {
 
   destinationForDirection(direction: PassDirection): TableSeat {
     switch (direction) {
-      case "right": return "right";
-      case "left": return "left";
-      case "across": return "top";
+      case GamePhaseFirstRoundDirectionEnum.RIGHT:
+      case GamePhaseSecondRoundDirectionEnum.RIGHT:
+        return "right";
+      case GamePhaseFirstRoundDirectionEnum.LEFT:
+      case GamePhaseSecondRoundDirectionEnum.LEFT:
+        return "left";
+      case GamePhaseFirstRoundDirectionEnum.ACROSS:
+      case GamePhaseSecondRoundDirectionEnum.ACROSS:
+        return "top";
     }
+    return "right";
   }
 
   isPassingPhase(): boolean {
@@ -70,22 +78,21 @@ export class PhaserFlow {
   }
 
   applyPassWaitingResult(
-    ids: readonly string[],
+    ids: readonly number[],
     callbacks: PassResultCallbacks,
   ): void {
     ids.forEach((id) => {
+      this.state.optimisticPassTileIds.push(id);
+      
       const runtime = this.state.tileMap.get(id);
-      if (!runtime) return;
-
-      callbacks.onTileRemoved(runtime);
-      this.state.tileMap.delete(id);
-      callbacks.onCloseButtonRemoved(id);
-      this.state.passCloseButtons.delete(id);
+      if (runtime) {
+        callbacks.onTileRemoved(runtime);
+      }
     });
 
     this.state.passWaitingTileIds.length = 0;
     this.state.selectedIds.clear();
-    this.state.rackTiles = this.state.rackTiles.filter((tile) => !ids.includes(tile.id));
+    this.state.rackTiles = this.state.rackTiles.filter((tile) => !ids.includes(tile.tile_id!));
 
     callbacks.onSelectionChanged();
     callbacks.onPassCompleted({ tileIds: ids, direction: this.state.passDirection });

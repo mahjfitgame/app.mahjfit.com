@@ -1,5 +1,6 @@
-// file: ./libs/src/url/type.ts
-import { Route } from '@angular/router';
+// file: libs/src/url/type.ts
+
+import { Data } from "@angular/router";
 
 export type UrlParamValueType =
     | string
@@ -37,49 +38,11 @@ export interface UrlStateReplaceInputType extends UrlStateInputType {
 }
 
 // ████ ROUTE DATA TYPES ████████████████████████████████████████████
-// `Data` in @angular/router is a type alias, not an interface, so declaration
-// merging is unavailable. defineRoute() gives the same safety at the call site.
-
-export interface UrlRouteBreadcrumbType {
-    label?: string;
-    alias?: string;
-    disable?: boolean;
-    skip?: boolean;
-    info?: { icon?: string; iconOnly?: boolean };
-    routeInterceptor?: (
-        routeLink: unknown[] | null,
-        breadcrumb: UrlRouteBreadcrumbType,
-    ) => unknown[] | null;
-}
-
-/** consumed in Phase 3 — sidenav derived from the route tree */
-export interface UrlRouteNavType {
-    labelKey: string;
-    icon: string;
-    group: string;
-    order?: number;
-    hidden?: boolean;
-}
-
-/** consumed in Phase 3 — role gating */
-export interface UrlRouteAccessType {
-    roles: string[];
-}
-
-export interface UrlRouteDataType {
-    breadcrumb?: UrlRouteBreadcrumbType;
-    nav?: UrlRouteNavType;
-    access?: UrlRouteAccessType;
-    titleKey?: string;
-}
-
-/**
- * Typed route factory. Optional and opt-in per route.
- * Route files stay untouched this phase; they adopt it when Phase 3 starts
- * consuming nav/access/titleKey, so each file is edited only once.
- */
-export function defineRoute(
-    route: Omit<Route, 'data'> & { data?: UrlRouteDataType },
-): Route {
-    return route;
-}
+// ⚠ MOVED to libs/src/foundation/module/route.ts:
+//   UrlRouteBreadcrumbType -> FoundationModuleRouteBreadcrumbType
+//   UrlRouteAccessType     -> FoundationModuleRouteAccessType
+//   UrlRouteDataType       -> FoundationModuleRouteDataType
+//   UrlRouteNavType        -> DELETED, nav is te_access_area_navigation now
+//
+// route data is a module concern and FoundationAreaBuilder is the only thing
+// that writes it. this file keeps URL and param types only

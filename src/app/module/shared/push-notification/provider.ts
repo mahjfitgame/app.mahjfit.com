@@ -1,4 +1,4 @@
-// file: ./src/app/base/push-notification/provider.ts
+// file: src/app/base/push-notification/provider.ts
 import { ConfService } from '@libs/conf/service';
 
 import { provideNotificationWithFactory } from '@libs/notification/provider';

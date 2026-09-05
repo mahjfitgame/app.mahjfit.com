@@ -9,7 +9,7 @@ import { AuthAreaLayoutStateRuntimeEnum } from "@area/auth/enum";
 import { GlobalProgressBarService } from "@base/global-progress-bar/service";
 import { ContextProfileService } from "@libs/context-profile/service";
 import { BfwApiService } from "@libs/third-party-apis/bfw-api/service";
-import { FoundationModuleStateType } from "@libs/foundation-module/type/state";
+import { FoundationModuleStateType } from "@libs/foundation/module/type";
 import { AUTH_AREA_STATE_STORE_KEY } from "./const";
 
 @Service({ autoProvided: false })

@@ -1,93 +1,203 @@
 {
-  "GL": {
-    "LANGUAGE": "Idioma",
-    "ENGLISH": "Inglés",
-    "HINDI": "Hindi",
-    "GUJARATI": "Gujarati",
-    "SPANISH": "Español",
-    "FRENCH": "Francés",
-    "ARABIC": "Árabe",
-
-    "COMMON": {
-      "SAVE": "Guardar",
-      "CANCEL": "Cancelar",
-      "DELETE": "Eliminar",
-      "RESTORE": "Restaurar",
-      "MOVE_TO_TRASH": "Mover a la papelera",
-      "CREATE": "Añadir",
-      "UPDATE": "Actualizar",
-      "SEARCH": "Buscar",
-      "RESET": "Restablecer",
-      "TRY_AGAIN": "Intentar de nuevo",
-      "NEXT": "Siguiente",
-      "BACK": "Atrás",
-      "CONTINUE": "Continuar",
-      "PROCEED_FURTHER": "Seguir adelante",
-      "PREVIOUS": "Anterior",
-      "LOADING": "Cargando...",
-      "PROCESSING": "Procesando...",
-      "REDIRECTING": "Redirigiendo...",
-      "PREPARING": "Preparando...",
-      "NO_RECORDS": "No se encontraron registros",
-      "STEP": "Paso"
-    },
-    "DEBUG": {
-      "DEBUG_INFO": "Información de depuración"
-    },
-    "ACTION": {
-      "CREATE": "Añadir",
-      "UPDATE": "Actualizar",
-      "SEARCH": "Buscar",
-      "TRASH": "Papelera",
-      "DELETE": "Eliminar",
-      "RESTORE": "Restaurar"
-    },
-    "NUMBER": {
-      "0": "0",
-      "1": "1",
-      "2": "2",
-      "3": "3",
-      "4": "4",
-      "5": "5",
-      "6": "6",
-      "7": "7",
-      "8": "8",
-      "9": "9"
-    },
-
-    "VALIDATION": {
-      "REQUIRED": "El campo {{field}} es obligatorio.",
-      "MIN_LENGTH": "El campo {{field}} debe tener al menos {{min_length}} caracteres.",
-      "MAX_LENGTH": "El campo {{field}} no puede exceder los {{max_length}} caracteres.",
-      "MIN": "El valor mínimo permitido para {{field}} es {{min}}.",
-      "MAX": "El valor máximo permitido para {{field}} es {{max}}.",
-      "PATTERN": "El formato de {{field}} no es válido.",
-      "EMAIL": "Por favor, introduce una dirección de correo electrónico válida.",
-      "DATE": "Por favor, introduce una fecha válida.",
-      "TIME": "Por favor, introduce una hora válida.",
-      "DATETIME": "Por favor, introduce una fecha y hora válidas.",
-      "URL": "Por favor, introduce una URL válida.",
-      "MATCH_FIELD": "El campo {{field}} debe coincidir con {{expected}}.",
-      "COLOR": "Por favor, selecciona un color válido.",
-      "DIGIT": "El campo {{field}} debe ser un número entero.",
-      "DECIMAL": "El campo {{field}} debe ser un número o decimal válido.",
-      "TEXT": "Por favor, introduce un texto válido.",
-      "EXTENSION": "Formato de archivo no válido. Tipos permitidos: {{allowed}}.",
-      "OPTION_RANGE": "El valor seleccionado para {{field}} está fuera de rango.",
-      "FN": "El valor proporcionado para {{field}} no es válido."
-    },
-    "MODULE": {
-      "HOME": "Inicio",
-      "ONBOARDING": {
-        "SIGNUP": "Registrarse",
-        "SIGNIN": "Iniciar sesión",
-        "SIGNOUT": "Cerrar sesión",
-        "FORGOT_PASSWORD": "Olvidé mi contraseña",
-        "MY_ACCOUNT": "Mi cuenta",
-        "MY_PROFILE": "Mi perfil",
-        "DASHBOARD": "Panel",
-        "CREATE_ACCOUNT": "Crear una cuenta nueva"
-      }
+    "GL": {
+        "APP": {
+            "TITLE": "Bfw Angular AWP",
+            "BRAND_NAME": "BFW AWP",
+            "BRAND_DESCRIPTOR": "ERP",
+            "BRAND_VENDOR": "por Thats End",
+            "BRAND_LOGO_ALT": "Logotipo",
+            "COPYRIGHT": "© {{year}} Thats End."
+        },
+        "LANGUAGE": {
+            "LABEL": "Idioma",
+            "ENGLISH": "Inglés",
+            "HINDI": "Hindi",
+            "GUJARATI": "Gujarati",
+            "SPANISH": "Español",
+            "FRENCH": "Francés",
+            "ARABIC": "Árabe"
+        },
+        "COMMON": {
+            "ADD_NEW": "Añadir nuevo",
+            "SAVE": "Guardar",
+            "CANCEL": "Cancelar",
+            "DELETE": "Eliminar",
+            "RESTORE": "Restaurar",
+            "MOVE_TO_TRASH": "Mover a la papelera",
+            "CREATE": "Añadir",
+            "UPDATE": "Actualizar",
+            "SEARCH": "Buscar",
+            "RESET": "Restablecer",
+            "TRY_AGAIN": "Intentar de nuevo",
+            "NEXT": "Siguiente",
+            "BACK": "Atrás",
+            "CONTINUE": "Continuar",
+            "PROCEED_FURTHER": "Seguir adelante",
+            "PREVIOUS": "Anterior",
+            "LOADING": "Cargando...",
+            "PROCESSING": "Procesando...",
+            "REDIRECTING": "Redirigiendo...",
+            "PREPARING": "Preparando...",
+            "NO_RECORDS": "No se encontraron registros",
+            "NO_DATA": "No se encontraron datos.",
+            "SELECT_ALL": "Seleccionar todo",
+            "SELECT_RECORD": "Seleccionar registro",
+            "SELECTED_RECORD_ACTION": "Acción masiva",
+            "OPEN": "Abrir",
+            "CLOSE": "Cerrar",
+            "ACCOUNT_MENU": "Menú de cuenta",
+            "CONTROL_CENTRE": "Centro de control",
+            "NOTIFICATION": "Notificación",
+            "TAB": "Pestaña {{number}}",
+            "FOOTER_NAVIGATION": "Navegación del pie de página",
+            "APPLY": "Aplicar",
+            "ACTIONS_MENU": "Menú de acciones",
+            "MODULE_ACTIONS": "Acciones del módulo",
+            "RECORD_KEY": "Clave del registro",
+            "DATA_LOADING_FAILED": "Error al cargar los datos.",
+            "STEP": "Paso"
+        },
+        "PAGINATION": {
+            "PAGE": "Página",
+            "PAGE_OF_TOTAL": "de {total}",
+            "GO": "Ir",
+            "ITEMS_PER_PAGE": "Elementos por página:",
+            "NEXT_PAGE": "Página siguiente",
+            "PREVIOUS_PAGE": "Página anterior",
+            "FIRST_PAGE": "Primera página",
+            "LAST_PAGE": "Última página"
+        },
+        "DEBUG": {
+            "DEBUG_INFO": "Información de depuración"
+        },
+        "ACTION": {
+            "CREATE": "Añadir",
+            "DELETE": "Eliminar",
+            "DUPLICATE": "Duplicar",
+            "EXPORT": "Exportar",
+            "FILE_RELOCATION": "Reubicar archivo",
+            "IMPORT": "Importar",
+            "INSIGHT": "Análisis",
+            "PRINT": "Imprimir",
+            "QUICK_UPDATE": "Actualización rápida",
+            "RESTORE": "Restaurar",
+            "SEARCH": "Buscar",
+            "SHARE": "Compartir",
+            "TRASH": "Papelera",
+            "UPDATE": "Editar",
+            "UPLOAD": "Subir",
+            "UPLOAD_DELETE": "Eliminar archivo",
+            "VIEW": "Ver"
+        },
+        "NUMBER": {
+            "0": "0",
+            "1": "1",
+            "2": "2",
+            "3": "3",
+            "4": "4",
+            "5": "5",
+            "6": "6",
+            "7": "7",
+            "8": "8",
+            "9": "9"
+        },
+        "VALIDATION": {
+            "REQUIRED": "Por favor, introduce un valor válido.",
+            "MIN_LENGTH": "Debe tener al menos {{min_length}} caracteres.",
+            "MAX_LENGTH": "No puede exceder los {{max_length}} caracteres.",
+            "MIN": "El valor mínimo permitido es {{min}}.",
+            "MAX": "El valor máximo permitido es {{max}}.",
+            "PATTERN": "El formato no es válido.",
+            "EMAIL": "Por favor, introduce una dirección de correo electrónico válida.",
+            "DATE": "Por favor, introduce una fecha válida.",
+            "TIME": "Por favor, introduce una hora válida.",
+            "DATETIME": "Por favor, introduce una fecha y hora válidas.",
+            "URL": "Por favor, introduce una URL válida.",
+            "MATCH_FIELD": "Debe coincidir con {{expected}}.",
+            "COLOR": "Por favor, selecciona un color válido.",
+            "DIGIT": "Debe ser un número entero.",
+            "DECIMAL": "Debe ser un número o decimal válido.",
+            "TEXT": "Por favor, introduce un texto válido.",
+            "EXTENSION": "Formato de archivo no válido. Tipos permitidos: {{allowed}}.",
+            "OPTION_RANGE": "El valor seleccionado está fuera de rango.",
+            "FN": "El valor proporcionado no es válido."
+        },
+        "FIELD": {
+            "COMMON": {
+                "CLEAR": "Borrar",
+                "SELECT": "Seleccionar",
+                "ACTION": "Acción",
+                "ALL": "Todo",
+                "DESELECT": "Deseleccionar",
+                "SELECTED_COUNT": "{{count}} seleccionados",
+                "TEMPLATE_MISSING": "Falta la plantilla del campo"
+            },
+            "SWITCH": {
+                "ON": "Activado",
+                "OFF": "Desactivado"
+            },
+            "FLAG": {
+                "NOT_SET": "No",
+                "SET": "Sí"
+            },
+            "PASSWORD": {
+                "SHOW": "Mostrar contraseña",
+                "HIDE": "Ocultar contraseña"
+            },
+            "COLOR": {
+                "SELECT": "Seleccionar color"
+            },
+            "URL": {
+                "OPEN": "Abrir enlace"
+            },
+            "DATE": {
+                "CLEAR": "Borrar fecha",
+                "SELECT": "Seleccionar fecha"
+            },
+            "TIME": {
+                "CLEAR": "Borrar hora",
+                "SELECT": "Seleccionar hora"
+            },
+            "DATETIME": {
+                "CLEAR": "Borrar fecha y hora",
+                "SELECT": "Seleccionar fecha y hora"
+            }
+        },
+        "AREA": {
+            "AUTH": {
+                "BANNER_ALT": "Banner de autenticación"
+            },
+            "PRIVATE": {
+                "TITLE": "Back Office"
+            },
+            "PROTECTED": {
+                "TITLE": "Mi cuenta"
+            }
+        },
+        "MODULE": {
+            "HOME": "Inicio",
+            "DASHBOARD": "Panel",
+            "PREBOARDING": {
+                "SIGNUP": "Registrarse",
+                "SIGNIN": "Iniciar sesión",
+                "FORGOT_PASSWORD": "Olvidé mi contraseña",
+                "CREATE_ACCOUNT": "Crear una cuenta nueva",
+                "RECOVER_PASSWORD": "Recuperar contraseña"
+            },
+            "ONBOARDING": {
+                "SIGNOUT": "Cerrar sesión",
+                "MY_ACCOUNT": "Mi cuenta",
+                "MY_PROFILE": "Mi perfil"
+            },
+            "GEO": {
+                "TITLE": "Geografía",
+                "COUNTRY": "País",
+                "STATE": "Estado"
+            },
+            "HTTP_STATUS": {
+                "NOT_FOUND": "Página no encontrada",
+                "SERVICE_UNAVAILABLE": "En mantenimiento"
+            }
+        }
     }
-  }
 }

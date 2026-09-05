@@ -1,0 +1,37 @@
+{
+  "PREBOARDING_RECOVERPASSWORD": {
+    "MODULE": {
+      "TITLE": "Recuperar contraseña",
+      "HINT": "Introduzca los datos de su cuenta y elija una nueva contraseña."
+    },
+    "MESSAGE": {
+      "SUCCESS": "Su contraseña se ha restablecido. Ya puede iniciar sesión.",
+      "ERROR": "No se pudo restablecer su contraseña. El enlace de recuperación puede no ser válido o haber caducado."
+    },
+    "FIELD_LABEL": {
+      "USERNAME": "Usuario, correo electrónico o móvil",
+      "IDENTIFY": "Nueva contraseña",
+      "IDENTIFY_CONFIRM": "Confirmar nueva contraseña",
+      "PASS_RECOVER_TOKEN": "Token de recuperación"
+    },
+    "FIELD_PLACEHOLDER": {
+      "USERNAME": "Introduzca su usuario, correo electrónico o móvil",
+      "IDENTIFY": "Introduzca su nueva contraseña",
+      "IDENTIFY_CONFIRM": "Confirme su nueva contraseña",
+      "PASS_RECOVER_TOKEN": "Introduzca el token de recuperación"
+    },
+    "HINT": {
+      "PASS_RECOVER_TOKEN": "Use el token de recuperación de su correo electrónico o haga clic en el enlace."
+    },
+    "VALIDATION": {
+      "USERNAME": "El usuario, correo electrónico o móvil es obligatorio.",
+      "USERNAME_MIN_LENGTH": "El usuario, correo electrónico o móvil debe tener al menos {{min_length}} caracteres.",
+      "IDENTIFY": "La nueva contraseña es obligatoria.",
+      "IDENTIFY_CONFIRM": "La confirmación de la contraseña es obligatoria.",
+      "IDENTIFY_MIN_LENGTH": "La contraseña debe tener al menos {{min_length}} caracteres.",
+      "IDENTIFY_PATTERN": "Use mayúsculas, minúsculas, un número y un carácter especial; evite 3 caracteres iguales seguidos.",
+      "IDENTIFY_MISMATCH": "Las contraseñas no coinciden.",
+      "PASS_RECOVER_TOKEN": "Se requiere un token de recuperación válido."
+    }
+  }
+}

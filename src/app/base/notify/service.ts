@@ -1,4 +1,4 @@
-// file: ./src/app/base/notify/service.ts
+// file: src/app/base/notify/service.ts
 import { Service, Type, inject } from '@angular/core';
 import { GlobalConfig, IndividualConfig, ToastrService } from 'ngx-toastr';
 import { NotifyTypeEnum } from '@base/notify/enum';

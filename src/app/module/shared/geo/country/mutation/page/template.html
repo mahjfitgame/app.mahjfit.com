@@ -1,4 +1,4 @@
-<!-- file: ./src/app/module/shared/geo/country/mutation/page/template.html -->
+<!-- file: src/app/module/shared/geo/country/mutation/page/template.html -->
 FROM GEO COUNTRY CUSTOM PAGE TEMPLATE PASSED TO CRUD
 THIS CAN BE PASSED IN ROUT ALSO TO BY PASS CRUD
 SO THERE ARE 3 WAYS TO HANDLE
@@ -10,12 +10,12 @@ SO THERE ARE 3 WAYS TO HANDLE
     <header class="tw:flex tw:items-center tw:justify-between tw:gap-4 tw:p-4">
         <div>
             <h1 class="tw:text-xl tw:font-semibold">
-                {{ service.crud.getMutationTitle() }}
+                {{ service.crud.getMutationTitle() | transloco }}
             </h1>
 
-            @if (service.crud.getCrudActionRecordId()) {
+            @if (service.crud.getCrudActionRecordSecondaryKeyValue()) {
                 <p class="tw:text-sm tw:opacity-70">
-                    Record ID: {{ service.crud.getCrudActionRecordId() }}
+                    Record Key: {{ service.crud.getCrudActionRecordSecondaryKeyValue() }}
                 </p>
             }
         </div>

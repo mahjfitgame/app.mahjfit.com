@@ -1,4 +1,4 @@
-// file: ./src/app/base/crud/default/mutation-form/form.component.ts
+// file: src/app/base/crud/default/mutation-form/form.component.ts
 import { Component, inject } from '@angular/core';
 import { CrudService } from '@base/crud/service';
 import { CrudDefaultMutationEndSideBarComponent } from '@base/crud/default/mutation/end-side-bar/component';

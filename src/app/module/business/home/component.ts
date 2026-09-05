@@ -5,8 +5,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { RouterModule } from '@angular/router';
 import { TranslocoModule } from '@jsverse/transloco';
-import { InternationalizationComponent } from '@base/internationalization/component';
-import { ThemeComponent } from '@base/theme/component';
+
 import { ContextProfileService } from '@libs/context-profile/service';
 import { SignoutRoute } from '@module/shared/onboarding/signout/route';
 import { HomeService } from './service';
@@ -25,8 +24,6 @@ import { HOME_PROVIDER } from './provider';
 
         MatButtonModule,
         MatIconModule,
-        //ThemeComponent,
-        //InternationalizationComponent,
     ],
     providers: [
         HOME_PROVIDER,
@@ -40,13 +37,10 @@ export class HomeComponent implements OnInit {
     // template facing aliases, the values themselves live in the module state and service
     protected readonly dbVersion = this.service.state.dbVersion;
     protected readonly brandLogoSrc = this.service.brandLogoSrc;
-    protected readonly navigationActions = this.service.navigationActions;
+    protected readonly navigationActions = this.service.genNavigationActions();
     protected readonly SignoutRoute = SignoutRoute;
 
     public async ngOnInit(): Promise<void> {
-        this.service.initI18n();
-        this.service.setModuleInfo();
-
         await this.service.loadDbVersion();
     }
 }

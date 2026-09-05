@@ -1,0 +1,33 @@
+<!-- file: src/app/area/auth/nav/template.html -->
+@if(position() === service.FoundationNavPositionEnum.START) {
+
+}
+@else if (position() === service.FoundationNavPositionEnum.END) {
+
+}
+@else if (position() === service.FoundationNavPositionEnum.TOP) {
+
+}
+@else if (position() === service.FoundationNavPositionEnum.BOTTOM) {
+  <!--
+    ⚠ DESIGN SENSITIVE. moved verbatim from auth/template.html:79-85, the
+    DEF_SLOT_END_SIDE_FOOTER portal fallback. the host <app-auth-nav> now sits
+    where <nav> used to sit, as a flex child of
+    `tw:flex tw:w-full tw:justify-center tw:items-center tw:gap-2` — the host is
+    shrink-to-fit so the row still centres identically. do NOT add padding,
+    margin or display rules to the host
+
+      no mat-list, no <mat-icon>, no [ngClass]  — text links only, by design
+      no (click)="navigated.emit()"             — no drawer in this area
+
+    ⚠ identical markup to private/nav/template.html's BOTTOM branch. keep them
+    in step, the two footers are meant to read the same
+  -->
+  <nav class="tw:flex tw:items-center" [attr.aria-label]="'GL.COMMON.FOOTER_NAVIGATION' | transloco">
+    @for (item of service.state.bottomNav; track item.registry_key) {
+      <a [routerLink]="item.url"
+          class="tw:px-1 tw:py-1 tw:hover:underline tw:text-xs"
+      >{{ item.label | transloco }}</a>
+    }
+  </nav>
+}

@@ -1,34 +1,10 @@
-<button class="phase-debug-toggle" type="button"
-    [attr.aria-label]="debugPanelCollapsed() ? 'Show game test controls' : 'Hide game test controls'"
-    (click)="toggleDebugPanel()">
-    {{ debugPanelCollapsed() ? '‹' : '›' }}
-</button>
-<div class="phase-debug-panel" [class.is-collapsed]="debugPanelCollapsed()">
-    <label>
-        Phase
-        <select [value]="debugPhase()" (change)="setDebugPhase($any($event.target).value)">
-            <option value="playing">Playing</option>
-            <option value="passing">Passing</option>
-            <option value="discard">Discard</option>
-        </select>
-    </label>
-    <div class="discard-test-actions">
-        <button type="button" (click)="testMahjongWin()">Test Mah Jongg</button>
-        <button type="button" (click)="testPlayerAway()">Test away player</button>
-        <button type="button" (click)="testJoinRequest()">Test join request</button>
-    </div>
-</div>
-<!-- <button class="haptic-test-button"
-      (click)="testHaptic()"
-    >
-      Test Haptic
-    </button> -->
 @if (boardVisible()) {
-  <app-phaser [rack]="rack()" [passDirection]="passDirection()" [tablePhase]="tablePhase()"
+<app-phaser />
+<!-- <app-phaser [rack]="rack()" [passDirection]="passDirection()" [tablePhase]="tablePhase()"
     [tileCallOffer]="tileCallOffer()" [demoDiscard]="demoDiscard()" [mahjongWin]="mahjongWin()"
     [playerAway]="playerAway()" [joinTableRequest]="joinTableRequest()"
     (tileCallDecision)="handleTileCallDecision($event)" (playerRemovalRequested)="handlePlayerRemoval($event)"
     (deadHandClaimed)="handleDeadHandClaim($event)" (temporaryDiscardCompleted)="endDiscardTest()"
     (joinTableRequestDecision)="handleJoinRequestDecision($event)" (restartGame)="restartGame()" (quitGame)="quitGame()"
-    (selectionChanged)="selectedTileIds.set($event)" (passCompleted)="handlePassCompleted($event)" />
+    (selectionChanged)="selectedTileIds.set($event)" (passCompleted)="handlePassCompleted($event)" /> -->
 }

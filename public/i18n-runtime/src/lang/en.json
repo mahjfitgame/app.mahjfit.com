@@ -1,86 +1,197 @@
 {
-  "GL": {
-    "LANGUAGE": "Language",
-    "ENGLISH": "English",
-    "HINDI": "Hindi",
-    "GUJARATI": "Gujarati",
-    "SPANISH": "Spanish",
-    "FRENCH": "French",
-    "ARABIC": "Arabic",
-
-    "COMMON": {
-      "SAVE": "Save",
-      "RESET": "Reset",
-      "TRY_AGAIN": "Try again",
-      "CANCEL": "Cancel",
-      "NEXT": "Next",
-      "BACK": "Back",
-      "CONTINUE": "Continue",
-      "PROCEED_FURTHER": "Proceed Further",
-      "PREVIOUS": "Previous",
-      "LOADING": "Loading...",
-      "PROCESSING": "Processing...",
-      "REDIRECTING": "Redirecting...",
-      "PREPARING": "Preparing...",
-      "NO_RECORDS": "No record found",
-      "STEP": "Step"
-    },
-    "DEBUG": {
-      "DEBUG_INFO": "Debug Info"
-    },
-    "ACTION": {
-      "CREATE": "Add",
-      "UPDATE": "Update",
-      "SEARCH": "Search",
-      "TRASH": "Trash",
-      "DELETE": "Delete",
-      "RESTORE": "Restore"
-    },
-    "NUMBER": {
-      "0": "0",
-      "1": "1",
-      "2": "2",
-      "3": "3",
-      "4": "4", 
-      "5": "5",
-      "6": "6",
-      "7": "7",
-      "8": "8",
-      "9": "9"
-    },
-    "VALIDATION": {
-      "REQUIRED": "{{field}} is required.",
-      "MIN_LENGTH": "{{field}} must be at least {{min_length}} characters.",
-      "MAX_LENGTH": "{{field}} cannot exceed {{max_length}} characters.",
-      "MIN": "The minimum allowed value for {{field}} is {{min}}.",
-      "MAX": "The maximum allowed value for {{field}} is {{max}}.",
-      "PATTERN": "The format of {{field}} is invalid.",
-      "EMAIL": "Please enter a valid email address.",
-      "DATE": "Please enter a valid date.",
-      "TIME": "Please enter a valid time.",
-      "DATETIME": "Please enter a valid date and time.",
-      "URL": "Please enter a valid URL.",
-      "MATCH_FIELD": "{{field}} must match {{expected}}.",
-      "COLOR": "Please select a valid color.",
-      "DIGIT": "{{field}} must be a whole number.",
-      "DECIMAL": "{{field}} must be a valid number or decimal.",
-      "TEXT": "Please enter valid text.",
-      "EXTENSION": "Invalid file format. Allowed types: {{allowed}}.",
-      "OPTION_RANGE": "The selected value for {{field}} is out of range.",
-      "FN": "The value provided for {{field}} is invalid."
-    },
-    "MODULE": {
-      "HOME": "Home",
-      "ONBOARDING": {
-        "SIGNUP": "Sign Up",
-        "SIGNIN": "Sign In",
-        "SIGNOUT": "Sign Out",
-        "FORGOT_PASSWORD": "Forgot Password",
-        "MY_ACCOUNT": "My Account",
-        "MY_PROFILE": "My Profile",
-        "DASHBOARD": "Dashboard",
-        "CREATE_ACCOUNT": "Create a new account"
-      }
+    "GL": {
+        "APP": {
+            "TITLE": "Bfw Angular PWA",
+            "BRAND_NAME": "BFW PWA",
+            "BRAND_DESCRIPTOR": "ERP",
+            "BRAND_VENDOR": "by Thats End",
+            "BRAND_LOGO_ALT": "Logo",
+            "COPYRIGHT": "© {{year}} Thats End."
+        },
+        "LANGUAGE": {
+            "LABEL": "Language",
+            "ENGLISH": "English",
+            "HINDI": "Hindi",
+            "GUJARATI": "Gujarati",
+            "SPANISH": "Spanish",
+            "FRENCH": "French",
+            "ARABIC": "Arabic"
+        },
+        "COMMON": {
+            "ADD_NEW": "Add New",
+            "SAVE": "Save",
+            "RESET": "Reset",
+            "TRY_AGAIN": "Try again",
+            "CANCEL": "Cancel",
+            "NEXT": "Next",
+            "BACK": "Back",
+            "CONTINUE": "Continue",
+            "PROCEED_FURTHER": "Proceed Further",
+            "PREVIOUS": "Previous",
+            "LOADING": "Loading...",
+            "PROCESSING": "Processing...",
+            "REDIRECTING": "Redirecting...",
+            "PREPARING": "Preparing...",
+            "NO_RECORDS": "No record found",
+            "NO_DATA": "No data found.",
+            "SELECT_ALL": "Select all",
+            "SELECT_RECORD": "Select record",
+            "SELECTED_RECORD_ACTION": "Bulk action",
+            "OPEN": "Open",
+            "CLOSE": "Close",
+            "ACCOUNT_MENU": "Account menu",
+            "CONTROL_CENTRE": "Control Centre",
+            "NOTIFICATION": "Notification",
+            "TAB": "Tab {{number}}",
+            "FOOTER_NAVIGATION": "Footer navigation",
+            "APPLY": "Apply",
+            "ACTIONS_MENU": "Actions menu",
+            "MODULE_ACTIONS": "Module actions",
+            "RECORD_KEY": "Record Key",
+            "DATA_LOADING_FAILED": "Data loading failed.",
+            "STEP": "Step"
+        },
+        "PAGINATION": {
+            "PAGE": "Page",
+            "PAGE_OF_TOTAL": "of {total}",
+            "GO": "Go",
+            "ITEMS_PER_PAGE": "Items per page:",
+            "NEXT_PAGE": "Next page",
+            "PREVIOUS_PAGE": "Previous page",
+            "FIRST_PAGE": "First page",
+            "LAST_PAGE": "Last page"
+        },
+        "DEBUG": {
+            "DEBUG_INFO": "Debug Info"
+        },
+        "ACTION": {
+            "CREATE": "Add",
+            "DELETE": "Delete",
+            "DUPLICATE": "Duplicate",
+            "EXPORT": "Export",
+            "FILE_RELOCATION": "Relocate File",
+            "IMPORT": "Import",
+            "INSIGHT": "Insight",
+            "PRINT": "Print",
+            "QUICK_UPDATE": "Quick Update",
+            "RESTORE": "Restore",
+            "SEARCH": "Search",
+            "SHARE": "Share",
+            "TRASH": "Trash",
+            "UPDATE": "Edit",
+            "UPLOAD": "Upload",
+            "UPLOAD_DELETE": "Delete Upload",
+            "VIEW": "View"
+        },
+        "NUMBER": {
+            "0": "0",
+            "1": "1",
+            "2": "2",
+            "3": "3",
+            "4": "4",
+            "5": "5",
+            "6": "6",
+            "7": "7",
+            "8": "8",
+            "9": "9"
+        },
+        "VALIDATION": {
+            "REQUIRED": "Please enter a valid value.",
+            "MIN_LENGTH": "Must be at least {{min_length}} characters.",
+            "MAX_LENGTH": "Cannot exceed {{max_length}} characters.",
+            "MIN": "The minimum allowed value is {{min}}.",
+            "MAX": "The maximum allowed value is {{max}}.",
+            "PATTERN": "The format is invalid.",
+            "EMAIL": "Please enter a valid email address.",
+            "DATE": "Please enter a valid date.",
+            "TIME": "Please enter a valid time.",
+            "DATETIME": "Please enter a valid date and time.",
+            "URL": "Please enter a valid URL.",
+            "MATCH_FIELD": "Must match {{expected}}.",
+            "COLOR": "Please select a valid color.",
+            "DIGIT": "Must be a whole number.",
+            "DECIMAL": "Must be a valid number or decimal.",
+            "TEXT": "Please enter valid text.",
+            "EXTENSION": "Invalid file format. Allowed types: {{allowed}}.",
+            "OPTION_RANGE": "The selected value is out of range.",
+            "FN": "The value provided is invalid."
+        },
+        "FIELD": {
+            "COMMON": {
+                "CLEAR": "Clear",
+                "SELECT": "Select",
+                "ACTION": "Action",
+                "ALL": "All",
+                "DESELECT": "Deselect",
+                "SELECTED_COUNT": "{{count}} selected",
+                "TEMPLATE_MISSING": "Field Template Missing"
+            },
+            "SWITCH": {
+                "ON": "On",
+                "OFF": "Off"
+            },
+            "FLAG": {
+                "NOT_SET": "No",
+                "SET": "Yes"
+            },
+            "PASSWORD": {
+                "SHOW": "Show password",
+                "HIDE": "Hide password"
+            },
+            "COLOR": {
+                "SELECT": "Select colour"
+            },
+            "URL": {
+                "OPEN": "Open link"
+            },
+            "DATE": {
+                "CLEAR": "Clear Date",
+                "SELECT": "Select Date"
+            },
+            "TIME": {
+                "CLEAR": "Clear Time",
+                "SELECT": "Select Time"
+            },
+            "DATETIME": {
+                "CLEAR": "Clear Date Time",
+                "SELECT": "Select Date and Time"
+            }
+        },
+        "AREA": {
+            "AUTH": {
+                "BANNER_ALT": "Authentication Banner"
+            },
+            "PRIVATE": {
+                "TITLE": "Back Office"
+            },
+            "PROTECTED": {
+                "TITLE": "My Account"
+            }
+        },
+        "MODULE": {
+            "HOME": "Home",
+            "DASHBOARD": "Dashboard",
+            "PREBOARDING": {
+                "SIGNUP": "Sign Up",
+                "SIGNIN": "Sign In",
+                "FORGOT_PASSWORD": "Forgot Password",
+                "CREATE_ACCOUNT": "Create a new account",
+                "RECOVER_PASSWORD": "Recover Password"
+            },
+            "ONBOARDING": {
+                "SIGNOUT": "Sign Out",
+                "MY_ACCOUNT": "My Account",
+                "MY_PROFILE": "My Profile"
+            },
+            "GEO": {
+                "TITLE": "Geo",
+                "COUNTRY": "Country",
+                "STATE": "State"
+            },
+            "HTTP_STATUS": {
+                "NOT_FOUND": "Page Not Found",
+                "SERVICE_UNAVAILABLE": "Under Maintenance"
+            }
+        }
     }
-  }
 }

@@ -7,15 +7,15 @@ import { InteractionRect, TileInteractionCallbacks, TileRuntime } from "./scenes
  * decisions are delegated to the constructor-injected TableScene callbacks.
  */
 export class PhaserInteraction {
-  private readonly dragStartByTileId = new Map<string, { x: number; y: number }>();
+  private readonly dragStartByTileId = new Map<number, { x: number; y: number }>();
 
   constructor(readonly callbacks: TileInteractionCallbacks) { }
 
-  beginPointer(tileId: string, pointer: Phaser.Input.Pointer): void {
+  beginPointer(tileId: number, pointer: Phaser.Input.Pointer): void {
     this.dragStartByTileId.set(tileId, { x: pointer.worldX, y: pointer.worldY });
   }
 
-  pointerDistance(tileId: string, pointer: Phaser.Input.Pointer): number | undefined {
+  pointerDistance(tileId: number, pointer: Phaser.Input.Pointer): number | undefined {
     const start = this.dragStartByTileId.get(tileId);
     if (!start) return undefined;
 
@@ -23,7 +23,7 @@ export class PhaserInteraction {
   }
 
   hasReachedDragThreshold(
-    tileId: string,
+    tileId: number,
     pointer: Phaser.Input.Pointer,
     threshold: number,
   ): boolean {
@@ -31,11 +31,11 @@ export class PhaserInteraction {
     return distance !== undefined && distance >= threshold;
   }
 
-  finishPointer(tileId: string): void {
+  finishPointer(tileId: number): void {
     this.dragStartByTileId.delete(tileId);
   }
 
-  cancelDrag(tileId: string): void {
+  cancelDrag(tileId: number): void {
     this.finishPointer(tileId);
   }
 
@@ -47,13 +47,13 @@ export class PhaserInteraction {
     onDrop(pointer.worldX, pointer.worldY);
   }
 
-  cleanupDrop(tileId: string): void {
+  cleanupDrop(tileId: number): void {
     this.finishPointer(tileId);
   }
 
   toggleSelection(
     runtime: TileRuntime,
-    selectedIds: Set<string>,
+    selectedIds: Set<number>,
     canChangeSelection: (runtime: TileRuntime, selecting: boolean) => boolean,
     requestSelectionAnimation: (runtime: TileRuntime) => void,
     onSelectionChanged: () => void,
@@ -64,10 +64,10 @@ export class PhaserInteraction {
     runtime.selected = selecting;
 
     if (selecting) {
-      selectedIds.add(runtime.vm.id);
+      selectedIds.add(runtime.vm.id!);
       runtime.image.setTint(0xe4f22c);
     } else {
-      selectedIds.delete(runtime.vm.id);
+      selectedIds.delete(runtime.vm.id!);
       runtime.image.clearTint();
     }
 
@@ -79,7 +79,7 @@ export class PhaserInteraction {
     return x >= rect.x && x <= rect.x + rect.width && y >= rect.y && y <= rect.y + rect.height;
   }
 
-  findTile<T>(tiles: ReadonlyMap<string, T>, tileId: string): T | undefined {
+  findTile<T>(tiles: ReadonlyMap<number, T>, tileId: number): T | undefined {
     return tiles.get(tileId);
   }
 

@@ -1,15 +1,15 @@
-<!-- file: ./src/app/base/crud/default/listing/record-action/template.html -->
- <button mat-icon-button [matMenuTriggerFor]="menu" aria-label="Actions menu">
+<!-- file: src/app/base/crud/default/listing/record-action/template.html -->
+ <button mat-icon-button [matMenuTriggerFor]="menu" [attr.aria-label]="'GL.COMMON.ACTIONS_MENU' | transloco">
     <mat-icon class="material-symbols-rounded">more_vert</mat-icon>
 </button>
 <mat-menu #menu="matMenu" xPosition="before">
     <a
         mat-menu-item
-        [routerLink]="service.url.getUpdateActionUrl(service.state.getRecordId(row()))"
+        [routerLink]="service.url.getUpdateActionUrlBySecondaryKey(service.state.getRecordSecondaryKeyValue(row()))"
         [state]="service.url.getCrudActionNavigationState()"
     >
         <mat-icon class="material-symbols-rounded">edit</mat-icon>
-        <span>Edit</span>
+        <span>{{ 'GL.ACTION.UPDATE' | transloco }}</span>
     </a>
     <button mat-menu-item click="">
         <mat-icon class="material-symbols-rounded">block</mat-icon>
@@ -17,6 +17,6 @@
     </button>
     <button mat-menu-item click="">
         <mat-icon class="material-symbols-rounded">delete</mat-icon>
-        <span>Delete</span>
+        <span>{{ 'GL.ACTION.DELETE' | transloco }}</span>
     </button>
 </mat-menu>

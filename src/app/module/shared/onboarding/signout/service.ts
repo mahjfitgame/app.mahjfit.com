@@ -1,4 +1,4 @@
-// file: ./src/app/module/shared/onboarding/signout/service.ts
+// file: src/app/module/shared/onboarding/signout/service.ts
 import { inject, Service } from "@angular/core";
 import { ConfService } from "@libs/conf/service";
 import { LogService } from "@libs/log/service";
@@ -10,10 +10,10 @@ import { NotifyBannerService } from "@base/notify-banner/service";
 import { ContextProfileService } from "@libs/context-profile/service";
 import { SignoutState } from "./state";
 import { ONBOARDING_SIGNOUT_I18N_KEY } from "./const";
-import { SigninRoute } from "../signin/route";
+import { SigninRoute } from "@module/shared/preboarding/signin/route";
 import { OpenAreaRoute } from "src/app/area/open/route";
 import { SignoutRoute } from "./route";
-import { FoundationModuleServiceType } from "@libs/foundation-module/type/service";
+import { FoundationModuleServiceType } from "@libs/foundation/module/type";
 import { BfwApiService } from "@libs/third-party-apis/bfw-api/service";
 import { UserAuthentication } from "@bfw/api-sdk/graphql/endpoints/shared";
 import { BfwApiSdkError } from "@bfw/api-sdk/core";
@@ -26,7 +26,7 @@ export class SignoutService implements FoundationModuleServiceType {
     public readonly failedMessage = 'ONBOARDING_SIGNOUT.FAILED_MESSAGE';
 
     public readonly home = 'GL.MODULE.HOME';
-    public readonly signin = 'GL.MODULE.ONBOARDING.SIGNIN';
+    public readonly signin = 'GL.MODULE.PREBOARDING.SIGNIN';
     public readonly tryAgain = 'GL.COMMON.TRY_AGAIN';
 
     public readonly OpenAreaRoute = OpenAreaRoute;
@@ -43,14 +43,25 @@ export class SignoutService implements FoundationModuleServiceType {
     public readonly ctxp = inject(ContextProfileService);
     public readonly notify = inject(NotifyService);
     public readonly notifyBanner = inject(NotifyBannerService);
-
+    
     public readonly api = inject(BfwApiService);
 
     public readonly state = inject(SignoutState);
 
     constructor() {
+        // █████ FoundationModuleServiceType
+        // load this module's translations first, before any label can render.
+        // constructor, not component ngOnInit - see I18nService.useModule() for why
+        this.initI18n();
+
+        // set module info
+        this.setModuleInfo();
+
+        // alter breadcrumbs
+        this.alterBreadcrumb();
+
         // load api service
-        this.api.sdk.graphql.use(UserAuthentication);
+        this.api.sdk.graphql.initialize(UserAuthentication);
 
     }
 
@@ -58,17 +69,17 @@ export class SignoutService implements FoundationModuleServiceType {
         this.i18n.useModule(ONBOARDING_SIGNOUT_I18N_KEY);
     }
     public setModuleInfo(): void {
-
+        
     }
     public alterBreadcrumb(): void {
-
+        
     }
     public async signout(): Promise<string | false> {
         this.gpbs.start();
         let ctxs: string | undefined = undefined;
 
-        try {
-            if (this.ctxp.state.ctxs() === null || this.ctxp.state.sessionToken() === null) {
+        try{
+            if(this.ctxp.state.ctxs() === null || this.ctxp.state.sessionToken() === null) {
                 throw new Error('You have been already signed out.');
             }
             this.gpbs.stream = 10;
@@ -85,14 +96,14 @@ export class SignoutService implements FoundationModuleServiceType {
                     stoken: true,
                     logged_in: true,
                     keep_logged: true,
-                }
+                }    
             });
             this.gpbs.stream = 40;
 
             ctxs = http.data.ctxs;
             const headerCtxs = http.getResHeaderCtxs();
 
-            if (ctxs && headerCtxs && ctxs === headerCtxs) {
+            if(ctxs && headerCtxs && ctxs === headerCtxs) {
                 // Remember the page that opened sign out so a later normal sign in returns there.
                 const previousNavigation = this.route.router.lastSuccessfulNavigation()?.previousNavigation;
                 const previousUrl = previousNavigation?.finalUrl ?? previousNavigation?.initialUrl;
@@ -112,12 +123,22 @@ export class SignoutService implements FoundationModuleServiceType {
             } else {
                 throw new Error('Failed to signout. Try again.');
             }
-        } catch (e: any | BfwApiSdkError) {
+        } catch(e: any | BfwApiSdkError) {
             const message =
                 e?.errors?.()?.[0] ??
                 e?.message;
-
+    
             this.state.setError(message);
+
+            /**
+             * The server either could not be asked to end this session or refused,
+             * because the token it was handed is not one it will accept. Keeping an
+             * unusable credential in the browser has no upside, so it goes regardless.
+             * This is what makes a tampered cookie recoverable at all, the success
+             * branch above never runs for one.
+             */
+            this.ctxp.state.clearSession();
+
             this.gpbs.stream = 90;
         }
 

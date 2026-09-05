@@ -64,7 +64,7 @@ export class PhaserAnimation {
     image.setDisplaySize(width, height);
     this.scene.tweens.killTweensOf(image);
 
-    if (animate) {
+    if (animate && (image.x !== 0 || image.y !== 0)) {
       this.scene.tweens.add({
         targets: image,
         x,
@@ -229,7 +229,7 @@ export class PhaserAnimation {
     });
   }
 
-  layoutPassWaitingTiles(items: readonly PassWaitingTileAnimation[], targets: readonly AnimationPoint[], size: AnimationSize, angle: number, animate: boolean, onPositionCloseButton: (tileId: string) => void): void {
+  layoutPassWaitingTiles(items: readonly PassWaitingTileAnimation[], targets: readonly AnimationPoint[], size: AnimationSize, angle: number, animate: boolean, onPositionCloseButton: (tileId: number) => void): void {
     items.forEach((item, index) => {
       const target = targets[index];
       if (!target || !item.image) return;

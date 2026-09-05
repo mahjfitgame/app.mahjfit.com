@@ -1,4 +1,5 @@
-// file: ./src/app/base/crud/type.ts
+// file: src/app/base/crud/type.ts
+
 export enum CrudListOperationFieldsEnum {
     QUICK_SEARCH = 'quick_search',
     LISTING_COLUMN_POSITION = 'listing_column_position',
@@ -38,7 +39,8 @@ export enum CrudFieldUiTypeEnum {
     EMAIL = 'email', // text with email format
     URL = 'url', // text with http:// or https://
     TEL = 'tel', // numeric phone number
-    RANGE = 'range', // number from given min to max range
+    SLIDER = 'slider', // number from given min to max range
+    RANGE = 'range', // two numbers (from / to) on one slider, stored in two fields
     FILE = 'file',
     COLOR = 'color', // value is a 7-character string representing a lowercase 6-digit hexadecimal color value
     HTML = 'html',
@@ -119,22 +121,4 @@ export enum CrudActionUiLayoutEnum {
 export enum CrudEndSideBarTabEnum {
     MUTATION = 'crud-mutation-tab',
     FILTER = 'crud-filter-tab',
-}
-
-export enum CrudActionEnum {
-    CREATE = 'create',
-    UPDATE = 'update',
-    SOFT_DELETE = 'soft-delete',
-    DELETE = 'delete',
-    RESTORE = 'restore',
-    MARK_AS_MAIN = 'mark-as-main',
-    RECORD_POSITION = 'record-position',
-    INACTIVE = 'inactive',
-    UPLOAD = 'upload',
-    UPLOAD_DELETE = 'upload-delete',
-    FILE_RELOCATION = 'file-relocation',
-    IMPORT = 'import',
-    EXPORT = 'export',
-    REPORT = 'report',
-    INSIGHTS = 'insights',
 }

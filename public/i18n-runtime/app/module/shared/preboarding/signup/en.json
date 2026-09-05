@@ -1,0 +1,49 @@
+{
+  "PREBOARDING_SIGNUP": {
+    "MODULE": {
+      "TITLE": "Sign Up",
+      "HINT": "Create your account to get started."
+    },
+    "MESSAGE": {
+      "SUCCESS": "Your account has been created. You can now sign in.",
+      "ERROR": "Unable to create your account. Please try again."
+    },
+    "FIELD_LABEL": {
+      "AROLE_ID": "Role",
+      "CONNSRC_ID": "Connection Source",
+      "IDENTIFY": "Password",
+      "IDENTIFY_CONFIRM": "Confirm Password",
+      "PRIMARY_EMAIL": "Email",
+      "PRIMARY_MOBILE": "Mobile",
+      "PRIMARY_MOBILE_CC": "Country Code",
+      "USERNAME": "Username"
+    },
+    "FIELD_PLACEHOLDER": {
+      "AROLE_ID": "Select your role",
+      "CONNSRC_ID": "Select your connection source",
+      "IDENTIFY": "Enter your password",
+      "IDENTIFY_CONFIRM": "Confirm your password",
+      "PRIMARY_EMAIL": "Enter your email",
+      "PRIMARY_MOBILE": "Enter your mobile number",
+      "PRIMARY_MOBILE_CC": "Enter your country code",
+      "USERNAME": "Enter your username"
+    },
+    "VALIDATION": {
+      "AROLE_ID": "Role is required.",
+      "CONNSRC_ID": "Connection source is required.",
+      "IDENTIFY": "Password is required.",
+      "IDENTIFY_CONFIRM": "Password confirmation is required.",
+      "IDENTIFY_MIN_LENGTH": "Password must be at least {{min_length}} characters long.",
+      "IDENTIFY_PATTERN": "Use uppercase,lowercase, a number and a special character; avoid 3 identical characters in a row.",
+      "IDENTIFY_MISMATCH": "Password does not match.",
+      "PRIMARY_EMAIL": "Email is required.",
+      "PRIMARY_EMAIL_FORMAT": "Please enter a valid email address.",
+      "PRIMARY_MOBILE": "Mobile number is required.",
+      "PRIMARY_MOBILE_MAX_LENGTH": "Mobile number cannot exceed {{max_length}} digits.",
+      "PRIMARY_MOBILE_CC": "Country code is required.",
+      "PRIMARY_MOBILE_CC_MAX_LENGTH": "Country code cannot exceed {{max_length}} digits.",
+      "USERNAME": "Username is required.",
+      "USERNAME_MIN_LENGTH": "Username must be at least {{min_length}} characters long."
+    }
+  }
+}

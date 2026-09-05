@@ -26,10 +26,6 @@ export class GeoStateComponent implements OnInit, OnDestroy {
 
   constructor() {}
 
-  public ngOnInit(): void {
-    this.service.initI18n();
-    this.service.setModuleInfo();
-    this.service.alterBreadcrumb();
-  }
+  public ngOnInit(): void {}
   public ngOnDestroy(): void {}
 }

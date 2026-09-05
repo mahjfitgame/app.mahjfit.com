@@ -6,7 +6,7 @@ import { SignalStateService } from "@libs/signal-state/service";
 import { GlobalProgressBarService } from "@base/global-progress-bar/service";
 import { ContextProfileService } from "@libs/context-profile/service";
 import { BfwApiService } from "@libs/third-party-apis/bfw-api/service";
-import { FoundationModuleStateType } from "@libs/foundation-module/type/state";
+import { FoundationModuleStateType } from "@libs/foundation/module/type";
 import { ONBOARDING_SIGNOUT_STATE_STORE_KEY } from "./const";
 
 @Service({ autoProvided: false })

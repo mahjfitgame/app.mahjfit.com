@@ -149,7 +149,7 @@
     font-weight: 700;
     line-height: 1.2;
     letter-spacing: 0.01em;
-    white-space: nowrap;
+    white-space: pre-wrap;
 }
 
 .instruction-panel__body {
@@ -199,7 +199,8 @@
 .mobile-drawer-overlay__close {
     position: absolute;
     left: 14px;
-    top: 7px;
+    top: 13px;
+    cursor: pointer;
     pointer-events: auto;
     color: #B92A90;
     font-size: 32px;
@@ -215,10 +216,13 @@
 }
 
 .mobile-drawer-overlay__item {
+    pointer-events: auto;
+    cursor: pointer;
     color: #B92A90;
     font-size: 16px;
     font-weight: 600;
     line-height: 1.55;
+    padding: 8px 0;
     white-space: nowrap;
 }
 

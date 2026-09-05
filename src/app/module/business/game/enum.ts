@@ -2,5 +2,5 @@
 export enum GameStateFieldEnum {
     GAME_KEYID = 'gki',
     CREATED_GAME = 'cgame',
-    GAME = 'game'
+    TILE_STYLE_ID = 'tilest_id'
 };

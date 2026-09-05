@@ -1,4 +1,4 @@
-// ./src/app/app.component.ts
+// file: src/app/app.component.ts
 import {
   AfterViewInit,
   Component,
@@ -7,7 +7,7 @@ import {
   inject,
   OnDestroy,
   OnInit,
-
+  
 } from '@angular/core';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { Router, RouterOutlet } from '@angular/router';
@@ -30,64 +30,25 @@ import { HttpStatusServiceUnavailableRoute } from 'src/app/module/shared/http-st
   styleUrl: './app.style.scss',
 })
 export class AppComponent implements OnInit, OnDestroy, AfterViewInit {
+  private readonly router = inject(Router);
   protected readonly service = inject(AppService);
-  constructor() { }
+  constructor() {}
   public async ngOnInit(): Promise<void> {
-    // Splash screen starts from app config as early as possible.
-    this.service.splash.stream = 10;
     // TODO: if you run in production or need offline support, you should register your service worker
     //this.registerServiceWorker();
-    this.service.splash.stream = 20;
   }
   public async ngAfterViewInit(): Promise<void> {
-    await this.onAppStartUp();
-  }
-  public async ngOnDestroy(): Promise<void> { }
-  public async onAppStartUp() {
-    let removeSplash: boolean = false;
-    try {
-      // initialize platform runtime state/listeners
-      await this.service.ps.init();
-      this.service.splash.stream = 30;
-
-      // perform required registration and initialization
-      this.service.registerBeforeApiRequestInterceptor();
-      this.service.registerAfterApiResponseInterceptor();
-      this.service.registerAfterApiResponseErrorInterceptor();
-      this.service.splash.stream = 40;
-
-      // hand shake with api to wake it up and check if it's responsive, also can be used to fetch some critical data for app initialization
-      const hs = await this.service.clientServerHandShake();
-      //const hs = true;
-      this.service.splash.stream = 60;
-
-
-      // decide to hide splash or not
-      if (!hs) {
-        removeSplash = false;
-      } else {
-        await this.service.afterClientServerHandShake();
-        removeSplash = true;
-      }
-
-      this.service.splash.stream = 70;
-    } catch (error) {
-      this.service.log.error('[AppComponent] onAppStartUp failed', error);
-      this.service.splash.stream = 80;
-    } finally {
-      this.service.splash.stream = 90;
-
-      // all process is done, close splash screen
-      if (removeSplash === true) {
-        this.service.splash.stream = 100;
-        // in certain condition user will be blocked to use app
-        this.service.splash.hide();
-      } else {
-        this.service.log.error('Access interrupted.');
-        this.service.splash.stream = 70;
-      }
+    if (this.service.state.startupSucceeded() !== true) {
+      this.service.log.error('Access interrupted. Redirecting to maintenance page.');
+      await this.router.navigateByUrl(HttpStatusServiceUnavailableRoute.absolutePath(), {
+        replaceUrl: true,
+      });
     }
+    
+    this.service.splash.stream = 100;
+    this.service.splash.hide(); // splash start form provideSplashScreenModule()
   }
+  public async ngOnDestroy(): Promise<void> {}
 
   @HostListener('window:scroll')
   public onWindowScroll(): void {

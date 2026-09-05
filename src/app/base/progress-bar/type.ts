@@ -1,2 +1,2 @@
-// file: ./src/app/base/progress-bar/type.ts
+// file: src/app/base/progress-bar/type.ts
 export {};

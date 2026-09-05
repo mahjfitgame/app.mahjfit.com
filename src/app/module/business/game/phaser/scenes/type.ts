@@ -1,25 +1,28 @@
 // file: src/app/module/business/game/phaser/scenes/type.ts
-import { GameHapticType, TileVm } from "../../type";
-import { DeviceLayoutState, PassDirection, TableLayout, TablePhase } from "../type";
+import { GameHapticType } from "../../type";
+import { DeviceLayoutState, PassDirection, TableLayout } from "../type";
+import { GameCharlestoneStageEnum, GamePhaseEnum } from "@bfw/api-sdk/graphql/endpoints/business";
 
+
+import { GameDeadHandReasonEnum, GamePlayActionEnum, GameTileEntity } from "@bfw/api-sdk/graphql/endpoints/business";
 
 export type TableSeat = "top" | "right" | "bottom" | "left";
 
-export type CallCombination = "pung" | "kong" | "quint" | "sextet";
+export type CallCombination = GamePlayActionEnum;
 
 /** A discard announced by the future game API/WebSocket for the local player to evaluate. */
 export interface TileCallOffer {
-  readonly discard: TileVm;
+  readonly discard: GameTileEntity;
   readonly discardedBy: Exclude<TableSeat, "bottom">;
 }
 
 /** Client-side intent only; the backend remains responsible for accepting the call. */
 export interface TileCallDecision {
-  readonly discardId: string;
+  readonly discardId: number;
   readonly discardedBy: Exclude<TableSeat, "bottom">;
   readonly action: "call" | "skip";
   readonly combination?: CallCombination;
-  readonly tileIds?: readonly string[];
+  readonly tileIds?: readonly number[];
 }
 
 /** Temporary local-only trigger used to exercise the Call UI before WebSocket wiring. */
@@ -50,7 +53,7 @@ export interface PlayerRemovalRequest {
   readonly requestId: number;
 }
 
-export type DeadHandReason = "invalid-mahjong" | "hand-not-viable" | "incorrect-tile-count";
+export type DeadHandReason = GameDeadHandReasonEnum;
 
 /** Client claim only; server validation determines whether either hand is dead. */
 export interface DeadHandClaim {
@@ -67,13 +70,14 @@ export interface JoinTableRequest {
   readonly expiresAtMs?: number;
 }
 
+
 export interface JoinTableRequestDecision {
   readonly requestId: string;
   readonly action: "accept" | "decline";
 }
 
 export interface TileRuntime {
-  readonly vm: TileVm;
+  readonly vm: GameTileEntity;
   readonly image: Phaser.GameObjects.Image;
   slotIndex: number;
   selected: boolean;
@@ -83,8 +87,9 @@ export interface TileRuntime {
 
 
 export interface TableSceneCallbacks {
-  readonly onSelectionChanged: (ids: readonly string[]) => void;
-  readonly onPassCompleted: (payload: { readonly tileIds: readonly string[]; readonly direction: PassDirection }) => void;
+  readonly onSelectionChanged: (ids: readonly number[]) => void;
+  readonly onPassCompleted: (payload: { readonly tileIds: readonly number[]; readonly direction: PassDirection }) => void;
+  readonly onPassWaitingStateChanged?: (payload: { readonly tileIds: readonly number[]; }) => void;
   onHaptic?: (type: GameHapticType) => void;
   readonly getDeviceLayout: (width: number, height: number) => DeviceLayoutState;
   readonly onMobileHeaderChanged: (collapsed: boolean) => void;
@@ -97,6 +102,8 @@ export interface TableSceneCallbacks {
   readonly onRestartGame: () => void;
   /** Leaves the game page after the user selects Quit Game. */
   readonly onQuitGame: () => void;
+  /** Discard a tile from the local player's rack. */
+  readonly onLocalPlayerDiscard: (tileId: number) => void;
   /** Updates the crisp HTML wall-count label when its value or layout changes. */
   readonly onWallCountOverlay: (state: WallCountOverlayState) => void;
   /** Updates native mobile player-name labels while Phaser retains their layout. */
@@ -263,6 +270,7 @@ export interface MobileHeaderToggleOverlayState {
 export interface InstructionPanelButtonState {
   readonly label: string;
   readonly enabled: boolean;
+  readonly action?: string;
   readonly x: number;
   readonly y: number;
   readonly width: number;
@@ -303,6 +311,7 @@ export interface InstructionPanelOverlayState {
   readonly contentBottom: number;
   readonly titleGap: number;
   readonly button: InstructionPanelButtonState;
+  readonly secondaryButton?: InstructionPanelButtonState;
 }
 
 /** One selectable opponent hand in the Dead Hand seat step. */
@@ -368,8 +377,9 @@ export interface HeaderLogoLayoutState {
 export interface LayoutStaticUiOptions {
   readonly layout: TableLayout;
   readonly renderDpr: number;
-  readonly tablePhase: TablePhase;
-  readonly pickTargetSeat: TableSeat;
+  readonly tablePhase: GamePhaseEnum;
+  readonly charlestonStage?: GameCharlestoneStageEnum;
+  readonly isPersonalTurn: boolean;
   readonly passDirection: PassDirection;
   readonly wallTileCount: number;
   readonly passWaitingCount: number;
@@ -377,11 +387,13 @@ export interface LayoutStaticUiOptions {
   readonly isPassAnimating: boolean;
   readonly isPickAnimating: boolean;
   readonly activeSeat: TableSeat;
+  readonly canDiscard?: boolean;
+  readonly canPickFromWall?: boolean;
 }
 
 export interface PassButtonStateOptions {
   readonly layout: TableLayout;
-  readonly tablePhase: TablePhase;
+  readonly tablePhase: GamePhaseEnum;
   readonly passWaitingCount: number;
   readonly canSubmitPass: boolean;
   readonly isPassAnimating: boolean;
@@ -392,6 +404,7 @@ export interface PassButtonStateOptions {
    * Optional so legacy scene callers keep their existing UI behaviour.
    */
   readonly canPickFromWall?: boolean;
+  readonly canDiscard?: boolean;
 }
 
 

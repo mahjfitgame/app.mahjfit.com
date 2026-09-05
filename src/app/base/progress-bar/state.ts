@@ -7,7 +7,7 @@ import { ProgressBarStatusEnum } from "@base/progress-bar/enum";
 import { GlobalProgressBarService } from "@base/global-progress-bar/service";
 import { ContextProfileService } from "@libs/context-profile/service";
 import { BfwApiService } from "@libs/third-party-apis/bfw-api/service";
-import { FoundationModuleStateType } from "@libs/foundation-module/type/state";
+import { FoundationModuleStateType } from "@libs/foundation/module/type";
 import { PROGRESS_BAR_STATE_STORE_KEY } from "./const";
 
 @Service()
@@ -101,7 +101,7 @@ export class ProgressBarState extends SignalStateService implements FoundationMo
         const startedAt = this.processing();
 
         if (startedAt === false) {
-            return [0, 0, 0];
+        return [0, 0, 0];
         }
 
         this.clearStopSchedule();

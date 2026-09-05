@@ -1,5 +1,6 @@
 // file: libs/src/context-profile/type.ts
 
+import { DateTime } from "@bfw/api-sdk/graphql/libs/crud.scalar";
 import type { JwtPayload } from "jwt-decode";
 
 export interface ContextProfileSessionPayload extends JwtPayload {
@@ -39,5 +40,9 @@ export interface ContextProfileStatefulInfo {
         name?: string | null,
         interface?: string | null,
         os?: string | null,
+    },
+    session: {
+        logged_in?: DateTime | Date | null,
+        keep_logged?: DateTime | Date | null,
     }
 }

@@ -1,4 +1,4 @@
-// file: ./src/app/base/internationalization/provider.ts
+// file: src/app/base/internationalization/provider.ts
 import { inject, isDevMode, provideAppInitializer } from '@angular/core';
 import { provideTransloco } from '@jsverse/transloco';
 import { I18N_ALLOWED_LANG, I18N_DEFAULT_LANG } from '@base/internationalization/const';

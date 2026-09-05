@@ -1,62 +1,60 @@
 // file: src/app/module/shared/geo/state/route.ts
 
 import { inject, Service } from '@angular/core';
-import { ActivatedRoute, Router, Routes } from '@angular/router';
-import { FoundationModuleRouteType } from '@libs/foundation-module/type/route';
-import { SLUG_GEO_STATE } from '@module/shared/geo/state/slug';
-import { SLUG_GEO } from '../slug';
+import { Router } from '@angular/router';
+import { FoundationAreaEnum } from '@libs/foundation/enum';
+import { FoundationModuleRouteDefinitionType, FoundationModuleRouteNavType } from '@libs/foundation/module/type';
+import { FoundationModulePath } from '@libs/foundation/module/path';
+import { FoundationNavPositionEnum } from '@libs/foundation/nav/enum';
 import { UrlService } from '@libs/url/service';
-import { SLUG_PRIVATE_AREA } from 'src/app/area/private/slug';
+import { SLUG_GEO_STATE } from '@module/shared/geo/state/slug';
+import { GeoRoute } from '@module/shared/geo/route';
 
 @Service({ autoProvided: false })
-export class GeoStateRoute implements FoundationModuleRouteType {
+export class GeoStateRoute {
     // CLASS PROPERTIES ▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬
-    public static readonly moduleLevel = [SLUG_PRIVATE_AREA, SLUG_GEO, SLUG_GEO_STATE];
+    public static readonly registryKey = 'GEO_STATE';
+    public static readonly area = FoundationAreaEnum.PRIVATE;
 
     // DEPENDENCIES ▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬
-    public readonly activeRoute = inject(ActivatedRoute);
+    public readonly url = inject(UrlService);
     public readonly router = inject(Router);
 
-    // ROUTES ▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬
-    /**
-     * @routes()
-     * need to merge with app routes [src/app/module/shared/geo/route.ts]
-     */
-    public static routes(): Routes {
-        const routes: Routes = [
-            {
-                path: SLUG_GEO_STATE,
-                title: 'Geo State',
-                loadComponent: () => import('@module/shared/geo/state/component').then((c) => c.GeoStateComponent),
-                data: {
-                    breadcrumb: {
-                        label: 'State',
-                        alias: 'geoState',
-                        info: {
-                            icon: 'globe',
-                        },
-                        routeInterceptor: (routeLink: any, breadcrumb: any) => {
-                            return routeLink;
-                        },
-                    },
-                },
-            },
-        ];
+    // DEFINITION ▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬
+    public static definition(): FoundationModuleRouteDefinitionType {
+        return {
+            registryKey: this.registryKey,
+            component: () => import('@module/shared/geo/state/component').then((c) => c.GeoStateComponent),
+            canMatch: [],
+            canActivate: [],
+            canActivateChild: [],
+            canDeactivate: [],
+            breadcrumbAlias: 'geoState',
+            actions: [],
+        };
+    }
 
-        return routes;
+    // NAV ▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬
+    /** ⚠ new to the menu: it was already routed, the hand written list omitted it */
+    public static nav(): FoundationModuleRouteNavType {
+        return {
+            registry_key: this.registryKey,
+            area_key: this.area,
+            parent_key: GeoRoute.registryKey,
+            url_slug: SLUG_GEO_STATE,
+            label: 'GL.MODULE.GEO.STATE',
+            icon: 'globe',
+            sort_order: 20,
+            nav_position: [FoundationNavPositionEnum.START],
+        };
     }
 
     // PATHS ▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬
     public static absolutePathArr(): string[] {
-        const moduleLevel = this.moduleLevel;
-        const params = {};
-
-        return UrlService.getAbsolutePathArr(this.moduleLevel, params);
+        return FoundationModulePath.arrOf(this.registryKey);
     }
     public static absolutePath(): string {
-        const moduleLevel = this.moduleLevel;
-        const params = {};
-        return UrlService.getAbsolutePath(moduleLevel, params);
+        return FoundationModulePath.of(this.registryKey);
     }
 
     // NAVIGATION ▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬

@@ -1,4 +1,4 @@
-// file: ./libs/src/signal-state/example/service.ts
+// file: libs/src/signal-state/example/service.ts
 import { inject, Injectable, Service } from '@angular/core';
 import { StateExample } from './state';
 import { BfwApiService } from '@libs/third-party-apis/bfw-api/service';

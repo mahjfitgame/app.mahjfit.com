@@ -1,0 +1,74 @@
+<div class="tw:flex tw:min-h-dvh tw:flex-col tw:lg:flex-row">
+    <!-- START SIDE -->
+    <aside class="bfw-start-side tw:relative tw:hidden tw:lg:block tw:lg:w-1/2">
+        <div class="tw:absolute tw:inset-0 tw:overflow-hidden">
+            <ng-template [cdkPortalOutlet]="service.state.slotStartSide() ?? DEF_SLOT_START_SIDE"></ng-template>
+        </div>
+    </aside>
+
+    <!-- END SIDE -->
+    <div class="bfw-end-side tw:flex tw:min-h-dvh tw:w-full tw:flex-col tw:lg:w-1/2">
+        <header>
+            <div class="bfw-safe-area-pt bfw-safe-area-px tw:relative tw:z-10">
+                <mat-toolbar class="tw:flex tw:min-h-16 tw:bg-transparent! tw:px-2!">
+                    <ng-template
+                        [cdkPortalOutlet]="service.state.slotEndSideHeader() ?? DEF_SLOT_END_SIDE_HEADER"></ng-template>
+                </mat-toolbar>
+            </div>
+        </header>
+        <main class="bfw-safe-area-px tw:flex-1">
+            <div class="tw:px-2">
+                <router-outlet></router-outlet>
+            </div>
+        </main>
+        <footer>
+            <div class="bfw-safe-area-pb bfw-safe-area-px tw:relative tw:z-10">
+                <mat-toolbar class="tw:h-auto! tw:bg-transparent! tw:py-2! tw:px-2!">
+                    <ng-template
+                        [cdkPortalOutlet]="service.state.slotEndSideFooter() ?? DEF_SLOT_END_SIDE_FOOTER"></ng-template>
+                </mat-toolbar>
+            </div>
+        </footer>
+    </div>
+</div>
+
+<!-- ng-template DEFAULT FALLBACKS -->
+<ng-template cdkPortal #DEF_SLOT_START_SIDE="cdkPortal">
+    <img src="assets/beach.webp" [alt]="'GL.AREA.AUTH.BANNER_ALT' | transloco"
+        class="tw:h-full tw:w-full tw:object-cover" />
+</ng-template>
+<ng-template cdkPortal #DEF_SLOT_END_SIDE_HEADER="cdkPortal">
+    <div class="tw:flex tw:w-full tw:justify-center tw:items-center">
+        <a routerLink="/" class="tw:flex tw:items-center tw:gap-3 tw:no-underline tw:text-inherit">
+            <span
+                class="fixed-header-logo tw:flex tw:h-10 tw:w-10 tw:items-center tw:justify-center tw:overflow-hidden tw:rounded-full">
+                <img src="assets/logo.png" [alt]="'GL.APP.BRAND_LOGO_ALT' | transloco"
+                    class="tw:h-full tw:w-full tw:object-contain" />
+            </span>
+
+            <span class="tw:leading-tight">
+                <span class="tw:block tw:text-sm tw:md:text-base">
+                    {{ 'GL.APP.BRAND_NAME' | transloco }}
+                </span>
+                <small class="tw:block tw:text-xs tw:opacity-80">
+                    <span class="tw:hidden tw:md:inline">{{ 'GL.APP.BRAND_DESCRIPTOR' | transloco }}</span>
+                    {{ 'GL.APP.BRAND_VENDOR' | transloco }}
+                </small>
+            </span>
+        </a>
+    </div>
+</ng-template>
+<ng-template cdkPortal #DEF_SLOT_END_SIDE_FOOTER="cdkPortal">
+    <div class="tw:flex tw:w-full tw:justify-center tw:items-center tw:text-secondary tw:gap-2">
+        <p class="tw:m-0 tw:text-xs">
+            {{ 'GL.APP.COPYRIGHT' | transloco: { year: service.utility.currentYear() } }}
+        </p>
+        <span class="tw:text-xs">|</span>
+        <!-- ⚠ the wrapping div, its classes and the &copy; line above are UNCHANGED.
+             the <nav> itself now lives in nav/template.html under the BOTTOM
+             branch — same markup, same classes, it just renders one level
+             deeper inside this host element. no (navigated) binding here: this
+             area has no drawer, so there is nothing to close -->
+        <app-auth-nav [position]="service.FoundationNavPositionEnum.BOTTOM" />
+    </div>
+</ng-template>

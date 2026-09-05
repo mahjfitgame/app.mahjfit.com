@@ -1,15 +1,5 @@
 // file: src/app/module/business/game/type.ts
 
-// ████ TILES █████████████████████████████████████████████████████
-export interface TileVmInput {
-    readonly id: string;
-    readonly code: string;
-    readonly label: string;
-    readonly suit: TileSuit;
-    readonly rank?: number;
-    readonly asset: string;
-}
-
 export interface TileSoundSource {
     readonly suit: TileSuit;
     readonly rank?: number;
@@ -76,20 +66,9 @@ export type TileSoundKey =
     | "joker"
     | "flower";
 
-export interface TileVm {
-    readonly id: string;
-    readonly label: string;
-    readonly suit: TileSuit;
-    readonly asset: string;
+import { GamePhaseFirstRoundDirectionEnum, GamePhaseSecondRoundDirectionEnum } from "@bfw/api-sdk/graphql/endpoints/business";
 
-    /**
-     * Audio asset key for spoken discard sound.
-     * Example: "1-bam", "2-char", "soap", "joker", "flower"
-     */
-    readonly soundKey: TileSoundKey;
-}
-
-export type PassDirection = "left" | "right" | "across";
+export type PassDirection = GamePhaseFirstRoundDirectionEnum | GamePhaseSecondRoundDirectionEnum;
 
 
 

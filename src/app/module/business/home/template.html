@@ -16,8 +16,9 @@
                 <h1>{{ 'HOME.DB_VERSION' | transloco: { version: dbVersion() } }}</h1> -->
             </div>
 
+            <h4>This is Temporary navigation for testing purpose</h4>
             <div class="tw:flex tw:flex-col tw:gap-4 tw:mb-8">
-                @for (action of navigationActions; track action.routerLink.join('/')) {
+                @for (action of service.navigationActions; track action.routerLink.join('/')) {
                 <a [routerLink]="action.routerLink" matButton="filled"
                     class="tw:w-full tw:justify-start tw:rounded-full">
                     <mat-icon class="material-symbols-rounded tw:me-2">{{ action.icon }}</mat-icon>
@@ -25,12 +26,6 @@
                 </a>
                 }
             </div>
-
-            @if (ctxp.state.authenticated()) {
-            <a matButton="text" class="tw:text-xs" [routerLink]="SignoutRoute.absolutePath()">
-                {{ 'GL.MODULE.ONBOARDING.SIGNOUT' | transloco }}
-            </a>
-            }
 
             <!-- <app-theme></app-theme>
             <app-internationalization></app-internationalization> -->

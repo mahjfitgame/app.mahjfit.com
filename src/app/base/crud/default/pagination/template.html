@@ -1,4 +1,4 @@
-<!-- file: ./src/app/base/crud/default/pagination/template.html -->
+<!-- file: src/app/base/crud/default/pagination/template.html -->
 @if(service.state.totalRecords() > 0) {
 <mat-card>
     <mat-card-actions class="tw:p-1! tw:justify-center">
@@ -11,6 +11,14 @@
             [showJumpToPage]="true"
             [disabled]="service.gpbs.processing"
             (pageChange)="onPageChange($event)"
+            [pageLabel]="'GL.PAGINATION.PAGE' | transloco"
+            [totalPagesLabel]="'GL.PAGINATION.PAGE_OF_TOTAL' | transloco"
+            [goLabel]="'GL.PAGINATION.GO' | transloco"
+            [itemsPerPageLabel]="'GL.PAGINATION.ITEMS_PER_PAGE' | transloco"
+            [nextPageLabel]="'GL.PAGINATION.NEXT_PAGE' | transloco"
+            [previousPageLabel]="'GL.PAGINATION.PREVIOUS_PAGE' | transloco"
+            [firstPageLabel]="'GL.PAGINATION.FIRST_PAGE' | transloco"
+            [lastPageLabel]="'GL.PAGINATION.LAST_PAGE' | transloco"
             >
         </app-pagination>
     </mat-card-actions>

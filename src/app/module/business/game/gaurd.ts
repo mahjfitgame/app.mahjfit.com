@@ -1,5 +1,5 @@
 import { CanMatchFn, GuardResult, PartialMatchRouteSnapshot, Route, Router, UrlSegment } from "@angular/router";
-import { SigninRoute } from "../../shared/onboarding/signin/route";
+import { SigninRoute } from "../../shared/preboarding/signin/route";
 import { inject } from "@angular/core";
 import { SLUG_OPEN_AREA } from "src/app/area/open/slug";
 import { SLUG_GAME, SLUG_GAME_KEYID } from "./slug";

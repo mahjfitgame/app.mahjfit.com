@@ -1,4 +1,4 @@
-// file: ./src/app/module/shared/http-status/not-found/component.ts
+// file: src/app/module/shared/http-status/not-found/component.ts
 
 import { Component, inject, OnInit } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
@@ -26,7 +26,5 @@ import { HTTP_STATUS_NOT_FOUND_PROVIDER } from './provider';
 export class HttpStatusNotFoundComponent implements OnInit {
     protected readonly service = inject(HttpStatusNotFoundService);
 
-    public ngOnInit(): void {
-        this.service.initI18n();
-    }
+    public ngOnInit(): void {}
 }

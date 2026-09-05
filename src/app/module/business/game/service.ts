@@ -1,11 +1,9 @@
 import { computed, inject, Service } from "@angular/core";
 import { BfwApiService } from "@libs/third-party-apis/bfw-api/service";
-import { BotLevelModeEnum, Game, GameAllowJoinEnum, GameCreateInputDto, GameCreateOutputDto, GameEngine, GameModeEnum, GamePlayAction, GamePlayActionEnum, GameRackIDEnum, GameStateActionCharlestoneInputDto, GameStateOutputDto, GameStatePublicStartInputDto } from "@bfw/api-sdk/graphql/endpoints/business";
+import { BotLevelModeEnum, Game, GameAllowJoinEnum, GameCreateInputDto, GameCreateOutputDto, GameEngine, GameModeEnum, GamePlayAction, GamePlayActionEnum, GameRackIDEnum, GameStateActionCharlestoneInputDto, GameStateOutputDto, GameStatePublicStartInputDto, TileCategoryEnum, TileCategoryEnumAddon, TileEntityGSDto, TileRankEnum, TileTypeEnum, TileTypeEnumAddon } from "@bfw/api-sdk/graphql/endpoints/business";
 import { BfwApiSdkError, BfwApiSdkResponse } from "@bfw/api-sdk/core";
 import { ContextProfileService } from "@libs/context-profile/service";
-import { TileVmInput, TileSoundKey, TileSuit, TileVm, TileTextureRef } from "./type";
-import { FoundationModuleServiceType } from "@libs/foundation-module/type/service";
-import { CrudChildServiceType } from "src/app/base/crud/child/service";
+import { TileSoundKey, TileSuit, TileTextureRef } from "./type";
 import { CrudService } from "src/app/base/crud/service";
 import { GameRoute } from "./route";
 import { ConfService } from "@libs/conf/service";
@@ -14,6 +12,7 @@ import { I18nService } from "src/app/base/internationalization/service";
 import { GameState } from "./state/state";
 import { GAME_I18N_KEY, TILE_ATLAS_1X_KEY, TILE_ATLAS_2X_KEY } from "./const";
 import { TileAtlasSelection } from "./type";
+import { FoundationModuleServiceType } from "@libs/foundation/module/type";
 
 @Service({ autoProvided: false })
 export class GameService implements FoundationModuleServiceType {
@@ -49,78 +48,77 @@ export class GameService implements FoundationModuleServiceType {
     public alterBreadcrumb(): void {
 
     }
-    public createTileVm(input: TileVmInput): TileVm {
-        return {
-            id: input.id,
-            label: input.label,
-            suit: input.suit,
-            asset: input.asset,
-            soundKey: this.resolveTileSoundKey(input),
-        };
-    }
-    private resolveTileSoundKey(tile: TileVmInput): TileSoundKey {
-        if (tile.suit === "joker" || (tile as any).isJoker) return "joker";
-        if (tile.suit === "flower" || (tile as any).isFlower) return "flower";
 
-        if (tile.suit === "dragon") {
-            const lbl = (tile.label || "").toLowerCase();
-            const nm = ((tile as any).name || "").toLowerCase();
-            if (nm === "soap" || tile.code === "W" || tile.code === "S" || tile.code === "0" || lbl.includes("soap") || lbl.includes("white")) return "soap";
-            if (nm === "red" || tile.code === "R" || lbl.includes("red")) return "red";
-            if (nm === "green" || tile.code === "G" || lbl.includes("green")) return "green";
-        }
+    public resolveTileSoundKey(tile: TileEntityGSDto): TileSoundKey {
+        // category 1 = Suit, 2 = Wind, 3 = Dragon, 4 = Flower, 5 = Joker
+        if (tile.type as any as TileTypeEnumAddon === TileTypeEnumAddon.BAM) return `${tile.rank}-bam` as TileSoundKey;
+        if (tile.type as any as TileTypeEnumAddon === TileTypeEnumAddon.CHAR) return `${tile.rank}-crack` as TileSoundKey;
+        if (tile.type as any as TileTypeEnumAddon === TileTypeEnumAddon.DOT) return `${tile.rank}-dot` as TileSoundKey;
+        if (tile.type as any as TileTypeEnumAddon === TileTypeEnumAddon.JOKER) return `joker` as TileSoundKey;
+        if (tile.type as any as TileTypeEnumAddon === TileTypeEnumAddon.FLOWER_SPRING) return `flower` as TileSoundKey;
+        if (tile.type as any as TileTypeEnumAddon === TileTypeEnumAddon.FLOWER_SUMMER) return `flower` as TileSoundKey;
+        if (tile.type as any as TileTypeEnumAddon === TileTypeEnumAddon.FLOWER_AUTUMN) return `flower` as TileSoundKey;
+        if (tile.type as any as TileTypeEnumAddon === TileTypeEnumAddon.FLOWER_WINTER) return `flower` as TileSoundKey;
+        if (tile.type as any as TileTypeEnumAddon === TileTypeEnumAddon.WIND_EAST) return `east` as TileSoundKey;
+        if (tile.type as any as TileTypeEnumAddon === TileTypeEnumAddon.WIND_SOUTH) return `south` as TileSoundKey;
+        if (tile.type as any as TileTypeEnumAddon === TileTypeEnumAddon.WIND_WEST) return `west` as TileSoundKey;
+        if (tile.type as any as TileTypeEnumAddon === TileTypeEnumAddon.WIND_NORTH) return `north` as TileSoundKey;
+        if (tile.type as any as TileTypeEnumAddon === TileTypeEnumAddon.DRAGON_RED) return `red` as TileSoundKey;
+        if (tile.type as any as TileTypeEnumAddon === TileTypeEnumAddon.DRAGON_GREEN) return `green` as TileSoundKey;
+        if (tile.type as any as TileTypeEnumAddon === TileTypeEnumAddon.DRAGON_WHITE) return `soap` as TileSoundKey;
 
-        if (tile.suit === "wind") {
-            const lbl = (tile.label || "").toLowerCase();
-            const nm = ((tile as any).name || "").toLowerCase();
-            if (nm === "east" || tile.code.startsWith("E") || lbl.includes("east")) return "east";
-            if (nm === "south" || tile.code.startsWith("S") || lbl.includes("south")) return "south";
-            if (nm === "west" || tile.code.startsWith("W") || lbl.includes("west")) return "west";
-            if (nm === "north" || tile.code.startsWith("N") || lbl.includes("north")) return "north";
-        }
 
-        let rank = tile.rank;
-        if (!rank && tile.code) {
-            const match = tile.code.match(/\d+/);
-            if (match) rank = parseInt(match[0], 10);
-        }
-
-        if (!rank) {
-            throw new Error(`Missing tile rank for sound key: ${JSON.stringify(tile)}`);
-        }
-
-        if (tile.suit === "bam") return `${rank}-bam` as TileSoundKey;
-        if (tile.suit === "char") return `${rank}-crack` as TileSoundKey;
-        if (tile.suit === "dot") return `${rank}-dot` as TileSoundKey;
-
+        // Add more specific sounds for winds, dragons if needed. 
+        // For now, fallback to generic or throw if the old logic was strict
+        // Since old logic threw error for anything not a suit:
         throw new Error(`Unsupported tile sound: ${JSON.stringify(tile)}`);
     }
 
-    public resolve(tile: TileVm, tileDisplayWidth: number): TileTextureRef {
+    public resolve(tile: TileEntityGSDto, tileDisplayWidth: number): TileTextureRef {
         const atlas = this.selectTileAtlas(tileDisplayWidth);
 
         return {
             atlasKey: atlas.atlasKey,
-            frameKey: `${this.assetBaseName(tile.asset)}${atlas.suffix}.png`,
+            frameKey: `${this.assetBaseName(tile)}${atlas.suffix}.png`,
         };
     }
-    private resolveOL(tile: TileVm): TileTextureRef {
+
+    private resolveOL(tile: TileEntityGSDto): TileTextureRef {
         const atlas = this.selectTileAtlas();
+
 
         return {
             atlasKey: atlas.atlasKey,
-            frameKey: `${this.assetBaseName(tile.asset)}${atlas.suffix}.png`,
+            frameKey: `${this.assetBaseName(tile)}${atlas.suffix}.png`,
         };
     }
 
-    private assetBaseName(assetPath: string): string {
-        const fileName = assetPath.split("/").pop();
-
-        if (!fileName) {
-            throw new Error(`Invalid tile asset path: ${assetPath}`);
+    public assetBaseName(tile: TileEntityGSDto): string {
+        switch (tile.category as any as TileCategoryEnumAddon) {
+            case TileCategoryEnumAddon.SUITED: // Suits
+                if (tile.type as any as TileTypeEnumAddon === TileTypeEnumAddon.BAM) return `bam_${tile.rank}`;
+                if (tile.type as any as TileTypeEnumAddon === TileTypeEnumAddon.CHAR) return `char_${tile.rank}`;
+                if (tile.type as any as TileTypeEnumAddon === TileTypeEnumAddon.DOT) return `dot_${tile.rank}`;
+                break;
+            case TileCategoryEnumAddon.WIND: // Winds
+                if (tile.type as any as TileTypeEnumAddon === TileTypeEnumAddon.WIND_EAST) return "wind_e";
+                if (tile.type as any as TileTypeEnumAddon === TileTypeEnumAddon.WIND_SOUTH) return "wind_s";
+                if (tile.type as any as TileTypeEnumAddon === TileTypeEnumAddon.WIND_WEST) return "wind_w";
+                if (tile.type as any as TileTypeEnumAddon === TileTypeEnumAddon.WIND_NORTH) return "wind_n";
+                break;
+            case TileCategoryEnumAddon.DRAGON: // Dragons
+                if (tile.type as any as TileTypeEnumAddon === TileTypeEnumAddon.DRAGON_RED) return "dragon_red";
+                if (tile.type as any as TileTypeEnumAddon === TileTypeEnumAddon.DRAGON_GREEN) return "dragon_green";
+                if (tile.type as any as TileTypeEnumAddon === TileTypeEnumAddon.DRAGON_WHITE) return "dragon_white";
+                break;
+            case TileCategoryEnumAddon.FLOWER: // Flowers
+                return `flower_${tile.rank}`;
+            case TileCategoryEnumAddon.JOKER: // Jokers
+                // There are 8 joker images (joker_1.png to joker_8.png), mapping by rank or just 1
+                return `joker_${tile.rank || 1}`;
         }
 
-        return fileName.replace(/\.(svg|png|webp|jpg|jpeg)$/i, "");
+        throw new Error(`Invalid tile asset data: ${JSON.stringify(tile)}`);
     }
 
     private isMobilePortraitOnly(): boolean {
@@ -176,196 +174,4 @@ export class GameService implements FoundationModuleServiceType {
 
 
     // ████ API CALLS ██████████████████████████████████████████████
-
-
-    public async afterGameStart(): Promise<void> {
-        // connect to web socket to listen the game live events
-        //await this.api.sdk.graphql.ws.connect();
-    }
-
-
-    public async startGameCharlestone() {
-        try {
-
-            // load api service
-            this.api.sdk.graphql.use(Game);
-
-            const clientInput: GameStateActionCharlestoneInputDto = {
-                game_id: 24,
-                from_gseat_id: 1045,
-                gpaction_id: GamePlayActionEnum.CHARLESTONST1RIGHT,
-                tile_ids: [
-                    104,
-                    112,
-                    115
-                ],
-                rack_id: GameRackIDEnum.RACK_FIRST,
-                u_id: 65
-            }
-
-            const http: BfwApiSdkResponse<GameStateOutputDto> = await this.api.sdk.graphql.gameEngine.actionCharlestone({
-                selection: {
-                    current_turn_rack_id: true,
-                    current_turn_seat_id: true,
-                    phase: true,
-                    turn_stage: true,
-                    wall_count: true,
-                    pass: {
-                        count: true,
-                        direction: true,
-                        round: true,
-                        submissions: true,
-                        second_votes: true,
-                        stage: true,
-                    },
-                    claim: {
-                        from_seat: true,
-                        deadline_at: true,
-                        intents: true,
-                        tile: {
-                            id: true,
-                            tile_id: true,
-                            gseat_id: true,
-                            in_exposer_one: true,
-                            in_rack_one: true,
-                            sort_exposer_one: true,
-                            sort_rack_one: true,
-                            in_exposer_two: true,
-                            in_rack_two: true,
-                            sort_exposer_two: true,
-                            sort_rack_two: true,
-                            updated: true,
-                        }
-                    },
-                    game: {
-                        id: true,
-                        allow_join: true,
-                        mode: true,
-                        botlvl_id: true,
-                        current_turn_u_id: true,
-                        grule_id: true,
-                    },
-                    seats: true,
-                    all_tiles: true,
-                    bot_profile: {
-                        id: true,
-                        botlvl_id: true,
-                        title: true,
-                        think_time_min_ms: true,
-                        think_time_max_ms: true,
-                        claim_aggression: true,
-                        defense_weight: true,
-                        hand_reading_weight: true,
-                        discard_safety_weight: true,
-                        joker_usage_weight: true,
-                        exposure_preference: true,
-                        error_rate: true,
-                        randomness: true,
-                        react_to_danger: true,
-                        charleston_quality: true,
-                        active: true,
-                        deleted: true,
-                    }
-                },
-                input: [
-                    clientInput
-                ]
-            });
-            //console.log('START', http);
-        } catch (error) {
-            console.log('ERROR', error);
-        }
-
-    }
 }
-/*
-
-public async clientServerHandShake(): Promise<string | false> {
-        // TODO: need to add or setup logic when user logged in or already logged in we might need to update token with logged in user id
-        // need to find some way and work around for this
-        try {
-            // load api service
-            this.api.sdk.graphql.use(UserAuthentication);
-
-            // if token is not exist, get required data
-            const hsi = await this.ps.handShakeInfo();
-
-            // set input for new hand shake
-            const clientInput: UserDeviceHandShakeInputDto = {
-                dtoken: '0', // by default for new device there is no dtoken
-                dpid: hsi.dpid ?? '0', // this is possible to get from native platform but in some case it might be missing 
-
-                //u_id: 0,
-                //user_defined_id: hsi.user_defined_id,
-                //user_defined_name: hsi.user_defined_name,
-
-                from_ip_address: hsi.from_ip_address,
-                mac_address: hsi.mac_address,
-
-                avatar: hsi.avatar,
-                useragent: hsi.useragent,
-                platform: hsi.platform,
-                language: hsi.language,
-                timezone: hsi.timezone,
-                screen_width: Number(hsi.screen_width),
-                screen_height: Number(hsi.screen_height),
-                device_pixel_ratio: Number(hsi.device_pixel_ratio),
-                hardware_concurrency:hsi.hardware_concurrency,
-                max_touch_points: hsi.max_touch_points,
-                device_memory: hsi.device_memory,
-            };
-
-            // if token is alreadu exist
-            if(this.session.state.dtoken() && this.session.state.dtoken() !== null && this.session.state.dtoken() !== ''){
-                this.log.info('[AppService] Client/Server Handshake Token Found.');
-                // set input for found token hand shake
-                clientInput.dtoken = this.session.state.dtoken() as string;
-                clientInput.dpid = this.session.state.dpid() as string;
-                clientInput.keyid = this.session.state.dkeyid() ?? undefined
-            }
-            
-            // set api headers, as its sartup need to make sure the headers are set for initial api call
-            this.session.state.configureBfwApiHeaders();
-
-            // api handshake: check if existing or add new both in one request
-            const resp: AppClientServerHandShakeOutputDto = await this.api.sdk.graphql.userAuthentication.appClientServerHandShake({
-                selection: {
-                    server: {
-                        //id: true,
-                        //u_id: true,
-                        //device_id: true,
-                        keyid: true,
-                        dtoken: true,
-                        dpid: true,
-                    },
-                    skeyid: true
-                },
-                input: {
-                    client: clientInput,
-                }
-            });
-
-            const server = resp.server;
-            const skeyid = resp.skeyid;
-
-            // set hand shake identity
-            if (server && Object.keys(server).length > 0 && server.dtoken) {
-                // set verified client info by server in state
-                this.session.state.setDtoken(server.dtoken);
-                this.session.state.setDpid(server.dpid ?? null);
-                this.session.state.setDkeyid(server.keyid ?? null);
-
-                // set user session info in state
-                this.session.state.setSkeyid(skeyid ?? null);
-
-                return server?.dtoken ?? null;
-            }
-
-            // handshake failed so do not allow app to run
-            this.log.error('Client/Server hand shake failed.');
-        } catch (e: any) {
-            this.log.error(e);
-        }
-        return false;
-    }
-*/

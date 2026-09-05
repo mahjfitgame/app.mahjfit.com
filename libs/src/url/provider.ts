@@ -1,4 +1,4 @@
-// file: ./libs/src/url/provider.ts
+// file: libs/src/url/provider.ts
 import { Provider } from "@angular/core";
 import { UrlState } from "./state";
 import { UrlService } from "./service";

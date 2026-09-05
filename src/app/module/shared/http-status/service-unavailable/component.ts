@@ -1,4 +1,4 @@
-// file: ./src/app/module/shared/http-status/service-unavailable/component.ts
+// file: src/app/module/shared/http-status/service-unavailable/component.ts
 
 import { Component, inject, OnInit } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
@@ -26,7 +26,5 @@ import { HTTP_STATUS_SERVICE_UNAVAILABLE_PROVIDER } from './provider';
 export class HttpStatusServiceUnavailableComponent implements OnInit {
     protected readonly service = inject(HttpStatusServiceUnavailableService);
 
-    public ngOnInit(): void {
-        this.service.initI18n();
-    }
+    public ngOnInit(): void {}
 }

@@ -1,0 +1,182 @@
+<!-- file: src/app/module/shared/preboarding/recover-password/template.html -->
+
+<div class="tw:flex tw:min-h-[75dvh] tw:items-center tw:justify-center tw:md:min-h-[80dvh]">
+    <div class="tw:w-full tw:max-w-110">
+        <mat-card class="tw:mb-6 tw:overflow-hidden tw:rounded-4xl! tw:bg-transparent! tw:shadow-none! tw:md:bfw-bg-gradient-b tw:md:shadow-sm!">
+            <mat-card-header class="tw:flex-col! tw:items-stretch!">
+                <div class="tw:w-100 tw:p-2 tw:text-center tw:lg:text-start">
+                    @defer (on idle) {
+                        <h1 class="tw:mb-1 tw:text-4xl tw:font-normal! tw:tracking-tight tw:text-primary">
+                            {{ 'PREBOARDING_RECOVERPASSWORD.MODULE.TITLE' | transloco }}
+                        </h1>
+                        <small>{{ 'PREBOARDING_RECOVERPASSWORD.MODULE.HINT' | transloco }}</small>
+                    } @placeholder (minimum 200ms) {
+                        <div class="tw:animate-pulse">
+                            <div class="tw:mx-auto tw:mb-2 tw:h-10 tw:w-3/4 tw:rounded-lg tw:bg-gray-200 tw:lg:mx-0"></div>
+                            <div class="tw:mx-auto tw:h-4 tw:w-1/2 tw:rounded-lg tw:bg-gray-100 tw:lg:mx-0"></div>
+                        </div>
+                    }
+                </div>
+                <app-notify-banner></app-notify-banner>
+            </mat-card-header>
+
+            <mat-card-content class="tw:p-6!">
+                <form (submit)="$event.preventDefault(); service.onSubmit()" class="tw:space-y-3" novalidate>
+                    @let fo_un_pe_pm = service.state.mutationFieldObj().un_pe_pm;
+                    @let fs_un_pe_pm = service.state.mutationForm.un_pe_pm();
+                    @let ph_un_pe_pm = fo_un_pe_pm.placeholder | transloco;
+
+                    <mat-form-field appearance="outline" class="tw:w-full">
+                        <mat-label>{{ fo_un_pe_pm.label | transloco }}</mat-label>
+                        <input
+                            matInput
+                            type="text"
+                            autocomplete="username"
+                            [placeholder]="ph_un_pe_pm === fo_un_pe_pm.placeholder ? '' : ph_un_pe_pm"
+                            [formField]="service.state.mutationForm.un_pe_pm"
+                            (input)="service.state.clearMutationFormError()"
+                            autofocus
+                        />
+                        <mat-icon matSuffix class="material-symbols-rounded">person_shield</mat-icon>
+                        @if ((fs_un_pe_pm.touched() || fs_un_pe_pm.dirty()) && fs_un_pe_pm.invalid()) {
+                            <mat-error class="tw:flex! tw:items-start tw:gap-1">
+                                <mat-icon class="material-symbols-rounded tw:h-4! tw:w-4! tw:shrink-0! tw:text-xs!">error</mat-icon>
+                                <span>
+                                    {{ service.fieldErrorMessage(fs_un_pe_pm) | transloco: {
+                                        min_length: fo_un_pe_pm.validation?.min_length?.value
+                                    } }}
+                                </span>
+                            </mat-error>
+                        }
+                    </mat-form-field>
+
+                    @let fo_pass_recover_token = service.state.mutationFieldObj().pass_recover_token;
+                    @let fs_pass_recover_token = service.state.mutationForm.pass_recover_token();
+                    @let ph_pass_recover_token = fo_pass_recover_token.placeholder | transloco;
+
+                    <mat-form-field appearance="outline" class="tw:w-full">
+                        <mat-label>{{ fo_pass_recover_token.label | transloco }}</mat-label>
+                        <textarea
+                            matInput
+                            rows="3"
+                            autocomplete="off"
+                            spellcheck="false"
+                            [placeholder]="ph_pass_recover_token === fo_pass_recover_token.placeholder ? '' : ph_pass_recover_token"
+                            [formField]="service.state.mutationForm.pass_recover_token"
+                            (input)="service.state.clearMutationFormError()"
+                        ></textarea>
+                        <mat-icon matSuffix class="material-symbols-rounded">content_paste</mat-icon>
+                        @if ((fs_pass_recover_token.touched() || fs_pass_recover_token.dirty()) && fs_pass_recover_token.invalid()) {
+                            <mat-error class="tw:flex! tw:items-start tw:gap-1">
+                                <mat-icon class="material-symbols-rounded tw:h-4! tw:w-4! tw:shrink-0! tw:text-xs!">error</mat-icon>
+                                <span>{{ service.fieldErrorMessage(fs_pass_recover_token) | transloco }}</span>
+                            </mat-error>
+                        } @else if(fo_pass_recover_token.hint) {
+                            <mat-hint class="tw:flex tw:items-start tw:gap-1">
+                                <mat-icon class="material-symbols-rounded tw:text-xs! tw:h-4! tw:w-4!"> info </mat-icon>
+                                <span>{{ fo_pass_recover_token.hint | transloco }}</span>
+                            </mat-hint>
+                        }
+                    </mat-form-field>
+
+                    @let fo_identify = service.state.mutationFieldObj().identify;
+                    @let fs_identify = service.state.mutationForm.identify();
+                    @let ph_identify = fo_identify.placeholder | transloco;
+
+                    <mat-form-field appearance="outline" class="tw:w-full">
+                        <mat-label>{{ fo_identify.label | transloco }}</mat-label>
+                        <input
+                            matInput
+                            [type]="service.state.hidePassword() ? 'password' : 'text'"
+                            autocomplete="new-password"
+                            [placeholder]="ph_identify === fo_identify.placeholder ? '' : ph_identify"
+                            [formField]="service.state.mutationForm.identify"
+                            (input)="service.state.clearMutationFormError()"
+                        />
+                        <button
+                            matIconButton
+                            matSuffix
+                            type="button"
+                            [disabled]="service.state.mutationFormProcessing()"
+                            (click)="service.toggleHidePassword()"
+                        >
+                            <mat-icon class="material-symbols-rounded">
+                                {{ service.state.hidePassword() ? 'visibility_off' : 'visibility' }}
+                            </mat-icon>
+                        </button>
+                        @if ((fs_identify.touched() || fs_identify.dirty()) && fs_identify.invalid()) {
+                            <mat-error class="tw:flex! tw:items-start tw:gap-1">
+                                <mat-icon class="material-symbols-rounded tw:h-4! tw:w-4! tw:shrink-0! tw:text-xs!">error</mat-icon>
+                                <span>
+                                    {{ service.fieldErrorMessage(fs_identify) | transloco: {
+                                        min_length: fo_identify.validation?.min_length?.value
+                                    } }}
+                                </span>
+                            </mat-error>
+                        }
+                    </mat-form-field>
+
+                    @let fo_identify_confirm = service.state.mutationFieldObj().identify_confirm;
+                    @let fs_identify_confirm = service.state.mutationForm.identify_confirm();
+                    @let ph_identify_confirm = fo_identify_confirm.placeholder | transloco;
+
+                    <mat-form-field appearance="outline" class="tw:w-full">
+                        <mat-label>{{ fo_identify_confirm.label | transloco }}</mat-label>
+                        <input
+                            matInput
+                            [type]="service.state.hidePasswordConfirm() ? 'password' : 'text'"
+                            autocomplete="new-password"
+                            [placeholder]="ph_identify_confirm === fo_identify_confirm.placeholder ? '' : ph_identify_confirm"
+                            [formField]="service.state.mutationForm.identify_confirm"
+                            (input)="service.state.clearMutationFormError()"
+                            (copy)="service.preventClipboardAction($event)"
+                            (cut)="service.preventClipboardAction($event)"
+                            (paste)="service.preventClipboardAction($event)"
+                            (drop)="service.preventClipboardAction($event)"
+                            (keydown.enter)="$event.preventDefault(); service.onSubmit()"
+                        />
+                        <button
+                            matIconButton
+                            matSuffix
+                            type="button"
+                            [disabled]="service.state.mutationFormProcessing()"
+                            (click)="service.toggleHidePasswordConfirm()"
+                        >
+                            <mat-icon class="material-symbols-rounded">
+                                {{ service.state.hidePasswordConfirm() ? 'visibility_off' : 'visibility' }}
+                            </mat-icon>
+                        </button>
+                        @if ((fs_identify_confirm.touched() || fs_identify_confirm.dirty()) && fs_identify_confirm.invalid()) {
+                            <mat-error class="tw:flex! tw:items-start tw:gap-1">
+                                <mat-icon class="material-symbols-rounded tw:h-4! tw:w-4! tw:shrink-0! tw:text-xs!">error</mat-icon>
+                                <span>
+                                    {{ service.fieldErrorMessage(fs_identify_confirm) | transloco: {
+                                        min_length: fo_identify_confirm.validation?.min_length?.value
+                                    } }}
+                                </span>
+                            </mat-error>
+                        }
+                    </mat-form-field>
+
+                    <div class="tw:flex tw:items-center tw:justify-end tw:gap-3">
+                        @defer (on idle) {
+                            <a matButton="text" [routerLink]="service.SigninRoute.absolutePath()">
+                                {{ 'GL.MODULE.PREBOARDING.SIGNIN' | transloco }}
+                            </a>
+                        } @placeholder (minimum 200ms) {
+                            <div class="tw:h-10 tw:w-32 tw:animate-pulse tw:rounded-full tw:bg-gray-100"></div>
+                        }
+                        <button
+                            matButton="filled"
+                            type="submit"
+                            class="tw:relative tw:overflow-hidden"
+                            [disabled]="service.state.mutationForm().invalid() || service.state.mutationFormProcessing() || service.gpbs.processing"
+                        >
+                            {{ 'GL.COMMON.PROCEED_FURTHER' | transloco }}
+                        </button>
+                    </div>
+                </form>
+            </mat-card-content>
+        </mat-card>
+    </div>
+</div>

@@ -1,5 +1,5 @@
 // file: libs/src/signal-state/type.ts
-import { WritableSignal } from '@angular/core';
+import { CreateSignalOptions, WritableSignal } from '@angular/core';
 import { CookieUrlOptionsType, SetCookieOptionsType } from '../cookie/type';
 
 /**
@@ -150,6 +150,12 @@ export interface PersistSignalOptionsBaseType<T> {
    * Plain records carry no version, so version changes cannot invalidate them.
    */
   plainValue?: boolean;
+
+  /**
+   * Optional native signal options forwarded to signal(initialValue, options).
+   * equal also gates internal restore writes; debugName is DevTools-only.
+   */
+  createSignalOptions?: CreateSignalOptions<T>;
 }
 
 /**
@@ -229,6 +235,7 @@ export interface NormalizedPersistSignalOptionsType<T> {
   deserialize?: (value: unknown) => T;
   deleteOnNull: boolean;
   plainValue: boolean;
+  createSignalOptions?: CreateSignalOptions<T>;
   source?:
     | SignalStateLocalDbSourceType
     | SignalStateServerSyncSourceType

@@ -1,4 +1,4 @@
-// file: ./libs/src/web-page/on-page-seo/const.ts
+// file: libs/src/web-page/on-page-seo/const.ts
 // ROBOTS_INSTRUCTION
 export const RI_PUBLIC_PAGE = 'index,follow' as const;
 export const RI_PRIVATE_PAGE = 'noindex,nofollow' as const;

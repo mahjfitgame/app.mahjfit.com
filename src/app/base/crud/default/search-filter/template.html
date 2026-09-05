@@ -1,8 +1,8 @@
-<!-- file: ./src/app/base/crud/default/search-filter/template.html -->
+<!-- file: src/app/base/crud/default/search-filter/template.html -->
  <button
     matIconButton
     type="button"
-    [aria-label]="service.localText.search_filter.open_label"
+    [aria-label]="'CRUD.SEARCH_FILTER.OPEN_LABEL' | transloco"
     matTooltip=""
     matTooltipPosition="above"
     class="tw:rounded-full! tw:text-primary!"
@@ -13,14 +13,15 @@
 
 <!-- End sidebar Tab Extension for Search Filter -->
 <ng-template cdkPortal [privateAreaLayout]="service.PrivateAreaLayoutSlotEnum.SLOT_END_SIDE_BAR_TAB_LABEL" [privateAreaLayoutIndex]="0" [privateAreaLayoutLabel]="service.CrudEndSideBarTabEnum.FILTER">
-    <span>{{ service.localText.search_filter.tab_name }}</span>
+    <span>{{ 'CRUD.SEARCH_FILTER.TAB_NAME' | transloco }}</span>
 </ng-template>
 <ng-template cdkPortal [privateAreaLayout]="service.PrivateAreaLayoutSlotEnum.SLOT_END_SIDE_BAR_TAB_BODY" [privateAreaLayoutIndex]="0" [privateAreaLayoutLabel]="service.CrudEndSideBarTabEnum.FILTER">
     <div class="bfw-safe-area-pe">
         <div class="tw:flex tw:flex-col tw:min-w-0 tw:gap-4 tw:p-3">
             <form id="crudSearchFilterForm" (submit)="$event.preventDefault(); service.submitSearchFilterForm()" novalidate>
                 <app-crud-default-form-field 
-                    [fieldObj]="[service.state.viewOptionFieldObj(), service.state.searchFilterFieldObj()]"
+                    [formFieldObj]="service.state.searchFormLayout()"
+                    [formState]="service.state.searchForm"
                     [slotPrefix]="service.CrudFieldSlotPortalKeyPrefixEnum.FILTER"
                 >
                 </app-crud-default-form-field>
@@ -29,8 +30,8 @@
     </div>
     <footer class="bfw-safe-area-pb bfw-safe-area-pe tw:sticky tw:bottom-0 tw:z-20 tw:w-full tw:backdrop-blur-md tw:mbs-auto">
         <div class="tw:flex tw:gap-2 tw:p-3!">
-            <button mat-button  type="reset" form="crudSearchFilterForm" class="tw:flex-1">Reset</button>
-            <button mat-flat-button type="submit" form="crudSearchFilterForm" color="primary" class="tw:flex-1">Apply</button>
+            <button mat-button  type="reset" form="crudSearchFilterForm" class="tw:flex-1">{{ 'GL.COMMON.RESET' | transloco }}</button>
+            <button mat-flat-button type="submit" form="crudSearchFilterForm" color="primary" class="tw:flex-1">{{ 'GL.COMMON.APPLY' | transloco }}</button>
         </div>
     </footer>
 </ng-template>

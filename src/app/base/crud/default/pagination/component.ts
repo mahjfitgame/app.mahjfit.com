@@ -1,16 +1,17 @@
-// file: ./src/app/base/crud/default/pagination/component.ts
+// file: src/app/base/crud/default/pagination/component.ts
 import { Component, inject, viewChild, ViewChild } from '@angular/core';
 import { CrudService } from '@base/crud/service';
 import { PaginationComponent } from '@base/pagination/component';
 import { MatCardModule } from '@angular/material/card';
 import { AppPaginationEvent } from '@base/pagination/type';
+import { TranslocoModule } from '@jsverse/transloco';
 
 @Component({
   selector: 'app-crud-default-pagination',
   standalone: true,
   templateUrl: './template.html',
   styleUrl: './style.scss',
-  imports: [MatCardModule, PaginationComponent],
+  imports: [MatCardModule, PaginationComponent, TranslocoModule],
   providers: [],
 })
 export class CrudDefaultPaginationComponent {

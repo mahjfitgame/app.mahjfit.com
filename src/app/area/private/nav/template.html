@@ -1,0 +1,120 @@
+<!-- file: src/app/area/private/nav/template.html -->
+<!--
+  ⚠ DESIGN SENSITIVE. every class here is copied from the block this replaces,
+  private/template.html:58-147. three things are NOT interchangeable:
+
+    depth 0 leaf   class="tw:w-full rounded-lg"          + routerLinkActiveOptions exact
+    depth >=1 leaf class="nav-item tw:py-2 tw:ps-6"       + no options (default subset)
+    indent         FLAT tw:ps-6 at every nested level, NEVER depth * padding
+
+  bfw-nav-link-name is load bearing: theme/active/_layout.scss:282 hides it when
+  the sidebar collapses to icons
+-->
+@if(position() === service.FoundationNavPositionEnum.START) {
+  <nav class="tw:px-3">
+    <mat-nav-list>
+      <mat-accordion>
+        <ng-container
+          *ngTemplateOutlet="level; context: { $implicit: service.state.startNav, depth: 0 }"
+        />
+      </mat-accordion>
+    </mat-nav-list>
+  </nav>
+
+  <ng-template #level let-items let-depth="depth">
+    @for (item of items; track item.registry_key) {
+      @if (item.divider) {
+        <mat-divider></mat-divider>
+      }
+
+      @if (item.children.length) {
+        <!-- GROUP — private/template.html:63-71, plus [expanded] which is the new capability -->
+        <mat-expansion-panel
+          [expanded]="service.isExpanded(item)"
+          (expandedChange)="service.onExpandedChange(item, $event)"
+        >
+          <mat-expansion-panel-header class="tw:p-0! h-auto">
+            <mat-panel-title class="flex items-center tw:p-3">
+              <mat-icon matListItemIcon class="material-symbols-rounded">{{ item.icon }}</mat-icon>
+              <span class="flex-grow bfw-nav-link-name">{{ item.label | transloco }}</span>
+            </mat-panel-title>
+          </mat-expansion-panel-header>
+
+          <!-- nested wrapper — :72-73 exactly. [multi]="false" on the INNER accordion only -->
+          <mat-nav-list>
+            <mat-accordion [multi]="false">
+              <ng-container
+                *ngTemplateOutlet="level; context: { $implicit: item.children, depth: depth + 1 }"
+              />
+            </mat-accordion>
+          </mat-nav-list>
+        </mat-expansion-panel>
+      } @else if (depth === 0) {
+        <!-- TOP LEVEL LEAF — :123-142 verbatim. no `nav-item`, and exact matching -->
+        <a
+          mat-list-item
+          [routerLink]="item.url"
+          [routerLinkActiveOptions]="{
+            paths: 'exact',
+            queryParams: 'ignored',
+            fragment: 'ignored',
+            matrixParams: 'ignored',
+          }"
+          routerLinkActive="active"
+          (click)="navigated.emit()"
+          [ngClass]="item.css_class"
+          class="tw:w-full rounded-lg"
+        >
+          <mat-icon matListItemIcon class="material-symbols-rounded">{{ item.icon }}</mat-icon>
+          <span matListItemTitle class="flex-grow bfw-nav-link-name">{{
+            item.label | transloco
+          }}</span>
+        </a>
+      } @else {
+        <!-- NESTED LEAF — :103-116 verbatim. nav-item tw:py-2 tw:ps-6 at EVERY depth >= 1 -->
+        <a
+          mat-list-item
+          [routerLink]="item.url"
+          routerLinkActive="active"
+          (click)="navigated.emit()"
+          [ngClass]="item.css_class"
+          class="nav-item tw:py-2 tw:ps-6"
+        >
+          <mat-icon matListItemIcon class="material-symbols-rounded">{{ item.icon }}</mat-icon>
+          <span matListItemTitle class="flex-grow bfw-nav-link-name">{{
+            item.label | transloco
+          }}</span>
+        </a>
+      }
+    }
+  </ng-template>
+} 
+@else if (position() === service.FoundationNavPositionEnum.END) {
+
+}
+@else if (position() === service.FoundationNavPositionEnum.TOP) {
+
+}
+@else if (position() === service.FoundationNavPositionEnum.BOTTOM) {
+  <!--
+    ⚠ DESIGN SENSITIVE. moved verbatim from private/template.html:270-278.
+    the host <app-private-nav> now sits where <nav> used to sit, as a flex child
+    of `tw:flex tw:w-full tw:justify-center tw:items-center tw:gap-2`. the host
+    is shrink-to-fit so the row still centres identically — do NOT add padding,
+    margin or display rules to the host
+
+      no mat-list, no <mat-icon>, no [ngClass]  — text links only, by design
+      no (click)="navigated.emit()"             — this bar is in the main
+                                                  content footer, never in a
+                                                  sidenav, so nothing to close
+  -->
+  <nav class="tw:flex tw:items-center" [attr.aria-label]="'GL.COMMON.FOOTER_NAVIGATION' | transloco">
+    @for (item of service.state.bottomNav; track item.registry_key) {
+      <a
+        [routerLink]="item.url"
+        class="tw:px-1 tw:py-1 tw:hover:underline tw:text-xs"
+        >{{ item.label | transloco }}</a
+      >
+    }
+  </nav>
+}

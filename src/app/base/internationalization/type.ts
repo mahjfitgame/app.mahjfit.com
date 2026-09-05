@@ -1,4 +1,4 @@
-// file: ./src/app/base/internationalization/type.ts
+// file: src/app/base/internationalization/type.ts
 import { I18nBidiEnum, I18nLanguageEnum } from "@base/internationalization/enum";
 
 export type I18nTranslationObject = Record<string, any>;

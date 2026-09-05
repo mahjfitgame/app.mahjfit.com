@@ -70,4 +70,16 @@ export class UtilityService {
 
         return unpack as string;
     }
+    /**
+     * Current calendar year, for GL.APP.COPYRIGHT's {{year}} param.
+     *
+     * A method, not a cached value: called from the template it re-reads the
+     * clock every change detection, so a session left open across new year
+     * rolls over on its own instead of showing a stale year until reload.
+     * TranslocoPipe caches on the serialised params, so the repeat calls do
+     * not cause a re-translation.
+     */
+    public currentYear(): number {
+        return new Date().getFullYear();
+    }
 }

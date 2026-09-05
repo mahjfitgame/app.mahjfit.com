@@ -1,4 +1,4 @@
-// file: ./src/app/base/PushNotification/component.ts
+// file: src/app/base/PushNotification/component.ts
 import {
   Component,
   computed,

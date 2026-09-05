@@ -1,4 +1,4 @@
-// file: ./libs/src/date-time/service.ts
+// file: libs/src/date-time/service.ts
 import { inject, Service } from '@angular/core';
 import { ConfService } from '@libs/conf/service';
 import { formatDate } from '@angular/common';

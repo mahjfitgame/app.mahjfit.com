@@ -1,74 +1,65 @@
 // file: src/app/area/open/route.ts
-import { Routes } from '@angular/router';
-import { UrlService } from '@libs/url/service';
-import { SLUG_OPEN_AREA } from './slug';
-import { AuthAreaRoute } from '../auth/route';
-import { PrivateAreaRoute } from '../private/route';
-import { HttpStatusServiceUnavailableRoute } from '../../module/shared/http-status/service-unavailable/route';
-import { HttpStatusNotFoundRoute } from 'src/app/module/shared/http-status/not-found/route';
-import { GameRoute } from 'src/app/module/business/game/route';
-import { AreaGuard } from '../guard';
 
+import { FoundationAreaEnum } from '@libs/foundation/enum';
+import { FoundationModuleRouteDefinitionType, FoundationModuleRouteNavType } from '@libs/foundation/module/type';
+import { FoundationModulePath } from '@libs/foundation/module/path';
+import { FoundationNavPositionEnum } from '@libs/foundation/nav/enum';
+import { SLUG_OPEN_AREA } from '@area/open/slug';
+
+/**
+ * @OpenAreaRoute
+ * the open area is a registered module like any other
+ *
+ * ⚠ its row is the one with parent_key: null, which is what leaves the builder
+ * with no special case for "the area"
+ */
 export class OpenAreaRoute {
-    public static readonly moduleLevel = [SLUG_OPEN_AREA];
+    // CLASS PROPERTIES ▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬
+    public static readonly registryKey = 'AREA_OPEN';
+    public static readonly area = FoundationAreaEnum.OPEN;
 
-    // ROUTES ▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬
-    /**
-     * @routes()
-     * need to merge with app routes [src/app/area/open/route.ts]
-     */
-    public static routes(): Routes {
-
-        const routes: Routes = [
-            {
-                path: SLUG_OPEN_AREA, // this can be like "admin" or "" (empty) as per project base but will be fixed for each project
-                children: [
-                    ...AuthAreaRoute.routes(), // has its own layout to match auth screens
-                    ...PrivateAreaRoute.routes(), // has its own layout to match logged in account
-                    {
-                        path: '', // has its own layout to match general pages
-                        loadComponent: () => import('@area/open/layout.component').then((c) => c.OpenAreaLayoutComponent),
-                        children: [
-                            // not restricted open area no signin required
-                            {
-                                path: '',
-                                pathMatch: 'full',
-                                loadComponent: () => import('@module/business/home/component').then((c) => c.HomeComponent),
-                            },
-                            // restricted open area required signin
-                            {
-                                path: '',
-                                canMatch: [AreaGuard.CanMatchAuthenticatedOrRedirect],
-                                canActivate: [],
-                                canActivateChild: [],
-                                canDeactivate: [],
-                                children: [
-                                    ...GameRoute.routes(),
-                                ]
-                            },
-
-                            // http state componenets
-                            ...HttpStatusServiceUnavailableRoute.routes(),
-                            ...HttpStatusNotFoundRoute.routes(),
-                        ],
-                    },
-                ],
-            },
-        ];
-
-        return routes;
+    // DEFINITION ▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬
+    public static definition(): FoundationModuleRouteDefinitionType {
+        return {
+            registryKey: this.registryKey,
+            component: () => import('@area/open/component').then((c) => c.OpenAreaLayoutComponent),
+            canMatch: [],
+            canActivate: [],
+            canActivateChild: [],
+            canDeactivate: [],
+            breadcrumbAlias: 'open',
+            actions: [],
+        };
     }
 
-    // ABSOLUTE PATH ▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬
-    public static absolutePathArr(): string[] {
-        const moduleLevel = this.moduleLevel;
-        const params = {};
+    // NAV ▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬
+    /**
+     * ⚠ url_slug is '' AND this node has children, so the builder must NOT emit
+     * pathMatch:'full' for it — that only goes on a leaf
+     *
+     * ⚠ default_child_key is the ONLY thing routing '/'. omit it and the app
+     * lands on /404, which is precisely the 2026-08-16 symptom
+     */
+    public static nav(): FoundationModuleRouteNavType {
+        return {
+            registry_key: this.registryKey,
+            area_key: this.area,
+            parent_key: null,
+            url_slug: SLUG_OPEN_AREA,
+            label: 'GL.MODULE.HOME',
+            icon: 'public',
+            sort_order: 0,
+            hidden: true,
+            default_child_key: 'HOME',
+            nav_position: [FoundationNavPositionEnum.START],
+        };
+    }
 
-        return UrlService.getAbsolutePathArr(this.moduleLevel, params);
+    // PATHS ▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬
+    public static absolutePathArr(): string[] {
+        return FoundationModulePath.arrOf(this.registryKey);
     }
     public static absolutePath(): string {
-        const moduleLevel = this.moduleLevel;
-        const params = {};
-        return UrlService.getAbsolutePath(moduleLevel, params);
+        return FoundationModulePath.of(this.registryKey);
     }
 }

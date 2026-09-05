@@ -1,5 +1,5 @@
 import { ScreenOrientationResult } from "@capacitor/screen-orientation";
-import { TileVm } from "../type";
+import { GameTileEntity, GameDeadHandReasonEnum } from "@bfw/api-sdk/graphql/endpoints/business";
 import { CallCombination, TableSeat } from "./scenes/type";
 
 export type ExposurePanelMode =
@@ -84,7 +84,8 @@ export interface SafeAreaInsets {
 }
 
 
-export type TablePhase = "playing" | "passing" | "discard";
+import { GamePhaseEnum } from "@bfw/api-sdk/graphql/endpoints/business";
+
 export type TableSfxId = "tile-select" | "tile-pass-waiting" | "tile-return" | "tile-drop" | "pass";
 
 export type TableSfxConfig = {
@@ -105,10 +106,8 @@ export type TableSfxConfig = {
  * LEFT
  * ACROSS
  */
-export type PassDirection =
-  | "right"
-  | "left"
-  | "across";
+import { GamePhaseFirstRoundDirectionEnum, GamePhaseSecondRoundDirectionEnum } from "@bfw/api-sdk/graphql/endpoints/business";
+export type PassDirection = GamePhaseFirstRoundDirectionEnum | GamePhaseSecondRoundDirectionEnum;
 
 /**
  * Represents one seat around the table.
@@ -203,17 +202,17 @@ export interface GameTableConfig {
 
 /** A discard announced by the future game API/WebSocket for the local player to evaluate. */
 export interface TileCallOffer {
-  readonly discard: TileVm;
+  readonly discard: GameTileEntity;
   readonly discardedBy: Exclude<TableSeat, "bottom">;
 }
 
 /** Client-side intent only; the backend remains responsible for accepting the call. */
 export interface TileCallDecision {
-  readonly discardId: string;
+  readonly discardId: number;
   readonly discardedBy: Exclude<TableSeat, "bottom">;
   readonly action: "call" | "skip";
   readonly combination?: CallCombination;
-  readonly tileIds?: readonly string[];
+  readonly tileIds?: readonly number[];
 }
 
 /** Temporary local-only trigger used to exercise the Call UI before WebSocket wiring. */
@@ -244,7 +243,7 @@ export interface PlayerRemovalRequest {
   readonly requestId: number;
 }
 
-export type DeadHandReason = "invalid-mahjong" | "hand-not-viable" | "incorrect-tile-count";
+export type DeadHandReason = GameDeadHandReasonEnum;
 
 /** Client claim only; server validation determines whether either hand is dead. */
 export interface DeadHandClaim {
@@ -267,7 +266,7 @@ export interface JoinTableRequestDecision {
 }
 
 export interface TileRuntime {
-  readonly vm: TileVm;
+  readonly vm: GameTileEntity;
   readonly image: Phaser.GameObjects.Image;
   slotIndex: number;
   selected: boolean;
@@ -283,14 +282,18 @@ export interface TileRuntime {
  */
 export interface PassFlowCallbacks {
   readonly isPassPhaseAllowed: () => boolean;
+  readonly getTablePhase: () => GamePhaseEnum;
+  readonly onPassWaitingStateChanged: (payload: {
+    readonly tileIds: readonly number[];
+  }) => void;
   readonly validateSubmission: () => boolean;
   readonly approveSubmission: () => boolean;
   readonly onPassCompleted: (payload: {
-    readonly tileIds: readonly string[];
+    readonly tileIds: readonly number[];
     readonly direction: PassDirection;
   }) => void;
   readonly notifyNetworking: (payload: {
-    readonly tileIds: readonly string[];
+    readonly tileIds: readonly number[];
     readonly direction: PassDirection;
   }) => void;
   readonly emitExternalEvent: (event: string, payload?: unknown) => void;
@@ -299,10 +302,10 @@ export interface PassFlowCallbacks {
 
 export interface PassResultCallbacks {
   readonly onTileRemoved: (runtime: TileRuntime) => void;
-  readonly onCloseButtonRemoved: (tileId: string) => void;
+  readonly onCloseButtonRemoved: (tileId: number) => void;
   readonly onSelectionChanged: () => void;
   readonly onPassCompleted: (payload: {
-    readonly tileIds: readonly string[];
+    readonly tileIds: readonly number[];
     readonly direction: PassDirection;
   }) => void;
   readonly onLayoutRequested: () => void;
@@ -310,11 +313,17 @@ export interface PassResultCallbacks {
 
 
 export interface PassWaitingTileAnimation {
-  readonly id: string;
+  readonly id: number;
   readonly image?: Phaser.GameObjects.Image;
+}
+
+export interface BotPassVisualTile {
+  readonly id: number;
+  readonly from: TableSeat;
+  readonly to: TableSeat;
+  readonly image: Phaser.GameObjects.Container;
 }
 
 export interface AnimationPoint { readonly x: number; readonly y: number; }
 export interface AnimationSize { readonly width: number; readonly height: number; }
 export type WallPickClone = Phaser.GameObjects.Image | Phaser.GameObjects.Container;
-

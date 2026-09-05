@@ -37,7 +37,5 @@ export class MyProfileComponent implements OnInit {
     
     }
 
-    public async ngOnInit(): Promise<void> {
-      this.service.initI18n();
-    }
+    public async ngOnInit(): Promise<void> {}
 }

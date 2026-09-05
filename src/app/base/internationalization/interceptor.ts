@@ -1,4 +1,4 @@
-// file: ./src/app/base/internationalization/interceptor.ts
+// file: src/app/base/internationalization/interceptor.ts
 
 import { HttpInterceptorFn } from '@angular/common/http';
 import { inject } from '@angular/core';

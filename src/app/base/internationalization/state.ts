@@ -8,7 +8,7 @@ import { I18nBidiEnum, I18nLanguageEnum } from '@base/internationalization/enum'
 import { BfwApiService } from '@libs/third-party-apis/bfw-api/service';
 import { GlobalProgressBarService } from '@base/global-progress-bar/service';
 import { ContextProfileService } from '@libs/context-profile/service';
-import { FoundationModuleStateType } from '@libs/foundation-module/type/state';
+import { FoundationModuleStateType } from '@libs/foundation/module/type';
 import { I18N_STATE_STORE_KEY } from './const';
 
 @Service()

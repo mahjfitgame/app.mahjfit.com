@@ -1,4 +1,4 @@
-// file: ./src/app/base/internationalization/enum.ts
+// file: src/app/base/internationalization/enum.ts
 export enum I18nLanguageEnum {
     EN = 'en',
     HI = 'hi',

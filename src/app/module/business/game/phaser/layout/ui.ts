@@ -1,8 +1,9 @@
 // file: src/app/module/business/game/phaser/scenes/managers/ui-layout.ts
 import Phaser from "phaser";
 import { COLOR_AVOCADO, COLOR_BLUE, COLOR_BLUE_NUM, COLOR_FUSHIA, COLOR_FUSHIA_NUM, COLOR_GRAY, FONT_FAMILY, ICON_DEADHAND_HOVER, ICON_DEADHAND_NORMAL, ICON_DEADHAND_PRESSED, ICON_HELP_HOVER, ICON_HELP_NORMAL, ICON_HELP_PRESSED, ICON_HINT_HOVER, ICON_HINT_NORMAL, ICON_HINT_PRESSED, ICON_SETTINGS_HOVER, ICON_SETTINGS_NORMAL, ICON_SETTINGS_PRESSED, ICON_SORT_HOVER, ICON_SORT_NORMAL, ICON_SORT_PRESSED } from "../const";
-import { PassDirection, TableLayout, TablePhase } from "../type";
-import { HamburgerMenuActionKey, HudActionKey, HudImageButton, LayoutStaticUiOptions, PassButtonStateOptions, PlayerLabelOverlayState, PointsOverlayState, TableSeat, UiLayoutCallbacks, WallCountOverlayState } from "../scenes/type";
+import { PassDirection, TableLayout } from "../type";
+import { GameCharlestoneStageEnum, GamePhaseEnum, GamePhaseFirstRoundDirectionEnum } from "@bfw/api-sdk/graphql/endpoints/business";
+import { HamburgerMenuActionKey, HudActionKey, HudImageButton, InstructionPanelButtonState, LayoutStaticUiOptions, PassButtonStateOptions, PlayerLabelOverlayState, PointsOverlayState, TableSeat, UiLayoutCallbacks, WallCountOverlayState } from "../scenes/type";
 
 
 /**
@@ -87,7 +88,8 @@ export class PhaserLayoutUi {
    * layout, the phase, or the button state changes.
    */
   private instructionMessage = "";
-  private instructionPhase: TablePhase = "playing";
+  private instructionPhase?: GamePhaseEnum;
+  private charlestonStage?: GameCharlestoneStageEnum;
   private passButtonLabel = "PICK";
   private passButtonEnabled = true;
 
@@ -353,7 +355,7 @@ export class PhaserLayoutUi {
       .text(0, 0, "USERNAME", this.labelStyle())
       .setOrigin(0.5);
 
-    this.pickSeatSelector = this.createPickSeatSelector(scene);
+    // this.pickSeatSelector = this.createPickSeatSelector(scene);
   }
 
   /** The mobile HUD overlays the table and can be hidden without relayout. */
@@ -540,7 +542,7 @@ export class PhaserLayoutUi {
       layout,
       renderDpr,
       tablePhase,
-      pickTargetSeat,
+      isPersonalTurn,
       passDirection,
       wallTileCount,
     } = options;
@@ -560,11 +562,10 @@ export class PhaserLayoutUi {
 
     // The instruction card, its copy, and its primary button are native HTML.
     // updateInstruction()/updatePassButtonState() republish that panel below.
-    this.updateInstruction(tablePhase, pickTargetSeat, passDirection);
+    this.updateInstruction(tablePhase, options.charlestonStage, options.isPersonalTurn, passDirection, options.canDiscard ?? false);
     this.updatePlayerNames(layout, renderDpr, options.activeSeat);
 
     this.updatePassButtonState(options);
-    this.layoutPickSeatSelector(layout, tablePhase, pickTargetSeat);
     this.layoutMobileHud(layout);
     this.updateTextResolution(renderDpr);
   }
@@ -654,6 +655,16 @@ export class PhaserLayoutUi {
     }
     if (label === "Sort") {
       this.mobileActionSubmenu = "sort";
+      this.renderOpenMenusNow();
+      return;
+    }
+    if (label === "Settings") {
+      this.mobileActionSubmenu = "settings";
+      this.renderOpenMenusNow();
+      return;
+    }
+    if (label === "‹ Back") {
+      this.mobileActionSubmenu = undefined;
       this.renderOpenMenusNow();
       return;
     }
@@ -1130,7 +1141,7 @@ export class PhaserLayoutUi {
 
     const headerY = 36;
     const rowStartY = 88;
-    const rowGap = 16;
+    const rowGap = 26;
     const itemFont = Math.round(
       Phaser.Math.Clamp(hud.height * 0.30, 16, 22),
     );
@@ -1869,31 +1880,34 @@ export class PhaserLayoutUi {
 
 
   updateInstruction(
-    phase: TablePhase,
-    pickTargetSeat: TableSeat,
+    phase: GamePhaseEnum,
+    charlestonStage: GameCharlestoneStageEnum | undefined,
+    isPersonalTurn: boolean,
     passDirection: PassDirection,
+    canDiscard: boolean,
   ): void {
     this.instructionPhase = phase;
+    this.charlestonStage = charlestonStage;
 
-    if (phase === "playing" || phase === "discard") {
-      const seatLabel =
-        pickTargetSeat === "bottom" ? "YOUR RACK" :
-          pickTargetSeat === "top" ? "TOP SEAT" :
-            pickTargetSeat === "left" ? "LEFT SEAT" : "RIGHT SEAT";
-
-      this.instructionMessage =
-        phase === "playing"
-          ? `YOUR TURN\nPick a tile to ${seatLabel}`
-          : `DISCARD\nDiscard from ${seatLabel}`;
-
+    if (phase !== GamePhaseEnum.PASSING && phase !== GamePhaseEnum.LOBBY) {
+      if (phase === GamePhaseEnum.PLAYING && !canDiscard && isPersonalTurn) {
+        this.instructionMessage = "Pick a tile";
+      } else {
+        this.instructionMessage = "";
+      }
       this.publishInstructionPanel();
       return;
     }
 
-    this.instructionMessage =
-      passDirection === "right" ? "YOUR TURN\nSelect 3 tiles to pass\nto the right." :
-        passDirection === "left" ? "YOUR TURN\nSelect 3 tiles to pass\nto the left." :
-          "YOUR TURN\nSelect 3 tiles to pass\nacross.";
+    if (charlestonStage === GameCharlestoneStageEnum.SECOND_DECISION) {
+      this.instructionMessage = "Second Charleston\nRound?";
+    } else {
+      const directionTitle =
+        passDirection === GamePhaseFirstRoundDirectionEnum.RIGHT ? "Right" :
+          passDirection === GamePhaseFirstRoundDirectionEnum.LEFT ? "Left" :
+            "Across";
+      this.instructionMessage = `${directionTitle}|Select 3 tiles to pass`;
+    }
 
     this.publishInstructionPanel();
   }
@@ -1908,46 +1922,96 @@ export class PhaserLayoutUi {
     const layout = this.lastLayout;
     if (!layout) return;
 
+    if (!this.instructionMessage) {
+      this.callbacks.onInstructionPanelOverlay?.({
+        visible: false,
+        x: 0, y: 0, width: 0, height: 0, radius: 0, borderWidth: 0,
+        shadowY: 0, shadowBlur: 0, title: "", titleFontSize: 0, body: "", bodyFontSize: 0,
+        contentTop: 0, contentBottom: 0, titleGap: 0,
+        button: { label: "", enabled: false, action: "pass", x: 0, y: 0, width: 0, height: 0, radius: 0, fontSize: 0, shadowY: 0, shadowBlur: 0 }
+      });
+      return;
+    }
+
     const card = layout.instructionBar;
     const button = layout.passButton;
     const compact = this.isCompactHud(layout);
     const compactLandscape = layout.metrics.isMobile && !layout.metrics.isPortrait;
-    const isPassing = this.instructionPhase === "passing";
+    const isPassing = this.instructionPhase === GamePhaseEnum.PASSING;
 
-    const radius = Math.round(Phaser.Math.Clamp(card.height * 0.22, 16, 34));
+    let cardX = card.x;
+    let cardY = card.y;
+    let cardWidth = card.width;
+    let cardHeight = card.height;
+
+    let buttonX = button.x;
+    let buttonY = button.y;
+    let buttonWidth = button.width;
+    let buttonHeight = button.height;
+
+    if (isPassing && compact) {
+      const shrinkFactor = 0.80; // 20% smaller
+
+      const newCardWidth = card.width * shrinkFactor;
+      const newCardHeight = card.height * shrinkFactor;
+      cardX += (card.width - newCardWidth) / 2;
+      cardY += (card.height - newCardHeight) / 2;
+      cardWidth = newCardWidth;
+      cardHeight = newCardHeight;
+
+      const newButtonWidth = button.width * shrinkFactor;
+      const newButtonHeight = button.height * shrinkFactor;
+      buttonX += (button.width - newButtonWidth) / 2;
+      buttonY += (button.height - newButtonHeight) / 2;
+      buttonWidth = newButtonWidth;
+      buttonHeight = newButtonHeight;
+    }
+
+    const radius = Math.round(Phaser.Math.Clamp(cardHeight * 0.22, 16, 34));
     // The reference card carries a heavier olive rim than the old Phaser
     // stroke, held to a sane range so phone-sized cards keep their inner room.
-    const borderWidth = Math.round(Phaser.Math.Clamp(card.height * 0.026, 3, 7));
+    const borderWidth = Math.round(Phaser.Math.Clamp(cardHeight * 0.026, 3, 7));
 
-    const bodyFontSize = compactLandscape
-      ? Math.round(Phaser.Math.Clamp(layout.hud.height * 0.135, 8, 10))
+    let bodyFontSize = compactLandscape
+      ? Math.round(Phaser.Math.Clamp(layout.hud.height * 0.11, 7, 9))
       : compact
-        ? Math.round(Phaser.Math.Clamp(layout.hud.height * 0.18, 10, 14))
+        ? Math.round(Phaser.Math.Clamp(layout.hud.height * 0.15, 9, 12))
         : isPassing
-          ? Math.round(Phaser.Math.Clamp(card.height * 0.118, 18, 25))
-          : Math.round(Phaser.Math.Clamp(card.height * 0.135, 19, 28));
+          ? Math.round(Phaser.Math.Clamp(cardHeight * 0.11, 14, 20))
+          : Math.round(Phaser.Math.Clamp(cardHeight * 0.12, 14, 22));
 
-    const buttonRadius = Math.round(Phaser.Math.Clamp(button.height * 0.22, 8, 14));
+    if (isPassing && compact) {
+      bodyFontSize = Math.round(bodyFontSize * 0.85); // Shrink text slightly
+    }
 
-    const buttonFontSize = compactLandscape
-      ? Math.round(Phaser.Math.Clamp(layout.hud.height * 0.19, 11, 14))
+    const buttonRadius = Math.round(Phaser.Math.Clamp(buttonHeight * 0.22, 6, 12));
+
+    let buttonFontSize = compactLandscape
+      ? Math.round(Phaser.Math.Clamp(layout.hud.height * 0.15, 9, 12))
       : compact
-        ? Math.round(Phaser.Math.Clamp(layout.hud.height * 0.20, 11, 15))
-        : Math.round(Phaser.Math.Clamp(layout.metrics.passFont * 1.15, 18, 31));
+        ? Math.round(Phaser.Math.Clamp(layout.hud.height * 0.16, 9, 13))
+        : Math.round(Phaser.Math.Clamp(layout.metrics.passFont * 0.95, 14, 22));
 
-    // The first line is the emphasised heading; the rest is supporting copy.
-    const [title, ...bodyLines] = this.instructionMessage.split("\n");
-    const body = bodyLines.join("\n");
+    if (isPassing && compact) {
+      buttonFontSize = Math.round(buttonFontSize * 0.85); // Shrink button text slightly
+    }
 
-    const buttonTop = Math.round(button.y - card.y);
+    // The first segment is the emphasised heading; the rest is supporting copy.
+    const [titleSegment, ...bodySegments] = this.instructionMessage.split("|");
+    const title = titleSegment;
+    const body = bodySegments.join("\n");
+    const titleLines = title.split("\n");
+    const bodyLines = body ? body.split("\n") : [];
+
+    const buttonTop = Math.round(buttonY - cardY);
 
     // Short phone cards are barely taller than their button, so they trade
     // breathing room for legible copy; roomier cards keep the fuller insets.
-    const tight = card.height < 100;
-    const contentTop = Math.round(card.height * (tight ? 0.045 : 0.08));
+    const tight = cardHeight < 100;
+    const contentTop = Math.round(cardHeight * (tight ? 0.045 : 0.08));
     const contentBottom = Math.max(
       contentTop,
-      buttonTop - Math.round(card.height * (tight ? 0.025 : 0.045)),
+      buttonTop - Math.round(cardHeight * (tight ? 0.025 : 0.045)),
     );
 
     /**
@@ -1964,7 +2028,7 @@ export class PhaserLayoutUi {
 
     const band = contentBottom - contentTop;
     const required =
-      titleFontSize * 1.2 + titleGap + bodyLines.length * bodyFitted * 1.32;
+      titleLines.length * titleFontSize * 1.2 + titleGap + bodyLines.length * bodyFitted * 1.32;
 
     if (band > 0 && required > band) {
       // 8px matches the smallest size the compact-landscape clamp already
@@ -1976,37 +2040,86 @@ export class PhaserLayoutUi {
       titleGap = body ? Math.max(1, Math.floor(titleGap * scale)) : 0;
     }
 
+    const maxTitleWidthPx = cardWidth - (borderWidth * 2) - 16;
+    // Poppins 700 is approx 0.55em per character on average.
+    const maxTitleLineLength = Math.max(...titleLines.map((l) => l.length), 0);
+    const approxTitleWidth = maxTitleLineLength * titleFontSize * 0.55;
+    if (approxTitleWidth > maxTitleWidthPx && maxTitleWidthPx > 0) {
+      const hScale = maxTitleWidthPx / approxTitleWidth;
+      titleFontSize = Math.max(8, Math.floor(titleFontSize * hScale));
+    }
+
+    const isSecondDecision = this.charlestonStage === GameCharlestoneStageEnum.SECOND_DECISION;
+    let buttonConfig: InstructionPanelButtonState;
+    let secondaryButtonConfig: InstructionPanelButtonState | undefined;
+
+    if (isSecondDecision) {
+      const gap = 12;
+      // Span up to 85% of the card width for two buttons, bounded by a reasonable max size
+      const maxTotalWidth = Math.min(cardWidth * 0.85, (buttonWidth * 2) + gap);
+      const halfWidth = (maxTotalWidth - gap) / 2;
+      const startX = (cardWidth - maxTotalWidth) / 2;
+
+      buttonConfig = {
+        label: "START",
+        enabled: true,
+        action: "second-pass",
+        x: Math.round(startX),
+        y: buttonTop,
+        width: Math.round(halfWidth),
+        height: Math.round(buttonHeight),
+        radius: buttonRadius,
+        fontSize: buttonFontSize,
+        shadowY: Math.max(3, Math.round(buttonHeight * 0.10)),
+        shadowBlur: Math.max(6, Math.round(buttonHeight * 0.22)),
+      };
+      secondaryButtonConfig = {
+        label: "STOP",
+        enabled: true,
+        action: "second-stop",
+        x: Math.round(startX + halfWidth + gap),
+        y: buttonTop,
+        width: Math.round(halfWidth),
+        height: Math.round(buttonHeight),
+        radius: buttonRadius,
+        fontSize: buttonFontSize,
+        shadowY: Math.max(3, Math.round(buttonHeight * 0.10)),
+        shadowBlur: Math.max(6, Math.round(buttonHeight * 0.22)),
+      };
+    } else {
+      buttonConfig = {
+        label: this.passButtonLabel,
+        enabled: this.passButtonEnabled,
+        x: Math.round(buttonX - cardX),
+        y: buttonTop,
+        width: Math.round(buttonWidth),
+        height: Math.round(buttonHeight),
+        radius: buttonRadius,
+        fontSize: buttonFontSize,
+        shadowY: Math.max(3, Math.round(buttonHeight * 0.10)),
+        shadowBlur: Math.max(6, Math.round(buttonHeight * 0.22)),
+      };
+    }
+
     this.callbacks.onInstructionPanelOverlay?.({
       visible: true,
-      x: Math.round(card.x),
-      y: Math.round(card.y),
-      width: Math.round(card.width),
-      height: Math.round(card.height),
+      x: Math.round(cardX),
+      y: Math.round(cardY),
+      width: Math.round(cardWidth),
+      height: Math.round(cardHeight),
       radius,
       borderWidth,
-      shadowY: Math.max(6, Math.round(card.height * 0.045)),
-      shadowBlur: Math.max(12, Math.round(card.height * 0.10)),
+      shadowY: Math.max(6, Math.round(cardHeight * 0.045)),
+      shadowBlur: Math.max(12, Math.round(cardHeight * 0.10)),
       title: title ?? "",
       titleFontSize,
       body,
       bodyFontSize: bodyFitted,
-      // Copy is centred between the top inset and the gap above the button, so
-      // it can never collide with the button as the card shrinks.
       contentTop,
       contentBottom,
       titleGap,
-      button: {
-        label: this.passButtonLabel,
-        enabled: this.passButtonEnabled,
-        x: Math.round(button.x - card.x),
-        y: buttonTop,
-        width: Math.round(button.width),
-        height: Math.round(button.height),
-        radius: buttonRadius,
-        fontSize: buttonFontSize,
-        shadowY: Math.max(3, Math.round(button.height * 0.10)),
-        shadowBlur: Math.max(6, Math.round(button.height * 0.22)),
-      },
+      button: buttonConfig,
+      secondaryButton: secondaryButtonConfig,
     });
   }
 
@@ -2806,7 +2919,7 @@ export class PhaserLayoutUi {
           fontStyle: "500",
           color: this.gtColorFushia,
           backgroundColor: "#ffffff",
-          padding: { x: 12, y: 7 },
+          padding: { x: 12, y: 12 },
         })
         .setData("action", item.action)
         .setDepth(220)
@@ -2973,22 +3086,21 @@ export class PhaserLayoutUi {
       isPickAnimating,
       wallTileCount,
       canPickFromWall,
+      canDiscard,
     } = options;
 
     const enabled =
-      tablePhase === "discard"
-        ? true
-        : tablePhase === "playing"
+      canDiscard
+        ? false // Disable the button entirely since discard is drag-and-drop
+        : tablePhase === GamePhaseEnum.PLAYING
           ? canPickFromWall !== false && wallTileCount > 0 && !isPickAnimating
           : canSubmitPass && !isPassAnimating;
 
     this.passButtonEnabled = enabled;
     this.passButtonLabel =
-      tablePhase === "discard"
-        ? "DISCARD"
-        : tablePhase === "playing"
-          ? "PICK"
-          : enabled ? "PASS" : `${passWaitingCount}/3`;
+      tablePhase === GamePhaseEnum.PLAYING
+        ? "PICK"
+        : enabled ? "PASS" : `${passWaitingCount}/3`;
 
     this.instructionPhase = tablePhase;
     this.publishInstructionPanel();
@@ -3037,12 +3149,12 @@ export class PhaserLayoutUi {
 
   layoutPickSeatSelector(
     layout: TableLayout,
-    phase: TablePhase,
+    phase: GamePhaseEnum,
     pickTargetSeat: TableSeat,
   ): void {
     if (!this.pickSeatSelector || this.pickSeatButtons.length === 0) return;
 
-    const visible = phase === "playing" || phase === "discard";
+    const visible = phase === GamePhaseEnum.PLAYING;
 
     this.pickSeatSelector.setVisible(visible);
 

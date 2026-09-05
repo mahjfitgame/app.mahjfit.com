@@ -7,7 +7,7 @@ import { SignalStateService } from '@libs/signal-state/service';
 import { GlobalProgressBarService } from '@base/global-progress-bar/service';
 import { ContextProfileService } from '@libs/context-profile/service';
 import { BfwApiService } from '@libs/third-party-apis/bfw-api/service';
-import { FoundationModuleStateType } from '@libs/foundation-module/type/state';
+import { FoundationModuleStateType } from '@libs/foundation/module/type';
 import { HttpStatusCode } from '@angular/common/http';
 import { HTTP_STATUS_SERVICE_UNAVAILABLE_STATE_STORE_KEY } from './const';
 
@@ -36,7 +36,7 @@ export class HttpStatusServiceUnavailableState extends SignalStateService implem
         this.initializeSignalState();
     }
 
-    public override onActivate(): void { }
+    public override onActivate(): void {}
 
-    public override onDeactivate(): void { }
+    public override onDeactivate(): void {}
 }

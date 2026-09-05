@@ -1,28 +1,29 @@
-// file: ./src/app/base/notify-banner/state.ts
+// file: src/app/base/notify-banner/state.ts
 import { effect, inject, Service, signal } from '@angular/core';
 import { ConfService } from '@libs/conf/service';
 import { LogService } from '@libs/log/service';
 import { SignalStateService } from '@libs/signal-state/service';
 import { NotifyBannerAlertType } from '@base/notify-banner/type';
-import { FoundationModuleStateType } from "@libs/foundation-module/type/state";
-import { GlobalProgressBarService } from '../global-progress-bar/service';
-import { BfwApiService } from '@libs/third-party-apis/bfw-api/service';
+import { GlobalProgressBarService } from '@base/global-progress-bar/service';
 import { ContextProfileService } from '@libs/context-profile/service';
+import { BfwApiService } from '@libs/third-party-apis/bfw-api/service';
+import { FoundationModuleStateType } from '@libs/foundation/module/type';
+import { NOTIFY_BANNER_STATE_STORE_KEY } from './const';
 
 @Service()
 export class NotifyBannerState extends SignalStateService implements FoundationModuleStateType {
 
     // ████ DEPENDENCIES ████████████████████████████████████████████████
 
-    public readonly conf = inject(ConfService);
-    public readonly log = inject(LogService);
+    public readonly conf = inject(ConfService)
+    public readonly log = inject(LogService)
     public readonly gpbs = inject(GlobalProgressBarService);
     public readonly ctxp = inject(ContextProfileService);
     public readonly api = inject(BfwApiService);
 
     // ████ CLASS PROPERTIES ████████████████████████████████████████████
 
-    public override readonly storeKey = 'notifyb';
+    public override readonly storeKey = NOTIFY_BANNER_STATE_STORE_KEY;
 
     // ████ SIGNAL FORM PROPERTIES ██████████████████████████████████████
     // n/a
@@ -33,10 +34,7 @@ export class NotifyBannerState extends SignalStateService implements FoundationM
     public readonly alert = this._alert.asReadonly();
 
     // ████ STATE DEBUGGER ██████████████████████████████████████████████
-
-    /* public readonly debugState = computed(() => ({
-        
-    })); */
+    // n/a
 
     constructor() {
         super();
@@ -48,13 +46,13 @@ export class NotifyBannerState extends SignalStateService implements FoundationM
     // ████ LISTENERS ███████████████████████████████████████████████████
 
     public override onActivate(): void {
-        /* const registerEffect = effect(() => {
+        const registerEffect = effect(() => {
             if (!this.ready()) {
                 return;
             }
         });
 
-        this.registerDeactivationCleanup(() => registerEffect.destroy()); */
+        this.registerDeactivationCleanup(() => registerEffect.destroy());
     }
 
     public override onDeactivate(): void {

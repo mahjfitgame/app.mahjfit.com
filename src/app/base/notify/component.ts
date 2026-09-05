@@ -1,4 +1,4 @@
-// file: ./src/app/base/notify/component.ts
+// file: src/app/base/notify/component.ts
 import { NgClass } from '@angular/common';
 import {
   Component,

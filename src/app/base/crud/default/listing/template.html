@@ -1,4 +1,4 @@
-<!-- file: ./src/app/base/crud/default/listing/template.html -->
+<!-- file: src/app/base/crud/default/listing/template.html -->
 <mat-card>
     <mat-card-content class="tw:p-1! tw:overflow-auto">
         <table
@@ -18,12 +18,13 @@
         <ng-container [matColumnDef]="service.CrudListingAdditionalColumnsEnum.RECORD_SELECT">
             <th mat-header-cell *matHeaderCellDef [ngClass]="[base, hoverColor, roundedCorner]">
                 <div class="tw:flex tw:items-center tw:gap-2 tw:py-2">
+                    @let selectAllLabel = 'GL.COMMON.SELECT_ALL' | transloco;
                     <mat-checkbox
                         (change)="service.toggleAllRows()"
                         [checked]="service.isAllRowsSelected()"
                         [indeterminate]="service.isPartiallyRowsSelected()"
-                        [aria-label]="service.localText.listing.select_all"
-                        [matTooltip]="service.localText.listing.select_all"
+                        [aria-label]="selectAllLabel"
+                        [matTooltip]="selectAllLabel"
                         matTooltipPosition="below"
                     ></mat-checkbox>
                 </div>
@@ -33,7 +34,7 @@
                     (click)="$event.stopPropagation()"
                     (change)="service.toggleRowSelection(row)"
                     [checked]="service.isRecordSelected(row)"
-                    [aria-label]="service.localText.listing.select_record"
+                    [aria-label]="'GL.COMMON.SELECT_RECORD' | transloco"
                 ></mat-checkbox>
             </td>
             <td mat-footer-cell *matFooterCellDef [ngClass]="[base, roundedCorner]">
@@ -56,7 +57,7 @@
                     <div class="tw:flex tw:items-center tw:gap-2 tw:py-2">
                         <div class="tw:h-6 tw:w-1 tw:rounded-full tw:bg-primary/40 tw:hover:bg-primary/90"></div>
                         <strong class="tw:text-primary/90 tw:font-bold tw:text-base tw:tracking-tight tw:leading-none">
-                            {{ finfo.label }}
+                            {{ finfo.label | transloco }}
                         </strong>
                     </div>
                 </th>
@@ -75,7 +76,7 @@
                                 @let fsinfo = fieldSub.value;
                                 <p>
                                     <!--  TODO: in case of fsinfo.skip = true we do not need to show label, need some logic which can avoid if condition checking for performance -->
-                                    <strong class="tw:text-black/70 tw:dark:text-white/50">{{fsinfo.label}}:</strong> 
+                                    <strong class="tw:text-black/70 tw:dark:text-white/50">{{ fsinfo.label | transloco }}:</strong>
                                     <ng-container 
                                         *ngTemplateOutlet="CRUD_LISTING_FIELD_LAYOUT; 
                                         context: { row: row, fkey: fskey, finfo: fsinfo,  }"
@@ -125,10 +126,10 @@
         <tr class="mat-row" *matNoDataRow>
             <td class="mat-cell tw:text-center!" [attr.colspan]="service.state.getListingColumnPositionValue().length">
                 @if(service.gpbs.processing){
-                    {{ service.localText.listing.loading }}
+                    {{ 'GL.COMMON.LOADING' | transloco }}
                 } @else {
                     @if(service.state.totalRecords() === 0){
-                        {{ service.localText.listing.no_data }}
+                        {{ 'GL.COMMON.NO_DATA' | transloco }}
                     }
                 }
             </td>

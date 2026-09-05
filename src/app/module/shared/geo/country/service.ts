@@ -1,5 +1,5 @@
-// file: ./src/app/module/shared/geo/country/service.ts
-import { inject, Service } from "@angular/core";
+// file: src/app/module/shared/geo/country/service.ts
+import { computed, inject, Service } from "@angular/core";
 import { Country, CountryFindInputDto, CountryFindOutputDto, CountryFindOutputRowsDto, CountryFindOutputSelectionSchema } from "@bfw/api-sdk/graphql/endpoints/shared";
 import { RecordSortDirectionEnum, RecordSortNullPositionEnum } from "@bfw/api-sdk/graphql/libs/crud.enum";
 import { PrivateAreaLayoutSlotEnum } from "@area/private/enum";
@@ -8,18 +8,17 @@ import { CrudService } from "@base/crud/service";
 import { CrudStateMutationFieldObjType, CrudStateListingFieldObjType, CrudStateSearchFilterFieldObjType, CrudFindInputType, CrudStateViewOptionFieldObjType, CrudStateListOperationFieldObjType, CrudSearchFilterInputType, CrudViewOptionInputType, CrudListOperationInputType } from "@base/crud/type";
 import { ConfService } from "@libs/conf/service";
 import { LogService } from "@libs/log/service";
-import { CRUD_DEF_PRIMARY_KEY_NAME } from "@base/crud/const";
 import { GeoCountryMutationFormComponent } from "@module/shared/geo/country/mutation/form/component";
 import { GeoCountryMutationPageComponent } from "@module/shared/geo/country/mutation/page/component";
-import { SLUG_PRIVATE_AREA } from "@area/private/slug";
 import { SLUG_GEO } from "@module/shared/geo/slug";
 import { SLUG_GEO_COUNTRY } from "@module/shared/geo/country/slug";
 import { I18nService } from "@base/internationalization/service";
 import { GEO_COUNTRY_I18N_KEY } from "@module/shared/geo/country/const";
 import { GeoCountryRoute } from "./route";
-import { FoundationModuleServiceType } from "@libs/foundation-module/type/service";
+import { FoundationModuleServiceType } from "@libs/foundation/module/type";
 import { GeoCountryState } from "./state";
-import { CrudChildServiceType } from "src/app/base/crud/child/service";
+import { CrudChildServiceType } from "src/app/base/crud/child/type/service";
+import { FoundationFieldDefaultNameEnum } from "@libs/foundation/field/enum";
 
 @Service({ autoProvided: false })
 export class GeoCountryService implements FoundationModuleServiceType, CrudChildServiceType {
@@ -35,23 +34,46 @@ export class GeoCountryService implements FoundationModuleServiceType, CrudChild
     public readonly PrivateAreaLayoutSlotEnum = PrivateAreaLayoutSlotEnum;
 
     constructor() {
+        // some required initialization for the module
+
+        // █████ FoundationModuleServiceType
+        // load this module's translations first, so the i18n keys setModuleInfo() publishes below already resolve.
+        // constructor, not component ngOnInit - see I18nService.useModule() for why
+        this.initI18n();
+
         // set module info
         this.setModuleInfo();
 
         // alter breadcrumbs
         this.alterBreadcrumb();
 
-        // some initialization as required
+        // █████ CrudChildServiceType 
         this.crudInit();
+
+        // claims URL + enables
+        this.initUrlSync();
+
+        // [optional, per-module choice
+        this.enableUrlSync();
 
         // set primary key
         this.setPrimaryKey();
 
+        // set secondary key
+        this.setSecondaryKey();
+
         // set unique key
         this.setUniqueKey();
 
+        // set well known field names
+        this.setUrlSlugField();
+        this.setIsMainField();
+        this.setRecordPositionField();
+        this.setActiveField();
+        this.setDeletedField();
+
         // set listing, mutation and query fields + any modification as needed
-        this.initFieldObj();
+        this.setFieldObj();
 
         // set mutation action layout type
         this.setMutationActionUiLayout();
@@ -71,11 +93,16 @@ export class GeoCountryService implements FoundationModuleServiceType, CrudChild
         // apply URL Matrix Params before initial load. Position must stay before load().
         this.initCrudStateFromUrl();
 
+        // set the search form layout
+        this.setSearchFormLayout();
+
         // load the initial data, it has some dependencies call backs also inside
         if (this.crud.shouldLoadListingForCurrentRoute()) {
             this.initialLoad();
         }
     }
+    // █████ FoundationModuleServiceType 
+
     public initI18n(): void {
         this.i18n.useModule(GEO_COUNTRY_I18N_KEY);
     }
@@ -93,11 +120,18 @@ export class GeoCountryService implements FoundationModuleServiceType, CrudChild
     }
     public alterBreadcrumb(): void {
         /*
-        this.crud.breadcrumb.set('geo-country', {
+        // the '@' prefix makes the key match breadcrumbAlias from the route.
+        // without it the key is read as a routeLink ('/geoCountry') and nothing matches.
+        this.crud.breadcrumb.set('@geoCountry', {
             // same options as we set in route
             // sample: src/app/module/shared/geo/route.ts
         })
         */
+    }
+
+    // █████ CrudChildServiceType 
+    public crudInit(): void {
+        this.crud.defaultInit();
     }
     public initUrlSync(): void {
         this.crud.url.initUrlSync();
@@ -105,32 +139,83 @@ export class GeoCountryService implements FoundationModuleServiceType, CrudChild
     public enableUrlSync(flag: boolean = true): void {
         this.crud.url.enableUrlSync(flag);
     }
-    public crudInit(): void {
-        this.crud.init();
-    }
     public setPrimaryKey(): void {
-        this.crud.state.setPrimaryKey(CRUD_DEF_PRIMARY_KEY_NAME);
+        this.crud.state.setPrimaryKey(FoundationFieldDefaultNameEnum.ID);
+    }
+    public setSecondaryKey(): void {
+        this.crud.state.setSecondaryKey(FoundationFieldDefaultNameEnum.KEYID);
     }
     public setUniqueKey(): void {
-        this.crud.state.setUniqueKey([CRUD_DEF_PRIMARY_KEY_NAME]);
+        this.crud.state.setUniqueKey([FoundationFieldDefaultNameEnum.ID]);
     }
-    public initFieldObj(): void {
+    public setUrlSlugField(): void {
+        this.crud.state.setUrlSlugField(FoundationFieldDefaultNameEnum.URL_SLUG);
+    }
+    public setIsMainField(): void {
+        this.crud.state.setIsMainField(FoundationFieldDefaultNameEnum.IS_MAIN);
+    }
+    public setRecordPositionField(): void {
+        this.crud.state.setRecordPositionField(FoundationFieldDefaultNameEnum.RECORD_POSITION);
+    }
+    public setActiveField(): void {
+        this.crud.state.setActiveField(FoundationFieldDefaultNameEnum.ACTIVE);
+    }
+    public setDeletedField(): void {
+        this.crud.state.setDeletedField(FoundationFieldDefaultNameEnum.DELETED);
+    }
+    public setFieldObj(): void {
         this.crud.setFieldObj(
             this.state.LISTING_FIELD_OBJ,
             this.state.SEARCH_FILTER_FIELD_OBJ,
-            this.state.MUTATION_FIELD_OBJ
+            this.state.MUTATION_FIELD_OBJ,
+
+            // if you have a complete new field object, use this by passing here
+            // this.state.LIST_OPERATION_FIELD_OBJ,
+            // this.state.VIEW_OPTION_FIELD_OBJ
         );
 
         /**
-         * As default set is initiated, we can perform any default modification here below this line
-         * modify fields and update state
-         * you can also modify default field object
+         * If default set is initiated or complete new, we can perform any modification here below this line
+         * 
+         * default will use
+         * this.crud.state.DEFAULT_LIST_OPERATION_FIELD_OBJ,
+         * this.crud.state.DEFAULT_VIEW_OPTION_FIELD_OBJ
+         * 
+         * modify fields are from child module state
          * 
          * ListOperationFieldObj & ViewOptionFieldObj
+         * If you using default or complete new but after set if you want to modify then do as below
+         * 
          * const listingFieldObj = this.crud.state.listingFieldObj();
+         * perform modification
+         * this.crud.state.setListingFieldObj(listingFieldObj);
+         * 
          * const viewOptionFieldObj = this.crud.state.viewOptionFieldObj();
+         * perform modification
+         * this.crud.state.setViewOptionFieldObj(viewOptionFieldObj);
+         * 
          * do changes and save updated state
+         * in case of chnage you cannot add new field in viewOptionFieldObj or listingFieldObj
+         * you can delete it, if you want to add new then the add in SEARCH_FILTER_FIELD_OBJ
+         * you cannot add new field in any defaults, this is a rule of thumb
          */
+        // MODIFY FIELD OBJ
+        //const listingFieldObj = this.crud.state.listingFieldObj();
+        //this.crud.state.setListingFieldObj(listingFieldObj);
+
+        //const viewOptionFieldObj = this.crud.state.viewOptionFieldObj();
+        //this.crud.state.setViewOptionFieldObj(viewOptionFieldObj);
+    }
+    public setSearchFormLayout(): void {
+        // change search form layout: search filter first, then view option 
+        // if you want default keep this method blank
+        // must set in computed()
+
+        // for now we need to keep default, but keep this code for future reference
+        // this.crud.state.setSearchFormLayout(computed(() => [
+        //     this.crud.state.searchFilterFieldObj(),
+        //     this.crud.state.viewOptionFieldObj(),
+        // ]));  
     }
     public setMutationActionUiLayout(): void {
         // set mutation action ui layout or leave it blank to stay with crud auto detection
@@ -164,14 +249,20 @@ export class GeoCountryService implements FoundationModuleServiceType, CrudChild
         this.crud.url.syncUrlStateFromCrudState();
     }
     /**
-     * DATA LOAD FROM API 
+     * LOAD DATA FROM API
      */
-    public async find(input: CrudFindInputType, type: CrudDataLoadTypeEnum = CrudDataLoadTypeEnum.ACTION): Promise<boolean> {
+    public async find(
+        input: CrudFindInputType,
+        type: CrudDataLoadTypeEnum = CrudDataLoadTypeEnum.ACTION
+    ): Promise<boolean> {
         // get the primary key
         const pk = this.crud.state.primaryKey() as string;
 
+        // get the secondary key
+        const sk = this.crud.state.secondaryKey() as string;
+
         // set the targeted module for api call
-        this.crud.api.sdk.graphql.use(Country);
+        this.crud.api.sdk.graphql.initialize(Country);
 
         const {
             SEARCH_FILTER_INPUT: sfIn,
@@ -221,6 +312,7 @@ export class GeoCountryService implements FoundationModuleServiceType, CrudChild
                 },
                 rows: {
                     [pk]: true,
+                    [sk]: true,
 
                     name: true,
                     capital: true,

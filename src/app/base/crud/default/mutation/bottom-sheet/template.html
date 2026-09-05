@@ -1,12 +1,12 @@
-<!-- file: ./src/app/base/crud/default/bottom-sheet/template.html -->
+<!-- file: src/app/base/crud/default/bottom-sheet/template.html -->
 <div class="tw:flex tw:flex-col tw:overflow-scroll tw:max-h-[80vh] tw:z-20">
     <mat-toolbar class="bfw-safe-area-px tw:flex tw:sticky tw:top-0 tw:z-20 tw:w-full tw:bg-transparent! tw:backdrop-blur-md tw:p-3!">
         <div class="tw:flex tw:w-full tw:py-3 tw:items-center tw:justify-between">
             <h2 class="tw:text-xl! tw:font-semibold tw:m-0 tw:flex tw:items-center tw:gap-2">
                 <mat-icon class="material-symbols-rounded">{{ service.getMutationIcon() }}</mat-icon>
-                {{ service.getMutationTitle() }}
+                {{ service.getMutationTitle() | transloco }}
             </h2>
-            <button mat-icon-button (click)="service.closeMutationAction()" aria-label="Close bottom sheet">
+            <button mat-icon-button (click)="service.closeMutationAction()" [attr.aria-label]="'GL.COMMON.CLOSE' | transloco">
                 <mat-icon class="material-symbols-rounded">close</mat-icon>
             </button>
         </div>
@@ -18,8 +18,8 @@
     </div>
     <footer class="bfw-safe-area-pb bfw-safe-area-px tw:sticky tw:bottom-0 tw:z-20 tw:w-full tw:backdrop-blur-md tw:mbs-auto">
         <div class="tw:flex tw:gap-2 tw:p-3!">
-            <button mat-button type="reset" form="crudMutationForm" class="tw:flex-1">Reset</button>
-            <button mat-flat-button type="submit" form="crudMutationForm" color="primary" class="tw:flex-1">Save</button>
+            <button mat-button type="reset" form="crudMutationForm" class="tw:flex-1">{{ 'GL.COMMON.RESET' | transloco }}</button>
+            <button mat-flat-button type="submit" form="crudMutationForm" color="primary" class="tw:flex-1">{{ 'GL.COMMON.SAVE' | transloco }}</button>
         </div>
     </footer>
 </div>

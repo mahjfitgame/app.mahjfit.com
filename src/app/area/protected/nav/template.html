@@ -1,0 +1,61 @@
+<!-- file: src/app/area/protected/nav/template.html -->
+<!--
+  ⚠ the same contract as private/nav/template.html and auth/nav/template.html:
+  ONE component, one branch per nav_position, the host element supplies the
+  surrounding layout. do NOT add padding, margin or display rules to the host
+
+  TOP and BOTTOM are FLAT — every row this area has today is a leaf. a group
+  (item.children.length) needs the recursive #level template from
+  private/nav/template.html lifted verbatim, together with NgTemplateOutlet /
+  MatList / MatExpansion in the component's imports
+-->
+@if (position() === service.FoundationNavPositionEnum.TOP) {
+  <!-- MAIN MENU — the header bar. icon + label, highlighted on its own subtree -->
+  <nav class="tw:flex tw:items-center tw:gap-1" [attr.aria-label]="'GL.COMMON.CONTROL_CENTRE' | transloco">
+    @for (item of service.state.topNav; track item.registry_key) {
+      <a
+        [routerLink]="item.url"
+        [routerLinkActiveOptions]="{
+          paths: 'subset',
+          queryParams: 'ignored',
+          fragment: 'ignored',
+          matrixParams: 'ignored',
+        }"
+        routerLinkActive="active"
+        (click)="navigated.emit()"
+        [ngClass]="item.css_class"
+        class="tw:inline-flex tw:items-center tw:gap-2 tw:rounded-full tw:px-3 tw:py-2 tw:text-sm tw:no-underline tw:text-inherit tw:hover:bg-primary/10"
+      >
+        <mat-icon class="material-symbols-rounded">{{ item.icon }}</mat-icon>
+        <!--
+          ⚠ NO bfw-nav-link-name here, unlike private/nav/template.html. that
+          class is what theme/active/_layout.scss:282 hides when the sidebar
+          collapses to icons — this bar never collapses, the label always shows
+        -->
+        <span>{{ item.label | transloco }}</span>
+      </a>
+    }
+  </nav>
+}
+@else if (position() === service.FoundationNavPositionEnum.START) {
+
+}
+@else if (position() === service.FoundationNavPositionEnum.END) {
+
+}
+@else if (position() === service.FoundationNavPositionEnum.BOTTOM) {
+  <!--
+    ⚠ identical markup to the BOTTOM branch of private/nav/template.html and
+    auth/nav/template.html. keep the three in step, the footers are meant to
+    read the same across every area
+
+      no mat-list, no <mat-icon>, no [ngClass]  — text links only, by design
+  -->
+  <nav class="tw:flex tw:items-center" [attr.aria-label]="'GL.COMMON.FOOTER_NAVIGATION' | transloco">
+    @for (item of service.state.bottomNav; track item.registry_key) {
+      <a [routerLink]="item.url"
+          class="tw:px-1 tw:py-1 tw:hover:underline tw:text-xs"
+      >{{ item.label | transloco }}</a>
+    }
+  </nav>
+}

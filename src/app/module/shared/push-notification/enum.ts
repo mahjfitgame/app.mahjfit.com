@@ -1,4 +1,4 @@
-// file: ./src/app/module/shared/push-notification/type.ts
+// file: src/app/module/shared/push-notification/type.ts
 /**
  
 */

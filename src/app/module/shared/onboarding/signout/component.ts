@@ -1,4 +1,4 @@
-// file: ./src/app/module/shared/onboarding/signout/component.ts
+// file: src/app/module/shared/onboarding/signout/component.ts
 import { AfterViewChecked, AfterViewInit, Component, inject, OnDestroy, OnInit } from "@angular/core";
 import { JsonPipe, KeyValuePipe } from "@angular/common";
 import { MatCardModule } from "@angular/material/card";
@@ -53,8 +53,6 @@ export class SignoutComponent implements OnInit, AfterViewInit, AfterViewChecked
     constructor() {}
 
     public async ngOnInit(): Promise<void> {
-      this.service.initI18n();
-
       // signout from active session
       await this.service.signout();
     }

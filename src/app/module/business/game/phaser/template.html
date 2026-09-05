@@ -2,225 +2,193 @@
 <div #safeAreaProbe class="safe-area-probe" aria-hidden="true"></div>
 
 @if (wallCountState(); as state) {
-  @if (state.visible) {
-    <div class="hud-wall-count" aria-hidden="false"
-         [style.display]="'block'"
-         [style.left.px]="state.x"
-         [style.top.px]="state.y - state.fontSize / 2"
-         [style.fontSize.px]="state.fontSize"
-         [style.color]="'#264089'">{{ state.text }}</div>
-    <div class="hud-wall-icon" aria-hidden="false"
-         [style.display]="'block'"
-         [style.color]="'#264089'"
-         [style.left.px]="state.iconX - state.iconSize / 2"
-         [style.top.px]="state.iconY - state.iconSize / 2"
-         [style.fontSize.px]="state.iconSize">crop_2_3</div>
-  }
+@if (state.visible) {
+<div class="hud-wall-count" aria-hidden="false" [style.display]="'block'" [style.left.px]="state.x"
+  [style.top.px]="state.y - state.fontSize / 2" [style.fontSize.px]="state.fontSize" [style.color]="'#264089'">{{
+  state.text }}</div>
+<div class="hud-wall-icon" aria-hidden="false" [style.display]="'block'" [style.color]="'#264089'"
+  [style.left.px]="state.iconX - state.iconSize / 2" [style.top.px]="state.iconY - state.iconSize / 2"
+  [style.fontSize.px]="state.iconSize">crop_2_3</div>
+}
 }
 
 @if (mobileHeaderToggleOverlay(); as state) {
-  @if (state.visible) {
-    <button type="button" class="mobile-header-toggle" aria-hidden="true" tabindex="-1"
-            [style.left.px]="state.x" [style.top.px]="state.y"
-            (pointerdown)="$event.stopPropagation(); toggleMobileHeader()">
-        {{ state.icon }}
-    </button>
-  }
+@if (state.visible) {
+<button type="button" class="mobile-header-toggle" aria-hidden="true" tabindex="-1" [style.left.px]="state.x"
+  [style.top.px]="state.y" (pointerdown)="$event.stopPropagation(); toggleMobileHeader()">
+  {{ state.icon }}
+</button>
+}
 }
 
 @if (pointsState(); as state) {
-  @if (state.visible) {
-    <div class="hud-points" aria-hidden="false"
-         [style.display]="'block'"
-         [style.left.px]="state.x"
-         [style.top.px]="state.y - state.fontSize / 2"
-         [style.fontSize.px]="state.fontSize">{{ state.text }}</div>
-    <div class="hud-points-icon" aria-hidden="false"
-         [style.display]="'block'"
-         [style.left.px]="state.iconX - state.iconSize / 2"
-         [style.top.px]="state.iconY - state.iconSize / 2"
-         [style.fontSize.px]="state.iconSize">database</div>
-  }
+@if (state.visible) {
+<div class="hud-points" aria-hidden="false" [style.display]="'block'" [style.left.px]="state.x"
+  [style.top.px]="state.y - state.fontSize / 2" [style.fontSize.px]="state.fontSize">{{ state.text }}</div>
+<div class="hud-points-icon" aria-hidden="false" [style.display]="'block'"
+  [style.left.px]="state.iconX - state.iconSize / 2" [style.top.px]="state.iconY - state.iconSize / 2"
+  [style.fontSize.px]="state.iconSize">database</div>
+}
 }
 
 @if (instructionPanelState(); as state) {
-  @if (state.visible) {
-    <div class="instruction-panel" aria-hidden="false"
-         [style.display]="'block'"
-         [style.left.px]="state.x"
-         [style.top.px]="state.y"
-         [style.width.px]="state.width"
-         [style.height.px]="state.height"
-         [style.borderWidth.px]="state.borderWidth"
-         [style.borderRadius.px]="state.radius"
-         [style.boxShadow]="'0 ' + state.shadowY + 'px ' + state.shadowBlur + 'px rgb(7 20 47 / 30%)'">
-        <div class="instruction-panel__content"
-             [style.left.px]="-state.borderWidth"
-             [style.width.px]="state.width"
-             [style.top.px]="state.contentTop - state.borderWidth"
-             [style.height.px]="state.contentBottom - state.contentTop > 0 ? state.contentBottom - state.contentTop : 0">
-            <div class="instruction-panel__title"
-                 [style.fontSize.px]="state.titleFontSize"
-                 [style.marginBottom.px]="state.body ? state.titleGap : 0">{{ state.title }}</div>
-            <div class="instruction-panel__body"
-                 [style.fontSize.px]="state.bodyFontSize">{{ state.body }}</div>
-        </div>
-        <button type="button" class="instruction-panel__button"
-                [style.left.px]="state.button.x - state.borderWidth"
-                [style.top.px]="state.button.y - state.borderWidth"
-                [style.width.px]="state.button.width"
-                [style.height.px]="state.button.height"
-                [style.borderRadius.px]="state.button.radius"
-                [style.fontSize.px]="state.button.fontSize"
-                [style.background]="getInstructionButtonBackground(state.button.enabled)"
-                [style.opacity]="state.button.enabled ? '1' : '0.65'"
-                [style.boxShadow]="getInstructionButtonShadow(state.button)"
-                [attr.aria-disabled]="!state.button.enabled"
-                (click)="onInstructionPanelClick()">{{ state.button.label }}</button>
-    </div>
+@if (state.visible) {
+<div class="instruction-panel" aria-hidden="false" [style.display]="'block'" [style.left.px]="state.x"
+  [style.top.px]="state.y" [style.width.px]="state.width" [style.height.px]="state.height"
+  [style.borderWidth.px]="state.borderWidth" [style.borderRadius.px]="state.radius"
+  [style.boxShadow]="'0 ' + state.shadowY + 'px ' + state.shadowBlur + 'px rgb(7 20 47 / 30%)'">
+  <div class="instruction-panel__content" [style.left.px]="-state.borderWidth" [style.width.px]="state.width"
+    [style.top.px]="state.contentTop - state.borderWidth"
+    [style.height.px]="state.contentBottom - state.contentTop > 0 ? state.contentBottom - state.contentTop : 0">
+    <div class="instruction-panel__title" [style.fontSize.px]="state.titleFontSize"
+      [style.marginBottom.px]="state.body ? state.titleGap : 0">{{ state.title }}</div>
+    <div class="instruction-panel__body" [style.fontSize.px]="state.bodyFontSize">{{ state.body }}</div>
+  </div>
+  <button type="button" class="instruction-panel__button" [style.left.px]="state.button.x - state.borderWidth"
+    [style.top.px]="state.button.y - state.borderWidth" [style.width.px]="state.button.width"
+    [style.height.px]="state.button.height" [style.borderRadius.px]="state.button.radius"
+    [style.fontSize.px]="state.button.fontSize"
+    [style.background]="getInstructionButtonBackground(state.button.enabled)"
+    [style.opacity]="state.button.enabled ? '1' : '0.65'" [style.boxShadow]="getInstructionButtonShadow(state.button)"
+    [attr.aria-disabled]="!state.button.enabled" (click)="onInstructionPanelClick(state.button.action)">{{ state.button.label }}</button>
+  @if (state.secondaryButton) {
+  <button type="button" class="instruction-panel__button" [style.left.px]="state.secondaryButton.x - state.borderWidth"
+    [style.top.px]="state.secondaryButton.y - state.borderWidth" [style.width.px]="state.secondaryButton.width"
+    [style.height.px]="state.secondaryButton.height" [style.borderRadius.px]="state.secondaryButton.radius"
+    [style.fontSize.px]="state.secondaryButton.fontSize"
+    [style.background]="getInstructionButtonBackground(state.secondaryButton.enabled)"
+    [style.opacity]="state.secondaryButton.enabled ? '1' : '0.65'" [style.boxShadow]="getInstructionButtonShadow(state.secondaryButton)"
+    [attr.aria-disabled]="!state.secondaryButton.enabled" (click)="onInstructionPanelClick(state.secondaryButton.action)">{{ state.secondaryButton.label }}</button>
   }
+</div>
+}
 }
 
 @if (mobileDrawerState(); as state) {
-  @if (state.visible) {
-    <div class="mobile-drawer-overlay" aria-hidden="false"
-         [style.left.px]="state.x" [style.top.px]="state.y" [style.width.px]="state.width"
-         [style.height.px]="getMobileDrawerHeight(state)"
-         [style.paddingTop]="state.title ? '16px' : '58px'">
-        <div class="mobile-drawer-overlay__close" (click)="onMobileDrawerClose()">×</div>
-        @if (state.title) {
-            <div class="mobile-drawer-overlay__title" [style.color]="'#0b56b3'">{{ state.title }}</div>
-        }
-        @for (item of state.items; track item) {
-            <div class="mobile-drawer-overlay__item" (pointerdown)="$event.stopPropagation(); onMobileDrawerItemClick(item)">{{ item }}</div>
-        }
-    </div>
+@if (state.visible) {
+<div class="mobile-drawer-overlay" aria-hidden="false" [style.display]="'block'" [style.left.px]="state.x" [style.top.px]="state.y"
+  [style.width.px]="state.width" [style.height.px]="getMobileDrawerHeight(state)"
+  [style.paddingTop]="state.title ? '16px' : '58px'">
+  <div class="mobile-drawer-overlay__close" (click)="onMobileDrawerClose()">×</div>
+  @if (state.title) {
+  <div class="mobile-drawer-overlay__title" [style.color]="'#0b56b3'">{{ state.title }}</div>
   }
+  @for (item of state.items; track item) {
+  <div class="mobile-drawer-overlay__item" (pointerdown)="$event.stopPropagation(); onMobileDrawerItemClick(item)">{{
+    item }}</div>
+  }
+</div>
+}
 }
 
 @if (deadHandSelectionState(); as state) {
-  @if (state.visible) {
-    <div class="dead-hand-seats" aria-hidden="false">
-        @for (option of state.options; track option.seat) {
-            <button type="button" class="dead-hand-seats__target"
-                    [attr.aria-label]="'Call the ' + option.seat + ' hand dead'"
-                    [style.left.px]="option.x - state.borderWidth / 2"
-                    [style.top.px]="option.y - state.borderWidth / 2"
-                    [style.width.px]="option.width + state.borderWidth"
-                    [style.height.px]="option.height + state.borderWidth"
-                    [style.borderWidth.px]="state.borderWidth"
-                    (pointerdown)="$event.stopPropagation(); onDeadHandSeatSelect(option.seat)">
-            </button>
-            <button type="button" class="dead-hand-seats__arrow" aria-hidden="true" tabindex="-1"
-                    [style.left.px]="option.arrowX" [style.top.px]="option.arrowY"
-                    [style.fontSize.px]="state.arrowFontSize"
-                    (pointerdown)="$event.stopPropagation(); onDeadHandSeatSelect(option.seat)">
-                {{ option.arrowIcon }}
-            </button>
-        }
-        <div class="dead-hand-seats__instruction"
-             [style.left.px]="state.centerX" [style.top.px]="state.centerY"
-             [style.fontSize.px]="state.instructionFontSize">
-            {{ state.instruction }}
-        </div>
-        <button type="button" class="dead-hand-seats__cancel" aria-label="Cancel"
-                [style.left.px]="state.centerX" [style.top.px]="state.centerY - 54"
-                (pointerdown)="$event.stopPropagation(); onDeadHandCancel()">×</button>
-    </div>
+@if (state.visible) {
+<div class="dead-hand-seats" aria-hidden="false" [style.display]="'block'">
+  @for (option of state.options; track option.seat) {
+  <button type="button" class="dead-hand-seats__target" [attr.aria-label]="'Call the ' + option.seat + ' hand dead'"
+    [style.left.px]="option.x - state.borderWidth / 2" [style.top.px]="option.y - state.borderWidth / 2"
+    [style.width.px]="option.width + state.borderWidth" [style.height.px]="option.height + state.borderWidth"
+    [style.borderWidth.px]="state.borderWidth"
+    (pointerdown)="$event.stopPropagation(); onDeadHandSeatSelect(option.seat)">
+  </button>
+  <button type="button" class="dead-hand-seats__arrow" aria-hidden="true" tabindex="-1" [style.left.px]="option.arrowX"
+    [style.top.px]="option.arrowY" [style.fontSize.px]="state.arrowFontSize"
+    (pointerdown)="$event.stopPropagation(); onDeadHandSeatSelect(option.seat)">
+    {{ option.arrowIcon }}
+  </button>
   }
+  <div class="dead-hand-seats__instruction" [style.left.px]="state.centerX" [style.top.px]="state.centerY"
+    [style.fontSize.px]="state.instructionFontSize">
+    {{ state.instruction }}
+  </div>
+  <button type="button" class="dead-hand-seats__cancel" aria-label="Cancel" [style.left.px]="state.centerX"
+    [style.top.px]="state.centerY - 54" (pointerdown)="$event.stopPropagation(); onDeadHandCancel()">×</button>
+</div>
+}
 }
 
 @if (removePlayerNotice(); as notice) {
-    <div class="remove-player-popup" aria-hidden="false">
-        <section>
-            <h2>REMOVE PLAYER?</h2>
-            <p>{{ notice.playerName }} has been away for {{ getFormattedElapsed(notice) }}.</p>
-            <small [style.color]="'#f6c542'">
-                @if (removePlayerRemaining() === 0) {
-                    The {{ getFormattedLimit(notice) }} away limit has been reached.
-                } @else {
-                    Removal available in {{ getFormattedRemaining(removePlayerRemaining()) }}.
-                }
-            </small>
-            <button type="button" [disabled]="removePlayerRemaining() > 0" (click)="onRemovePlayer(notice)"
-                    [class.popup-button-active]="removePlayerRemaining() === 0">REMOVE PLAYER</button>
-            <button type="button" class="popup-button-secondary" (click)="onKeepWaitingPlayer()">KEEP WAITING</button>
-        </section>
-    </div>
+<div class="remove-player-popup" aria-hidden="false" [style.display]="'block'">
+  <section>
+    <h2>REMOVE PLAYER?</h2>
+    <p>{{ notice.playerName }} has been away for {{ getFormattedElapsed(notice) }}.</p>
+    <small [style.color]="'#f6c542'">
+      @if (removePlayerRemaining() === 0) {
+      The {{ getFormattedLimit(notice) }} away limit has been reached.
+      } @else {
+      Removal available in {{ getFormattedRemaining(removePlayerRemaining()) }}.
+      }
+    </small>
+    <button type="button" [disabled]="removePlayerRemaining() > 0" (click)="onRemovePlayer(notice)"
+      [class.popup-button-active]="removePlayerRemaining() === 0">REMOVE PLAYER</button>
+    <button type="button" class="popup-button-secondary" (click)="onKeepWaitingPlayer()">KEEP WAITING</button>
+  </section>
+</div>
 }
 
 @if (joinTableRequestState(); as request) {
-    <div class="join-table-popup" aria-hidden="false">
-        <section>
-            <h2>JOIN TABLE REQUEST</h2>
-            <p>{{ request.playerName }} wants to join.</p>
-            <small>{{ joinTableRemaining() }} second{{ joinTableRemaining() === 1 ? '' : 's' }} remaining</small>
-            <button type="button" class="popup-button-active" (click)="onJoinTableAction(request, 'accept')">ACCEPT</button>
-            <button type="button" class="popup-button-secondary" (click)="onJoinTableAction(request, 'decline')">DECLINE</button>
-        </section>
-    </div>
+<div class="join-table-popup" aria-hidden="false" [style.display]="'block'">
+  <section>
+    <h2>JOIN TABLE REQUEST</h2>
+    <p>{{ request.playerName }} wants to join.</p>
+    <small>{{ joinTableRemaining() }} second{{ joinTableRemaining() === 1 ? '' : 's' }} remaining</small>
+    <button type="button" class="popup-button-active" (click)="onJoinTableAction(request, 'accept')">ACCEPT</button>
+    <button type="button" class="popup-button-secondary"
+      (click)="onJoinTableAction(request, 'decline')">DECLINE</button>
+  </section>
+</div>
 }
 
 @if (deadHandClaimTarget(); as targetSeat) {
-    <div class="dead-hand-popup" aria-hidden="false">
-        <section>
-            <h2>DECLARE {{ getDeadHandTargetLabel(targetSeat) }} DEAD</h2>
-            <small>An incorrect claim can make your hand dead.</small>
-            
-            <button type="button" 
-                    [class.popup-button-active]="deadHandClaimReason() === 'invalid-mahjong'"
-                    [class.popup-button-secondary]="deadHandClaimReason() !== 'invalid-mahjong'"
-                    (click)="onDeadHandReasonSelect('invalid-mahjong')">INVALID MAH JONGG</button>
-            
-            <button type="button" 
-                    [class.popup-button-active]="deadHandClaimReason() === 'hand-not-viable'"
-                    [class.popup-button-secondary]="deadHandClaimReason() !== 'hand-not-viable'"
-                    (click)="onDeadHandReasonSelect('hand-not-viable')">HAND NOT VIABLE</button>
-            
-            <button type="button" 
-                    [class.popup-button-active]="deadHandClaimReason() === 'incorrect-tile-count'"
-                    [class.popup-button-secondary]="deadHandClaimReason() !== 'incorrect-tile-count'"
-                    (click)="onDeadHandReasonSelect('incorrect-tile-count')">INCORRECT TILE COUNT</button>
-                    
-            <button type="button" class="popup-button-active" (click)="onSubmitDeadHandClaim(targetSeat, deadHandClaimReason())">SUBMIT CLAIM</button>
-            <button type="button" class="popup-button-secondary" (click)="onCancelDeadHandClaim()">CANCEL</button>
-        </section>
-    </div>
+<div class="dead-hand-popup" aria-hidden="false" [style.display]="'block'">
+  <section>
+    <h2>DECLARE {{ getDeadHandTargetLabel(targetSeat) }} DEAD</h2>
+    <small>An incorrect claim can make your hand dead.</small>
+
+    <button type="button" [class.popup-button-active]="deadHandClaimReason() === GameDeadHandReasonEnum.FALSE_MAHJONG"
+      [class.popup-button-secondary]="deadHandClaimReason() !== GameDeadHandReasonEnum.FALSE_MAHJONG"
+      (click)="onDeadHandReasonSelect(GameDeadHandReasonEnum.FALSE_MAHJONG)">INVALID MAH JONGG</button>
+
+    <button type="button" [class.popup-button-active]="deadHandClaimReason() === GameDeadHandReasonEnum.IMPOSSIBLE_HAND"
+      [class.popup-button-secondary]="deadHandClaimReason() !== GameDeadHandReasonEnum.IMPOSSIBLE_HAND"
+      (click)="onDeadHandReasonSelect(GameDeadHandReasonEnum.IMPOSSIBLE_HAND)">HAND NOT VIABLE</button>
+
+    <button type="button"
+      [class.popup-button-active]="deadHandClaimReason() === GameDeadHandReasonEnum.INVALID_TILE_COUNT"
+      [class.popup-button-secondary]="deadHandClaimReason() !== GameDeadHandReasonEnum.INVALID_TILE_COUNT"
+      (click)="onDeadHandReasonSelect(GameDeadHandReasonEnum.INVALID_TILE_COUNT)">INCORRECT TILE COUNT</button>
+
+    <button type="button" class="popup-button-active"
+      (click)="onSubmitDeadHandClaim(targetSeat, deadHandClaimReason())">SUBMIT CLAIM</button>
+    <button type="button" class="popup-button-secondary" (click)="onCancelDeadHandClaim()">CANCEL</button>
+  </section>
+</div>
 }
 
 @if (mahjongWinResult(); as result) {
-    <div class="mahjong-win-popup" aria-hidden="false" (pointerup)="onDismissMahjongWinPopup()">
-        @for (confetti of mahjongConfetti(); track $index) {
-            <div class="mahjong-win-popup__confetti"
-                 [style.left]="confetti.left"
-                 [style.top]="confetti.top"
-                 [style.width]="confetti.width"
-                 [style.height]="confetti.height"
-                 [style.background]="confetti.background"
-                 [style.--fall-duration]="confetti.fallDuration"
-                 [style.--fall-delay]="confetti.fallDelay"
-                 [style.--start-rotate]="confetti.startRotate"
-                 [style.--end-rotate]="confetti.endRotate"
-                 [style.--fall-distance]="confetti.fallDistance"></div>
-        }
-        <div class="mahjong-win-popup__card">
-            <div class="mahjong-win-popup__title">MAH JONGG!</div>
-            <div class="mahjong-win-popup__winner">{{ result.winner === 'bottom' ? 'YOU WIN!' : (result.winner.toUpperCase() + ' WINS!') }}</div>
-            <div class="mahjong-win-popup__dismiss">TAP TO CONTINUE</div>
-        </div>
-    </div>
+<div class="mahjong-win-popup" aria-hidden="false" [style.display]="'block'" (pointerup)="onDismissMahjongWinPopup()">
+  @for (confetti of mahjongConfetti(); track $index) {
+  <div class="mahjong-win-popup__confetti" [style.left]="confetti.left" [style.top]="confetti.top"
+    [style.width]="confetti.width" [style.height]="confetti.height" [style.background]="confetti.background"
+    [style.--fall-duration]="confetti.fallDuration" [style.--fall-delay]="confetti.fallDelay"
+    [style.--start-rotate]="confetti.startRotate" [style.--end-rotate]="confetti.endRotate"
+    [style.--fall-distance]="confetti.fallDistance"></div>
+  }
+  <div class="mahjong-win-popup__card">
+    <div class="mahjong-win-popup__title">MAH JONGG!</div>
+    <div class="mahjong-win-popup__winner">{{ result.winner === 'bottom' ? 'YOU WIN!' : (result.winner.toUpperCase() + '
+      WINS!') }}</div>
+    <div class="mahjong-win-popup__dismiss">TAP TO CONTINUE</div>
+  </div>
+</div>
 }
 
 @for (state of playerLabelStates(); track state.key) {
-  @if (state.visible) {
-    <div class="hud-player-label" aria-hidden="false"
-         [style.display]="'block'"
-         [style.left.px]="state.x"
-         [style.top.px]="state.y"
-         [style.transform]="'translate(-50%, -50%) rotate(' + state.angle + 'deg)'"
-         [style.fontSize.px]="state.fontSize"
-         [style.color]="state.color">{{ state.text }}</div>
-  }
+@if (state.visible) {
+<div class="hud-player-label" aria-hidden="false" [style.display]="'block'" [style.left.px]="state.x"
+  [style.top.px]="state.y" [style.transform]="'translate(-50%, -50%) rotate(' + state.angle + 'deg)'"
+  [style.fontSize.px]="state.fontSize" [style.color]="state.color">{{ state.text }}</div>
+}
 }
 <img #headerLogo class="hud-logo" src="assets/majhfit-logo@2x.png" srcset="
       assets/majhfit-logo@1x.png 1x,

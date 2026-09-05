@@ -1,0 +1,37 @@
+{
+  "PREBOARDING_RECOVERPASSWORD": {
+    "MODULE": {
+      "TITLE": "Récupérer le mot de passe",
+      "HINT": "Saisissez les informations de votre compte et choisissez un nouveau mot de passe."
+    },
+    "MESSAGE": {
+      "SUCCESS": "Votre mot de passe a été réinitialisé. Vous pouvez maintenant vous connecter.",
+      "ERROR": "Impossible de réinitialiser votre mot de passe. Le lien de récupération est peut-être invalide ou expiré."
+    },
+    "FIELD_LABEL": {
+      "USERNAME": "Identifiant, e-mail ou mobile",
+      "IDENTIFY": "Nouveau mot de passe",
+      "IDENTIFY_CONFIRM": "Confirmer le nouveau mot de passe",
+      "PASS_RECOVER_TOKEN": "Jeton de récupération"
+    },
+    "FIELD_PLACEHOLDER": {
+      "USERNAME": "Saisissez votre identifiant, e-mail ou mobile",
+      "IDENTIFY": "Saisissez votre nouveau mot de passe",
+      "IDENTIFY_CONFIRM": "Confirmez votre nouveau mot de passe",
+      "PASS_RECOVER_TOKEN": "Saisissez le jeton de récupération"
+    },
+    "HINT": {
+      "PASS_RECOVER_TOKEN": "Utilisez le jeton de récupération reçu par e-mail, ou cliquez sur le lien."
+    },
+    "VALIDATION": {
+      "USERNAME": "L’identifiant, l’e-mail ou le mobile est obligatoire.",
+      "USERNAME_MIN_LENGTH": "L’identifiant, l’e-mail ou le mobile doit comporter au moins {{min_length}} caractères.",
+      "IDENTIFY": "Le nouveau mot de passe est obligatoire.",
+      "IDENTIFY_CONFIRM": "La confirmation du mot de passe est obligatoire.",
+      "IDENTIFY_MIN_LENGTH": "Le mot de passe doit comporter au moins {{min_length}} caractères.",
+      "IDENTIFY_PATTERN": "Utilisez une majuscule, une minuscule, un chiffre et un caractère spécial ; évitez 3 caractères identiques consécutifs.",
+      "IDENTIFY_MISMATCH": "Les mots de passe ne correspondent pas.",
+      "PASS_RECOVER_TOKEN": "Un jeton de récupération valide est obligatoire."
+    }
+  }
+}

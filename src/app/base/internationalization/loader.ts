@@ -1,4 +1,4 @@
-// file: ./src/app/base/internationalization/loader.ts
+// file: src/app/base/internationalization/loader.ts
 
 import { Service, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';

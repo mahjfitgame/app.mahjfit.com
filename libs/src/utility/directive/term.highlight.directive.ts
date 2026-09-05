@@ -1,4 +1,4 @@
-// file: ./libs/src/utility/directive/highlight.directive.ts
+// file: libs/src/utility/directive/highlight.directive.ts
 import {
   AfterViewInit,
   Directive,

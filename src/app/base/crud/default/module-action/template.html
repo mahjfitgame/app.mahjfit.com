@@ -1,4 +1,4 @@
-<!-- file: ./src/app/base/crud/default/module-action/template.html -->
+<!-- file: src/app/base/crud/default/module-action/template.html -->
 <!-- Module action menu template -->
 <ng-template #BfwCrudModuleActionMenu>
     <div>
@@ -6,7 +6,7 @@
             <button
                 matIconButton
                 [matMenuTriggerFor]="BfwCrudModuleAction"
-                aria-label="Open module actions"
+                [attr.aria-label]="'GL.COMMON.OPEN' | transloco"
                 matTooltip=""
                 matTooltipPosition="above"
                 class="tw:rounded-full! tw:text-primary!"
@@ -17,8 +17,8 @@
             <button
                 matFab 
                 [matMenuTriggerFor]="BfwCrudModuleAction"
-                aria-label="Open module actions"
-                matTooltip="Module actions"
+                [attr.aria-label]="'GL.COMMON.OPEN' | transloco"
+                [matTooltip]="'GL.COMMON.MODULE_ACTIONS' | transloco"
                 matTooltipPosition="above"
                 class="tw:rounded-full! tw:bg-primary/70! tw:text-on-primary!"
             >
@@ -36,17 +36,17 @@
                 [state]="service.url.getCrudActionNavigationState()"
             >
                 <mat-icon class="material-symbols-rounded">add</mat-icon>
-                <span>Add</span>
+                <span>{{ 'GL.ACTION.CREATE' | transloco }}</span>
             </a>
 
             <button mat-menu-item>
                 <mat-icon class="material-symbols-rounded">cloud_upload</mat-icon>
-                <span>Import</span>
+                <span>{{ 'GL.ACTION.IMPORT' | transloco }}</span>
             </button>
 
             <button mat-menu-item>
                 <mat-icon class="material-symbols-rounded">cloud_download</mat-icon>
-                <span>Export</span>
+                <span>{{ 'GL.ACTION.EXPORT' | transloco }}</span>
             </button>
         </mat-menu>
     </div>

@@ -1,4 +1,4 @@
-// file: ./libs/src/platform/const.ts
+// file: libs/src/platform/const.ts
 export const PLATFORM_STATE_STORE_KEY = 'p' as const;
 export const PLATFORM_STATE_VERSION: number = 1;
 

@@ -26,7 +26,11 @@ export interface TwitterSeo {
 }
 
 export interface OnPageSeoType {
-    title?: string;
+    /**
+     * NOTE: there is deliberately no `title` here.
+     * WebPageTitleService is the single owner of document.title — see
+     * libs/src/web-page/title/service.ts and docs/route-phase-2.5.md §B2.
+     */
     description?: string;
     keywords?: string;
     robots?: ROBOTS_INSTRUCTION;

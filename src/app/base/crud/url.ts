@@ -1,16 +1,18 @@
-// file: ./src/app/base/crud/url.ts
+// file: src/app/base/crud/url.ts
 import { effect, inject, Service, untracked } from "@angular/core";
 import { UrlParamsType } from "@libs/url/type";
 import { UrlService } from "@libs/url/service";
-import { CrudActionEnum, CrudFieldNormalizeModeEnum } from "@base/crud/enum";
+import { CrudFieldNormalizeModeEnum } from "@base/crud/enum";
+import { FoundationActionEnum, FoundationActionSlugEnum } from "@libs/foundation/action/enum";
 import { CrudState } from "@base/crud/state";
-import { CrudStateFormFieldUpdaterType, CrudStateFormFieldObjType, CrudActionRecordIdType } from "@base/crud/type";
+import { CrudStateFormFieldUpdaterType, CrudStateFormFieldObjType, CrudActionRecordPrimaryKeyValueType, CrudActionRecordSecondaryKeyValueType } from "@base/crud/type";
 import { CrudUtility } from "@base/crud/utility";
 import { CrudValidation } from "@base/crud/validation";
 import { NavigationEnd, Router } from "@angular/router";
 import { Location } from '@angular/common';
 import { catchError, filter, firstValueFrom, map, of, take, timeout } from "rxjs";
-import { SLUG_CRUD_CREATE, SLUG_CRUD_UPDATE } from "@base/crud/slug";
+import { CrudRoute } from "@base/crud/route";
+import { FoundationFieldDefaultNameEnum } from "@libs/foundation/field/enum";
 
 @Service({ autoProvided: false })
 export class CrudUrl {
@@ -26,6 +28,7 @@ export class CrudUrl {
     private readonly url = inject(UrlService);
     
     public readonly state = inject(CrudState);
+    public readonly route = inject(CrudRoute);
     public readonly utility = inject(CrudUtility);
     public readonly validation = inject(CrudValidation);
 
@@ -234,7 +237,7 @@ export class CrudUrl {
         }
 
         // do not write list/filter matrix params onto action URLs such as add, update etc
-        if (this.isCrudActionRoute()) {
+        if (this.route.readIsCrudActionRoute()) {
             return;
         }
 
@@ -454,56 +457,10 @@ export class CrudUrl {
     }
 
     // ██████ CRUD ACTION URL ███████████████████████████████████████████
-    /**
-     * Live snapshot read, deliberately not state.activatedRouteFirstSegment().
-     *
-     * This runs from CrudComponent's constructor via initCrudActionFromUrl(),
-     * i.e. during route activation, one step before the route signals fire.
-     * A signal read here returns the previous navigation.
-     *
-     * Phase 2 converts this to a computed together with removing that
-     * constructor call — the two changes only work as a pair.
-     */
-    public getCrudActionFromRoute(): CrudActionEnum | null {
-        const firstPath = this.url.state.getActivatedRouteSnapshot().url.at(0)?.path ?? null;
-
-        if (!firstPath) {
-            return null;
-        }
-
-        return this.isCrudActionValue(firstPath) ? firstPath : null;
-    }
-    public getCrudActionRecordIdFromRoute(): CrudActionRecordIdType {
-        // live read, same reason as getCrudActionFromRoute() above
-        const idParam = this.url.state.getActivatedRouteSnapshot().paramMap.get('id');
-
-        if (!idParam) {
-            return [];
-        }
-
-        // split the string by commas
-        const ids = idParam.split(',').map(id => id.trim());
-
-        // check if single id only
-        if (ids.length === 1) {
-            return ids[0];
-        } 
-        return ids;
-    }
-    public isCrudActionRoute(): boolean {
-        return this.getCrudActionFromRoute() !== null;
-    }
-    public isMutationActionRoute(): boolean {
-        const action = this.getCrudActionFromRoute();
-        return action === CrudActionEnum.CREATE || action === CrudActionEnum.UPDATE;
-    }
     public getCrudActionNavigationState(): Record<string, string> {
         return {
             crudReturnUrl: this.router.url,
         };
-    }
-    private isCrudActionValue(value: string): value is CrudActionEnum {
-        return (Object.values(CrudActionEnum) as string[]).includes(value);
     }
     public getCrudBaseUrl(): string {
         const urlWithoutHash = this.router.url.split('#')[0];
@@ -516,33 +473,69 @@ export class CrudUrl {
         const lastSegment = cleanSegments.at(-1);
         const secondLastSegment = cleanSegments.at(-2);
 
-        if (lastSegment === CrudActionEnum.CREATE) {
+        if (lastSegment === FoundationActionEnum.CREATE) {
             cleanSegments.pop();
-        } else if (secondLastSegment === CrudActionEnum.UPDATE) {
+        } else if (secondLastSegment === FoundationActionEnum.UPDATE) {
             cleanSegments.splice(-2);
         }
 
         return cleanSegments.join('/');
     }
     public getCreateActionUrl(): string {
-        return `${this.getCrudBaseUrl()}/${CrudActionEnum.CREATE}`;
+        return `${this.getCrudBaseUrl()}/${FoundationActionEnum.CREATE}`;
     }
-    public getUpdateActionUrl(id: CrudActionRecordIdType): string {
-        // 1. join the parent and child slugs
-        let fullPath = [this.getCrudBaseUrl(), SLUG_CRUD_UPDATE].join('/');
+    /**
+     * PARKED — primary-key addressed update url.
+     *
+     * Fills ':id', the param the parked CrudState/CrudRoute primary chain reads
+     * back. FoundationActionSlugEnum.UPDATE is ':keyid', so this produces a url
+     * with an unfilled placeholder until a primary-key addressed slug exists —
+     * that is the parked state, not a bug to patch by pointing it at ':keyid'.
+     * Doing that would silently make it a duplicate of the secondary builder.
+     *
+     * Use getUpdateActionUrlBySecondaryKey() for anything real.
+     */
+    public getUpdateActionUrlByPrimaryKey(id: CrudActionRecordPrimaryKeyValueType): string {
+        return this.buildUpdateActionUrl(id, FoundationFieldDefaultNameEnum.ID);
+    }
 
-        // 2. check if ids are array then join them with commas
-        if (Array.isArray(id)) {
-            id = id.join(',');
+    /**
+     * LIVE — secondary-key addressed update url.
+     *
+     * Fills ':keyid', which is what FoundationActionSlugEnum.UPDATE declares
+     * and what CrudState.crudActionRecordSecondaryKey reads back, so the
+     * builder and the reader cannot drift.
+     */
+    public getUpdateActionUrlBySecondaryKey(key: CrudActionRecordSecondaryKeyValueType): string {
+        return this.buildUpdateActionUrl(key, FoundationFieldDefaultNameEnum.KEYID);
+    }
+
+    /**
+     * ⚠ the placeholder name is a PARAMETER here, derived from the same
+     * FoundationFieldDefaultNameEnum the slug template is built from. It used
+     * to be hardcoded on one side while the template came from a constant —
+     * rename the constant and only half of it moved, leaving a literal
+     * ':keyid' in the emitted url. No compile error, no test, just a dead link.
+     */
+    private buildUpdateActionUrl(
+        value: CrudActionRecordPrimaryKeyValueType | CrudActionRecordSecondaryKeyValueType,
+        paramName: FoundationFieldDefaultNameEnum,
+    ): string {
+        // 1. join the parent and child slugs
+        let fullPath = [this.getCrudBaseUrl(), FoundationActionSlugEnum.UPDATE].join('/');
+
+        // 2. check if values are array then join them with commas
+        if (Array.isArray(value)) {
+            value = value.join(',');
         }
-        
+
         // 3. replace placeholders with actual values, all parameters stay in service only
         const params: Record<string, string | number> = {
-            ':id': id ?? '', 
+            [`:${paramName}`]: value ?? '',
         };
 
-        Object.entries(params).forEach(([key, value]) => {
-            fullPath = fullPath.replace(key, value.toString());
+        Object.entries(params).forEach(([key, val]) => {
+            fullPath = fullPath.replace(key, val.toString());
         });
 
         return fullPath;

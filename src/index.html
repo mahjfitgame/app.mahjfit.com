@@ -9,6 +9,28 @@
     content="viewport-fit=cover, width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no" />
 
   <!-- prevent Cross-Site Scripting (XSS) attacks. THIS NEED TO UPDATE IN PRODUCTION -->
+  <script>
+    // Safari/iOS ReferenceError: Can't find variable: Atomics fallback
+    // We polyfill Atomics so that `coincident` and `sqlite3` parsers don't crash on load,
+    // but we leave SharedArrayBuffer undefined so OPFS correctly detects it is not supported.
+    if (typeof Atomics === 'undefined') {
+      window.Atomics = {
+        notify: function() {},
+        wait: function() { return 'timed-out'; },
+        waitAsync: function() { return { async: false, value: Promise.resolve('timed-out') }; },
+        load: function() { return 0; },
+        store: function() {},
+        add: function() {},
+        sub: function() {},
+        and: function() {},
+        or: function() {},
+        xor: function() {},
+        exchange: function() {},
+        compareExchange: function() {},
+        isLockFree: function() { return false; }
+      };
+    }
+  </script>
   <meta http-equiv="Content-Security-Policy" content="
         default-src 
           'self' capacitor://localhost 
@@ -53,6 +75,10 @@
           http://192.168.0.231:* https://192.168.0.231:*
           http://mahjfit-com.thatsend.dev https://mahjfit-com.thatsend.dev
           ws: wss:
+
+          https://api-mahjfit-com.thatsend.dev
+          https://ws-mahjfit-com.thatsend.dev
+
           https://bfw-nestjs-microservice-api.thatsend.app
           https://bfw-nestjs-microservice-ws.thatsend.app
           https://www.google.com;

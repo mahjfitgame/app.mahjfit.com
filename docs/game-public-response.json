@@ -1,0 +1,1705 @@
+{
+  "personal": {
+    "pass": {
+      "submissions": null,
+      "second_votes": null
+    },
+    "claim": null,
+    "seats": {
+      "379": {
+        "game_id": 209,
+        "gseattype_id": 1,
+        "u_id": 65,
+        "user_disconnected": null,
+        "active": null,
+        "updated": "2026-08-21T12:10:20.479Z",
+        "id": 379,
+        "keyid": "01a0243a-ade5-7add-a89e-f0905140efde",
+        "created": "2026-08-21T12:10:20.479Z",
+        "deleted": null,
+        "racks": {
+          "1": {
+            "gseat_id": 379,
+            "rack_id": 1,
+            "is_dead": false,
+            "is_locked": false,
+            "is_mahjong": false,
+            "exposures_meld": [],
+            "hand": {
+              "23": {
+                "tile_id": 23,
+                "gseat_id": 379,
+                "in_rack_one": "2026-08-21T12:10:20.526Z",
+                "in_exposer_one": null,
+                "sort_exposer_one": null,
+                "sort_rack_one": null,
+                "in_exposer_two": null,
+                "in_rack_two": null,
+                "sort_exposer_two": null,
+                "sort_rack_two": null,
+                "active": null,
+                "updated": "2026-08-21T12:10:20.479Z",
+                "id": 9399,
+                "keyid": "01a0243a-ae02-7534-84ba-8674dd8d5437",
+                "created": "2026-08-21T12:10:20.479Z",
+                "deleted": null
+              },
+              "29": {
+                "tile_id": 29,
+                "gseat_id": 379,
+                "in_rack_one": "2026-08-21T12:10:20.526Z",
+                "in_exposer_one": null,
+                "sort_exposer_one": null,
+                "sort_rack_one": null,
+                "in_exposer_two": null,
+                "in_rack_two": null,
+                "sort_exposer_two": null,
+                "sort_rack_two": null,
+                "active": null,
+                "updated": "2026-08-21T12:10:20.479Z",
+                "id": 9406,
+                "keyid": "01a0243a-ae02-772f-9dc0-c9cd133ffb73",
+                "created": "2026-08-21T12:10:20.479Z",
+                "deleted": null
+              },
+              "52": {
+                "tile_id": 52,
+                "gseat_id": 379,
+                "in_rack_one": "2026-08-21T12:10:20.526Z",
+                "in_exposer_one": null,
+                "sort_exposer_one": null,
+                "sort_rack_one": null,
+                "in_exposer_two": null,
+                "in_rack_two": null,
+                "sort_exposer_two": null,
+                "sort_rack_two": null,
+                "active": null,
+                "updated": "2026-08-21T12:10:20.479Z",
+                "id": 9409,
+                "keyid": "01a0243a-ae02-77c2-bfdf-1e328db059b4",
+                "created": "2026-08-21T12:10:20.479Z",
+                "deleted": null
+              },
+              "62": {
+                "tile_id": 62,
+                "gseat_id": 379,
+                "in_rack_one": "2026-08-21T12:10:20.526Z",
+                "in_exposer_one": null,
+                "sort_exposer_one": null,
+                "sort_rack_one": null,
+                "in_exposer_two": null,
+                "in_rack_two": null,
+                "sort_exposer_two": null,
+                "sort_rack_two": null,
+                "active": null,
+                "updated": "2026-08-21T12:10:20.479Z",
+                "id": 9414,
+                "keyid": "01a0243a-ae02-78d3-a408-443cb4feada9",
+                "created": "2026-08-21T12:10:20.479Z",
+                "deleted": null
+              },
+              "73": {
+                "tile_id": 73,
+                "gseat_id": 379,
+                "in_rack_one": "2026-08-21T12:10:20.526Z",
+                "in_exposer_one": null,
+                "sort_exposer_one": null,
+                "sort_rack_one": null,
+                "in_exposer_two": null,
+                "in_rack_two": null,
+                "sort_exposer_two": null,
+                "sort_rack_two": null,
+                "active": null,
+                "updated": "2026-08-21T12:10:20.479Z",
+                "id": 9423,
+                "keyid": "01a0243a-ae02-7b31-a209-ed0ba79a54cc",
+                "created": "2026-08-21T12:10:20.479Z",
+                "deleted": null
+              },
+              "127": {
+                "tile_id": 127,
+                "gseat_id": 379,
+                "in_rack_one": "2026-08-21T12:10:20.526Z",
+                "in_exposer_one": null,
+                "sort_exposer_one": null,
+                "sort_rack_one": null,
+                "in_exposer_two": null,
+                "in_rack_two": null,
+                "sort_exposer_two": null,
+                "sort_rack_two": null,
+                "active": null,
+                "updated": "2026-08-21T12:10:20.479Z",
+                "id": 9379,
+                "keyid": "01a0243a-ae01-7e94-a672-878b3eb1df97",
+                "created": "2026-08-21T12:10:20.479Z",
+                "deleted": null
+              },
+              "129": {
+                "tile_id": 129,
+                "gseat_id": 379,
+                "in_rack_one": "2026-08-21T12:10:20.526Z",
+                "in_exposer_one": null,
+                "sort_exposer_one": null,
+                "sort_rack_one": null,
+                "in_exposer_two": null,
+                "in_rack_two": null,
+                "sort_exposer_two": null,
+                "sort_rack_two": null,
+                "active": null,
+                "updated": "2026-08-21T12:10:20.479Z",
+                "id": 9378,
+                "keyid": "01a0243a-ae01-7e60-86f6-7093a0220a4f",
+                "created": "2026-08-21T12:10:20.479Z",
+                "deleted": null
+              },
+              "130": {
+                "tile_id": 130,
+                "gseat_id": 379,
+                "in_rack_one": "2026-08-21T12:10:20.526Z",
+                "in_exposer_one": null,
+                "sort_exposer_one": null,
+                "sort_rack_one": null,
+                "in_exposer_two": null,
+                "in_rack_two": null,
+                "sort_exposer_two": null,
+                "sort_rack_two": null,
+                "active": null,
+                "updated": "2026-08-21T12:16:07.808Z",
+                "id": 9383,
+                "keyid": "01a0243a-ae02-7002-b4c3-19a88287c846",
+                "created": "2026-08-21T12:10:20.479Z",
+                "deleted": null
+              },
+              "133": {
+                "tile_id": 133,
+                "gseat_id": 379,
+                "in_rack_one": "2026-08-21T12:10:20.526Z",
+                "in_exposer_one": null,
+                "sort_exposer_one": null,
+                "sort_rack_one": null,
+                "in_exposer_two": null,
+                "in_rack_two": null,
+                "sort_exposer_two": null,
+                "sort_rack_two": null,
+                "active": null,
+                "updated": "2026-08-21T12:10:20.479Z",
+                "id": 9397,
+                "keyid": "01a0243a-ae02-74d5-ada3-b06096ef8073",
+                "created": "2026-08-21T12:10:20.479Z",
+                "deleted": null
+              },
+              "134": {
+                "tile_id": 134,
+                "gseat_id": 379,
+                "in_rack_one": "2026-08-21T12:10:20.526Z",
+                "in_exposer_one": null,
+                "sort_exposer_one": null,
+                "sort_rack_one": null,
+                "in_exposer_two": null,
+                "in_rack_two": null,
+                "sort_exposer_two": null,
+                "sort_rack_two": null,
+                "active": null,
+                "updated": "2026-08-21T12:10:20.479Z",
+                "id": 9405,
+                "keyid": "01a0243a-ae02-76f7-a896-3d1882ffcd49",
+                "created": "2026-08-21T12:10:20.479Z",
+                "deleted": null
+              },
+              "136": {
+                "tile_id": 136,
+                "gseat_id": 379,
+                "in_rack_one": "2026-08-21T12:10:20.526Z",
+                "in_exposer_one": null,
+                "sort_exposer_one": null,
+                "sort_rack_one": null,
+                "in_exposer_two": null,
+                "in_rack_two": null,
+                "sort_exposer_two": null,
+                "sort_rack_two": null,
+                "active": null,
+                "updated": "2026-08-21T12:10:20.479Z",
+                "id": 9422,
+                "keyid": "01a0243a-ae02-7ad9-8145-0d3180dbd451",
+                "created": "2026-08-21T12:10:20.479Z",
+                "deleted": null
+              },
+              "143": {
+                "tile_id": 143,
+                "gseat_id": 379,
+                "in_rack_one": "2026-08-21T12:10:20.526Z",
+                "in_exposer_one": null,
+                "sort_exposer_one": null,
+                "sort_rack_one": null,
+                "in_exposer_two": null,
+                "in_rack_two": null,
+                "sort_exposer_two": null,
+                "sort_rack_two": null,
+                "active": null,
+                "updated": "2026-08-21T12:10:20.479Z",
+                "id": 9386,
+                "keyid": "01a0243a-ae02-70ea-8160-d509fe8b489a",
+                "created": "2026-08-21T12:10:20.479Z",
+                "deleted": null
+              },
+              "145": {
+                "tile_id": 145,
+                "gseat_id": 379,
+                "in_rack_one": "2026-08-21T12:10:20.526Z",
+                "in_exposer_one": null,
+                "sort_exposer_one": null,
+                "sort_rack_one": null,
+                "in_exposer_two": null,
+                "in_rack_two": null,
+                "sort_exposer_two": null,
+                "sort_rack_two": null,
+                "active": null,
+                "updated": "2026-08-21T12:10:20.479Z",
+                "id": 9377,
+                "keyid": "01a0243a-ae01-7e1c-aa29-9598a5b5f4e9",
+                "created": "2026-08-21T12:10:20.479Z",
+                "deleted": null
+              },
+              "146": {
+                "tile_id": 146,
+                "gseat_id": 379,
+                "in_rack_one": "2026-08-21T12:10:20.526Z",
+                "in_exposer_one": null,
+                "sort_exposer_one": null,
+                "sort_rack_one": null,
+                "in_exposer_two": null,
+                "in_rack_two": null,
+                "sort_exposer_two": null,
+                "sort_rack_two": null,
+                "active": null,
+                "updated": "2026-08-21T12:16:07.808Z",
+                "id": 9419,
+                "keyid": "01a0243a-ae02-79d1-b8c3-c35904331ee2",
+                "created": "2026-08-21T12:10:20.479Z",
+                "deleted": null
+              }
+            },
+            "hand_order": []
+          }
+        }
+      }
+    }
+  },
+  "play": {
+    "current_turn_seat_id": 379,
+    "current_turn_rack_id": 1,
+    "last_client_seq_by_player": null,
+    "finished_reason": null,
+    "phase": 3,
+    "turn_stage": 2,
+    "pass": {
+      "stage": null,
+      "round": null,
+      "direction": null,
+      "count": null
+    },
+    "seats": {
+      "379": {
+        "game_id": 209,
+        "gseattype_id": 1,
+        "u_id": 65,
+        "user_disconnected": null,
+        "active": null,
+        "updated": "2026-08-21T12:10:20.479Z",
+        "id": 379,
+        "keyid": "01a0243a-ade5-7add-a89e-f0905140efde",
+        "created": "2026-08-21T12:10:20.479Z",
+        "deleted": null,
+        "racks": {
+          "1": {
+            "gseat_id": 379,
+            "rack_id": 1,
+            "is_dead": false,
+            "is_locked": false,
+            "is_mahjong": false,
+            "exposures_meld": []
+          }
+        }
+      },
+      "380": {
+        "game_id": 209,
+        "gseattype_id": 2,
+        "u_id": null,
+        "user_disconnected": null,
+        "active": null,
+        "updated": "2026-08-21T12:10:20.479Z",
+        "id": 380,
+        "keyid": "01a0243a-ade5-7ee5-baf0-dae39c83c69a",
+        "created": "2026-08-21T12:10:20.479Z",
+        "deleted": null,
+        "racks": {
+          "1": {
+            "gseat_id": 380,
+            "rack_id": 1,
+            "is_dead": false,
+            "is_locked": false,
+            "is_mahjong": false,
+            "exposures_meld": []
+          }
+        }
+      },
+      "381": {
+        "game_id": 209,
+        "gseattype_id": 5,
+        "u_id": null,
+        "user_disconnected": null,
+        "active": null,
+        "updated": "2026-08-21T12:10:20.479Z",
+        "id": 381,
+        "keyid": "01a0243a-ade5-7f1b-acdf-76b24d961fdc",
+        "created": "2026-08-21T12:10:20.479Z",
+        "deleted": null,
+        "racks": {
+          "1": {
+            "gseat_id": 381,
+            "rack_id": 1,
+            "is_dead": false,
+            "is_locked": false,
+            "is_mahjong": false,
+            "exposures_meld": []
+          }
+        }
+      },
+      "382": {
+        "game_id": 209,
+        "gseattype_id": 6,
+        "u_id": null,
+        "user_disconnected": null,
+        "active": null,
+        "updated": "2026-08-21T12:10:20.479Z",
+        "id": 382,
+        "keyid": "01a0243a-ade5-7f3d-a9b1-857757f78740",
+        "created": "2026-08-21T12:10:20.479Z",
+        "deleted": null,
+        "racks": {
+          "1": {
+            "gseat_id": 382,
+            "rack_id": 1,
+            "is_dead": false,
+            "is_locked": false,
+            "is_mahjong": false,
+            "exposures_meld": []
+          }
+        }
+      },
+      "383": {
+        "game_id": 209,
+        "gseattype_id": 3,
+        "u_id": null,
+        "user_disconnected": null,
+        "active": null,
+        "updated": "2026-08-21T12:10:20.479Z",
+        "id": 383,
+        "keyid": "01a0243a-ade5-7f5b-a874-d5c222571ec7",
+        "created": "2026-08-21T12:10:20.479Z",
+        "deleted": null,
+        "racks": {
+          "1": {
+            "gseat_id": 383,
+            "rack_id": 1,
+            "is_dead": false,
+            "is_locked": false,
+            "is_mahjong": false,
+            "exposures_meld": []
+          }
+        }
+      },
+      "384": {
+        "game_id": 209,
+        "gseattype_id": 4,
+        "u_id": null,
+        "user_disconnected": null,
+        "active": null,
+        "updated": "2026-08-21T12:10:20.479Z",
+        "id": 384,
+        "keyid": "01a0243a-ade5-7f78-b198-8f38633bb4b9",
+        "created": "2026-08-21T12:10:20.479Z",
+        "deleted": null,
+        "racks": {
+          "1": {
+            "gseat_id": 384,
+            "rack_id": 1,
+            "is_dead": false,
+            "is_locked": false,
+            "is_mahjong": false,
+            "exposures_meld": []
+          }
+        }
+      }
+    },
+    "discards_tiles": [],
+    "claim": null,
+    "wall_count": 99
+  },
+  "game": {
+    "id": 209,
+    "keyid": "01a0243a-71e1-7d8e-b033-9927006793c5",
+    "owner_u_id": 65,
+    "grule_id": 5,
+    "botlvl_id": "FAST",
+    "allow_join": "PUBLIC",
+    "mode": "FOUR_PLAYERS",
+    "ended": null,
+    "suspended": null,
+    "current_turn_u_id": 65,
+    "deleted": null,
+    "bot_profile": {
+      "id": 3,
+      "keyid": null,
+      "botlvl_id": "FAST",
+      "title": "Hard",
+      "think_time_min_ms": 500,
+      "think_time_max_ms": 1500,
+      "claim_aggression": 0.82,
+      "defense_weight": 0.88,
+      "hand_reading_weight": 0.92,
+      "discard_safety_weight": 0.9,
+      "joker_usage_weight": 0.92,
+      "exposure_preference": 1,
+      "error_rate": 0.08,
+      "randomness": 0.05,
+      "react_to_danger": 0.9,
+      "charleston_quality": 0.9,
+      "active": null
+    },
+    "all_tiles": {
+      "1": {
+        "id": 1,
+        "code": "B1",
+        "category": 1,
+        "type": 1,
+        "set": 1,
+        "rank": 1
+      },
+      "2": {
+        "id": 2,
+        "code": "B2",
+        "category": 1,
+        "type": 1,
+        "set": 1,
+        "rank": 2
+      },
+      "3": {
+        "id": 3,
+        "code": "B3",
+        "category": 1,
+        "type": 1,
+        "set": 1,
+        "rank": 3
+      },
+      "4": {
+        "id": 4,
+        "code": "B4",
+        "category": 1,
+        "type": 1,
+        "set": 1,
+        "rank": 4
+      },
+      "5": {
+        "id": 5,
+        "code": "B5",
+        "category": 1,
+        "type": 1,
+        "set": 1,
+        "rank": 5
+      },
+      "11": {
+        "id": 11,
+        "code": "B6",
+        "category": 1,
+        "type": 1,
+        "set": 1,
+        "rank": 6
+      },
+      "12": {
+        "id": 12,
+        "code": "B7",
+        "category": 1,
+        "type": 1,
+        "set": 1,
+        "rank": 7
+      },
+      "13": {
+        "id": 13,
+        "code": "B8",
+        "category": 1,
+        "type": 1,
+        "set": 1,
+        "rank": 8
+      },
+      "14": {
+        "id": 14,
+        "code": "B9",
+        "category": 1,
+        "type": 1,
+        "set": 1,
+        "rank": 9
+      },
+      "15": {
+        "id": 15,
+        "code": "B1",
+        "category": 1,
+        "type": 1,
+        "set": 2,
+        "rank": 1
+      },
+      "16": {
+        "id": 16,
+        "code": "B2",
+        "category": 1,
+        "type": 1,
+        "set": 2,
+        "rank": 2
+      },
+      "17": {
+        "id": 17,
+        "code": "B3",
+        "category": 1,
+        "type": 1,
+        "set": 2,
+        "rank": 3
+      },
+      "18": {
+        "id": 18,
+        "code": "B4",
+        "category": 1,
+        "type": 1,
+        "set": 2,
+        "rank": 4
+      },
+      "19": {
+        "id": 19,
+        "code": "B5",
+        "category": 1,
+        "type": 1,
+        "set": 2,
+        "rank": 5
+      },
+      "20": {
+        "id": 20,
+        "code": "B6",
+        "category": 1,
+        "type": 1,
+        "set": 2,
+        "rank": 6
+      },
+      "21": {
+        "id": 21,
+        "code": "B7",
+        "category": 1,
+        "type": 1,
+        "set": 2,
+        "rank": 7
+      },
+      "22": {
+        "id": 22,
+        "code": "B8",
+        "category": 1,
+        "type": 1,
+        "set": 2,
+        "rank": 8
+      },
+      "23": {
+        "id": 23,
+        "code": "B9",
+        "category": 1,
+        "type": 1,
+        "set": 2,
+        "rank": 9
+      },
+      "24": {
+        "id": 24,
+        "code": "B1",
+        "category": 1,
+        "type": 1,
+        "set": 3,
+        "rank": 1
+      },
+      "25": {
+        "id": 25,
+        "code": "B2",
+        "category": 1,
+        "type": 1,
+        "set": 3,
+        "rank": 2
+      },
+      "26": {
+        "id": 26,
+        "code": "B3",
+        "category": 1,
+        "type": 1,
+        "set": 3,
+        "rank": 3
+      },
+      "27": {
+        "id": 27,
+        "code": "B4",
+        "category": 1,
+        "type": 1,
+        "set": 3,
+        "rank": 4
+      },
+      "28": {
+        "id": 28,
+        "code": "B5",
+        "category": 1,
+        "type": 1,
+        "set": 3,
+        "rank": 5
+      },
+      "29": {
+        "id": 29,
+        "code": "B6",
+        "category": 1,
+        "type": 1,
+        "set": 3,
+        "rank": 6
+      },
+      "30": {
+        "id": 30,
+        "code": "B7",
+        "category": 1,
+        "type": 1,
+        "set": 3,
+        "rank": 7
+      },
+      "31": {
+        "id": 31,
+        "code": "B8",
+        "category": 1,
+        "type": 1,
+        "set": 3,
+        "rank": 8
+      },
+      "32": {
+        "id": 32,
+        "code": "B9",
+        "category": 1,
+        "type": 1,
+        "set": 3,
+        "rank": 9
+      },
+      "33": {
+        "id": 33,
+        "code": "B1",
+        "category": 1,
+        "type": 1,
+        "set": 4,
+        "rank": 1
+      },
+      "34": {
+        "id": 34,
+        "code": "B2",
+        "category": 1,
+        "type": 1,
+        "set": 4,
+        "rank": 2
+      },
+      "35": {
+        "id": 35,
+        "code": "B3",
+        "category": 1,
+        "type": 1,
+        "set": 4,
+        "rank": 3
+      },
+      "36": {
+        "id": 36,
+        "code": "B4",
+        "category": 1,
+        "type": 1,
+        "set": 4,
+        "rank": 4
+      },
+      "37": {
+        "id": 37,
+        "code": "B5",
+        "category": 1,
+        "type": 1,
+        "set": 4,
+        "rank": 5
+      },
+      "38": {
+        "id": 38,
+        "code": "B6",
+        "category": 1,
+        "type": 1,
+        "set": 4,
+        "rank": 6
+      },
+      "39": {
+        "id": 39,
+        "code": "B7",
+        "category": 1,
+        "type": 1,
+        "set": 4,
+        "rank": 7
+      },
+      "40": {
+        "id": 40,
+        "code": "B8",
+        "category": 1,
+        "type": 1,
+        "set": 4,
+        "rank": 8
+      },
+      "41": {
+        "id": 41,
+        "code": "B9",
+        "category": 1,
+        "type": 1,
+        "set": 4,
+        "rank": 9
+      },
+      "42": {
+        "id": 42,
+        "code": "D1",
+        "category": 1,
+        "type": 3,
+        "set": 1,
+        "rank": 1
+      },
+      "43": {
+        "id": 43,
+        "code": "D2",
+        "category": 1,
+        "type": 3,
+        "set": 1,
+        "rank": 2
+      },
+      "44": {
+        "id": 44,
+        "code": "D3",
+        "category": 1,
+        "type": 3,
+        "set": 1,
+        "rank": 3
+      },
+      "45": {
+        "id": 45,
+        "code": "D4",
+        "category": 1,
+        "type": 3,
+        "set": 1,
+        "rank": 4
+      },
+      "46": {
+        "id": 46,
+        "code": "D5",
+        "category": 1,
+        "type": 3,
+        "set": 1,
+        "rank": 5
+      },
+      "47": {
+        "id": 47,
+        "code": "D6",
+        "category": 1,
+        "type": 3,
+        "set": 1,
+        "rank": 6
+      },
+      "48": {
+        "id": 48,
+        "code": "D7",
+        "category": 1,
+        "type": 3,
+        "set": 1,
+        "rank": 7
+      },
+      "49": {
+        "id": 49,
+        "code": "D8",
+        "category": 1,
+        "type": 3,
+        "set": 1,
+        "rank": 8
+      },
+      "50": {
+        "id": 50,
+        "code": "D9",
+        "category": 1,
+        "type": 3,
+        "set": 1,
+        "rank": 9
+      },
+      "51": {
+        "id": 51,
+        "code": "D1",
+        "category": 1,
+        "type": 3,
+        "set": 2,
+        "rank": 1
+      },
+      "52": {
+        "id": 52,
+        "code": "D2",
+        "category": 1,
+        "type": 3,
+        "set": 2,
+        "rank": 2
+      },
+      "53": {
+        "id": 53,
+        "code": "D3",
+        "category": 1,
+        "type": 3,
+        "set": 2,
+        "rank": 3
+      },
+      "54": {
+        "id": 54,
+        "code": "D4",
+        "category": 1,
+        "type": 3,
+        "set": 2,
+        "rank": 4
+      },
+      "55": {
+        "id": 55,
+        "code": "D5",
+        "category": 1,
+        "type": 3,
+        "set": 2,
+        "rank": 5
+      },
+      "56": {
+        "id": 56,
+        "code": "D6",
+        "category": 1,
+        "type": 3,
+        "set": 2,
+        "rank": 6
+      },
+      "57": {
+        "id": 57,
+        "code": "D7",
+        "category": 1,
+        "type": 3,
+        "set": 2,
+        "rank": 7
+      },
+      "58": {
+        "id": 58,
+        "code": "D8",
+        "category": 1,
+        "type": 3,
+        "set": 2,
+        "rank": 8
+      },
+      "59": {
+        "id": 59,
+        "code": "D9",
+        "category": 1,
+        "type": 3,
+        "set": 2,
+        "rank": 9
+      },
+      "60": {
+        "id": 60,
+        "code": "D1",
+        "category": 1,
+        "type": 3,
+        "set": 3,
+        "rank": 1
+      },
+      "61": {
+        "id": 61,
+        "code": "D2",
+        "category": 1,
+        "type": 3,
+        "set": 3,
+        "rank": 2
+      },
+      "62": {
+        "id": 62,
+        "code": "D3",
+        "category": 1,
+        "type": 3,
+        "set": 3,
+        "rank": 3
+      },
+      "63": {
+        "id": 63,
+        "code": "D4",
+        "category": 1,
+        "type": 3,
+        "set": 3,
+        "rank": 4
+      },
+      "64": {
+        "id": 64,
+        "code": "D5",
+        "category": 1,
+        "type": 3,
+        "set": 3,
+        "rank": 5
+      },
+      "65": {
+        "id": 65,
+        "code": "D6",
+        "category": 1,
+        "type": 3,
+        "set": 3,
+        "rank": 6
+      },
+      "66": {
+        "id": 66,
+        "code": "D7",
+        "category": 1,
+        "type": 3,
+        "set": 3,
+        "rank": 7
+      },
+      "67": {
+        "id": 67,
+        "code": "D8",
+        "category": 1,
+        "type": 3,
+        "set": 3,
+        "rank": 8
+      },
+      "68": {
+        "id": 68,
+        "code": "D9",
+        "category": 1,
+        "type": 3,
+        "set": 3,
+        "rank": 9
+      },
+      "69": {
+        "id": 69,
+        "code": "D1",
+        "category": 1,
+        "type": 3,
+        "set": 4,
+        "rank": 1
+      },
+      "70": {
+        "id": 70,
+        "code": "D2",
+        "category": 1,
+        "type": 3,
+        "set": 4,
+        "rank": 2
+      },
+      "71": {
+        "id": 71,
+        "code": "D3",
+        "category": 1,
+        "type": 3,
+        "set": 4,
+        "rank": 3
+      },
+      "72": {
+        "id": 72,
+        "code": "D4",
+        "category": 1,
+        "type": 3,
+        "set": 4,
+        "rank": 4
+      },
+      "73": {
+        "id": 73,
+        "code": "D5",
+        "category": 1,
+        "type": 3,
+        "set": 4,
+        "rank": 5
+      },
+      "74": {
+        "id": 74,
+        "code": "D6",
+        "category": 1,
+        "type": 3,
+        "set": 4,
+        "rank": 6
+      },
+      "75": {
+        "id": 75,
+        "code": "D7",
+        "category": 1,
+        "type": 3,
+        "set": 4,
+        "rank": 7
+      },
+      "76": {
+        "id": 76,
+        "code": "D8",
+        "category": 1,
+        "type": 3,
+        "set": 4,
+        "rank": 8
+      },
+      "77": {
+        "id": 77,
+        "code": "D9",
+        "category": 1,
+        "type": 3,
+        "set": 4,
+        "rank": 9
+      },
+      "78": {
+        "id": 78,
+        "code": "C1",
+        "category": 1,
+        "type": 2,
+        "set": 1,
+        "rank": 1
+      },
+      "79": {
+        "id": 79,
+        "code": "C2",
+        "category": 1,
+        "type": 2,
+        "set": 1,
+        "rank": 2
+      },
+      "80": {
+        "id": 80,
+        "code": "C3",
+        "category": 1,
+        "type": 2,
+        "set": 1,
+        "rank": 3
+      },
+      "81": {
+        "id": 81,
+        "code": "C4",
+        "category": 1,
+        "type": 2,
+        "set": 1,
+        "rank": 4
+      },
+      "82": {
+        "id": 82,
+        "code": "C5",
+        "category": 1,
+        "type": 2,
+        "set": 1,
+        "rank": 5
+      },
+      "83": {
+        "id": 83,
+        "code": "C6",
+        "category": 1,
+        "type": 2,
+        "set": 1,
+        "rank": 6
+      },
+      "84": {
+        "id": 84,
+        "code": "C7",
+        "category": 1,
+        "type": 2,
+        "set": 1,
+        "rank": 7
+      },
+      "85": {
+        "id": 85,
+        "code": "C8",
+        "category": 1,
+        "type": 2,
+        "set": 1,
+        "rank": 8
+      },
+      "86": {
+        "id": 86,
+        "code": "C9",
+        "category": 1,
+        "type": 2,
+        "set": 1,
+        "rank": 9
+      },
+      "87": {
+        "id": 87,
+        "code": "C1",
+        "category": 1,
+        "type": 2,
+        "set": 2,
+        "rank": 1
+      },
+      "88": {
+        "id": 88,
+        "code": "C2",
+        "category": 1,
+        "type": 2,
+        "set": 2,
+        "rank": 2
+      },
+      "89": {
+        "id": 89,
+        "code": "C3",
+        "category": 1,
+        "type": 2,
+        "set": 2,
+        "rank": 3
+      },
+      "90": {
+        "id": 90,
+        "code": "C4",
+        "category": 1,
+        "type": 2,
+        "set": 2,
+        "rank": 4
+      },
+      "91": {
+        "id": 91,
+        "code": "C5",
+        "category": 1,
+        "type": 2,
+        "set": 2,
+        "rank": 5
+      },
+      "92": {
+        "id": 92,
+        "code": "C6",
+        "category": 1,
+        "type": 2,
+        "set": 2,
+        "rank": 6
+      },
+      "93": {
+        "id": 93,
+        "code": "C7",
+        "category": 1,
+        "type": 2,
+        "set": 2,
+        "rank": 7
+      },
+      "94": {
+        "id": 94,
+        "code": "C8",
+        "category": 1,
+        "type": 2,
+        "set": 2,
+        "rank": 8
+      },
+      "95": {
+        "id": 95,
+        "code": "C9",
+        "category": 1,
+        "type": 2,
+        "set": 2,
+        "rank": 9
+      },
+      "96": {
+        "id": 96,
+        "code": "C1",
+        "category": 1,
+        "type": 2,
+        "set": 3,
+        "rank": 1
+      },
+      "97": {
+        "id": 97,
+        "code": "C2",
+        "category": 1,
+        "type": 2,
+        "set": 3,
+        "rank": 2
+      },
+      "98": {
+        "id": 98,
+        "code": "C3",
+        "category": 1,
+        "type": 2,
+        "set": 3,
+        "rank": 3
+      },
+      "99": {
+        "id": 99,
+        "code": "C4",
+        "category": 1,
+        "type": 2,
+        "set": 3,
+        "rank": 4
+      },
+      "100": {
+        "id": 100,
+        "code": "C5",
+        "category": 1,
+        "type": 2,
+        "set": 3,
+        "rank": 5
+      },
+      "101": {
+        "id": 101,
+        "code": "C6",
+        "category": 1,
+        "type": 2,
+        "set": 3,
+        "rank": 6
+      },
+      "102": {
+        "id": 102,
+        "code": "C7",
+        "category": 1,
+        "type": 2,
+        "set": 3,
+        "rank": 7
+      },
+      "103": {
+        "id": 103,
+        "code": "C8",
+        "category": 1,
+        "type": 2,
+        "set": 3,
+        "rank": 8
+      },
+      "104": {
+        "id": 104,
+        "code": "C9",
+        "category": 1,
+        "type": 2,
+        "set": 3,
+        "rank": 9
+      },
+      "105": {
+        "id": 105,
+        "code": "C1",
+        "category": 1,
+        "type": 2,
+        "set": 4,
+        "rank": 1
+      },
+      "106": {
+        "id": 106,
+        "code": "C2",
+        "category": 1,
+        "type": 2,
+        "set": 4,
+        "rank": 2
+      },
+      "107": {
+        "id": 107,
+        "code": "C3",
+        "category": 1,
+        "type": 2,
+        "set": 4,
+        "rank": 3
+      },
+      "108": {
+        "id": 108,
+        "code": "C4",
+        "category": 1,
+        "type": 2,
+        "set": 4,
+        "rank": 4
+      },
+      "109": {
+        "id": 109,
+        "code": "C5",
+        "category": 1,
+        "type": 2,
+        "set": 4,
+        "rank": 5
+      },
+      "110": {
+        "id": 110,
+        "code": "C6",
+        "category": 1,
+        "type": 2,
+        "set": 4,
+        "rank": 6
+      },
+      "111": {
+        "id": 111,
+        "code": "C7",
+        "category": 1,
+        "type": 2,
+        "set": 4,
+        "rank": 7
+      },
+      "112": {
+        "id": 112,
+        "code": "C8",
+        "category": 1,
+        "type": 2,
+        "set": 4,
+        "rank": 8
+      },
+      "113": {
+        "id": 113,
+        "code": "C9",
+        "category": 1,
+        "type": 2,
+        "set": 4,
+        "rank": 9
+      },
+      "115": {
+        "id": 115,
+        "code": "DR",
+        "category": 3,
+        "type": 8,
+        "set": 1,
+        "rank": 1
+      },
+      "116": {
+        "id": 116,
+        "code": "DR",
+        "category": 3,
+        "type": 8,
+        "set": 2,
+        "rank": 2
+      },
+      "117": {
+        "id": 117,
+        "code": "DR",
+        "category": 3,
+        "type": 8,
+        "set": 3,
+        "rank": 3
+      },
+      "118": {
+        "id": 118,
+        "code": "DR",
+        "category": 3,
+        "type": 8,
+        "set": 4,
+        "rank": 4
+      },
+      "119": {
+        "id": 119,
+        "code": "DW",
+        "category": 3,
+        "type": 10,
+        "set": 1,
+        "rank": 1
+      },
+      "120": {
+        "id": 120,
+        "code": "DW",
+        "category": 3,
+        "type": 10,
+        "set": 2,
+        "rank": 2
+      },
+      "121": {
+        "id": 121,
+        "code": "DW",
+        "category": 3,
+        "type": 10,
+        "set": 3,
+        "rank": 3
+      },
+      "122": {
+        "id": 122,
+        "code": "DW",
+        "category": 3,
+        "type": 10,
+        "set": 4,
+        "rank": 4
+      },
+      "123": {
+        "id": 123,
+        "code": "WE",
+        "category": 2,
+        "type": 4,
+        "set": 1,
+        "rank": 1
+      },
+      "124": {
+        "id": 124,
+        "code": "WE",
+        "category": 2,
+        "type": 4,
+        "set": 2,
+        "rank": 2
+      },
+      "125": {
+        "id": 125,
+        "code": "WE",
+        "category": 2,
+        "type": 4,
+        "set": 3,
+        "rank": 3
+      },
+      "126": {
+        "id": 126,
+        "code": "WE",
+        "category": 2,
+        "type": 4,
+        "set": 4,
+        "rank": 4
+      },
+      "127": {
+        "id": 127,
+        "code": "WS",
+        "category": 2,
+        "type": 5,
+        "set": 1,
+        "rank": 1
+      },
+      "128": {
+        "id": 128,
+        "code": "WS",
+        "category": 2,
+        "type": 5,
+        "set": 2,
+        "rank": 2
+      },
+      "129": {
+        "id": 129,
+        "code": "WS",
+        "category": 2,
+        "type": 5,
+        "set": 3,
+        "rank": 3
+      },
+      "130": {
+        "id": 130,
+        "code": "WS",
+        "category": 2,
+        "type": 5,
+        "set": 4,
+        "rank": 4
+      },
+      "131": {
+        "id": 131,
+        "code": "WW",
+        "category": 2,
+        "type": 6,
+        "set": 1,
+        "rank": 1
+      },
+      "132": {
+        "id": 132,
+        "code": "WW",
+        "category": 2,
+        "type": 6,
+        "set": 2,
+        "rank": 2
+      },
+      "133": {
+        "id": 133,
+        "code": "WW",
+        "category": 2,
+        "type": 6,
+        "set": 3,
+        "rank": 3
+      },
+      "134": {
+        "id": 134,
+        "code": "WW",
+        "category": 2,
+        "type": 6,
+        "set": 4,
+        "rank": 4
+      },
+      "135": {
+        "id": 135,
+        "code": "WN",
+        "category": 2,
+        "type": 7,
+        "set": 1,
+        "rank": 1
+      },
+      "136": {
+        "id": 136,
+        "code": "WN",
+        "category": 2,
+        "type": 7,
+        "set": 2,
+        "rank": 2
+      },
+      "137": {
+        "id": 137,
+        "code": "WN",
+        "category": 2,
+        "type": 7,
+        "set": 3,
+        "rank": 3
+      },
+      "138": {
+        "id": 138,
+        "code": "WN",
+        "category": 2,
+        "type": 7,
+        "set": 4,
+        "rank": 4
+      },
+      "139": {
+        "id": 139,
+        "code": "F1",
+        "category": 4,
+        "type": 12,
+        "set": 1,
+        "rank": 1
+      },
+      "140": {
+        "id": 140,
+        "code": "F2",
+        "category": 4,
+        "type": 12,
+        "set": 2,
+        "rank": 2
+      },
+      "141": {
+        "id": 141,
+        "code": "F3",
+        "category": 4,
+        "type": 11,
+        "set": 1,
+        "rank": 1
+      },
+      "142": {
+        "id": 142,
+        "code": "F4",
+        "category": 4,
+        "type": 11,
+        "set": 2,
+        "rank": 2
+      },
+      "143": {
+        "id": 143,
+        "code": "F5",
+        "category": 4,
+        "type": 13,
+        "set": 1,
+        "rank": 1
+      },
+      "144": {
+        "id": 144,
+        "code": "F6",
+        "category": 4,
+        "type": 13,
+        "set": 2,
+        "rank": 2
+      },
+      "145": {
+        "id": 145,
+        "code": "F7",
+        "category": 4,
+        "type": 14,
+        "set": 1,
+        "rank": 1
+      },
+      "146": {
+        "id": 146,
+        "code": "F7",
+        "category": 4,
+        "type": 14,
+        "set": 2,
+        "rank": 2
+      },
+      "147": {
+        "id": 147,
+        "code": "J",
+        "category": 5,
+        "type": 15,
+        "set": 1,
+        "rank": 1
+      },
+      "148": {
+        "id": 148,
+        "code": "J",
+        "category": 5,
+        "type": 15,
+        "set": 1,
+        "rank": 2
+      },
+      "149": {
+        "id": 149,
+        "code": "J",
+        "category": 5,
+        "type": 15,
+        "set": 1,
+        "rank": 3
+      },
+      "150": {
+        "id": 150,
+        "code": "J",
+        "category": 5,
+        "type": 15,
+        "set": 1,
+        "rank": 4
+      },
+      "151": {
+        "id": 151,
+        "code": "J",
+        "category": 5,
+        "type": 15,
+        "set": 1,
+        "rank": 5
+      },
+      "152": {
+        "id": 152,
+        "code": "J",
+        "category": 5,
+        "type": 15,
+        "set": 1,
+        "rank": 6
+      },
+      "153": {
+        "id": 153,
+        "code": "J",
+        "category": 5,
+        "type": 15,
+        "set": 1,
+        "rank": 7
+      },
+      "154": {
+        "id": 154,
+        "code": "J",
+        "category": 5,
+        "type": 15,
+        "set": 1,
+        "rank": 8
+      },
+      "155": {
+        "id": 155,
+        "code": "DG",
+        "category": 3,
+        "type": 9,
+        "set": 1,
+        "rank": 1
+      },
+      "156": {
+        "id": 156,
+        "code": "DG",
+        "category": 3,
+        "type": 9,
+        "set": 2,
+        "rank": 2
+      },
+      "157": {
+        "id": 157,
+        "code": "DG",
+        "category": 3,
+        "type": 9,
+        "set": 3,
+        "rank": 3
+      },
+      "158": {
+        "id": 158,
+        "code": "DG",
+        "category": 3,
+        "type": 9,
+        "set": 4,
+        "rank": 4
+      }
+    }
+  },
+  "private": {
+    "next_seat_by_id": {
+      "379": 380,
+      "380": 383,
+      "383": 384,
+      "384": 379
+    },
+    "seat_id_by_type": {
+      "1": 379,
+      "2": 380,
+      "3": 383,
+      "4": 384,
+      "5": 381,
+      "6": 382
+    }
+  }
+}

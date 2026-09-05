@@ -1,4 +1,4 @@
-// file: ./libs/src/signal-state/example/state.ts
+// file: libs/src/signal-state/example/state.ts
 import {
   DestroyRef,
   Injectable,
@@ -231,7 +231,7 @@ export class StateExample extends SignalStateService {
   constructor() {
     super();
     // activate relevent web socket service to use in this state
-    this.api.sdk.graphql.ws.use(UserWsToken);
+    this.api.sdk.graphql.ws.initialize(UserWsToken);
 
     /**
      * If we have @Injectable({ providedIn: 'root' })
@@ -394,7 +394,7 @@ export class StateExample extends SignalStateService {
   }
   public async loadGeoCountry(skip: number, abortSignal?: AbortSignal): Promise<CountryFindOutputDto> {
     // set the targeted module for api call
-    this.api.sdk.graphql.use(Country);
+    this.api.sdk.graphql.initialize(Country);
 
     const fetchData = async (skip: number) => {
       // create a reusable find call

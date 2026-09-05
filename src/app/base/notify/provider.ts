@@ -1,4 +1,4 @@
-// file: ./src/app/base/notify/provider.ts
+// file: src/app/base/notify/provider.ts
 import { InjectionToken, Type } from '@angular/core';
 import { EnvironmentProviders, Provider, makeEnvironmentProviders } from '@angular/core';
 import { provideToastr, GlobalConfig, ToastNoAnimation } from 'ngx-toastr';

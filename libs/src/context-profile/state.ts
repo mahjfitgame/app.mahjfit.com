@@ -70,6 +70,22 @@ export class ContextProfileState extends SignalStateService {
     public readonly handshaked = this._handshaked.asReadonly();
 
     // ▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬
+    private readonly _csrfToken = this.cookiePersistSignal<string | null>(
+        ContextProfileStateFieldEnum.CSRF_TOKEN,
+        null,
+        {
+            debounceMs: 0,
+            crossTab: true,
+            validate: this.validateCsrft,
+            deleteOnNull: true,
+            source: {
+                path: '/',
+            }
+        },
+    );
+    public readonly csrfToken = this._csrfToken.asReadonly();
+
+    // ▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬
     private readonly _hostToken = this.localStoragePersistSignal<string | null>(
         ContextProfileStateFieldEnum.HOST_TOKEN, // context profile host authorization
         null,
@@ -234,6 +250,29 @@ export class ContextProfileState extends SignalStateService {
         return this.getSessionExpiry();
     });
 
+    // ▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬
+    private readonly sessionKeepLogged = computed<boolean>(() => {
+        return this.getSessionKeepLogged();
+    })
+
+    // ▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬
+    /**
+     * Presence, not validity.
+     *
+     * A tampered or expired token answers true here, which is the only question
+     * signout actually has: is there a credential in this browser that has to go.
+     * localContextAuthenticated() cannot answer it, a token that fails to decode
+     * reports expiry 0 and reads as no session at all.
+     *
+     * statefulInfo is included because deleting one of the two cookies is just as
+     * easy as editing the other, and either remnant still needs clearing.
+     */
+    public readonly sessionRemnant = computed<boolean>(() => {
+        const token = this.sessionToken();
+
+        return (typeof token === 'string' && token !== '') || this.statefulInfo() !== null;
+    });
+
     /**
      * @authenticated
      * signal to check if user is authenticated using sign in or not
@@ -275,6 +314,7 @@ export class ContextProfileState extends SignalStateService {
         sessionToken: this.sessionToken(),
         sessionPayload: this.sessionPayload(),
         sessionExpiry: this.sessionExpiry(),
+        sessionKeepLogged: this.sessionKeepLogged(),
         handshaked: this.handshaked(),
         localContextAuthenticated: this.localContextAuthenticated(),
         serverContextAuthenticated: this.serverContextAuthenticated(),
@@ -289,8 +329,8 @@ export class ContextProfileState extends SignalStateService {
         this.initializeSignalState();
 
         // load api service
-        this.api.sdk.graphql.use(ContextProfile);
-        this.api.sdk.graphql.use(Session);
+        this.api.sdk.graphql.initialize(ContextProfile);
+        this.api.sdk.graphql.initialize(Session);
 
     }
     
@@ -302,6 +342,7 @@ export class ContextProfileState extends SignalStateService {
                 return;
             }
 
+            this.setBfwApiHeaderCsrfToken();
             this.setBfwApiHeaderCtxs();
             this.setBfwApiHeaderStateHostAuthorization();
             this.setBfwApiHeaderStatefulAuthorization();
@@ -330,6 +371,12 @@ export class ContextProfileState extends SignalStateService {
         this.setRedirectAfterAuth(null);
         return url;
     }
+    public setCsrfToken(value: string | null): void {
+        this._csrfToken.set(value);
+    }
+    public clearCsrfToken(): void {
+        this._csrfToken.set(null);
+    }
     public setHostToken(value: string | null): void {
         this._hostToken.set(value);
     }
@@ -355,7 +402,7 @@ export class ContextProfileState extends SignalStateService {
     public setStatefulInfo(info: ContextProfileStatefulInfo | null): void {
         // set the expiry for stateful info
         const exp = this.sessionExpiry();
-        if(exp && exp > 0) {
+        if(this.sessionKeepLogged() && exp && exp > 0) {
             this.setNextCookiePersistSignalExpiry(
                 ContextProfileStateFieldEnum.STATEFUL_INFO,
                 new Date(exp),
@@ -452,6 +499,9 @@ export class ContextProfileState extends SignalStateService {
         return typeof exp === 'number' && Number.isFinite(exp)
             ? exp * 1000
             : 0;
+    }
+    private getSessionKeepLogged(): boolean {
+        return this.sessionPayload()?.kl ?? false;
     }
     private isLocalContextAuthenticated(): boolean {
         const token = this.sessionToken();
@@ -599,12 +649,18 @@ export class ContextProfileState extends SignalStateService {
 
         return pid === id;
     }
+    public validateCsrft(value: unknown): value is string | null {
+        return typeof value === 'string' || value === null;
+    }
+    
 
     // ████ REGISTRATION AND CALLBACKS ██████████████████████████████████
 
     // SET BFW API SDK CONFIGURATION ▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬
     public configureBfwApiHeaders(): void {
         // used when we need to force update otherwise signal effect will take care of dynamic update
+        this.api.sdk.setHeaderCsrfToken(this.csrfToken());
+
         this.api.sdk.setHeaderCtxs(this.ctxs());
         
         this.api.sdk.graphql.jwtHostAuthorization.setToken(this.hostToken() ?? '');
@@ -612,6 +668,18 @@ export class ContextProfileState extends SignalStateService {
 
         this.api.sdk.graphql.jwtStatefulAuthorization.setToken(this.sessionToken() ?? '');
         this.api.sdk.rest.jwtStatefulAuthorization.setToken(this.sessionToken() ?? '');
+    }
+    public setBfwApiHeaderCsrfToken(): void {
+        const token = this.csrfToken();
+        if(typeof token === 'string' && token !== '') {
+            this.log.info('[CTXP] Setting csrf token in BfwApiService');
+            
+            this.api.sdk.setHeaderCsrfToken(this.csrfToken());
+        } else {
+            this.log.info('[CTXP] Clearing csrf token from BfwApiService');
+            
+            this.api.sdk.setHeaderCsrfToken(null);
+        }
     }
     public setBfwApiHeaderCtxs(): void {
         const token = this.ctxs();

@@ -1,5 +1,5 @@
-// file: ./src/app/base/crud/service.ts
-import { inject, Injector, Service, signal, Type } from "@angular/core";
+// file: src/app/base/crud/service.ts
+import { effect, inject, Injector, Service, signal, Type, untracked } from "@angular/core";
 import { BfwApiService } from "@libs/third-party-apis/bfw-api/service";
 import { BreakpointObserverService } from "@libs/breakpoint/service";
 import { ConfService } from "@libs/conf/service";
@@ -8,15 +8,18 @@ import { SignatureService } from "@libs/signature/service";
 import { PrivateAreaLayoutService } from "@area/private/service";
 import { BreadcrumbService } from "xng-breadcrumb";
 import { PrivateAreaLayoutSlotEnum } from "@area/private/enum";
-import { CrudFieldSlotPortalKeyPrefixEnum, CrudFieldUiTypeEnum, CrudListingAdditionalColumnsEnum, CrudDataLoadTypeEnum, CrudActionUiLayoutEnum, CrudEndSideBarTabEnum, CrudActionEnum } from "@base/crud/enum";
+import { FoundationActionEnum } from "@libs/foundation/action/enum";
+import { FOUNDATION_ALL_VALUE } from "@libs/foundation/const";
+import { CrudFieldSlotPortalKeyPrefixEnum, CrudFieldUiTypeEnum, CrudListingAdditionalColumnsEnum, CrudDataLoadTypeEnum, CrudActionUiLayoutEnum, CrudEndSideBarTabEnum } from "@base/crud/enum";
 import { GlobalProgressBarService } from "@base/global-progress-bar/service";
 import { AppPaginationEvent } from "@base/pagination/type";
 import { CdkDragDrop, moveItemInArray } from "@angular/cdk/drag-drop";
 import { CrudUrl } from "@base/crud/url";
+import { CrudRoute } from "@base/crud/route";
 import { CrudUtility } from "@base/crud/utility";
 import { CrudValidation } from "@base/crud/validation";
 import { NotifyService } from "@base/notify/service";
-import { CrudFieldSwitchOptionType, CrudFindInputType, CrudStateListingFieldObjType, CrudStateMutationFieldObjType, CrudStateSearchFilterFieldObjType } from "@base/crud/type";
+import { CrudFieldFlagLabelType, CrudFieldSwitchOptionType, CrudFindInputType, CrudStateListingFieldObjType, CrudStateListOperationFieldObjType, CrudStateMutationFieldObjType, CrudStateSearchFilterFieldObjType, CrudStateViewOptionFieldObjType } from "@base/crud/type";
 import { NotifyBannerService } from "@base/notify-banner/service";
 import { form } from "@angular/forms/signals";
 import { DateTimeService } from "@libs/date-time/service";
@@ -36,45 +39,7 @@ export class CrudService {
     // ████████████████████████████████████████████████████████████████████
     // ███ RAW VARIABLES ██████████████████████████████████████████████████
     // ████████████████████████████████████████████████████████████████████
-    public readonly ALL_VALUE = '__ALL__';
-
-    public readonly localText = {
-        listing: {
-            select_all: 'Select all',
-            select_record: 'Select record',
-            loading: 'Loading...',
-            no_data: 'No data found.',
-        },
-        module_action: {
-
-        },
-        pagination: {
-
-        },
-        quick_search: {
-            label: 'Quick search',
-            placeholder: "Type to search" ,
-            clear_search: 'Clear search',
-            open_quick_search: "Open quick search",
-        },
-        record_action: {
-
-        },
-        search_filter: {
-            open_label: 'Open search filter',
-            tab_name: 'Filter',
-            
-        },
-        selected_record_action: {
-            label: 'Bulk action',    
-        },
-        mutation_action: {
-            create: 'Add New',
-            update: 'Update',
-            quick_update: 'Quick Update',
-        }
-
-    };
+    public readonly ALL_VALUE = FOUNDATION_ALL_VALUE;
 
     public readonly PrivateAreaLayoutSlotEnum = PrivateAreaLayoutSlotEnum;
     public readonly CrudFieldUiTypeEnum = CrudFieldUiTypeEnum;
@@ -82,7 +47,7 @@ export class CrudService {
     public readonly CrudListingAdditionalColumnsEnum = CrudListingAdditionalColumnsEnum;
     public readonly CrudActionUiLayoutEnum = CrudActionUiLayoutEnum;
     public readonly CrudEndSideBarTabEnum = CrudEndSideBarTabEnum;
-    public readonly CrudActionEnum = CrudActionEnum;
+    public readonly CrudActionEnum = FoundationActionEnum;
 
     // ████████████████████████████████████████████████████████████████████
     // ███ DEPENDENCIES ███████████████████████████████████████████████████
@@ -106,6 +71,7 @@ export class CrudService {
     public readonly paLayout = inject(PrivateAreaLayoutService) ?? null;
     public readonly mutationDialog = inject(MatDialog);
     public readonly mutationBottomSheet = inject(MatBottomSheet);
+    
     private activeMutationDialogRef: MatDialogRef<CrudDefaultMutationDialogComponent> | null = null;
     private activeMutationBottomSheetRef: MatBottomSheetRef<CrudDefaultMutationBottomSheetComponent> | null = null;
     
@@ -113,28 +79,59 @@ export class CrudService {
     public readonly utility = inject(CrudUtility);
     public readonly validation = inject(CrudValidation);
     public readonly url = inject(CrudUrl);
+    public readonly route = inject(CrudRoute);
 
     // ████████████████████████████████████████████████████████████████████
-    // ███ API SYNC ███████████████████████████████████████████████████████
+    // ███ API ACCESS █████████████████████████████████████████████████████
     // ████████████████████████████████████████████████████████████████████
     private find!: (input: CrudFindInputType, type: CrudDataLoadTypeEnum) => Promise<boolean>;
-
-    // ████████████████████████████████████████████████████████████████████
-    // ███ SIGNAL FORM ████████████████████████████████████████████████████
-    // ████████████████████████████████████████████████████████████████████
-    private readonly formModel = signal<any>({
-        
-    });
-
-    public readonly form = form(this.formModel, (sp) => {
-        
-    });
 
     // ████████████████████████████████████████████████████████████████████
     // ███ GENERAL ████████████████████████████████████████████████████████
     // ████████████████████████████████████████████████████████████████████
 
     constructor() {
+        // load the crud translations first, before anything below can render a label.
+        // constructor, not CrudComponent.ngOnInit - see I18nService.useModule() for why
+        this.initI18n();
+
+        /**
+         * Mutation overlay follows the action, which follows the route.
+         * This is the UI half of the deleted initCrudActionFromUrl(); the
+         * state half (setCrudAction / setCrudActionRecordSecondaryKey) is now
+         * the linkedSignal's job. Branch order is unchanged from that method.
+         *
+         * Runs at tier 3 (effect flush, after NavigationEnd), which is what
+         * makes reading the signal safe here and what guarantees
+         * CrudComponent has already called setComponentInjector().
+         */
+        effect(() => {
+            // the one tracked read: re-runs whenever the action VALUE changes,
+            // including create -> update, not just active -> inactive
+            const action = this.state.crudAction();
+
+            untracked(() => {
+                /**
+                 * Route left the action URL. Was the
+                 * `if (!action) clearCrudActionAndRecordKey()` branch.
+                 */
+                if (!action) {
+                    this.closeMutationOverlay();
+                    return;
+                }
+
+                if (this.isMutationActionActive()) {
+                    this.initMutationActionFromUrl();
+                    return;
+                }
+
+                /**
+                 * Future:
+                 * if (this.isImportActionActive()) this.initImportActionFromUrl();
+                 * if (this.isExportActionActive()) this.initExportActionFromUrl();
+                 */
+            });
+        });
     }
     public initI18n(): void {
         this.i18n.useModule(CRUD_I18N_KEY);
@@ -174,7 +171,7 @@ export class CrudService {
          * perform required actions when end-side-bar close by registering callback
          * list all call back process this could be as per crud action wise or common
          */
-        this.paLayout.state.addEndSideBarOnClose('on_mutation_close', () => {
+        this.paLayout.state.addEndSideBarOnCloseCallback('on_mutation_close', () => {
             if(this.state.crudAction() !== null)
                 this.closeMutationAction();
         });
@@ -189,14 +186,23 @@ export class CrudService {
     public isCrudActionActive(): boolean {
         return this.state.crudAction() !== null;
     }
-    public getCrudActionRecordId(): string | number | null {
-        const ids = this.state.crudActionRecordId();
+    public getCrudActionRecordPrimaryKeyValue(): string | number | null {
+        const keys = this.state.crudActionRecordPrimaryKey();
 
-        if (Array.isArray(ids)) {
-            return ids[0] ?? null;
+        if (Array.isArray(keys)) {
+            return keys[0] ?? null;
         }
 
-        return ids ?? null;
+        return keys ?? null;
+    }
+    public getCrudActionRecordSecondaryKeyValue(): string | number | null {
+        const keys = this.state.crudActionRecordSecondaryKey();
+
+        if (Array.isArray(keys)) {
+            return keys[0] ?? null;
+        }
+
+        return keys ?? null;
     }
     public shouldShowCrudListingLayout(): boolean {
         /**
@@ -228,7 +234,7 @@ export class CrudService {
     }
     
     public shouldLoadListingForCurrentRoute(): boolean {
-        const action = this.url.getCrudActionFromRoute();
+        const action = this.route.readCrudActionFromRoute();
 
         /**
          * Normal listing route:
@@ -256,7 +262,7 @@ export class CrudService {
         return false;
     }
     public shouldSkipListingLoadForActiveCrudAction(): boolean {
-        const action = this.state.crudAction() ?? this.url.getCrudActionFromRoute();
+        const action = this.state.crudAction();
 
         if (!action) {
             return false;
@@ -270,38 +276,17 @@ export class CrudService {
          */
         return true;
     }
-    public initCrudActionFromUrl(): void {
-        const action = this.url.getCrudActionFromRoute();
-
-        if (!action) {
-            this.clearCrudActionAndRecordId();
-            return;
-        }
-
-        this.state.setCrudAction(action);
-        this.state.setCrudActionRecordId(this.url.getCrudActionRecordIdFromRoute());
-
-        if (this.isMutationActionActive()) {
-            this.initMutationActionFromUrl();
-            return;
-        }
-
-        /**
-         * Future:
-         * if (this.isImportActionActive()) this.initImportActionFromUrl();
-         * if (this.isExportActionActive()) this.initExportActionFromUrl();
-         */
-    }
-    
-    public clearCrudActionAndRecordId(): void {
-        this.state.clearCrudActionAndRecordId();
-
-        // as we clear action from state we must have to clear any ui overlay to match state and ui
-        this.closeMutationOverlay();
+    /**
+     * Clears the action plus BOTH record key readings in one call — the live
+     * secondary one and the parked primary one.
+     */
+    public clearCrudActionAndRecordKey(): void {
+        // the overlay effect in the constructor owns closing the UI now
+        this.state.clearCrudActionAndRecordKey();
     }
     public async closeCrudAction(refersh: boolean = true): Promise<void> {
         await this.url.navigateAwayFromCrudAction();
-        this.clearCrudActionAndRecordId();
+        this.clearCrudActionAndRecordKey();
 
         // as action if performed and listing needs to be refreshed as there might be some changes with data
         if(refersh){
@@ -327,28 +312,39 @@ export class CrudService {
     }
     public isMutationActionActive(): boolean {
         const action = this.state.crudAction();
-        return action === CrudActionEnum.CREATE || action === CrudActionEnum.UPDATE;
+        return action === FoundationActionEnum.CREATE || action === FoundationActionEnum.UPDATE;
     }
     public isMutationCreate(): boolean {
         // helper
-        return this.state.crudAction() === CrudActionEnum.CREATE;
+        return this.state.crudAction() === FoundationActionEnum.CREATE;
     }
     public isMutationUpdate(): boolean {
         // helper
-        return this.state.crudAction() === CrudActionEnum.UPDATE;
+        return this.state.crudAction() === FoundationActionEnum.UPDATE;
     }
-    private isMutationAction(action: CrudActionEnum | null): boolean {
-        return action === CrudActionEnum.CREATE || action === CrudActionEnum.UPDATE;
+    private isMutationAction(action: FoundationActionEnum | null): boolean {
+        return action === FoundationActionEnum.CREATE || action === FoundationActionEnum.UPDATE;
     }
     public getMutationIcon(): string {
         return this.isMutationUpdate()
             ? `edit_document`
             : `add_circle`
     }
+    /**
+     * Returns an i18n KEY, not a label. Every caller pipes it through
+     * `| transloco`, the same contract as the field `label` keys — that is what
+     * keeps the title re-rendering on a language switch instead of freezing on
+     * whatever language was active when the overlay opened.
+     *
+     * Create resolves to GL.COMMON.ADD_NEW ("Add New"), not GL.ACTION.CREATE
+     * ("Add"): this heads the form itself, where the longer phrasing reads
+     * better. GL.ACTION.CREATE stays the label for the action — the button that
+     * opens this form and the create-route breadcrumb.
+     */
     public getMutationTitle(): string {
         return this.isMutationUpdate()
-            ? this.localText.mutation_action.update
-            : this.localText.mutation_action.create;
+            ? 'GL.ACTION.UPDATE'
+            : 'GL.COMMON.ADD_NEW';
     }
     public getMutationFormComponent(): Type<any> {
         return this.state.mutationFormCustomComponent() ?? CrudDefaultMutationFormComponent;
@@ -357,7 +353,7 @@ export class CrudService {
         return this.state.mutationPageCustomComponent() ?? CrudDefaultMutationPageComponent;
     }
     public toggleMutationEndDrawer(callback?: () => void): void {
-        this.state.setMutationEndDrawerOpen(!this.state.mutationEndDrawerOpen());
+        this.state.setMutationEndDrawerIsOpen(!this.state.mutationEndDrawerIsOpen());
         
         if(callback)
             callback();
@@ -426,13 +422,13 @@ export class CrudService {
             return;
         }
         else if (layout === CrudActionUiLayoutEnum.END_DRAWER) {
-            this.state.setMutationEndDrawerOpen(true);
+            this.state.setMutationEndDrawerIsOpen(true);
             return;
         }
         else if (layout === CrudActionUiLayoutEnum.END_SIDE_BAR) {
             if(!this.paLayout) return;
 
-            this.paLayout.state.setEndSideBarOpen(true);
+            this.paLayout.state.setEndSideBarIsOpen(true);
 
             queueMicrotask(() => {
                 this.paLayout.switchEndSideBarTab(CrudEndSideBarTabEnum.MUTATION);
@@ -450,11 +446,11 @@ export class CrudService {
             this.activeMutationBottomSheetRef = null;
         }
         else if(this.state.mutationActionUiLayout() === CrudActionUiLayoutEnum.END_DRAWER) {
-            this.state.setMutationEndDrawerOpen(false);
+            this.state.setMutationEndDrawerIsOpen(false);
         }
         else if (this.state.mutationActionUiLayout() === CrudActionUiLayoutEnum.END_SIDE_BAR) {
             if(this.paLayout){
-                this.paLayout.state.setEndSideBarOpen(false);
+                this.paLayout.state.setEndSideBarIsOpen(false);
             }
         }
     }
@@ -466,7 +462,7 @@ export class CrudService {
          * perform required actions when end-side-bar close by registering callback
          * list all call back process this could be as per crud action wise or common
          */
-        this.state.addMutationEndDrawerOnClose('on_mutation_close', () => {
+        this.state.addMutationEndDrawerOnCloseCallback('on_mutation_close', () => {
             if(this.state.crudAction() !== null)
                 this.closeMutationAction();
         });
@@ -489,30 +485,45 @@ export class CrudService {
     /**
      * This methos needs to be called in child component with ngOnInit or similar. 
      * It is similar to ngOnInit after setting all states like primary key, unique key, listing fields, mutation fields etc. 
-     * Because this method will prepare search filter fields state based on default view option fields and also apply breadcrumb if breadcrumb alias is set in route data. 
+     * Because this method will prepare search filter fields state based on default view option fields.
+     * Also apply breadcrumb if breadcrumb alias is set in route data. 
      */
-    public init(): void {
+    public defaultInit(): void {
         // register end-side-bar close callback
         this.addEndSideBarOnCloseCallBack();
         this.addEndDrawerOnCloseCallBack();
-
-        this.url.initUrlSync();
-
-        this.url.enableUrlSync(true);
     }
     public setFieldObj(
         listing: CrudStateListingFieldObjType,
-        search: CrudStateSearchFilterFieldObjType,
+        searchFilter: CrudStateSearchFilterFieldObjType,
         mutation: CrudStateMutationFieldObjType,
+        listOperation?: CrudStateListOperationFieldObjType,
+        viewOption?: CrudStateViewOptionFieldObjType,
     ): void {
         // set field object
         this.state.setListingFieldObj(listing);
-        this.state.setSearchFilterFieldObj(search);
+        this.state.setSearchFilterFieldObj(searchFilter);
         this.state.setMutationFieldObj(mutation);
 
-        // process some default field object with options and default values
-        this.state.initListOperationFieldObj();
-        this.state.initViewOptionFieldObj();
+        if(listOperation){
+            // use complete new field object
+            // no need to process for options and default values as its already included
+            this.state.setListOperationFieldObj(listOperation);
+        } else {
+            // use default field object
+            this.state.setListOperationFieldObj(this.state.DEFAULT_LIST_OPERATION_FIELD_OBJ);
+            this.state.initListOperationFieldObj(); // process for options and default values
+        }
+
+        if(viewOption) {
+            // use complete new field object
+            // no need to process for options and default values as its already included
+            this.state.setViewOptionFieldObj(viewOption);
+        } else {
+            // use default field object
+            this.state.setViewOptionFieldObj(this.state.DEFAULT_VIEW_OPTION_FIELD_OBJ);
+            this.state.initViewOptionFieldObj(); // process for options and default values
+        }
 
         // resolve mutation form wrapper automatically, must keep this call here as it need MutationFieldObj
         this.resolveMutationActionUiLayout();
@@ -539,6 +550,10 @@ export class CrudService {
     public registerRestore() {
         
     }
+    public registerActive() {
+        
+    }
+    
     
     
 
@@ -630,7 +645,7 @@ export class CrudService {
 
                 return true;
             }
-            throw new Error('Data loading failed.');
+            throw new Error(this.i18n.translate('GL.COMMON.DATA_LOADING_FAILED'));
         } catch (e: any | BfwApiSdkError) {
             // if any error then need yo switch to previous state data
             // like page number, per page rcord number etc
@@ -654,6 +669,23 @@ export class CrudService {
     // ████████████████████████████████████████████████████████████████████
     /**
      * RECORD SELECTION
+     *
+     * ⚠ DELIBERATELY KEY-FREE — reviewed as part of the primary -> secondary
+     * key switch and left alone.
+     *
+     * SelectionModel holds row OBJECTS and compares them by reference. No key
+     * of either kind is read here, so nothing in this block had to change and
+     * nothing here can leak a primary key.
+     *
+     * The one place selection identity is serialised is the `lsr` matrix param,
+     * and lsr's normalize_val already does the whole conversion: rows -> keys on
+     * the way out, keys -> the CURRENT row objects on the way back in. That
+     * re-match is what makes reference equality survive a refetch, where the
+     * row objects are new instances.
+     *
+     * So: do not "fix" this to compare by key. Doing so duplicates identity
+     * logic that lsr already owns, and the two copies drift the first time the
+     * addressing key changes again.
      */
     public isRecordSelected(row: any): boolean {
         return this.state.getListingSelectedRowsValue().isSelected(row);
@@ -928,8 +960,9 @@ export class CrudService {
         return {
             onValue: option?.on ?? true,
             offValue: option?.off ?? false,
-            onLabel: 'On',
-            offLabel: 'Off',
+            // i18n KEYS — the switch template pipes them through `| transloco`
+            onLabel: 'GL.FIELD.SWITCH.ON',
+            offLabel: 'GL.FIELD.SWITCH.OFF',
         };
     }
     public switchChange(finfo: any, checked: boolean): void {
@@ -940,6 +973,113 @@ export class CrudService {
     public clear(finfo: any): void {
         finfo.value = null;
         //finfo.default = null;
+    }
+    /**
+     * Reveal state is per field key and intentionally NOT stored on finfo:
+     * finfo travels to the URL and the API, a UI-only toggle has no business there.
+     */
+    private readonly revealedPasswords = new Set<string>();
+
+    public isPasswordRevealed(fkey: string): boolean {
+        return this.revealedPasswords.has(fkey);
+    }
+    public togglePasswordReveal(fkey: string): void {
+        if (this.revealedPasswords.has(fkey)) {
+            this.revealedPasswords.delete(fkey);
+            return;
+        }
+        this.revealedPasswords.add(fkey);
+    }
+    public sliderChange(finfo: any, value: number | null): void {
+        finfo.value = value ?? null;
+    }
+    public colorChange(finfo: any, value: string | null): void {
+        finfo.value = value && value.length > 0 ? value : null;
+    }
+    /**
+     * Accepts 'f00', '#F00', 'ff0000', '#FF0000' and settles them all on
+     * '#ff0000'. null when the text is not a hex color, so callers can tell
+     * 'nothing usable' apart from a real value.
+     */
+    private normalizeColorText(value: unknown): string | null {
+        if (value === null || value === undefined) {
+            return null;
+        }
+
+        const hex = String(value).trim().replace(/^#/, '').toLowerCase();
+
+        if (/^[0-9a-f]{3}$/.test(hex)) {
+            return `#${hex[0]}${hex[0]}${hex[1]}${hex[1]}${hex[2]}${hex[2]}`;
+        }
+
+        if (/^[0-9a-f]{6}$/.test(hex)) {
+            return `#${hex}`;
+        }
+
+        return null;
+    }
+    /**
+     * Commits text typed into the color field. Bound to (change), so it runs on
+     * blur/Enter rather than per keystroke — angular then never rewrites [value]
+     * while the caret is sitting in the input, which is what sends the caret to
+     * the end mid-edit.
+     *
+     * Text that is not a hex color is kept verbatim rather than discarded: the
+     * COLOR rule in validation.ts is what decides it is wrong, and url.ts already
+     * falls back to fi.default when it does. Once a form schema calls
+     * setCrudFormFieldValueAngularValidation(), the same rule lights up the
+     * inline mat-error below.
+     */
+    public colorTextChange(finfo: any, text: string | null): void {
+        const raw = (text ?? '').trim();
+
+        if (!raw) {
+            finfo.value = null;
+            return;
+        }
+
+        finfo.value = this.normalizeColorText(raw) ?? raw;
+    }
+    /**
+     * The native swatch accepts nothing but a full '#rrggbb' — anything else and
+     * it silently shows black. Since finfo.value may hold text the user is still
+     * getting wrong, the swatch reads through here instead of off finfo directly.
+     */
+    public colorSwatchValue(finfo: any): string {
+        return this.normalizeColorText(finfo?.value)
+            ?? this.normalizeColorText(finfo?.default)
+            ?? '#000000';
+    }
+    public flagMeta(finfo: any): {
+        isSet: boolean;
+        labelKey: string | null;   // null = show the datetime itself
+        display: string;
+    } {
+        const raw = finfo?.value ?? finfo?.default ?? null;
+        const isSet = raw !== null && raw !== undefined && raw !== '';
+        const fl = finfo?.flag_label as CrudFieldFlagLabelType | undefined;
+
+        if (!isSet) {
+            return { isSet: false, labelKey: fl?.is_null || 'GL.FIELD.FLAG.NOT_SET', display: '' };
+        }
+
+        const key = fl?.is_datetime ?? '';
+
+        return {
+            isSet: true,
+            // empty is_datetime means: show the actual date time instead of a label
+            labelKey: key.length > 0 ? key : null,
+            display: this.datetime.dateTimeDisplayValue(finfo),
+        };
+    }
+
+    public flagChange(finfo: any, checked: boolean): void {
+        if (!checked) {
+            finfo.value = null;
+            return;
+        }
+        // stamp "now"; the picker lets the user adjust it
+        this.datetime.dateTimeChange(finfo, new Date());
     }
     
     // ████████████████████████████████████████████████████████████████████

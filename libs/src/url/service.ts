@@ -1,4 +1,4 @@
-// file: ./libs/src/url/service.ts
+// file: libs/src/url/service.ts
 import {
     effect,
     inject,
@@ -289,7 +289,7 @@ export class UrlService {
         return moduleRoute;
     }
 
-    /** live url path of the mounted module, e.g. 'account/geo/country' */
+    /** live url path of the mounted module, e.g. 'private/geo/country' */
     public getModulePath(): string {
         return this.getModuleComponentRoute()
             .snapshot.pathFromRoot

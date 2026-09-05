@@ -7,6 +7,7 @@ import {
   effect,
   inject,
   signal,
+  untracked,
 } from '@angular/core';
 import { SignalStateCrossTabSync } from './cross.tab.sync';
 import { SignalStateScope } from './scope';
@@ -287,13 +288,14 @@ export abstract class SignalStateService {
       );
     }
 
-    const state = signal(initialValue);
+    const normalizedOptions = this.normalizeOptions(options, storageDescription);
+    const state = signal(initialValue, normalizedOptions.createSignalOptions);
     const registration: PersistSignalRegistrationType<T> = {
       storage,
       field: normalizedField,
       initialValue: this.cloneValue(initialValue),
       state,
-      options: this.normalizeOptions(options, storageDescription),
+      options: normalizedOptions,
       ready: false,
       loadSequence: 0,
       lastSavedSnapshot: '',
@@ -672,6 +674,7 @@ export abstract class SignalStateService {
       deserialize: options.deserialize,
       deleteOnNull: options.deleteOnNull ?? false,
       plainValue: options.plainValue ?? false,
+      createSignalOptions: options.createSignalOptions,
       source: 'source' in options ? options.source : undefined,
     };
   }
@@ -811,7 +814,7 @@ export abstract class SignalStateService {
     }
 
     if (stored && this.applyStoredValue(registration, stored.s)) {
-      registration.lastSavedSnapshot = this.serializeSnapshot(stored.s);
+      registration.lastSavedSnapshot = this.currentValueSnapshot(registration);
     } else {
       this.applyInitialValue(registration);
     }
@@ -846,14 +849,22 @@ export abstract class SignalStateService {
    * The method keeps callers on a single safe path for this behavior.
    */
   private applyInitialValue(registration: PersistRegistration): void {
-    const initialValue = this.cloneValue(registration.initialValue);
-    registration.state.set(initialValue);
+    registration.state.set(this.cloneValue(registration.initialValue));
+    registration.lastSavedSnapshot = this.currentValueSnapshot(registration);
+  }
 
-    const persistedInitialValue = registration.options.serialize
-      ? registration.options.serialize(initialValue)
-      : initialValue;
+  /**
+   * Serializes the value the signal actually holds after a restore write.
+   * Reading it back keeps snapshots truthful when a custom equal rejects the set.
+   * The read is untracked because loads start inside the scope effect.
+   */
+  private currentValueSnapshot(registration: PersistRegistration): string {
+    const value = untracked(() => registration.state());
+    const persistedValue = registration.options.serialize
+      ? registration.options.serialize(value)
+      : value;
 
-    registration.lastSavedSnapshot = this.serializeSnapshot(persistedInitialValue);
+    return this.serializeSnapshot(persistedValue);
   }
 
   /**

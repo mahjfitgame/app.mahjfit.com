@@ -1,4 +1,4 @@
-// file: ./src/app/base/notify-banner/component.ts
+// file: src/app/base/notify-banner/component.ts
 import { Component, inject } from '@angular/core';
 import { NotifyBannerService } from '@base/notify-banner/service';
 import { MatIconModule } from '@angular/material/icon';

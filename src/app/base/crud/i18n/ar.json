@@ -1,3 +1,71 @@
 {
-  
+    "CRUD": {
+        "MODULE": {
+            "TITLE": "",
+            "HINT": ""
+        },
+        "LIST_OPERATION": {
+            "QUICK_SEARCH": {
+                "LABEL": "بحث سريع",
+                "PLACEHOLDER": "اكتب للبحث",
+                "HINT": "بحث سريع ضمن السجلات المعروضة.",
+                "CLEAR_SEARCH": "مسح البحث",
+                "OPEN_QUICK_SEARCH": "فتح البحث السريع",
+                "VALIDATION": {
+                    "MAX_LENGTH": "نص البحث طويل جدًا."
+                }
+            },
+            "LISTING_COLUMN_POSITION": {
+                "LABEL": "ترتيب الأعمدة",
+                "VALIDATION": {
+                    "OPTION_RANGE": "اختيار عمود غير صالح."
+                }
+            },
+            "ROWS_PER_PAGE": {
+                "LABEL": "الصفوف لكل صفحة",
+                "VALIDATION": {
+                    "DIGIT": "يجب أن يكون عدد الصفوف لكل صفحة رقمًا."
+                }
+            },
+            "CURRENT_PAGE": {
+                "LABEL": "الصفحة الحالية",
+                "VALIDATION": {
+                    "MIN": "يجب أن تكون الصفحة الحالية أكبر من صفر."
+                }
+            },
+            "LISTING_SELECTED_ROWS": {
+                "LABEL": "الصفوف المحددة"
+            }
+        },
+        "VIEW_OPTION": {
+            "VIEW_OPTION": {
+                "LABEL": "خيار العرض"
+            },
+            "DISPLAY_FIELDS": {
+                "LABEL": "الحقول المعروضة",
+                "PLACEHOLDER": "اختر الحقول المراد عرضها على الشاشة",
+                "HINT": "إظهار/إخفاء الحقول في تخطيط البيانات.",
+                "VALIDATION": {
+                    "OPTION_RANGE": "اختيار حقل غير صالح."
+                }
+            },
+            "SORT_FIELDS_AND_DIRECTION": {
+                "LABEL": "حقول الفرز واتجاهه",
+                "PLACEHOLDER": "اختر الحقول واتجاه الفرز",
+                "HINT": "افرز حسب الحقل والاتجاه لتنقيح بياناتك.",
+                "VALIDATION": {
+                    "OPTION_RANGE": "حقل فرز غير صالح."
+                }
+            },
+            "RBIN": {
+                "LABEL": "سلة المحذوفات",
+                "PLACEHOLDER": "إظهار السجلات في سلة المحذوفات",
+                "HINT": "انقر لعرض سجلات سلة المحذوفات."
+            }
+        },
+        "SEARCH_FILTER": {
+            "OPEN_LABEL": "فتح مرشح البحث",
+            "TAB_NAME": "تصفية"
+        }
+    }
 }

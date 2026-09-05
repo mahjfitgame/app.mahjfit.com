@@ -14,4 +14,4 @@ export interface PrivateAreaModuleInfoType {
 
 export type SlotEndSideBarTabLabelType = Portal<any>;
 export type SlotEndSideBarTabBodyType = Portal<any>;
-export type EndSideBarOnCloseType = Record<string, (() => void) | null> | null;
+export type EndSideBarOnCloseCallbackType = Record<string, (() => void) | null> | null;

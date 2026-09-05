@@ -2,12 +2,11 @@
 import { computed, effect, inject, Service, Signal, signal } from '@angular/core';
 import { ActivatedRouteSnapshot, Router } from '@angular/router';
 import { SignalStateService } from '@libs/signal-state/service';
-import { FoundationModuleStateType } from '@libs/foundation-module/type/state';
+import { SLUG_FOUNDATION_PARAM_PUBLICID } from '@libs/foundation/const';
 import {
     UrlHostInfoType,
     UrlParamsType,
     UrlParamValueType,
-    UrlRouteDataType,
     UrlStatePatchInputType,
     UrlStateReplaceInputType,
 } from './type';
@@ -17,6 +16,7 @@ import { GlobalProgressBarService } from 'src/app/base/global-progress-bar/servi
 import { ContextProfileService } from '@libs/context-profile/service';
 import { BfwApiService } from '@libs/third-party-apis/bfw-api/service';
 import { URL_STATE_STORE_KEY, URL_TLD_LABEL_COUNT } from './const';
+import { FoundationModuleRouteDataType, FoundationModuleStateType } from '@libs/foundation/module/type';
 
 @Service({ autoProvided: false })
 export class UrlState extends SignalStateService implements FoundationModuleStateType {
@@ -98,10 +98,10 @@ export class UrlState extends SignalStateService implements FoundationModuleStat
     public readonly routeParams = computed(() => this.activatedRouteSnapshot().params);
     public readonly routeQueryParams = computed(() => this.activatedRouteSnapshot().queryParams);
     public readonly routeFragment = computed(() => this.activatedRouteSnapshot().fragment);
-    public readonly routeData = computed<UrlRouteDataType>(() => this.activatedRouteSnapshot().data);
+    public readonly routeData = computed<FoundationModuleRouteDataType>(() => this.activatedRouteSnapshot().data);
     /** root -> activated chain, consumed by breadcrumbs and nav highlighting in Phase 3 */
     public readonly routePathFromRoot = computed(() => this.activatedRouteSnapshot().pathFromRoot);
-
+    
     /** first URL segment the activated route owns — CRUD action detection uses this in Phase 2 */
     public readonly activatedRouteFirstSegment = computed<string | null>(
         () => this.activatedRouteSnapshot().url.at(0)?.path ?? null,
@@ -152,14 +152,14 @@ export class UrlState extends SignalStateService implements FoundationModuleStat
         return window.location.pathname || '';
     });
 
-    public readonly protocol = computed(() => this.origin().protocol);
-    public readonly domain = computed(() => this.origin().domain);
-    public readonly hostname = computed(() => this.origin().hostname);
-    public readonly port = computed(() => this.origin().port);
+    public readonly protocol  = computed(() => this.origin().protocol);
+    public readonly domain    = computed(() => this.origin().domain);
+    public readonly hostname  = computed(() => this.origin().hostname);
+    public readonly port      = computed(() => this.origin().port);
     public readonly subdomain = computed(() => this.origin().subdomain);
-    public readonly tld = computed(() => this.origin().tld);
-    public readonly username = computed(() => this.origin().username);
-    public readonly password = computed(() => this.origin().password);
+    public readonly tld       = computed(() => this.origin().tld);
+    public readonly username  = computed(() => this.origin().username);
+    public readonly password  = computed(() => this.origin().password);
 
     /**
      * Re-derives only when `path` actually changes, not on every navigation —
@@ -387,6 +387,32 @@ export class UrlState extends SignalStateService implements FoundationModuleStat
     public readRouteQueryParam(name: string): string | null {
         return this.getActivatedRouteSnapshot().queryParams[name]?.trim() ?? null;
     }
+
+    // ████ STANDARD ROUTE PARAM SIGNALS ████████████████████████████████
+    /**
+     * `:publicid` is a project-wide standard route param, so it is resolved
+     * once here instead of in each module. App-wide because UrlState is a
+     * root singleton.
+     *
+     * ⚠ NOT the same value as ContextProfileState.publicid, which is the
+     * SESSION's own id and stays there — session identity, not URL data.
+     * This one is the candidate coming out of the URL; that one is what it
+     * gets checked against.
+     */
+    public readonly routeParamPublicid = this.getRouteParam(SLUG_FOUNDATION_PARAM_PUBLICID);
+
+    /** live variant for tier 1-2 callers, same get / read split as everywhere else */
+    public readRouteParamPublicid(): string | null {
+        return this.readRouteParam(SLUG_FOUNDATION_PARAM_PUBLICID);
+    }
+
+    /**
+     * Convenience only. The comparison itself stays in ContextProfileState —
+     * UrlState supplies the URL half and delegates the session half.
+     */
+    public readonly isRouteParamPublicidValid = computed<boolean>(
+        () => this.ctxp.state.validatePublicid(this.routeParamPublicid()),
+    );
 
     // ████ HOST INFO ███████████████████████████████████████████████████
 

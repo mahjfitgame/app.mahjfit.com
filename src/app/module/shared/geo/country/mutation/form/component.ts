@@ -1,4 +1,4 @@
-// file: ./src/app/module/shared/geo/country/mutation/form/component.ts
+// file: src/app/module/shared/geo/country/mutation/form/component.ts
 import { Component, inject } from '@angular/core';
 import { CrudDefaultMutationFormComponent } from '@base/crud/default/mutation/form/component';
 import { GeoCountryService } from '@module/shared/geo/country/service';

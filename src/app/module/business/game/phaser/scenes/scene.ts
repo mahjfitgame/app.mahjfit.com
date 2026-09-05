@@ -1,6 +1,7 @@
 // src/app/game/scenes/table.scene.ts
 import Phaser from "phaser";
-import { ExposurePanelMode, PassAnimationItem, PassDirection, Point, Rect, SafeAreaInsets, TableLayout, TablePhase } from "../type";
+import { ExposurePanelMode, PassAnimationItem, PassDirection, Point, Rect, SafeAreaInsets, TableLayout } from "../type";
+import { GameCharlestoneStageEnum, GamePhaseEnum, GameTileEntityGSDto, TileCategoryEnumAddon, GamePhaseFirstRoundDirectionEnum, GamePhaseSecondRoundDirectionEnum } from "@bfw/api-sdk/graphql/endpoints/business";
 import { PhaserAnimation } from "../animation";
 import { PhaserFlow } from "../flow";
 import { PhaserSound } from "../sound";
@@ -11,14 +12,16 @@ import { ANIMATION_SPEED, COLOR_BLUE, COLOR_BLUE_NUM, COLOR_FUSHIA, COLOR_FUSHIA
 import { BotPassVisualTile, CharlestonVisualTransfer, DemoDiscardRequest, DiscardGrid, HamburgerMenuActionKey, HudActionKey, MahjongWinCelebration, TableOverlayBlockLevel, TableSceneCallbacks, TableSeat, TileCallOffer, TileRuntime, TableSfxConfig, TableSfxId } from "./type";
 import { PhaserLayoutGame } from "../layout/game";
 import { inject } from "@angular/core";
-import { GameHapticType, TileVm } from "../../type";
+import { GameHapticType } from "../../type";
 import { TILE_ATLAS_1X_KEY, TILE_ATLAS_2X_KEY } from "../../const";
 import { GameService } from "../../service";
+import { GameTileEntity, TileCategoryEnum, TileEntity, TileEntityGSDto, TileTypeEnum } from "@bfw/api-sdk/graphql/endpoints/business";
 
 
 export class PhaserScene extends Phaser.Scene {
+
+
   private readonly gameLayout = inject(PhaserLayoutGame);
-  private readonly gameService = inject(GameService);
 
 
   private readonly callbacks: TableSceneCallbacks;
@@ -80,13 +83,16 @@ export class PhaserScene extends Phaser.Scene {
   private get nextMockTileId(): number { return this.stateManager.nextMockTileId; }
   private set nextMockTileId(value: number) { this.stateManager.nextMockTileId = value; }
 
-  private get rackTiles(): readonly TileVm[] { return this.stateManager.rackTiles; }
-  private set rackTiles(value: readonly TileVm[]) { this.stateManager.rackTiles = value; }
-  private get tileMap(): Map<string, TileRuntime> { return this.stateManager.tileMap; }
-  private get selectedIds(): Set<string> { return this.stateManager.selectedIds; }
-  private get rackOrder(): string[] { return this.stateManager.rackOrder; }
-  private set rackOrder(value: string[]) { this.stateManager.rackOrder = value; }
-  private get discardedTileIds(): string[] { return this.stateManager.discardedTileIds; }
+  private get allTiles(): Record<number, TileEntityGSDto> { return this.stateManager.allTiles; }
+  private set allTiles(value: Record<number, TileEntityGSDto>) { this.stateManager.allTiles = value; }
+
+  private get rackTiles(): readonly GameTileEntity[] { return this.stateManager.rackTiles; }
+  private set rackTiles(value: readonly GameTileEntity[]) { this.stateManager.rackTiles = value; }
+  private get tileMap(): Map<number, TileRuntime> { return this.stateManager.tileMap; }
+  private get selectedIds(): Set<number> { return this.stateManager.selectedIds; }
+  private get rackOrder(): number[] { return this.stateManager.rackOrder; }
+  private set rackOrder(value: number[]) { this.stateManager.rackOrder = value; }
+  private get discardedTileIds(): number[] { return this.stateManager.discardedTileIds; }
   private get activeDragTile(): TileRuntime | undefined { return this.stateManager.activeDragTile; }
   private set activeDragTile(value: TileRuntime | undefined) { this.stateManager.activeDragTile = value; }
   private get dragPointerId(): number | undefined { return this.stateManager.dragPointerId; }
@@ -101,7 +107,7 @@ export class PhaserScene extends Phaser.Scene {
   private pendingTileCallImage?: Phaser.GameObjects.Image;
   private readonly opponentDiscardTiles: Phaser.GameObjects.Image[] = [];
 
-  private readonly discardSlotOrder: string[] = [];
+  private readonly discardSlotOrder: number[] = [];
   private readonly calledBottomExposureTiles: Phaser.GameObjects.Image[] = [];
   private exposureBuildAsset?: string;
   private jokerSwapWindow?: Phaser.GameObjects.Container;
@@ -126,27 +132,28 @@ export class PhaserScene extends Phaser.Scene {
   private set hudMenuItems(value: Phaser.GameObjects.Text[]) { this.uiLayoutManager.hudMenuItems = value; }
 
 
-  private get dragStartByTileId(): Map<string, { x: number; y: number }> { return this.stateManager.dragStartByTileId; }
+  private get dragStartByTileId(): Map<number, { x: number; y: number }> { return this.stateManager.dragStartByTileId; }
   private get dragThresholdPx(): number { return this.stateManager.dragThresholdPx; }
-  private get suppressTapByTileId(): Set<string> { return this.stateManager.suppressTapByTileId; }
+  private get suppressTapByTileId(): Set<number> { return this.stateManager.suppressTapByTileId; }
   private get passTrayClones(): Phaser.GameObjects.Image[] { return this.stateManager.passTrayClones; }
   private set passTrayClones(value: Phaser.GameObjects.Image[]) { this.stateManager.passTrayClones = value; }
   private get passAnimationClones(): Phaser.GameObjects.GameObject[] { return this.stateManager.passAnimationClones; }
   private set passAnimationClones(value: Phaser.GameObjects.GameObject[]) { this.stateManager.passAnimationClones = value; }
   private get passDirection(): PassDirection { return this.stateManager.passDirection; }
   private set passDirection(value: PassDirection) { this.stateManager.passDirection = value; }
-  private get tablePhase(): TablePhase { return this.stateManager.tablePhase; }
-  private set tablePhase(value: TablePhase) { this.stateManager.tablePhase = value; }
+  private tablePhase: GamePhaseEnum = GamePhaseEnum.LOBBY;
+  private get canDiscard(): boolean { return this.stateManager.canDiscard; }
+  private set canDiscard(value: boolean) { this.stateManager.canDiscard = value; }
   private get currentPassDestination(): TableSeat { return this.stateManager.currentPassDestination; }
   private set currentPassDestination(value: TableSeat) { this.stateManager.currentPassDestination = value; }
   private get activeSeat(): TableSeat { return this.stateManager.activeSeat; }
   private set activeSeat(value: TableSeat) { this.stateManager.activeSeat = value; }
-  private get passWaitingTileIds(): string[] { return this.stateManager.passWaitingTileIds; }
-  private get passCloseButtons(): Map<string, Phaser.GameObjects.Container> { return this.stateManager.passCloseButtons; }
+  private get passWaitingTileIds(): number[] { return this.stateManager.passWaitingTileIds; }
+  private get passCloseButtons(): Map<number, Phaser.GameObjects.Container> { return this.stateManager.passCloseButtons; }
   private get passWaitingAreaGraphics(): Phaser.GameObjects.Graphics | undefined { return this.stateManager.passWaitingAreaGraphics; }
   private set passWaitingAreaGraphics(value: Phaser.GameObjects.Graphics | undefined) { this.stateManager.passWaitingAreaGraphics = value; }
   private get doubleTapMs(): number { return this.stateManager.doubleTapMs; }
-  private get lastTapAtByTileId(): Map<string, number> { return this.stateManager.lastTapAtByTileId; }
+  private get lastTapAtByTileId(): Map<number, number> { return this.stateManager.lastTapAtByTileId; }
   private get isPassAnimating(): boolean { return this.stateManager.isPassAnimating; }
   private set isPassAnimating(value: boolean) { this.stateManager.isPassAnimating = value; }
   private get passWaitingTileScale(): number { return this.stateManager.passWaitingTileScale; }
@@ -166,6 +173,7 @@ export class PhaserScene extends Phaser.Scene {
   private isBotPassVisualAnimating = false;
 
   private hasCompletedFirstCharlestonVisualPass = false;
+  private charlestonState?: { stage?: GameCharlestoneStageEnum };
 
   private lastSubmittedPassDestination?: TableSeat;
   private botAutoStagedDestination?: TableSeat;
@@ -175,7 +183,11 @@ export class PhaserScene extends Phaser.Scene {
   private readonly botPassCommitDurationMs = 520;
 
 
-  constructor(callbacks: TableSceneCallbacks) {
+  //constructor(callbacks: TableSceneCallbacks) {
+  constructor(
+    private readonly gameService: GameService,
+    callbacks: TableSceneCallbacks
+  ) {
     super({ key: "table-scene" });
     this.callbacks = callbacks;
 
@@ -210,7 +222,7 @@ export class PhaserScene extends Phaser.Scene {
       canStartDrag: (runtime) => runtime.zone !== "pass",
       canDropTile: () => true,
       canDiscard: (runtime, x, y) =>
-        this.tablePhase === "playing" && runtime.zone === "rack" && this.isInsidePlayableDiscardArea(x, y),
+        this.tablePhase === GamePhaseEnum.PLAYING && runtime.zone === "rack" && this.isInsidePlayableDiscardArea(x, y),
       canPass: (runtime, x, y) =>
         this.isPassingPhase() && runtime.zone === "rack" && this.isInsidePassWaitingArea(x, y),
       onTileSelected: () => undefined,
@@ -225,7 +237,9 @@ export class PhaserScene extends Phaser.Scene {
       this.animationManager,
       this.uiLayoutManager,
       {
-        isPassPhaseAllowed: () => this.tablePhase === "passing",
+        isPassPhaseAllowed: () => this.tablePhase === GamePhaseEnum.PASSING,
+        getTablePhase: () => this.tablePhase,
+        onPassWaitingStateChanged: (payload) => this.callbacks.onPassWaitingStateChanged?.(payload),
         validateSubmission: () => this.passFlowManager.canSubmitPassWaitingTiles(),
         approveSubmission: () => !this.isPassAnimating,
         onPassCompleted: (payload) => this.callbacks.onPassCompleted(payload),
@@ -249,16 +263,34 @@ export class PhaserScene extends Phaser.Scene {
     this.game.events.on("rack:set", this.setRack, this);
     this.game.events.on("pass:direction", this.setPassDirection, this);
     this.game.events.on("table:resize", this.resize, this);
+    this.game.events.on("rack:set-discard-mode", (can: boolean) => {
+      this.canDiscard = can;
+      this.updateInstructionText();
+      this.updatePassButtonState();
+    }, this);
     this.game.events.on("table:phase", this.setTablePhase, this);
     this.game.events.on("table:safe-area", this.setSafeAreaInsets, this);
     this.game.events.on("table:active-seat", this.setActiveSeat, this);
-    this.game.events.on("tile-call:offer", this.setTileCallOffer, this);
-    this.game.events.on("tile-call:demo-discard", this.triggerDemoSeatDiscard, this);
+    this.game.events.on("ui:set-is-personal-turn", (isPersonalTurn: boolean) => {
+      this.stateManager.isPersonalTurn = isPersonalTurn;
+      this.updateInstructionText();
+    }, this);
+    this.game.events.on("tileCall:offer", this.setTileCallOffer, this);
+    this.game.events.on("allTiles:set", this.setAllTiles, this);
+    this.game.events.on("opponent:discard", this.handleOpponentDiscard, this);
+    this.game.events.on("opponent:pick", this.handleOpponentPick, this);
     this.game.events.on("mahjong:win", this.showMahjongWinCelebration, this);
+    this.game.events.on("charleston:state", this.setCharlestonState, this);
+    this.game.events.on("pass:failed", this.handlePassFailed, this);
     this.game.events.on("hamburger:html-action", (label: string) => {
       this.uiLayoutManager.handleHtmlDrawerItem(label);
     });
 
+
+    this.game.events.on("wall:set-count", (count: number) => {
+      this.wallTileCount = count;
+      this.uiLayoutManager.updateWallTiles(count);
+    }, this);
 
     this.game.events.on(
       "charleston:animation-complete",
@@ -278,8 +310,10 @@ export class PhaserScene extends Phaser.Scene {
       this.game.events.off("table:phase", this.setTablePhase, this);
       this.game.events.off("table:safe-area", this.setSafeAreaInsets, this);
       this.game.events.off("table:active-seat", this.setActiveSeat, this);
+      this.game.events.off("ui:set-is-personal-turn");
       this.game.events.off("tile-call:offer", this.setTileCallOffer, this);
-      this.game.events.off("tile-call:demo-discard", this.triggerDemoSeatDiscard, this);
+      this.game.events.off("opponent:discard", this.handleOpponentDiscard, this);
+      this.game.events.off("opponent:pick", this.handleOpponentPick, this);
       this.game.events.off("mahjong:win", this.showMahjongWinCelebration, this);
 
       this.closeTileCallWindow();
@@ -333,8 +367,8 @@ export class PhaserScene extends Phaser.Scene {
   private setSafeAreaInsets(insets: SafeAreaInsets): void {
     this.safeAreaInsets = insets;
   }
-  private playTileDiscardVoice(vm: TileVm): void {
-    this.soundManager.playTileDiscardVoice(vm);
+  private playTileDiscardVoice(vm: GameTileEntity): void {
+    this.soundManager.playTileDiscardVoice(this.gameService.resolveTileSoundKey(this.allTiles[vm.tile_id!]));
   }
   private handleHamburgerMenuAction(action: HamburgerMenuActionKey): void {
     switch (action) {
@@ -362,26 +396,8 @@ export class PhaserScene extends Phaser.Scene {
   }
 
   private handlePrimaryAction(): void {
-    // Temporary QA flow: the existing PICK control becomes the confirmation
-    // action for the currently selected opponent seat while Phase is Discard.
-    if (this.tablePhase === "discard") {
-      if (this.pickTargetSeat !== "bottom") {
-        this.triggerDemoSeatDiscard({
-          seat: this.pickTargetSeat,
-          requestId: ++this.demoDiscardRequestId,
-        });
-        // The temporary discard is complete. Resume the normal local turn so
-        // the resulting CALL window and Joker Swap remain available.
-        this.pickTargetSeat = "bottom";
-        this.setActiveSeat("bottom");
-        this.setTablePhase("playing");
-        this.callbacks.onTemporaryDiscardCompleted();
-      }
-      return;
-    }
-
-    if (this.tablePhase === "playing") {
-      // Only the local Bottom seat uses the 13-tile hand rule. Opponent seats
+    if (this.tablePhase === GamePhaseEnum.PLAYING) {
+      // Only the local Bottom seat uses the 13-tile hand rule.
       // remain available to the temporary Pick test controls.
       if (!this.canPickFromWall()) return;
 
@@ -406,7 +422,7 @@ export class PhaserScene extends Phaser.Scene {
    * are test controls and can always receive a wall tile while one remains.
    */
   private canPickFromWall(): boolean {
-    if (this.pickTargetSeat !== "bottom") return true;
+    if (!this.stateManager.isPersonalTurn) return true;
 
     const exposedTileCount = this.calledBottomExposureTiles.filter((tile) => tile.active).length;
     return this.rackOrder.length + exposedTileCount < 14;
@@ -442,36 +458,49 @@ export class PhaserScene extends Phaser.Scene {
   private sortRackTilesForDebug(mode: "rank" | "suit"): void {
     if (this.rackOrder.length <= 1) return;
 
-    const tileRank = (tileId: string): number => {
+    const tileRank = (tileId: number): number => {
       const runtime = this.tileMap.get(tileId);
       if (!runtime) return 9999;
 
-      const soundKey = runtime.vm.soundKey ?? "";
-      const rank = Number.parseInt(soundKey, 10) || 0;
+      const tileDto = this.allTiles[runtime.vm.tile_id!];
+      if (!tileDto) return 9999;
 
-      const suitOrder: Record<string, number> = {
-        dot: 1, bam: 2, char: 3, flower: 8, joker: 9,
-      };
-      const suit = suitOrder[runtime.vm.suit] ?? 99;
-      if (mode === "rank") return rank * 100 + suit;
-      return suit * 100 + rank;
+      const rank = (tileDto.rank as unknown as number) || 0;
 
-      return 9999;
+      let suitVal = 99;
+      const category = tileDto.category as unknown as TileCategoryEnumAddon;
+
+      if (category === TileCategoryEnumAddon.SUITED) {
+        suitVal = tileDto.type === TileTypeEnum.BAM ? 1 : tileDto.type === TileTypeEnum.CHAR ? 2 : 3;
+      } else if (category === TileCategoryEnumAddon.WIND || tileDto.category === TileCategoryEnum.WIND) {
+        suitVal = 4; // wind
+      } else if (category === TileCategoryEnumAddon.DRAGON || tileDto.category === TileCategoryEnum.DRAGON) {
+        suitVal = 5; // dragon
+      } else if (category === TileCategoryEnumAddon.FLOWER || tileDto.category === TileCategoryEnum.FLOWER) {
+        suitVal = 8; // flower
+      } else if (category === TileCategoryEnumAddon.JOKER || tileDto.category === TileCategoryEnum.JOKER) {
+        suitVal = 9; // joker
+      }
+
+      if (mode === "rank") return rank * 100 + suitVal;
+      return suitVal * 100 + rank;
     };
 
     this.rackOrder.sort((a, b) => tileRank(a) - tileRank(b));
     this.reindexRackRuntimeSlots();
     this.layoutRackTiles(true);
   }
-  public setTablePhase(phase: TablePhase): void {
+  public setTablePhase(phase: GamePhaseEnum): void {
+    console.log("setTablePhase", phase);
+    console.log("phase", this.tablePhase);
     if (this.tablePhase === phase) {
       return;
     }
 
     this.tablePhase = phase;
-    console.log("setTablePhase", phase);
+    console.log("setTablePhase", this.tablePhase);
 
-    if (phase !== "playing") {
+    if (phase !== GamePhaseEnum.PLAYING) {
       this.pendingTileCallOffer = undefined;
       this.closeTileCallWindow();
       // A Dead Hand claim is only valid during play, so never leave its
@@ -479,7 +508,7 @@ export class PhaserScene extends Phaser.Scene {
       this.closeDeadHandSeatSelection();
     }
 
-    if (phase !== "passing") {
+    if (phase !== GamePhaseEnum.PASSING) {
       this.clearBotPassVisualTiles();
       this.isBotPassVisualAnimating = false;
       this.hasCompletedFirstCharlestonVisualPass = false;
@@ -489,16 +518,37 @@ export class PhaserScene extends Phaser.Scene {
 
     this.updatePhaseUi();
   }
-  public setActiveSeat(seat: TableSeat): void {
-    if (this.activeSeat === seat) {
+  public setActiveSeat(payload: TableSeat | { seat: TableSeat | null, isPersonalTurn?: boolean } | null): void {
+    let seat: TableSeat | null = null;
+    let isPersonalTurn: boolean | undefined = undefined;
+
+    if (typeof payload === "string") {
+      seat = payload;
+    } else if (payload && typeof payload === "object") {
+      seat = payload.seat;
+      isPersonalTurn = payload.isPersonalTurn;
+    } else {
+      seat = payload;
+    }
+
+    let updatedTurn = false;
+    if (isPersonalTurn !== undefined && this.stateManager.isPersonalTurn !== isPersonalTurn) {
+      this.stateManager.isPersonalTurn = isPersonalTurn;
+      updatedTurn = true;
+    }
+
+    if ((!seat || this.activeSeat === seat) && !updatedTurn) {
       return;
     }
 
-    this.activeSeat = seat;
+    if (seat) {
+      this.activeSeat = seat;
+    }
 
     if (this.layout && this.graphics) {
       this.drawTable();
       this.layoutStaticUi();
+      this.updateInstructionText();
     }
   }
   private updatePhaseUi(): void {
@@ -510,9 +560,12 @@ export class PhaserScene extends Phaser.Scene {
     this.layoutPassWaitingTiles(false);
   }
   private isPassingPhase(): boolean {
+    if (this.charlestonState?.stage === GameCharlestoneStageEnum.SECOND_DECISION) {
+      return false;
+    }
     return this.passFlowManager.isPassingPhase();
   }
-  private resize(width: number, height: number): void {
+  private resize(width: number, height: number, animateRack: boolean = false): void {
     this.renderDpr = this.readableRenderDpr();
 
     this.cameras.main.setViewport(0, 0, width, height);
@@ -551,7 +604,7 @@ export class PhaserScene extends Phaser.Scene {
     this.renderJokerSwapWindow();
     // Keeps the Dead Hand highlights locked to the exposures after a resize.
     this.publishDeadHandSeatSelection();
-    this.layoutRackTiles(false);
+    this.layoutRackTiles(animateRack);
     this.layoutPassWaitingArea();
     this.layoutPassWaitingTiles(false);
     this.relayoutBotPassVisualTilesAfterResize();
@@ -585,7 +638,87 @@ export class PhaserScene extends Phaser.Scene {
   }
 
 
+
+  private handlePassFailed(): void {
+    console.log("[TableScene] pass failed! Reverting optimistic pass.");
+
+    // Stop the UI locking since it failed
+    this.isPassAnimating = false;
+    this.hasCompletedFirstCharlestonVisualPass = false;
+
+    // Destroy any flying clones
+    this.stateManager.passAnimationClones.forEach(clone => clone.destroy());
+    this.stateManager.passAnimationClones.length = 0;
+
+    // Move the optimistic tiles back to the pass waiting array
+    const revertedIds = [...this.stateManager.optimisticPassTileIds];
+    this.stateManager.optimisticPassTileIds.length = 0;
+
+    revertedIds.forEach(id => {
+      if (!this.passWaitingTileIds.includes(id)) {
+        this.passWaitingTileIds.push(id);
+      }
+
+      // Make them interactive and visible again
+      const runtime = this.tileMap.get(id);
+      runtime?.image.setInteractive();
+      runtime?.image.setVisible(true);
+
+      // Show and enable the close buttons again
+      const close = this.passCloseButtons.get(id);
+      if (close) {
+        close.setInteractive();
+        close.setVisible(true);
+      }
+    });
+
+    // Re-layout and animate them back to the waiting area from wherever they are
+    this.updateInstructionText();
+    this.updatePassButtonState();
+    this.layoutPickSeatSelector();
+    this.layoutPassWaitingArea();
+    this.layoutPassWaitingTiles(true); // Animate backward
+  }
+
+  private lastCharlestonSoundKey?: string;
+
+  private playCharlestonSoundIfNeeded(): void {
+    if (this.tablePhase !== GamePhaseEnum.PASSING) {
+      this.lastCharlestonSoundKey = undefined;
+      return;
+    }
+
+    const stage = this.charlestonState?.stage;
+    const direction = this.passDirection;
+    if (!stage || !direction) return;
+
+    let soundKey = "";
+    if (stage === GameCharlestoneStageEnum.FIRST) {
+      if (direction === GamePhaseFirstRoundDirectionEnum.RIGHT as any) soundKey = "first-right";
+      else if (direction === GamePhaseFirstRoundDirectionEnum.ACROSS as any) soundKey = "across";
+      else if (direction === GamePhaseFirstRoundDirectionEnum.LEFT as any) soundKey = "first-left";
+    } else if (stage === GameCharlestoneStageEnum.SECOND) {
+      if (direction === GamePhaseSecondRoundDirectionEnum.LEFT as any) soundKey = "second-left";
+      else if (direction === GamePhaseSecondRoundDirectionEnum.ACROSS as any) soundKey = "across";
+      else if (direction === GamePhaseSecondRoundDirectionEnum.RIGHT as any) soundKey = "final-right";
+    } else if (stage === GameCharlestoneStageEnum.COURTESY) {
+      soundKey = "optional-across";
+    }
+
+    if (soundKey && this.lastCharlestonSoundKey !== soundKey) {
+      this.lastCharlestonSoundKey = soundKey;
+      this.soundManager.playCharlestonVoice(soundKey);
+    }
+  }
+
   private setPassDirection(direction: PassDirection): void {
+    if (this.passDirection === direction) return;
+
+    // Explicitly reset auto-stage states when moving to a new pass direction
+    this.botAutoStagedDestination = undefined;
+    this.isBotPassVisualAnimating = false;
+    this.isPassAnimating = false;
+
     this.passFlowManager.setPassDirection(direction);
 
     console.log("[TableScene] pass direction received:", {
@@ -594,6 +727,7 @@ export class PhaserScene extends Phaser.Scene {
     });
 
     this.updateInstructionText();
+    this.playCharlestonSoundIfNeeded();
     this.layoutPassWaitingArea();
     this.layoutPassWaitingTiles(false);
     this.updatePassButtonState();
@@ -602,14 +736,18 @@ export class PhaserScene extends Phaser.Scene {
     });
   }
 
-  private setRack(tiles: readonly TileVm[]): void {
+  private setAllTiles(allTiles: Record<number, TileEntityGSDto>): void {
+    this.allTiles = allTiles;
+  }
+
+  private setRack(tiles: readonly GameTileEntity[], animate: boolean = false): void {
     //this.validateTiles(tiles);
     this.rackTiles = [...tiles];
     const needs1xAtlas = !this.textures.exists(TILE_ATLAS_1X_KEY);
     const needs2xAtlas = !this.textures.exists(TILE_ATLAS_2X_KEY);
 
     if (!needs1xAtlas && !needs2xAtlas) {
-      this.reconcileRackTiles();
+      this.reconcileRackTiles(animate);
       const tileWidth = Math.round(this.layout.bottomTileLayout.width);
       this.activeRackAtlasKey = this.gameService.selectTileAtlas(tileWidth).atlasKey;
       return;
@@ -636,7 +774,7 @@ export class PhaserScene extends Phaser.Scene {
     }
 
     this.load.once(Phaser.Loader.Events.COMPLETE, () => {
-      this.reconcileRackTiles();
+      this.reconcileRackTiles(animate);
       const tileWidth = Math.round(this.layout.bottomTileLayout.width);
       this.activeRackAtlasKey = this.gameService.selectTileAtlas(tileWidth).atlasKey;
     });
@@ -647,19 +785,29 @@ export class PhaserScene extends Phaser.Scene {
   }
 
 
-  private reconcileRackTiles(): void {
-    const incomingIds = new Set(this.rackTiles.map((tile) => tile.id));
-
+  private reconcileRackTiles(animate: boolean = false): void {
+    const incomingIds = new Set(this.rackTiles.map((tile) => tile.tile_id!));
+    console.log('677 incomingIds', incomingIds);
+    console.log('678 tileMap', this.tileMap);
     // Remove any stale rack slots created before a tile was moved to an
     // exposure. This keeps the next picked tile beside the last rack tile.
     for (const runtime of this.tileMap.values()) {
       if (runtime.zone === "exposure") {
-        this.removeFromRackOrder(runtime.vm.id);
+        this.removeFromRackOrder(runtime.vm.tile_id!);
       }
     }
-
     for (const [id, runtime] of this.tileMap.entries()) {
       if (!incomingIds.has(id)) {
+        if (this.passWaitingTileIds.includes(id)) {
+          continue;
+        }
+
+        // If it was an optimistic pass tile and the server says it's gone, clean it up
+        const optimisticIndex = this.stateManager.optimisticPassTileIds.indexOf(id);
+        if (optimisticIndex !== -1) {
+          this.stateManager.optimisticPassTileIds.splice(optimisticIndex, 1);
+        }
+
         runtime.image.destroy();
         this.tileMap.delete(id);
         this.selectedIds.delete(id);
@@ -669,23 +817,24 @@ export class PhaserScene extends Phaser.Scene {
     }
 
     for (const tile of this.rackTiles) {
-      const existingRuntime = this.tileMap.get(tile.id);
+      const existingRuntime = this.tileMap.get(tile.tile_id!);
       // `rackTiles` is the source hand and still contains tiles that have
       // moved to an exposure. Never add those IDs back as invisible rack
       // slots when a later Pick refreshes the hand.
       if (
-        !this.rackOrder.includes(tile.id) &&
-        !this.discardedTileIds.includes(tile.id) &&
+        !this.rackOrder.includes(tile.tile_id!) &&
+        !this.discardedTileIds.includes(tile.tile_id!) &&
+        !this.stateManager.optimisticPassTileIds.includes(tile.tile_id!) &&
         existingRuntime?.zone !== "exposure"
       ) {
-        this.rackOrder.push(tile.id);
+        this.rackOrder.push(tile.tile_id!);
       }
 
       if (existingRuntime) continue;
 
       const tileWidth = Math.round(this.layout.bottomTileLayout.width);
       const tileHeight = Math.round(this.layout.bottomTileLayout.height);
-      const texture = this.gameService.resolve(tile, tileWidth);
+      const texture = this.gameService.resolve(this.allTiles[tile.tile_id!], tileWidth);
 
       if (!this.textures.exists(texture.atlasKey)) {
         console.error("[TILE ATLAS MISSING]", texture.atlasKey, tile);
@@ -697,7 +846,22 @@ export class PhaserScene extends Phaser.Scene {
         continue;
       }
 
-      const image = this.add.image(0, 0, texture.atlasKey, texture.frameKey);
+      const isInitialLoad = this.rackOrder.length === 0;
+
+      let startX = 0;
+      let startY = 0;
+
+      if (!isInitialLoad && this.layout?.bottomTileLayout) {
+        // Start from the right side of the rack for a smooth sliding entry
+        const slots = this.layout.bottomTileLayout.slots;
+        if (slots && slots.length > 0) {
+          const lastSlot = slots[Math.min(this.rackOrder.length, slots.length - 1)];
+          startX = lastSlot.x + tileWidth * 2;
+          startY = lastSlot.y;
+        }
+      }
+
+      const image = this.add.image(startX, startY, texture.atlasKey, texture.frameKey);
       image.setOrigin(0.5);
       image.setDisplaySize(tileWidth, tileHeight);
       this.applyTileTextureFilter(image, true);
@@ -705,20 +869,20 @@ export class PhaserScene extends Phaser.Scene {
       const runtime: TileRuntime = {
         vm: tile,
         image,
-        slotIndex: this.rackOrder.indexOf(tile.id),
+        slotIndex: this.rackOrder.indexOf(tile.tile_id!),
         selected: false,
         isDragging: false,
         zone: "rack",
       };
 
-      this.tileMap.set(tile.id, runtime);
+      this.tileMap.set(tile.tile_id!, runtime);
       this.registerTileInput(runtime);
     }
 
     this.reindexRackRuntimeSlots();
     this.selectedIds.clear();
     this.callbacks.onSelectionChanged([]);
-    this.resize(this.scale.width, this.scale.height);
+    this.resize(this.scale.width, this.scale.height, animate);
   }
   private refreshRackTileTextures(): void {
     const tileWidth = Math.round(this.layout.bottomTileLayout.width);
@@ -728,7 +892,7 @@ export class PhaserScene extends Phaser.Scene {
       if (!runtime) continue;
       if (runtime.zone !== "rack") continue;
 
-      const texture = this.gameService.resolve(runtime.vm, tileWidth);
+      const texture = this.gameService.resolve(this.allTiles[runtime.vm.tile_id!], tileWidth);
 
       if (!this.textures.exists(texture.atlasKey)) {
         continue;
@@ -794,28 +958,28 @@ export class PhaserScene extends Phaser.Scene {
     }
   }
 
-  private removeFromRackOrder(tileId: string): void {
+  private removeFromRackOrder(tileId: number): void {
     this.rackOrder = this.rackOrder.filter((id) => id !== tileId);
   }
 
-  private removeFromDiscardOrder(tileId: string): void {
+  private removeFromDiscardOrder(tileId: number): void {
     const index = this.discardedTileIds.indexOf(tileId);
     if (index >= 0) this.discardedTileIds.splice(index, 1);
     this.removeDiscardSlot(tileId);
   }
 
-  private addDiscardSlot(tileId: string): void {
+  private addDiscardSlot(tileId: number): void {
     if (!this.discardSlotOrder.includes(tileId)) {
       this.discardSlotOrder.push(tileId);
     }
   }
 
-  private removeDiscardSlot(tileId: string): void {
+  private removeDiscardSlot(tileId: number): void {
     const index = this.discardSlotOrder.indexOf(tileId);
     if (index >= 0) this.discardSlotOrder.splice(index, 1);
   }
 
-  private discardSlotIndex(tileId: string, fallback: number): number {
+  private discardSlotIndex(tileId: number, fallback: number): number {
     const index = this.discardSlotOrder.indexOf(tileId);
     return index >= 0 ? index : fallback;
   }
@@ -827,7 +991,7 @@ export class PhaserScene extends Phaser.Scene {
     });
   }
 
-  private moveRackTileToIndex(tileId: string, targetIndex: number): void {
+  private moveRackTileToIndex(tileId: number, targetIndex: number): void {
     this.removeFromRackOrder(tileId);
 
     const safeIndex = Phaser.Math.Clamp(targetIndex, 0, this.rackOrder.length);
@@ -849,14 +1013,14 @@ export class PhaserScene extends Phaser.Scene {
       if (runtime.zone === "pass") {
         pointer.event?.stopPropagation?.();
         this.playHaptic("tile-return");
-        this.returnPassTileToRack(runtime.vm.id);
+        this.returnPassTileToRack(runtime.vm.tile_id!);
         return;
       }
 
       this.activeDragTile = runtime;
-      this.suppressTapByTileId.delete(runtime.vm.id);
+      this.suppressTapByTileId.delete(runtime.vm.tile_id!);
 
-      this.tileInteractionManager.beginPointer(runtime.vm.id, pointer);
+      this.tileInteractionManager.beginPointer(runtime.vm.tile_id!, pointer);
 
       runtime.isDragging = false;
       runtime.image.setDepth(100);
@@ -870,7 +1034,7 @@ export class PhaserScene extends Phaser.Scene {
       if (
         !runtime.isDragging &&
         !this.tileInteractionManager.hasReachedDragThreshold(
-          runtime.vm.id,
+          runtime.vm.tile_id!,
           pointer,
           this.dragThresholdPx,
         )
@@ -880,7 +1044,7 @@ export class PhaserScene extends Phaser.Scene {
         runtime.isDragging = true;
 
         runtime.selected = false;
-        this.selectedIds.delete(runtime.vm.id);
+        this.selectedIds.delete(runtime.vm.tile_id!);
         runtime.image.clearTint();
 
         this.callbacks.onSelectionChanged([...this.selectedIds]);
@@ -890,7 +1054,7 @@ export class PhaserScene extends Phaser.Scene {
 
       if (runtime.zone === "rack") {
         const isPassingDropTarget =
-          this.tablePhase === "passing" &&
+          this.isPassingPhase() &&
           (
             this.isInsidePassWaitingArea(pointer.worldX, pointer.worldY) ||
             this.isInsidePlayablePassDropArea(pointer.worldX, pointer.worldY)
@@ -902,11 +1066,11 @@ export class PhaserScene extends Phaser.Scene {
 
 
         if (this.isInsideRackArea(pointer.worldX, pointer.worldY)) {
-          const newIndex = this.rackIndexFromDragX(runtime.vm.id, pointer.worldX);
-          const currentIndex = this.rackOrder.indexOf(runtime.vm.id);
+          const newIndex = this.rackIndexFromDragX(runtime.vm.tile_id!, pointer.worldX);
+          const currentIndex = this.rackOrder.indexOf(runtime.vm.tile_id!);
 
           if (newIndex !== currentIndex && newIndex >= 0) {
-            this.moveRackTileToIndex(runtime.vm.id, newIndex);
+            this.moveRackTileToIndex(runtime.vm.tile_id!, newIndex);
             this.layoutRackTiles(true);
             runtime.image.setDepth(100);
           }
@@ -923,18 +1087,18 @@ export class PhaserScene extends Phaser.Scene {
           return;
         }
 
-        this.suppressTapByTileId.add(runtime.vm.id);
+        this.suppressTapByTileId.add(runtime.vm.tile_id!);
         runtime.isDragging = false;
 
         if (
-          this.tablePhase === "passing" &&
+          this.isPassingPhase() &&
           runtime.zone === "rack" &&
           (
             this.isInsidePassWaitingArea(pointer.worldX, pointer.worldY) ||
             this.isInsidePlayablePassDropArea(pointer.worldX, pointer.worldY)
           )
         ) {
-          this.tileInteractionManager.cleanupDrop(runtime.vm.id);
+          this.tileInteractionManager.cleanupDrop(runtime.vm.tile_id!);
           this.snapTileToPassWaiting(runtime);
           return;
         }
@@ -944,21 +1108,21 @@ export class PhaserScene extends Phaser.Scene {
           this.canAddTileToBottomExposure(runtime.vm) &&
           this.isInsideBottomExposure(pointer.worldX, pointer.worldY)
         ) {
-          this.tileInteractionManager.cleanupDrop(runtime.vm.id);
+          this.tileInteractionManager.cleanupDrop(runtime.vm.tile_id!);
           this.moveRackTileToBottomExposure(runtime);
           return;
         }
 
         if (
-          this.tablePhase !== "passing" &&
+          this.tablePhase !== GamePhaseEnum.PASSING &&
           this.isInsidePlayableDiscardArea(pointer.worldX, pointer.worldY)
         ) {
-          this.tileInteractionManager.cleanupDrop(runtime.vm.id);
+          this.tileInteractionManager.cleanupDrop(runtime.vm.tile_id!);
           this.snapTileToDiscard(runtime, ANIMATION_SPEED, "Cubic.Out");
           return;
         }
 
-        this.tileInteractionManager.cleanupDrop(runtime.vm.id);
+        this.tileInteractionManager.cleanupDrop(runtime.vm.tile_id!);
         this.returnTileToSlot(runtime);
       });
     });
@@ -966,8 +1130,8 @@ export class PhaserScene extends Phaser.Scene {
     this.tileInteractionManager.onPointerUp(runtime.image, () => {
       this.activeDragTile = undefined;
 
-      const shouldSuppressTap = this.suppressTapByTileId.delete(runtime.vm.id);
-      this.tileInteractionManager.finishPointer(runtime.vm.id);
+      const shouldSuppressTap = this.suppressTapByTileId.delete(runtime.vm.tile_id!);
+      this.tileInteractionManager.finishPointer(runtime.vm.tile_id!);
 
       if (shouldSuppressTap) return;
       if (runtime.isDragging) return;
@@ -975,26 +1139,26 @@ export class PhaserScene extends Phaser.Scene {
       if (runtime.zone !== "rack") return;
 
       const now = this.time.now;
-      const previous = this.lastTapAtByTileId.get(runtime.vm.id) ?? 0;
+      const previous = this.lastTapAtByTileId.get(runtime.vm.tile_id!) ?? 0;
       const isDoubleTap = now - previous <= this.doubleTapMs;
 
-      this.lastTapAtByTileId.set(runtime.vm.id, now);
+      this.lastTapAtByTileId.set(runtime.vm.tile_id!, now);
       if (!isDoubleTap) return;
 
-      if (this.tablePhase === "passing") {
+      if (this.isPassingPhase()) {
         this.playHaptic("tile-tap");
         this.snapTileToPassWaiting(runtime);
         return;
       }
 
-      if (this.tablePhase === "playing") {
+      if (this.tablePhase === GamePhaseEnum.PLAYING) {
         if (this.canAddTileToBottomExposure(runtime.vm)) {
           this.moveRackTileToBottomExposure(runtime);
           return;
         }
 
         runtime.selected = false;
-        this.selectedIds.delete(runtime.vm.id);
+        this.selectedIds.delete(runtime.vm.tile_id!);
         runtime.image.clearTint();
         this.snapTileToDiscard(runtime, ANIMATION_SPEED, "Cubic.Out");
       }
@@ -1020,8 +1184,8 @@ export class PhaserScene extends Phaser.Scene {
   private returnTileToSlot(runtime: TileRuntime): void {
     runtime.zone = "rack";
 
-    if (!this.rackOrder.includes(runtime.vm.id)) {
-      this.rackOrder.push(runtime.vm.id);
+    if (!this.rackOrder.includes(runtime.vm.tile_id!)) {
+      this.rackOrder.push(runtime.vm.tile_id!);
       this.reindexRackRuntimeSlots();
     }
 
@@ -1038,7 +1202,7 @@ export class PhaserScene extends Phaser.Scene {
     );
   }
   private slotFor(runtime: TileRuntime): Point {
-    const index = this.rackOrder.indexOf(runtime.vm.id);
+    const index = this.rackOrder.indexOf(runtime.vm.tile_id!);
     const slot = this.layout.bottomTileLayout.slots[index];
 
     return slot ?? {
@@ -1377,7 +1541,7 @@ export class PhaserScene extends Phaser.Scene {
     // --- FIXED SHADOW SYSTEM ---
     const isMobile = this.layout.tableOuter.width < 640;
     const isTablet = this.layout.tableOuter.width >= 640 && this.layout.tableOuter.width < 1024;
-    const maxSpread = isMobile ? 4 : isTablet ? 10 : 16; 
+    const maxSpread = isMobile ? 4 : isTablet ? 10 : 16;
     const shadowColor = 0x000000;
 
     // Slight directional offset for 3D feel
@@ -1711,7 +1875,8 @@ export class PhaserScene extends Phaser.Scene {
       layout: this.layout,
       renderDpr: this.renderDpr,
       tablePhase: this.tablePhase,
-      pickTargetSeat: this.pickTargetSeat,
+      charlestonStage: this.charlestonState?.stage,
+      isPersonalTurn: this.stateManager.isPersonalTurn,
       passDirection: this.passDirection,
       wallTileCount: this.wallTileCount,
       passWaitingCount: this.passWaitingTileIds.length,
@@ -1719,6 +1884,8 @@ export class PhaserScene extends Phaser.Scene {
       isPassAnimating: this.isPassAnimating,
       isPickAnimating: this.isPickAnimating,
       activeSeat: this.activeSeat,
+      canDiscard: this.canDiscard,
+      canPickFromWall: this.canPickFromWall(),
     });
     this.uiLayoutManager.setMobileHeaderVisible(
       !this.mobileHeaderCollapsed || !this.layout.metrics.isMobile,
@@ -1777,10 +1944,8 @@ export class PhaserScene extends Phaser.Scene {
     // A discard test is still allowed to open the CALL UI. Passing is the
     // only phase where a player must not call a discarded tile.
     this.closeJokerSwapWindow();
-    this.pendingTileCallOffer =
-      offer && this.tablePhase !== "passing" && offer.discard.suit !== "joker"
-        ? offer
-        : undefined;
+    const canCall = offer && this.tablePhase !== GamePhaseEnum.PASSING && !this.isJoker(offer.discard.tile_id!);
+    this.pendingTileCallOffer = canCall ? offer : undefined;
     this.renderTileCallWindow();
   }
 
@@ -1818,18 +1983,18 @@ export class PhaserScene extends Phaser.Scene {
   }
 
   /** Finds the two rack tiles needed to show a valid minimum Pung call. */
-  private callTileIds(offer: TileCallOffer): readonly string[] | undefined {
+  private callTileIds(offer: TileCallOffer): readonly number[] | undefined {
     // Only tiles still physically in the Bottom rack can be used for a new
     // call. `rackTiles` also retains tiles already moved into an exposure.
-    const rackTiles = this.rackTiles.filter((tile) => this.rackOrder.includes(tile.id));
+    const rackTiles = this.rackTiles.filter((tile) => this.rackOrder.includes(tile.tile_id!));
     const matching = rackTiles.filter(
-      (tile) => tile.suit !== "joker" && tile.asset === offer.discard.asset,
+      (tile) => !this.isJoker(tile.tile_id!) && this.gameService.assetBaseName(this.allTiles[tile.tile_id!]) === this.gameService.assetBaseName(this.allTiles[offer.discard.tile_id!]),
     );
-    const jokers = rackTiles.filter((tile) => tile.suit === "joker");
+    const jokers = rackTiles.filter((tile) => this.isJoker(tile.tile_id!));
     // A call must be able to form at least a pung: the discard plus two rack
     // tiles, where a joker may replace a matching rack tile.
     const selected = [...matching.slice(0, 2), ...jokers.slice(0, Math.max(0, 2 - matching.length))];
-    return selected.length === 2 ? selected.map((tile) => tile.id) : undefined;
+    return selected.length === 2 ? selected.map((tile) => tile.tile_id!) : undefined;
   }
 
   /** Builds the small CALL / SKIP popup in the centre discard area. */
@@ -1857,7 +2022,7 @@ export class PhaserScene extends Phaser.Scene {
     background.strokeRoundedRect(-width / 2, -height / 2, width, height, 12);
 
     const title = this.add
-      .text(0, -height / 2 + 28, `CALL ${offer.discard.label.toUpperCase()}?`, {
+      .text(0, -height / 2 + 28, `CALL ${this.gameService.assetBaseName(this.allTiles[offer.discard.tile_id!]).replace("_", " ").toUpperCase()}?`, {
         fontFamily: FONT_FAMILY,
         fontSize: `${Math.round(Phaser.Math.Clamp(rowHeight * 0.48, 16, 21))}px`,
         fontStyle: "700",
@@ -1885,7 +2050,7 @@ export class PhaserScene extends Phaser.Scene {
       this.playHaptic("tile-discard");
       this.animateCalledDiscardToBottomExposure();
       this.callbacks.onTileCallDecision({
-        discardId: offer.discard.id,
+        discardId: offer.discard.tile_id!,
         discardedBy: offer.discardedBy,
         action: "call",
         tileIds,
@@ -1896,7 +2061,7 @@ export class PhaserScene extends Phaser.Scene {
 
     addButton(1, "SKIP", 0x475569, () => {
       this.callbacks.onTileCallDecision({
-        discardId: offer.discard.id,
+        discardId: offer.discard.tile_id!,
         discardedBy: offer.discardedBy,
         action: "skip",
       });
@@ -1966,7 +2131,7 @@ export class PhaserScene extends Phaser.Scene {
 
     this.tweens.killTweensOf(image);
     if (this.pendingTileCallOffer) {
-      this.removeDiscardSlot(this.pendingTileCallOffer.discard.id);
+      this.removeDiscardSlot(this.pendingTileCallOffer.discard.tile_id!);
     }
     const discardIndex = this.opponentDiscardTiles.indexOf(image);
     if (discardIndex >= 0) {
@@ -1975,7 +2140,7 @@ export class PhaserScene extends Phaser.Scene {
     }
     this.calledBottomExposureTiles.push(image);
     this.pendingTileCallImage = undefined;
-    this.exposureBuildAsset = this.pendingTileCallOffer?.discard.asset;
+    this.exposureBuildAsset = this.pendingTileCallOffer ? this.gameService.assetBaseName(this.allTiles[this.pendingTileCallOffer.discard.tile_id!]) : undefined;
     image.setData("exposure-asset", this.exposureBuildAsset);
     const target = this.calledBottomExposureTilePosition(
       this.calledBottomExposureTiles.length - 1,
@@ -2050,7 +2215,7 @@ export class PhaserScene extends Phaser.Scene {
     this.opponentDiscardTiles.forEach((image, index) => {
       if (!image.active) return;
 
-      const discardId = image.getData("discard-id") as string | undefined;
+      const discardId = image.getData("discard-id") as number;
       const slot = this.discardSlotFor(
         discardId ? this.discardSlotIndex(discardId, index) : index,
         grid,
@@ -2065,13 +2230,13 @@ export class PhaserScene extends Phaser.Scene {
   }
 
   /** Allows only matching tiles or jokers, and prevents overflowing the tray. */
-  private canAddTileToBottomExposure(tile: TileVm): boolean {
+  private canAddTileToBottomExposure(tile: GameTileEntity): boolean {
     return Boolean(
       this.exposureBuildAsset &&
       // The widened mobile/tablet trays support up to twelve exposed tiles
       // (for example, four Pungs), not only a single Sextet.
       this.calledBottomExposureTiles.length < 12 &&
-      (tile.asset === this.exposureBuildAsset || tile.suit === "joker"),
+      (this.gameService.assetBaseName(this.allTiles[tile.tile_id!]) === this.exposureBuildAsset || this.isJoker(tile.tile_id!)),
     );
   }
 
@@ -2082,17 +2247,17 @@ export class PhaserScene extends Phaser.Scene {
     // Use the same clearly noticeable feedback as a discard. `tile-tap`
     // uses native selectionChanged(), which is too subtle on many devices.
     this.playHaptic("tile-discard");
-    this.removeFromRackOrder(runtime.vm.id);
+    this.removeFromRackOrder(runtime.vm.tile_id!);
     this.reindexRackRuntimeSlots();
     runtime.zone = "exposure";
     runtime.selected = false;
     runtime.isDragging = false;
-    this.selectedIds.delete(runtime.vm.id);
+    this.selectedIds.delete(runtime.vm.tile_id!);
     runtime.image.clearTint().disableInteractive();
     runtime.image.setData("exposure-asset", this.exposureBuildAsset);
     this.calledBottomExposureTiles.push(runtime.image);
 
-    if (runtime.vm.suit === "joker") {
+    if (this.isJoker(runtime.vm.tile_id!)) {
       this.enableExposedJokerSwap(runtime);
     }
 
@@ -2134,7 +2299,7 @@ export class PhaserScene extends Phaser.Scene {
   /** Opens the swap popup only when a matching tile is still in the local rack. */
   private requestJokerSwap(joker: TileRuntime): void {
     if (
-      this.tablePhase !== "playing" ||
+      this.tablePhase !== GamePhaseEnum.PLAYING ||
       this.activeSeat !== "bottom" ||
       joker.zone !== "exposure"
     ) return;
@@ -2145,7 +2310,7 @@ export class PhaserScene extends Phaser.Scene {
     const replacement = this.rackOrder
       .map((id) => this.tileMap.get(id))
       .find((runtime): runtime is TileRuntime => Boolean(
-        runtime && runtime.zone === "rack" && runtime.vm.asset === exposedAsset,
+        runtime && runtime.zone === "rack" && this.gameService.assetBaseName(this.stateManager.allTiles[runtime.vm.tile_id!]) === exposedAsset,
       ));
 
     if (!replacement) return;
@@ -2179,7 +2344,7 @@ export class PhaserScene extends Phaser.Scene {
     background.strokeRoundedRect(-width / 2, -height / 2, width, height, 12);
 
     const title = this.add
-      .text(0, -height / 2 + 28, `SWAP JOKER FOR ${replacement.vm.label.toUpperCase()}?`, {
+      .text(0, -height / 2 + 28, `SWAP JOKER FOR ${String(replacement.vm.tile_id)}?`, {
         fontFamily: FONT_FAMILY,
         fontSize: `${Math.round(Phaser.Math.Clamp(rowHeight * 0.45, 14, 20))}px`,
         fontStyle: "700",
@@ -2232,7 +2397,7 @@ export class PhaserScene extends Phaser.Scene {
    * the table before choosing a reason for the claim.
    */
   private showDeadHandSeatSelection(): void {
-    if (!this.layout || this.tablePhase !== "playing") return;
+    if (!this.layout || this.tablePhase !== GamePhaseEnum.PLAYING) return;
 
     this.deadHandSeatSelectionOpen = true;
     this.publishDeadHandSeatSelection();
@@ -2317,14 +2482,14 @@ export class PhaserScene extends Phaser.Scene {
   /** Exchanges the selected rack tile and exposed joker, then refreshes the rack. */
   private confirmJokerSwap(): void {
     const pending = this.pendingJokerSwap;
-    if (!pending || this.tablePhase !== "playing" || this.activeSeat !== "bottom") {
+    if (!pending || this.tablePhase !== GamePhaseEnum.PLAYING || this.activeSeat !== "bottom") {
       this.closeJokerSwapWindow();
       return;
     }
 
     const { joker, replacement } = pending;
     const exposureIndex = this.calledBottomExposureTiles.indexOf(joker.image);
-    const rackIndex = this.rackOrder.indexOf(replacement.vm.id);
+    const rackIndex = this.rackOrder.indexOf(replacement.vm.tile_id!);
     if (joker.zone !== "exposure" || replacement.zone !== "rack" || exposureIndex < 0 || rackIndex < 0) {
       this.closeJokerSwapWindow();
       return;
@@ -2335,7 +2500,7 @@ export class PhaserScene extends Phaser.Scene {
     const exposureTarget = this.calledBottomExposureTilePosition(exposureIndex);
     const exposureTileSize = this.calledBottomExposureTileSize();
 
-    this.rackOrder.splice(rackIndex, 1, joker.vm.id);
+    this.rackOrder.splice(rackIndex, 1, joker.vm.tile_id!);
     this.reindexRackRuntimeSlots();
     joker.zone = "rack";
     replacement.zone = "exposure";
@@ -2369,37 +2534,29 @@ export class PhaserScene extends Phaser.Scene {
     this.layoutRackTiles(true);
   }
 
-  /**
-   * Temporary test path for an opponent discard. It uses static tile data,
-   * animates the discard to the shared area, then opens the normal CALL UI.
-   * Replace this method with WebSocket discard messages when the backend is ready.
-   */
-  private triggerDemoSeatDiscard(request: DemoDiscardRequest): void {
-    if (this.tablePhase === "passing" || !this.layout) return;
+  private handleOpponentPick(payload: { seat: TableSeat }): void {
+    if (this.tablePhase !== GamePhaseEnum.PLAYING || !this.layout) return;
+    this.playHaptic("pick");
+    this.pickTileForSeat(payload.seat);
+  }
 
-    const assetsBySeat: Record<DemoDiscardRequest["seat"], readonly string[]> = {
-      top: ["dot_1.svg", "bam_6.svg"],
-      right: ["char_4.svg", "bam_8.svg"],
-      left: ["bam_4.svg"],
-    };
-    const assets = assetsBySeat[request.seat];
-    const asset = assets[this.demoDiscardSequence++ % assets.length];
-    const discard = this.rackTiles.find((tile) => tile.asset.endsWith(asset));
-    if (!discard) return;
+  private handleOpponentDiscard(payload: { seat: TableSeat, tile: GameTileEntityGSDto }): void {
+    if (this.tablePhase === GamePhaseEnum.PASSING || !this.layout) return;
 
     this.pendingTileCallOffer = undefined;
     this.closeTileCallWindow();
 
     const grid = this.discardGrid();
-    const texture = this.gameService.resolve(discard, grid.tileWidth);
+    const texture = this.gameService.resolve(payload.tile, grid.tileWidth);
     if (!this.textures.exists(texture.atlasKey) || !this.textures.get(texture.atlasKey).has(texture.frameKey)) {
       return;
     }
 
-    const exposure = this.exposureRectForSeat(request.seat);
+    const exposure = this.exposureRectForSeat(payload.seat);
     const sourceX = exposure.x + exposure.width / 2;
     const sourceY = exposure.y + exposure.height / 2;
-    const discardId = `demo-${request.seat}-${request.requestId}`;
+    const discardId = payload.tile.id ?? (9999000 + ++this.demoDiscardSequence);
+
     this.addDiscardSlot(discardId);
     const discardSlot = this.discardSlotFor(
       this.discardSlotIndex(discardId, this.opponentDiscardTiles.length),
@@ -2411,15 +2568,11 @@ export class PhaserScene extends Phaser.Scene {
       .image(sourceX, sourceY, texture.atlasKey, texture.frameKey)
       .setDisplaySize(grid.tileWidth, grid.tileHeight)
       .setDepth(this.discardTileDepth() + 2);
+
     this.applyTileTextureFilter(image);
     image.setData("discard-id", discardId);
     this.pendingTileCallImage = image;
     this.opponentDiscardTiles.push(image);
-
-    const offeredDiscard: TileCallOffer = {
-      discard: { ...discard, id: discardId },
-      discardedBy: request.seat,
-    };
 
     this.tweens.add({
       targets: image,
@@ -2428,8 +2581,7 @@ export class PhaserScene extends Phaser.Scene {
       duration: ANIMATION_SPEED,
       ease: "Cubic.Out",
       onComplete: () => {
-        this.playTileDiscardVoice(discard);
-        this.setTileCallOffer(offeredDiscard);
+        this.playTileDiscardVoice(payload.tile as any);
       },
     });
   }
@@ -2449,17 +2601,33 @@ export class PhaserScene extends Phaser.Scene {
     this.uiLayoutManager.updateWallTiles(this.wallTileCount);
   }
 
-  /** Refreshes the turn instruction after changing phase or selected seat. */
   private updateInstructionText(): void {
     this.uiLayoutManager.updateInstruction(
       this.tablePhase,
-      this.pickTargetSeat,
+      this.charlestonState?.stage,
+      this.stateManager.isPersonalTurn,
       this.passDirection,
+      this.canDiscard,
     );
   }
 
-  private textureKey(tile: TileVm): string {
-    return `tile-${tile.id}`;
+  private setCharlestonState(state: any): void {
+    this.charlestonState = state;
+    this.updateInstructionText();
+    this.playCharlestonSoundIfNeeded();
+  }
+
+  private isJoker(tileId: number): boolean {
+    const category = this.allTiles[tileId]?.category as unknown as TileCategoryEnumAddon;
+    return category === TileCategoryEnumAddon.JOKER || this.allTiles[tileId]?.category === TileCategoryEnum.JOKER;
+  }
+
+  private textureKey(tile: GameTileEntity): string {
+    const tileDto = this.allTiles[tile.tile_id!];
+    if (!tileDto) return "tile-back";
+
+    // We can resolve the tile asset base name via gameService
+    return this.gameService.assetBaseName(tileDto);
   }
 
   private discardSlotFor(
@@ -2657,7 +2825,7 @@ export class PhaserScene extends Phaser.Scene {
       columns,
     };
   }
-  private rackIndexFromDragX(tileId: string, pointerX: number): number {
+  private rackIndexFromDragX(tileId: number, pointerX: number): number {
     const currentIndex = this.rackOrder.indexOf(tileId);
 
     if (currentIndex < 0) {
@@ -2707,31 +2875,31 @@ export class PhaserScene extends Phaser.Scene {
     return this.tileInteractionManager.isPointInsideRect(this.layout.bottomRack, x, y);
   }
   private snapTileToDiscard(runtime: TileRuntime, duration: number = ANIMATION_SPEED, ease: string = "Cubic.Out"): void {
-    if (this.tablePhase !== "playing") {
+    if (this.tablePhase !== GamePhaseEnum.PLAYING) {
       this.returnTileToSlot(runtime);
       return;
     }
 
-    this.removeFromRackOrder(runtime.vm.id);
+    this.removeFromRackOrder(runtime.vm.tile_id!);
 
-    if (!this.discardedTileIds.includes(runtime.vm.id)) {
-      this.discardedTileIds.push(runtime.vm.id);
+    if (!this.discardedTileIds.includes(runtime.vm.tile_id!)) {
+      this.discardedTileIds.push(runtime.vm.tile_id!);
     }
-    this.addDiscardSlot(runtime.vm.id);
+    this.addDiscardSlot(runtime.vm.tile_id!);
 
     this.reindexRackRuntimeSlots();
 
     runtime.zone = "discard";
     runtime.selected = false;
     runtime.isDragging = false;
-    this.selectedIds.delete(runtime.vm.id);
+    this.selectedIds.delete(runtime.vm.tile_id!);
     runtime.image.clearTint();
     runtime.image.disableInteractive();
     const grid = this.discardGrid();
     const slot = this.discardSlotFor(
       this.discardSlotIndex(
-        runtime.vm.id,
-        this.discardedTileIds.indexOf(runtime.vm.id),
+        runtime.vm.tile_id!,
+        this.discardedTileIds.indexOf(runtime.vm.tile_id!),
       ),
       grid,
     );
@@ -2753,14 +2921,15 @@ export class PhaserScene extends Phaser.Scene {
 
     this.layoutRackTiles(true);
     this.callbacks.onSelectionChanged([...this.selectedIds]);
+    this.callbacks.onLocalPlayerDiscard(runtime.vm.tile_id!);
   }
 
   // now remove the single tap/click event from the tile when it in the rack
   private snapTileToRackEnd(runtime: TileRuntime): void {
-    this.removeFromDiscardOrder(runtime.vm.id);
-    this.removeFromRackOrder(runtime.vm.id);
+    this.removeFromDiscardOrder(runtime.vm.tile_id!);
+    this.removeFromRackOrder(runtime.vm.tile_id!);
 
-    this.rackOrder.push(runtime.vm.id);
+    this.rackOrder.push(runtime.vm.tile_id!);
     this.reindexRackRuntimeSlots();
 
     runtime.zone = "rack";
@@ -2776,6 +2945,16 @@ export class PhaserScene extends Phaser.Scene {
 
   private applyTileTextureFilter(image: Phaser.GameObjects.Image, isBottomRack: boolean = false): void {
     image.texture.setFilter(Phaser.Textures.FilterMode.LINEAR);
+    if (isBottomRack) {
+      if ((image as any).enableFilters && !image.getData("hasShadow")) {
+        image.setData("hasShadow", true);
+        (image as any).enableFilters();
+        if ((image as any).filters && (image as any).filters.external) {
+          // x, y, decay, power, color, samples, intensity
+          (image as any).filters.external.addShadow(0.4, 0.6, 0.0, 1, 0x000000, 6, 0.8);
+        }
+      }
+    }
   }
 
   private layoutRackTiles(animate: boolean): void {
@@ -2800,7 +2979,7 @@ export class PhaserScene extends Phaser.Scene {
       const targetY = Math.round(slot.y + selectedOffset);
 
       if (runtime.isDragging) {
-        runtime.slotIndex = this.rackOrder.indexOf(runtime.vm.id);
+        runtime.slotIndex = this.rackOrder.indexOf(runtime.vm.tile_id!);
         runtime.image.setDepth(100);
         continue;
       }
@@ -2880,7 +3059,7 @@ export class PhaserScene extends Phaser.Scene {
   }
 
   private isInsidePlayableDiscardArea(x: number, y: number): boolean {
-    if (this.tablePhase !== "playing") {
+    if (this.tablePhase !== GamePhaseEnum.PLAYING) {
       return false;
     }
 
@@ -2891,7 +3070,7 @@ export class PhaserScene extends Phaser.Scene {
     );
   }
   private isInsidePlayablePassDropArea(x: number, y: number): boolean {
-    if (this.tablePhase !== "passing") {
+    if (!this.isPassingPhase()) {
       return false;
     }
 
@@ -2924,30 +3103,35 @@ export class PhaserScene extends Phaser.Scene {
   }
 
   private snapTileToPassWaiting(runtime: TileRuntime): void {
-    if (!this.isPassingPhase()) return;
-    if (runtime.zone !== "rack") return;
-    if (this.passWaitingTileIds.length >= 3) return;
-
-    // American Mahjong rule: jokers cannot be passed during Charleston.
-    if (runtime.vm.suit === "joker") {
+    if (!this.isPassingPhase() || runtime.zone !== "rack") {
+      this.returnTileToSlot(runtime);
+      return;
+    }
+    if (this.passWaitingTileIds.length >= 3) {
       this.returnTileToSlot(runtime);
       return;
     }
 
-    this.removeFromRackOrder(runtime.vm.id);
+    // American Mahjong rule: jokers cannot be passed during Charleston.
+    if (this.isJoker(runtime.vm.tile_id!)) {
+      this.returnTileToSlot(runtime);
+      return;
+    }
+
+    this.removeFromRackOrder(runtime.vm.tile_id!);
     this.reindexRackRuntimeSlots();
 
     runtime.zone = "pass";
     runtime.selected = false;
     runtime.isDragging = false;
 
-    this.selectedIds.delete(runtime.vm.id);
+    this.selectedIds.delete(runtime.vm.tile_id!);
     runtime.image.clearTint();
     runtime.image.setAlpha(1);
     runtime.image.setDepth(90);
 
-    this.passFlowManager.addPassWaitingTile(runtime.vm.id);
-    this.ensurePassCloseButton(runtime.vm.id);
+    this.passFlowManager.addPassWaitingTile(runtime.vm.tile_id!);
+    this.ensurePassCloseButton(runtime.vm.tile_id!);
 
     this.playHaptic("tile-pass");
     this.playSfx("tile-pass-waiting");
@@ -2956,7 +3140,7 @@ export class PhaserScene extends Phaser.Scene {
     this.callbacks.onSelectionChanged([...this.selectedIds]);
   }
 
-  private returnPassTileToRack(tileId: string): void {
+  private returnPassTileToRack(tileId: number): void {
     const runtime = this.tileMap.get(tileId);
     if (!runtime) return;
     if (runtime.zone !== "pass") return;
@@ -3059,7 +3243,7 @@ export class PhaserScene extends Phaser.Scene {
   }
 
 
-  private removeFromPassWaiting(tileId: string): void {
+  private removeFromPassWaiting(tileId: number): void {
     this.passFlowManager.removePassWaitingTile(tileId);
 
     const close = this.passCloseButtons.get(tileId);
@@ -3067,7 +3251,7 @@ export class PhaserScene extends Phaser.Scene {
     this.passCloseButtons.delete(tileId);
   }
 
-  private ensurePassCloseButton(tileId: string): void {
+  private ensurePassCloseButton(tileId: number): void {
     if (this.passCloseButtons.has(tileId)) return;
 
     const radius = this.passCloseButtonRadius();
@@ -3145,7 +3329,7 @@ export class PhaserScene extends Phaser.Scene {
       (tileId) => this.positionPassCloseButton(tileId),
     );
   }
-  private positionPassCloseButton(tileId: string): void {
+  private positionPassCloseButton(tileId: number): void {
     const runtime = this.tileMap.get(tileId);
     const close = this.passCloseButtons.get(tileId);
 
@@ -3348,12 +3532,14 @@ export class PhaserScene extends Phaser.Scene {
   } {
     const rackWidth = this.layout.bottomTileLayout.width;
 
+    const isMobilePortrait = this.layout.metrics.isMobile && this.layout.metrics.isPortrait;
+    const sizeMultiplier = isMobilePortrait ? 0.96 : 0.82;
 
     const width = Math.round(
       Phaser.Math.Clamp(
-        rackWidth * 0.82,
+        rackWidth * sizeMultiplier,
         rackWidth * 0.72,
-        rackWidth * 0.95,
+        rackWidth * 1.1,
       ),
     );
 
@@ -3430,7 +3616,7 @@ export class PhaserScene extends Phaser.Scene {
     });
   }
   private animatePassWaitingTilesIntoSeatRack(
-    ids: readonly string[],
+    ids: readonly number[],
     onFinished: () => void,
   ): void {
     const destination = this.currentPassDestination;
@@ -3457,7 +3643,7 @@ export class PhaserScene extends Phaser.Scene {
   }
 
   private tryAutoStageBotPassTilesForCurrentDirection(): void {
-    if (this.tablePhase !== "passing") return;
+    if (this.tablePhase !== GamePhaseEnum.PASSING) return;
     if (!this.hasCompletedFirstCharlestonVisualPass) return;
     if (this.isPassAnimating) return;
     if (this.isBotPassVisualAnimating) return;
@@ -3906,10 +4092,19 @@ export class PhaserScene extends Phaser.Scene {
     }));
   }
 
-  private applyPassWaitingResult(ids: readonly string[]): void {
+  private applyPassWaitingResult(ids: readonly number[]): void {
     this.passFlowManager.applyPassWaitingResult(ids, {
-      onTileRemoved: (runtime) => runtime.image.destroy(),
-      onCloseButtonRemoved: (tileId) => this.passCloseButtons.get(tileId)?.destroy(),
+      onTileRemoved: (runtime) => {
+        runtime.image.disableInteractive();
+        runtime.image.setVisible(false);
+      },
+      onCloseButtonRemoved: (tileId) => {
+        const close = this.passCloseButtons.get(tileId);
+        if (close) {
+          close.disableInteractive();
+          close.setVisible(false);
+        }
+      },
       onSelectionChanged: () => this.callbacks.onSelectionChanged([]),
       onPassCompleted: (payload) => this.callbacks.onPassCompleted(payload),
       onLayoutRequested: () => this.resize(this.scale.width, this.scale.height),
@@ -3922,11 +4117,12 @@ export class PhaserScene extends Phaser.Scene {
       layout: this.layout,
       tablePhase: this.tablePhase,
       passWaitingCount: this.passWaitingTileIds.length,
-      canSubmitPass: this.canSubmitPassWaitingTiles(),
+      canSubmitPass: this.passFlowManager.canSubmitPassWaitingTiles(),
       isPassAnimating: this.isPassAnimating,
       isPickAnimating: this.isPickAnimating,
       wallTileCount: this.wallTileCount,
       canPickFromWall: this.canPickFromWall(),
+      canDiscard: this.canDiscard,
     });
 
     this.uiLayoutManager.layoutPickSeatSelector(
@@ -3954,13 +4150,13 @@ export class PhaserScene extends Phaser.Scene {
 
 
   private pickTileForSeat(seat: TableSeat): void {
-    if (this.tablePhase !== "playing") return;
+    if (this.tablePhase !== GamePhaseEnum.PLAYING) return;
     if (this.isPickAnimating) return;
     if (this.wallTileCount <= 0) return;
     if (!this.canPickFromWall()) return;
 
     this.isPickAnimating = true;
-    this.wallTileCount -= 1;
+    // Removed local decrement since it's driven by server "wall:set-count" event.
 
     this.updateWallCountText();
     this.updatePassButtonState();
@@ -3980,7 +4176,7 @@ export class PhaserScene extends Phaser.Scene {
 
   private animateWallTileToSeat(
     seat: TableSeat,
-    pickedTile: TileVm | undefined,
+    pickedTile: GameTileEntity | undefined,
     onComplete: () => void,
   ): void {
     const source = this.wallTileSourcePoint();
@@ -4092,13 +4288,13 @@ export class PhaserScene extends Phaser.Scene {
 
 
   private createTileFrontPickClone(
-    tile: TileVm,
+    tile: GameTileEntity,
     x: number,
     y: number,
     width: number,
     height: number,
   ): Phaser.GameObjects.Image {
-    const texture = this.gameService.resolve(tile, Math.round(width));
+    const texture = this.gameService.resolve(this.allTiles[tile.tile_id!], Math.round(width));
 
     if (
       !this.textures.exists(texture.atlasKey) ||
@@ -4206,22 +4402,20 @@ export class PhaserScene extends Phaser.Scene {
       y: this.layout.hud.y + this.layout.hud.height / 2,
     };
   }
-  private createMockPickedTile(): TileVm {
+  private createMockPickedTile(): GameTileEntity {
     const sequence = this.nextMockTileId++;
-    const rank = ((sequence - 1) % 9) + 1;
+    const keys = Object.keys(this.allTiles);
+    const randomKey = keys[sequence % keys.length] || "1";
 
     return {
-      id: `mock-pick-${sequence}`,
-      label: `Dot ${rank}`,
-      suit: "dot",
-      asset: `assets/game/tiles/dot_${rank}.svg`,
-      soundKey: `${rank}-dot`,
-    } as TileVm;
+      id: 9999000 + sequence,
+      tile_id: Number(randomKey)
+    } as GameTileEntity;
   }
 
-  private addMockPickedTileToRack(tile: TileVm): void {
+  private addMockPickedTileToRack(tile: GameTileEntity): void {
 
-    this.setRack([...this.rackTiles, tile]);
+    this.setRack([...this.rackTiles, tile], true);
   }
 
   override update(time: number, delta: number): void {

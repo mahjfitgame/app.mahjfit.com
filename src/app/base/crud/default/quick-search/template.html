@@ -1,29 +1,30 @@
-<!-- file: ./src/app/base/crud/default/module-action/template.html -->
+<!-- file: src/app/base/crud/default/module-action/template.html -->
  <ng-template #BfwCrudModuleQuickSearch>
     <mat-form-field
         appearance="outline"
         subscriptSizing="dynamic"
         class="tw:w-full"
     >
-        <mat-label>{{ service.state.listOperationFieldObj().quick_search.label }}</mat-label>
-        <mat-icon matPrefix class="material-symbols-rounded">{{ service.state.listOperationFieldObj().quick_search.mat_icon_prepend }}</mat-icon>
-        <input 
-            matInput 
-            #BfwCrudQuickSearchInput  
-            type="text" 
-            [placeholder]="service.localText.quick_search.placeholder" 
-            (keyup)="service.setQuickSearchKeyword($event)" 
+        @let quickSearchField = service.state.listOperationFieldObj().quick_search;
+        <mat-label>{{ quickSearchField.label | transloco }}</mat-label>
+        <mat-icon matPrefix class="material-symbols-rounded">{{ quickSearchField.mat_icon_prepend }}</mat-icon>
+        <input
+            matInput
+            #BfwCrudQuickSearchInput
+            type="text"
+            [placeholder]="quickSearchField.placeholder | transloco"
+            (keyup)="service.setQuickSearchKeyword($event)"
             [value]="service.state.getQuickSearchValue() ?? ''"
         />
         <button
             mat-icon-button
             matSuffix
             type="button"
-            [aria-label]="service.localText.quick_search.clear_search"
+            [aria-label]="'CRUD.LIST_OPERATION.QUICK_SEARCH.CLEAR_SEARCH' | transloco"
             (click)="service.clearQuickSearchKeyword(BfwCrudQuickSearchInput)"
             [class.tw:invisible]="!service.state.getQuickSearchValue()"
         >
-            <mat-icon class="material-symbols-rounded">{{ service.state.listOperationFieldObj().quick_search.mat_icon_append }}</mat-icon>
+            <mat-icon class="material-symbols-rounded">{{ quickSearchField.mat_icon_append }}</mat-icon>
         </button>
     </mat-form-field>
 </ng-template>
@@ -47,7 +48,7 @@
     <button
         matIconButton
         type="button"
-        [aria-label]="service.localText.quick_search.open_quick_search"
+        [aria-label]="'CRUD.LIST_OPERATION.QUICK_SEARCH.OPEN_QUICK_SEARCH' | transloco"
         class="tw:rounded-full! tw:text-primary!  tw:block! tw:lg:hidden!"
         (click)="BfwMobileQickSearch.style.display = ''"
     >

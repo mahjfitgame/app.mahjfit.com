@@ -1,4 +1,4 @@
-// file: ./src/app/base/internationalization/service.ts
+// file: src/app/base/internationalization/service.ts
 
 import { Service, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
@@ -78,6 +78,16 @@ export class I18nService {
         }
     ];
 
+    /**
+     * Loads this module's OWN bundle, the language switcher labels.
+     *
+     * THE ONE EXCEPTION to the rule documented on useModule() below: this call
+     * stays in InternationalizationComponent.ngOnInit() and is NOT moved into a
+     * constructor. I18nService is @Service() - an app-root singleton - so its
+     * constructor fires once, on first injection from anywhere in the app, at a
+     * moment that has nothing to do with the component that renders the switcher.
+     * Every other initI18n() in the app belongs in its service constructor.
+     */
     public initI18n(): void {
         this.useModule(I18N_KEY);
     }
@@ -178,6 +188,42 @@ export class I18nService {
             })
         );
     }
+    /**
+     * The entry point every module uses to pull its own translation bundle in,
+     * always through that module's initI18n().
+     *
+     * ▬▬ WHERE initI18n() MUST BE CALLED ▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬
+     * From the module SERVICE CONSTRUCTOR, never from the component's ngOnInit.
+     *
+     * 1. Module services are component-scoped: @Service({ autoProvided: false })
+     *    plus the module's own <MODULE>_PROVIDER array sitting in the component's
+     *    `providers`. The instance is therefore created during component
+     *    construction and dies with the component, which makes the constructor a
+     *    lifecycle hook in its own right - one tick earlier than ngOnInit, with
+     *    the exact same lifetime. The usual "constructors must be side-effect
+     *    free" rule guards against root singletons doing work at an unpredictable
+     *    time; that hazard does not exist for a component-scoped service.
+     *
+     * 2. setModuleInfo() runs in that same constructor and publishes i18n keys
+     *    ('<MODULE>.MODULE.TITLE' / '.HINT') into the layout state. Kicking the
+     *    bundle fetch off first shrinks the window in which the layout renders
+     *    raw keys, and lets the translation load run in parallel with the
+     *    module's initial data load instead of after it.
+     *
+     * 3. initI18n() is declared in FoundationModuleServiceType right next to
+     *    setModuleInfo() and alterBreadcrumb(), both of which are already called
+     *    from the constructor. Leaving only this one to the component meant every
+     *    new module had to remember an extra line, and forgetting it failed
+     *    silently - untranslated keys on screen, no error anywhere.
+     *
+     * 4. Calling it at construction is enough for the component's whole life.
+     *    loadModule() caches on `${moduleKey}:${lang}` in loadedModules, and
+     *    registers the key in requestedModules so reloadRequestedModules()
+     *    replays it on every language switch. The subscribe below is
+     *    fire-and-forget, so it never blocks construction either.
+     *
+     * The single exception is I18nService.initI18n() itself - see the note there.
+     */
     public useModule(moduleKey: string): void {
         this.loadModule(moduleKey).subscribe({
             error: (error) => {

@@ -1,8 +1,71 @@
 {
-  "CRUD" :{
-      "MODULE": {
-        "TITLE": "",
-        "HINT": ""
+    "CRUD": {
+        "MODULE": {
+            "TITLE": "",
+            "HINT": ""
+        },
+        "LIST_OPERATION": {
+            "QUICK_SEARCH": {
+                "LABEL": "Quick search",
+                "PLACEHOLDER": "Type to search",
+                "HINT": "Quick search across listed records.",
+                "CLEAR_SEARCH": "Clear search",
+                "OPEN_QUICK_SEARCH": "Open quick search",
+                "VALIDATION": {
+                    "MAX_LENGTH": "Search text is too long."
+                }
+            },
+            "LISTING_COLUMN_POSITION": {
+                "LABEL": "Column position",
+                "VALIDATION": {
+                    "OPTION_RANGE": "Invalid column selection."
+                }
+            },
+            "ROWS_PER_PAGE": {
+                "LABEL": "Rows per page",
+                "VALIDATION": {
+                    "DIGIT": "Rows per page must be a number."
+                }
+            },
+            "CURRENT_PAGE": {
+                "LABEL": "Current page",
+                "VALIDATION": {
+                    "MIN": "Current page must be greater than zero."
+                }
+            },
+            "LISTING_SELECTED_ROWS": {
+                "LABEL": "Selected rows"
+            }
+        },
+        "VIEW_OPTION": {
+            "VIEW_OPTION": {
+                "LABEL": "View Option"
+            },
+            "DISPLAY_FIELDS": {
+                "LABEL": "Display Fields",
+                "PLACEHOLDER": "Select fields to display on screen",
+                "HINT": "Show/Hide fields in data layout.",
+                "VALIDATION": {
+                    "OPTION_RANGE": "Invalid field selection."
+                }
+            },
+            "SORT_FIELDS_AND_DIRECTION": {
+                "LABEL": "Sort fields and direction",
+                "PLACEHOLDER": "Select fields and direction to sort",
+                "HINT": "Sort field and direction to refine your data.",
+                "VALIDATION": {
+                    "OPTION_RANGE": "Invalid sort field."
+                }
+            },
+            "RBIN": {
+                "LABEL": "Recycle bin",
+                "PLACEHOLDER": "Show record in recycle bin",
+                "HINT": "Click to view recycle bin records."
+            }
+        },
+        "SEARCH_FILTER": {
+            "OPEN_LABEL": "Open search filter",
+            "TAB_NAME": "Filter"
+        }
     }
-  }
 }

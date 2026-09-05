@@ -1,3 +1,71 @@
 {
-  
+    "CRUD": {
+        "MODULE": {
+            "TITLE": "",
+            "HINT": ""
+        },
+        "LIST_OPERATION": {
+            "QUICK_SEARCH": {
+                "LABEL": "त्वरित खोज",
+                "PLACEHOLDER": "खोजने के लिए टाइप करें",
+                "HINT": "सूचीबद्ध रिकॉर्ड में त्वरित खोज.",
+                "CLEAR_SEARCH": "खोज साफ़ करें",
+                "OPEN_QUICK_SEARCH": "त्वरित खोज खोलें",
+                "VALIDATION": {
+                    "MAX_LENGTH": "खोज पाठ बहुत लंबा है."
+                }
+            },
+            "LISTING_COLUMN_POSITION": {
+                "LABEL": "कॉलम स्थिति",
+                "VALIDATION": {
+                    "OPTION_RANGE": "अमान्य कॉलम चयन."
+                }
+            },
+            "ROWS_PER_PAGE": {
+                "LABEL": "प्रति पृष्ठ पंक्तियाँ",
+                "VALIDATION": {
+                    "DIGIT": "प्रति पृष्ठ पंक्तियाँ एक संख्या होनी चाहिए."
+                }
+            },
+            "CURRENT_PAGE": {
+                "LABEL": "वर्तमान पृष्ठ",
+                "VALIDATION": {
+                    "MIN": "वर्तमान पृष्ठ शून्य से बड़ा होना चाहिए."
+                }
+            },
+            "LISTING_SELECTED_ROWS": {
+                "LABEL": "चयनित पंक्तियाँ"
+            }
+        },
+        "VIEW_OPTION": {
+            "VIEW_OPTION": {
+                "LABEL": "दृश्य विकल्प"
+            },
+            "DISPLAY_FIELDS": {
+                "LABEL": "प्रदर्शित फ़ील्ड",
+                "PLACEHOLDER": "स्क्रीन पर दिखाने के लिए फ़ील्ड चुनें",
+                "HINT": "डेटा लेआउट में फ़ील्ड दिखाएँ/छिपाएँ.",
+                "VALIDATION": {
+                    "OPTION_RANGE": "अमान्य फ़ील्ड चयन."
+                }
+            },
+            "SORT_FIELDS_AND_DIRECTION": {
+                "LABEL": "क्रमबद्ध फ़ील्ड और दिशा",
+                "PLACEHOLDER": "क्रमबद्ध करने के लिए फ़ील्ड और दिशा चुनें",
+                "HINT": "अपने डेटा को परिष्कृत करने के लिए फ़ील्ड और दिशा क्रमबद्ध करें.",
+                "VALIDATION": {
+                    "OPTION_RANGE": "अमान्य क्रमबद्ध फ़ील्ड."
+                }
+            },
+            "RBIN": {
+                "LABEL": "रीसायकल बिन",
+                "PLACEHOLDER": "रीसायकल बिन में रिकॉर्ड दिखाएँ",
+                "HINT": "रीसायकल बिन रिकॉर्ड देखने के लिए क्लिक करें."
+            }
+        },
+        "SEARCH_FILTER": {
+            "OPEN_LABEL": "खोज फ़िल्टर खोलें",
+            "TAB_NAME": "फ़िल्टर"
+        }
+    }
 }

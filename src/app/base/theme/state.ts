@@ -8,7 +8,7 @@ import { ThemeEnum, ThemeModeEnum, ThemePreferenceEnum } from '@base/theme/type'
 import { GlobalProgressBarService } from '@base/global-progress-bar/service';
 import { ContextProfileService } from '@libs/context-profile/service';
 import { BfwApiService } from '@libs/third-party-apis/bfw-api/service';
-import { FoundationModuleStateType } from '@libs/foundation-module/type/state';
+import { FoundationModuleStateType } from '@libs/foundation/module/type';
 import {
     THEME_ATTRIBUTE,
     THEME_MODE_ATTRIBUTE,
@@ -165,10 +165,10 @@ export class ThemeState extends SignalStateService implements FoundationModuleSt
     }
     public toggleThemePreference(themePreference?: ThemePreferenceEnum): void {
         const nextThemePreference =
-            themePreference ??
-            (this.themeMode() === ThemeModeEnum.DARK
-                ? ThemePreferenceEnum.LIGHT
-                : ThemePreferenceEnum.DARK);
+        themePreference ??
+        (this.themeMode() === ThemeModeEnum.DARK
+            ? ThemePreferenceEnum.LIGHT
+            : ThemePreferenceEnum.DARK);
 
         this.setThemePreference(nextThemePreference);
     }
@@ -192,11 +192,11 @@ export class ThemeState extends SignalStateService implements FoundationModuleSt
 
     private listenSystemThemeChanges(): void {
         if (!this.systemThemeMediaQuery) {
-            return;
+        return;
         }
 
         const handleSystemThemeChange = (event: MediaQueryListEvent): void => {
-            this.systemThemeMode.set(event.matches ? ThemeModeEnum.DARK : ThemeModeEnum.LIGHT);
+        this.systemThemeMode.set(event.matches ? ThemeModeEnum.DARK : ThemeModeEnum.LIGHT);
         };
 
         this.systemThemeMediaQuery.addEventListener('change', handleSystemThemeChange);

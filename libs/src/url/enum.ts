@@ -1,2 +1,2 @@
-// file: ./libs/src/url/enum.ts
+// file: libs/src/url/enum.ts
 export {};

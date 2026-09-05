@@ -1,3 +1,71 @@
 {
-  
+    "CRUD": {
+        "MODULE": {
+            "TITLE": "",
+            "HINT": ""
+        },
+        "LIST_OPERATION": {
+            "QUICK_SEARCH": {
+                "LABEL": "ઝડપી શોધ",
+                "PLACEHOLDER": "શોધવા માટે લખો",
+                "HINT": "સૂચિબદ્ધ રેકોર્ડમાં ઝડપી શોધ.",
+                "CLEAR_SEARCH": "શોધ સાફ કરો",
+                "OPEN_QUICK_SEARCH": "ઝડપી શોધ ખોલો",
+                "VALIDATION": {
+                    "MAX_LENGTH": "શોધ લખાણ ખૂબ લાંબું છે."
+                }
+            },
+            "LISTING_COLUMN_POSITION": {
+                "LABEL": "કૉલમ સ્થાન",
+                "VALIDATION": {
+                    "OPTION_RANGE": "અમાન્ય કૉલમ પસંદગી."
+                }
+            },
+            "ROWS_PER_PAGE": {
+                "LABEL": "પ્રતિ પૃષ્ઠ પંક્તિઓ",
+                "VALIDATION": {
+                    "DIGIT": "પ્રતિ પૃષ્ઠ પંક્તિઓ સંખ્યા હોવી જોઈએ."
+                }
+            },
+            "CURRENT_PAGE": {
+                "LABEL": "વર્તમાન પૃષ્ઠ",
+                "VALIDATION": {
+                    "MIN": "વર્તમાન પૃષ્ઠ શૂન્યથી મોટું હોવું જોઈએ."
+                }
+            },
+            "LISTING_SELECTED_ROWS": {
+                "LABEL": "પસંદ કરેલ પંક્તિઓ"
+            }
+        },
+        "VIEW_OPTION": {
+            "VIEW_OPTION": {
+                "LABEL": "દૃશ્ય વિકલ્પ"
+            },
+            "DISPLAY_FIELDS": {
+                "LABEL": "પ્રદર્શિત ફીલ્ડ",
+                "PLACEHOLDER": "સ્ક્રીન પર બતાવવા માટે ફીલ્ડ પસંદ કરો",
+                "HINT": "ડેટા લેઆઉટમાં ફીલ્ડ બતાવો/છુપાવો.",
+                "VALIDATION": {
+                    "OPTION_RANGE": "અમાન્ય ફીલ્ડ પસંદગી."
+                }
+            },
+            "SORT_FIELDS_AND_DIRECTION": {
+                "LABEL": "ક્રમબદ્ધ ફીલ્ડ અને દિશા",
+                "PLACEHOLDER": "ક્રમબદ્ધ કરવા માટે ફીલ્ડ અને દિશા પસંદ કરો",
+                "HINT": "તમારા ડેટાને સુધારવા માટે ફીલ્ડ અને દિશા ક્રમબદ્ધ કરો.",
+                "VALIDATION": {
+                    "OPTION_RANGE": "અમાન્ય ક્રમબદ્ધ ફીલ્ડ."
+                }
+            },
+            "RBIN": {
+                "LABEL": "રિસાયકલ બિન",
+                "PLACEHOLDER": "રિસાયકલ બિનમાં રેકોર્ડ બતાવો",
+                "HINT": "રિસાયકલ બિન રેકોર્ડ જોવા માટે ક્લિક કરો."
+            }
+        },
+        "SEARCH_FILTER": {
+            "OPEN_LABEL": "શોધ ફિલ્ટર ખોલો",
+            "TAB_NAME": "ફિલ્ટર"
+        }
+    }
 }

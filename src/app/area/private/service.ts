@@ -7,12 +7,16 @@ import { PAL_NOTIFICATION_TAB_KEY } from "@area/private/const";
 import { I18nService } from "@base/internationalization/service";
 import { PrivateAreaLayoutState } from "@area/private/state";
 import { ContextProfileService } from "@libs/context-profile/service";
+import { FoundationNavPositionEnum } from "@libs/foundation/nav/enum";
+import { UtilityService } from "@libs/utility/service";
 
 @Service({ autoProvided: false })
 export class PrivateAreaLayoutService {
 
+    public FoundationNavPositionEnum = FoundationNavPositionEnum;
     public PAL_NOTIFICATION_TAB_KEY = PAL_NOTIFICATION_TAB_KEY;
     
+
     public readonly bos = inject(BreakpointObserverService);
     public readonly i18n = inject(I18nService)
 
@@ -21,11 +25,12 @@ export class PrivateAreaLayoutService {
     public readonly conf = inject(ConfService);
     public readonly log = inject(LogService);
     public readonly ctxp = inject(ContextProfileService);
+    public readonly utility = inject(UtilityService);
 
     constructor() {}
 
     public toggleEndSideBar(callback?: () => void): void {
-        this.state.setEndSideBarOpen(!this.state.endSideBarOpen());
+        this.state.setEndSideBarIsOpen(!this.state.endSideBarIsOpen());
         
         if(callback)
             callback();

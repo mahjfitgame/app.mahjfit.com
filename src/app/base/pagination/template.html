@@ -18,7 +18,7 @@
           subscriptSizing="dynamic"
           floatLabel="always"
           class="bfw-jump-field">
-          <mat-label>Page</mat-label>
+          <mat-label>{{ pageLabel() }}</mat-label>
           <input
             matInput
             type="number"
@@ -30,7 +30,7 @@
           />
         </mat-form-field>
 
-        <span class="bfw-page-count tw:dark:text-white/50">of {{ totalPages }}</span>
+        <span class="bfw-page-count tw:dark:text-white/50">{{ totalPagesText }}</span>
 
         <button
           mat-stroked-button
@@ -38,7 +38,7 @@
           type="button"
           [disabled]="disabled()"
           (click)="goToPage()">
-          Go
+          {{ goLabel() }}
         </button>
       </div>
     }

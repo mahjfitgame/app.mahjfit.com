@@ -20,6 +20,7 @@ import Phaser from "phaser";
 import { Capacitor } from "@capacitor/core";
 
 import { PhaserScene } from "./scenes/scene";
+import { GameDeadHandReasonEnum, GamePhaseFirstRoundDirectionEnum, GameTileEntity, GameTileEntityGSDto, TileCategoryEnum, GamePlayActionEnum, TileCategoryEnumAddon, GamePhaseEnum, GameRackIDEnumAddon } from "@bfw/api-sdk/graphql/endpoints/business";
 import {
   DeadHandClaim,
   DeadHandReason,
@@ -45,11 +46,14 @@ import {
 } from "./scenes/type";
 
 import { COLOR_BLUE, COLOR_FUSHIA, COLOR_GRAY } from "./const";
-import { GameHapticType, PassDirection, TileVm } from "../type";
+import { GameHapticType, PassDirection } from "../type";
 import { GameHeptic } from "../haptics";
-import { TablePhase } from "./type";
+
 import { PhaserLayoutDevice } from "./layout/device";
 import { PhaserLayoutGame } from "./layout/game";
+import { GameState } from "../state/state";
+import { GameService } from "../service";
+import { NotifyService } from "src/app/base/notify/service";
 
 @Component({
   selector: "app-phaser",
@@ -72,13 +76,12 @@ export class PhaserComponent implements AfterViewInit {
   private readonly safeAreaProbeRef!: ElementRef<HTMLDivElement>;
 
 
-  readonly rack = input.required<readonly TileVm[]>();
-  readonly passDirection = input<PassDirection>("right");
-  readonly selectionChanged = output<readonly string[]>();
-  readonly passCompleted = output<{ readonly tileIds: readonly string[]; readonly direction: PassDirection }>();
+
+  readonly passDirection = input<PassDirection>(GamePhaseFirstRoundDirectionEnum.RIGHT);
+  readonly selectionChanged = output<readonly number[]>();
+
   /** Feed this from the future WebSocket when another player discards a tile. */
   readonly tileCallOffer = input<TileCallOffer | null>(null);
-  readonly demoDiscard = input<DemoDiscardRequest | null>(null);
   /** Feed a server-approved Mah Jongg result here to show the celebration. */
   readonly mahjongWin = input<MahjongWinCelebration | null>(null);
   /** Feed this from the server when an opponent has been away too long. */
@@ -100,11 +103,20 @@ export class PhaserComponent implements AfterViewInit {
   private readonly haptics = inject(GameHeptic);
   private readonly el = inject(ElementRef);
 
-  private game?: Phaser.Game;
-  private sceneReady = false;
+  // - Main Game service which interect with server --------------
+  private readonly gameService = inject(GameService);
+  private readonly gameState = inject(GameState);
+
+  private phaser?: Phaser.Game;
+  private readonly sceneReady = signal(false);
   private safeAreaRefreshTimer?: number;
   private joinTablePopupTimer?: number;
   private mahjongWinPopupTimer?: number;
+
+  private lastWallCount = -1;
+  private lastDiscardCount = -1;
+
+  public readonly GameDeadHandReasonEnum = GameDeadHandReasonEnum;
 
   readonly wallCountState = signal<WallCountOverlayState | null>(null);
   readonly pointsState = signal<PointsOverlayState | null>(null);
@@ -119,60 +131,329 @@ export class PhaserComponent implements AfterViewInit {
   readonly joinTableRequestState = signal<JoinTableRequest | null>(null);
   readonly joinTableRemaining = signal<number>(0);
   readonly deadHandClaimTarget = signal<Exclude<TableSeat, "bottom"> | null>(null);
-  readonly deadHandClaimReason = signal<DeadHandReason>("invalid-mahjong");
+  readonly deadHandClaimReason = signal<DeadHandReason>(GameDeadHandReasonEnum.FALSE_MAHJONG);
   readonly mahjongWinResult = signal<MahjongWinCelebration | null>(null);
 
-  readonly tablePhase = input<TablePhase>("playing");
+
   private readonly deviceLayout = inject(PhaserLayoutDevice);
   private readonly injector = inject(Injector);
+  private readonly notify = inject(NotifyService);
 
   /*constructor() {
     effect(() => {
-      if (!this.game || !this.sceneReady) return;
+      if (!this.game || !this.sceneReady()) return;
       this.game.events.emit("rack:set", this.rack());
     });
 
      effect(() => {
-      if (!this.game || !this.sceneReady) return;
+      if (!this.game || !this.sceneReady()) return;
       this.game.events.emit("pass:direction", this.passDirection());
     }); 
   } */
+
+  private getSortedRack(): GameTileEntityGSDto[] {
+    const order = this.gameState.personal_seat_rack_first_hand_order();
+    const hand = this.gameState.personal_seat_rack_first_hand();
+
+    // Map the IDs to the actual GameTileEntityGSDto items
+    const rack = order.length > 0
+      ? order.map(id => hand[id]).filter(t => !!t)
+      : Object.values(hand);
+
+    rack.sort((a, b) => {
+      let orderA: number | undefined;
+      let orderB: number | undefined;
+
+      if (a.in_rack_one !== null && a.sort_rack_one !== null) orderA = a.sort_rack_one;
+      else if (a.in_rack_two !== null && a.sort_rack_two !== null) orderA = a.sort_rack_two;
+
+      if (b.in_rack_one !== null && b.sort_rack_one !== null) orderB = b.sort_rack_one;
+      else if (b.in_rack_two !== null && b.sort_rack_two !== null) orderB = b.sort_rack_two;
+
+      if (orderA === undefined && orderB === undefined) return 0;
+      if (orderA === undefined) return 1;
+      if (orderB === undefined) return -1;
+
+      return orderA - orderB;
+    });
+
+    return rack;
+  }
+
+  public sortRackByRank(rack: GameTileEntityGSDto[]): GameTileEntityGSDto[] {
+    return [...rack].sort((a, b) => {
+      const aIsJoker = a.fr_tile?.category as any as TileCategoryEnumAddon === TileCategoryEnumAddon.JOKER;
+      const bIsJoker = b.fr_tile?.category as any as TileCategoryEnumAddon === TileCategoryEnumAddon.JOKER;
+
+      // Jokers go to the far left
+      if (aIsJoker && !bIsJoker) return -1;
+      if (!aIsJoker && bIsJoker) return 1;
+      if (aIsJoker && bIsJoker) return 0;
+
+      // Sort by rank
+      const aRank = a.fr_tile?.rank || '';
+      const bRank = b.fr_tile?.rank || '';
+      if (aRank !== bRank) {
+        return aRank.localeCompare(bRank);
+      }
+
+      // Sort by category
+      const aCategory = a.fr_tile?.category || '';
+      const bCategory = b.fr_tile?.category || '';
+      if (aCategory !== bCategory) {
+        return aCategory.localeCompare(bCategory);
+      }
+
+      // Sort by type
+      const aType = a.fr_tile?.type || '';
+      const bType = b.fr_tile?.type || '';
+      if (aType !== bType) {
+        return aType.localeCompare(bType);
+      }
+
+      // Sort by set
+      const aSet = a.fr_tile?.set || '';
+      const bSet = b.fr_tile?.set || '';
+      if (aSet !== bSet) {
+        return aSet.localeCompare(bSet);
+      }
+
+      // Sort by id if all else is equal
+      const aId = a.fr_tile?.id || 0;
+      const bId = b.fr_tile?.id || 0;
+      return aId - bId;
+    });
+  }
+
+  public sortRackBySuit(rack: GameTileEntityGSDto[]): GameTileEntityGSDto[] {
+    return [...rack].sort((a, b) => {
+      const aIsJoker = a.fr_tile?.category as any as TileCategoryEnumAddon === TileCategoryEnumAddon.JOKER;
+      const bIsJoker = b.fr_tile?.category as any as TileCategoryEnumAddon === TileCategoryEnumAddon.JOKER;
+
+      // Jokers go to the far left
+      if (aIsJoker && !bIsJoker) return -1;
+      if (!aIsJoker && bIsJoker) return 1;
+      if (aIsJoker && bIsJoker) return 0;
+
+      // Sort by category
+      const aCategory = a.fr_tile?.category || '';
+      const bCategory = b.fr_tile?.category || '';
+      if (aCategory !== bCategory) {
+        return aCategory.localeCompare(bCategory);
+      }
+
+      // Sort by type
+      const aType = a.fr_tile?.type || '';
+      const bType = b.fr_tile?.type || '';
+      if (aType !== bType) {
+        return aType.localeCompare(bType);
+      }
+
+      // Sort by set
+      const aSet = a.fr_tile?.set || '';
+      const bSet = b.fr_tile?.set || '';
+      if (aSet !== bSet) {
+        return aSet.localeCompare(bSet);
+      }
+
+      // Sort by rank
+      const aRank = a.fr_tile?.rank || '';
+      const bRank = b.fr_tile?.rank || '';
+      return aRank.localeCompare(bRank);
+    });
+  }
+
+  public onAutoSortClicked(): void {
+    const currentRack = this.getSortedRack();
+    const sortedRack = this.sortRackByRank(currentRack);
+
+    // Optimistically update the UI
+    if (this.phaser && this.sceneReady()) {
+      this.phaser.events.emit("rack:set", sortedRack);
+    }
+
+    // TODO: Persist the new order to the server when SDK supports ORDERINRACKONE WS call
+  }
+
+  public onClaimOptionSelected(action: GamePlayActionEnum, tile_id: number): void {
+    this.gameState.publishClaimAction(action, tile_id);
+  }
+
   constructor() {
     effect(() => {
-      const rack = this.rack();
-
-      if (!this.game || !this.sceneReady) return;
-
-      this.game.events.emit("rack:set", rack);
+      const err = this.gameState.play_action_error();
+      if (!this.phaser || !this.sceneReady() || !err) return;
+      if (err.event === 'game.subscribe.action.charlestone' || err.event === 'game.subscribe.action.pass_round') {
+        this.phaser.events.emit("pass:failed");
+        this.notify.error(err.message || 'An error occurred during the pass.');
+      }
     });
 
     effect(() => {
-      const direction = this.passDirection();
+      const rack = this.getSortedRack();
 
-      if (!this.game || !this.sceneReady) return;
+      console.log('this.phaser', this.phaser, this.sceneReady());
+
+
+      if (!this.phaser || !this.sceneReady()) return;
+
+      this.phaser.events.emit("rack:set", rack);
+    });
+
+    effect(() => {
+      const allTiles = this.gameState.game_all_tiles();
+
+      if (!this.phaser || !this.sceneReady()) return;
+
+      this.phaser.events.emit("allTiles:set", allTiles);
+    });
+
+    effect(() => {
+      const mapping = this.gameState.seat_mapping();
+      if (!this.phaser || !this.sceneReady()) return;
+      this.phaser.events.emit("seat:mapping", mapping);
+    });
+
+
+    // Wall Count
+    effect(() => {
+      const count = this.gameState.play_wall_count();
+      if (!this.phaser || !this.sceneReady()) {
+        this.lastWallCount = count;
+        return;
+      }
+      this.phaser.events.emit("wall:set-count", count);
+
+      if (this.lastWallCount !== -1 && count < this.lastWallCount) {
+        const currentTurnPos = this.gameState.active_table_position();
+        if (currentTurnPos && currentTurnPos !== "bottom") {
+          this.phaser.events.emit("opponent:pick", { seat: currentTurnPos });
+        }
+      }
+      this.lastWallCount = count;
+    });
+
+    effect(() => {
+      const discards = this.gameState.play_discards_tiles();
+      const count = discards.length;
+      if (!this.phaser || !this.sceneReady()) {
+        this.lastDiscardCount = count;
+        return;
+      }
+
+      if (this.lastDiscardCount !== -1 && count > this.lastDiscardCount) {
+        const newTiles = discards.slice(this.lastDiscardCount);
+        for (const tile of newTiles) {
+          if (tile.gseat_id) {
+            const seatPosFn = this.gameState.seat_position_by_gseat_id();
+            const seatPos = seatPosFn(tile.gseat_id);
+            if (seatPos && seatPos !== "bottom") {
+              this.phaser.events.emit("opponent:discard", { seat: seatPos, tile });
+            }
+          }
+        }
+      }
+      this.lastDiscardCount = count;
+    });
+
+    effect(() => {
+      const charlestonState = this.gameState.charlestonState();
+      if (!this.phaser || !this.sceneReady()) return;
+      this.phaser.events.emit("charleston:state", charlestonState);
+    });
+
+
+    effect(() => {
+      const canPick = this.gameState.canPickTile();
+      if (!this.phaser || !this.sceneReady()) return;
+      this.phaser.events.emit("wall:set-pick-mode", canPick);
+    });
+
+    effect(() => {
+      const canDiscard = this.gameState.canDiscard();
+      if (!this.phaser || !this.sceneReady()) return;
+      this.phaser.events.emit("rack:set-discard-mode", canDiscard);
+    });
+
+    effect(() => {
+      const claim = this.gameState.active_claim();
+      if (!this.phaser || !this.sceneReady()) return;
+
+      if (claim) {
+        this.phaser.events.emit("ui:show-claim-window", claim);
+      } else {
+        this.phaser.events.emit("ui:hide-claim-window");
+      }
+    });
+
+    effect(() => {
+      const activePosition = this.gameState.active_table_position();
+      const isPersonalTurn = this.gameState.play_current_turn_seat_id() === this.gameState.personal_seat_id();
+      if (this.phaser && this.sceneReady()) {
+        this.phaser.events.emit("table:active-seat", {
+          seat: activePosition,
+          isPersonalTurn: isPersonalTurn
+        });
+      }
+    });
+
+    effect(() => {
+      const exposures = this.gameState.all_seat_exposures();
+      if (this.phaser && this.sceneReady()) {
+        this.phaser.events.emit("exposures:update", exposures);
+      }
+    });
+
+    effect(() => {
+      const deadStates = this.gameState.all_seat_dead_states();
+      if (this.phaser && this.sceneReady()) {
+        this.phaser.events.emit("ui:update-dead-states", deadStates);
+
+        if (deadStates.bottom) {
+          this.phaser.events.emit("rack:set-discard-mode", false);
+          this.phaser.events.emit("wall:set-pick-mode", false);
+        }
+      }
+    });
+
+    effect(() => {
+      const isFinished = this.gameState.play_phase() === GamePhaseEnum.FINISHED;
+      const seats = this.gameState.ordered_seats();
+      if (this.phaser && this.sceneReady() && isFinished) {
+        const winner = seats.find(s => s.racks?.[GameRackIDEnumAddon.RACK_FIRST]?.is_mahjong);
+        this.phaser.events.emit("ui:game-finished", {
+          winnerSeatId: winner?.id,
+          winnerUid: winner?.u_id
+        });
+      }
+    });
+
+    effect(() => {
+      const direction = this.gameState.play_pass_direction();
+      console.log('EFFECT Phaser pass:direction', direction)
+      if (!this.phaser || !this.sceneReady() || !direction) return;
 
       console.log("[PhaserBoardComponent] emit pass:direction", direction);
 
-      this.game.events.emit("pass:direction", direction);
+      this.phaser.events.emit("pass:direction", direction);
     });
 
     effect(() => {
-      const tablePhase = this.tablePhase();
-      if (!this.game || !this.sceneReady) return;
-      this.game.events.emit("table:phase", tablePhase);
+      const playPhase = this.gameState.play_phase();
+      if (!this.phaser || !this.sceneReady() || !playPhase) return;
+
+      console.log("[PhaserBoardComponent] emit table:phase", playPhase);
+
+      this.phaser.events.emit("table:phase", playPhase);
     });
 
     effect(() => {
       const offer = this.tileCallOffer();
-      if (!this.game || !this.sceneReady) return;
-      this.game.events.emit("tile-call:offer", offer);
+      if (!this.phaser || !this.sceneReady()) return;
+      this.phaser.events.emit("tile-call:offer", offer);
     });
 
-    effect(() => {
-      const request = this.demoDiscard();
-      if (!request || !this.game || !this.sceneReady) return;
-      this.game.events.emit("tile-call:demo-discard", request);
-    });
+
 
     effect(() => {
       const result = this.mahjongWin();
@@ -207,9 +488,12 @@ export class PhaserComponent implements AfterViewInit {
     this.zone.runOutsideAngular(() => {
       let scene!: PhaserScene;
       runInInjectionContext(this.injector, () => {
-        scene = new PhaserScene({
+        scene = new PhaserScene(this.gameService, {
           onSelectionChanged: (ids) => this.zone.run(() => this.selectionChanged.emit(ids)),
-          onPassCompleted: (payload) => this.zone.run(() => this.passCompleted.emit(payload)),
+          onPassCompleted: async (payload) => {
+            console.log("[PhaserBoardComponent] Publishing Charleston with tiles:", payload.tileIds);
+            await this.gameState.publishCharlestone(payload.tileIds);
+          },
           onHaptic: (type: GameHapticType) => {
             void this.haptics.play(type);
           },
@@ -217,6 +501,9 @@ export class PhaserComponent implements AfterViewInit {
             this.deviceLayout.forViewport(width, height),
           onMobileHeaderChanged: (collapsed) =>
             this.setMobileHeaderCollapsed(collapsed),
+          onLocalPlayerDiscard: (tileId) => {
+            this.gameState.publishDiscardTile(tileId);
+          },
           onWallCountOverlay: (state) => this.setWallCountOverlay(state),
           onPlayerLabelOverlay: (states) => this.setPlayerLabelOverlays(states),
           onPointsOverlay: (state) => this.setPointsOverlay(state),
@@ -239,7 +526,7 @@ export class PhaserComponent implements AfterViewInit {
         });
       });
 
-      this.game = new Phaser.Game({
+      this.phaser = new Phaser.Game({
         type: Phaser.WEBGL,
         parent: host,
         // 2. Scale up base width and height by the DPR to match hardware pixels
@@ -267,28 +554,28 @@ export class PhaserComponent implements AfterViewInit {
       });
 
       // 5. Force the canvas DOM element to fit your container using CSS
-      const canvas = this.game.canvas;
+      const canvas = this.phaser.canvas;
       if (canvas) {
         canvas.style.width = '100%';
         canvas.style.height = '100%';
       }
 
+      console.log('300 sceneReady', this.sceneReady());
 
-      this.game.events.once("table:ready", () => {
-        this.sceneReady = true;
+      this.phaser.events.once("table:ready", () => {
+        this.sceneReady.set(true);
+        console.log('304 sceneReady', this.sceneReady());
         // The scene has now registered its resize listener, so apply the
         // initial iOS/Android inset measurement through the normal layout
         // path instead of only storing it for a later resize.
         this.syncGameViewport();
-        this.game?.events.emit("rack:set", this.rack());
-        this.game?.events.emit("pass:direction", this.passDirection());
-        this.game?.events.emit("table:phase", this.tablePhase());
-        this.game?.events.emit("tile-call:offer", this.tileCallOffer());
-        const request = this.demoDiscard();
-        if (request) this.game?.events.emit("tile-call:demo-discard", request);
+        const rack = this.getSortedRack();
+        this.phaser?.events.emit("allTiles:set", this.gameState.game_all_tiles());
+        this.phaser?.events.emit("rack:set", rack);
+        this.phaser?.events.emit("tile-call:offer", this.tileCallOffer());
         const win = this.mahjongWin();
         if (win) this.setMahjongWinPopup(win);
-        this.game?.events.on(
+        this.phaser?.events.on(
 
           "charleston:animation-complete",
 
@@ -332,9 +619,9 @@ export class PhaserComponent implements AfterViewInit {
       this.clearJoinTablePopupTimer();
       this.clearMahjongWinPopupTimer();
 
-      this.game?.destroy(true);
-      this.game = undefined;
-      this.sceneReady = false;
+      this.phaser?.destroy(true);
+      this.phaser = undefined;
+      this.sceneReady.set(false);
     });
   }
 
@@ -387,7 +674,7 @@ export class PhaserComponent implements AfterViewInit {
 
   /** Sends the current viewport and latest resolved safe area to Phaser. */
   private syncGameViewport(): void {
-    if (!this.game) return;
+    if (!this.phaser) return;
 
     const host = this.hostRef.nativeElement;
     const width = Math.max(1, Math.round(host.clientWidth));
@@ -396,9 +683,9 @@ export class PhaserComponent implements AfterViewInit {
     const safeArea = this.readSafeAreaInsets();
     // Keep DOM header assets aligned with Phaser's resolved iOS fallback inset.
     host.style.setProperty("--game-safe-top", `${safeArea.top}px`);
-    this.game.scale.resize(width, height);
-    this.game.events.emit("table:safe-area", safeArea);
-    this.game.events.emit("table:resize", width, height);
+    this.phaser.scale.resize(width, height);
+    this.phaser.events.emit("table:safe-area", safeArea);
+    this.phaser.events.emit("table:resize", width, height);
   }
 
   private clearSafeAreaRefreshTimer(): void {
@@ -447,8 +734,8 @@ export class PhaserComponent implements AfterViewInit {
   }
 
   toggleMobileHeader(): void {
-    if (!this.game) return;
-    this.game.events.emit("mobile-header:toggle");
+    if (!this.phaser) return;
+    this.phaser.events.emit("mobile-header:toggle");
   }
 
   private setMobileDrawerOverlay(state: MobileDrawerOverlayState): void {
@@ -478,15 +765,15 @@ export class PhaserComponent implements AfterViewInit {
   }
 
   public onMobileDrawerClose(): void {
-    this.game?.events.emit("mobile-drawer:close");
+    this.phaser?.events.emit("mobile-drawer:close");
   }
 
   public onMobileDrawerItemClick(item: string): void {
-    this.game?.events.emit("hamburger:html-action", item);
+    this.phaser?.events.emit("hamburger:html-action", item);
   }
 
   public getMobileDrawerHeight(state: MobileDrawerOverlayState): number {
-    const nativeRowHeight = 29;
+    const nativeRowHeight = 44; // 16px font * 1.55 line-height + 16px vertical padding
     const nativeTitleHeight = state.title ? 38 : 0;
     const nativePaddingHeight = state.title ? 30 : 72;
     const requiredHeight = nativeTitleHeight + nativePaddingHeight + state.items.length * nativeRowHeight;
@@ -504,11 +791,11 @@ export class PhaserComponent implements AfterViewInit {
   }
 
   public onDeadHandSeatSelect(seat: TableSeat): void {
-    this.game?.events.emit("dead-hand:select-seat", seat);
+    this.phaser?.events.emit("dead-hand:select-seat", seat);
   }
 
   public onDeadHandCancel(): void {
-    this.game?.events.emit("dead-hand:cancel");
+    this.phaser?.events.emit("dead-hand:cancel");
   }
 
   public getFormattedElapsed(notice: PlayerAwayNotice): string {
@@ -536,10 +823,18 @@ export class PhaserComponent implements AfterViewInit {
     this.instructionPanelState.set(state);
   }
 
-  public onInstructionPanelClick(): void {
+  public onInstructionPanelClick(action?: string): void {
     const state = this.instructionPanelState();
-    if (!state || !state.button.enabled) return;
-    this.game?.events.emit("instruction-panel:primary-action");
+    if (!state) return;
+
+    if (action === "second-pass") {
+      this.gameState.publishCharlestoneSecondRoundVote(true);
+    } else if (action === "second-stop") {
+      this.gameState.publishCharlestoneSecondRoundVote(false);
+    } else {
+      if (!state.button.enabled) return;
+      this.phaser?.events.emit("instruction-panel:primary-action");
+    }
   }
 
   /**
@@ -625,7 +920,7 @@ export class PhaserComponent implements AfterViewInit {
   private setDeadHandPopup(targetSeat: Exclude<TableSeat, "bottom"> | null): void {
     this.deadHandClaimTarget.set(targetSeat);
     if (targetSeat) {
-      this.deadHandClaimReason.set("invalid-mahjong");
+      this.deadHandClaimReason.set(GameDeadHandReasonEnum.FALSE_MAHJONG);
     }
   }
 
@@ -656,7 +951,7 @@ export class PhaserComponent implements AfterViewInit {
 
     if (!result) return;
 
-    this.game?.events.emit("mahjong:win", result);
+    this.phaser?.events.emit("mahjong:win", result);
     void this.haptics.play("pass-submit" as any);
 
     const vw = window.innerWidth;

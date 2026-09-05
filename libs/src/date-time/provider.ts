@@ -1,4 +1,4 @@
-// file: ./libs/src/date-time/provider.ts
+// file: libs/src/date-time/provider.ts
 import { importProvidersFrom, LOCALE_ID } from '@angular/core';
 import { OWL_DATE_TIME_FORMATS, OWL_DATE_TIME_LOCALE, OwlDateTimeFormats, OwlNativeDateTimeModule } from '@danielmoncada/angular-datetime-picker';
 import { ConfService } from '@libs/conf/service';

@@ -1,4 +1,4 @@
-// file: ./src/app/base/crud/type.ts
+// file: src/app/base/crud/type.ts
 import { CrudFieldUiTypeEnum, CrudFieldValidationEnum, CrudListOperationFieldsEnum, CrudViewOptionFieldsEnum, CrudFieldNormalizeModeEnum } from "@base/crud/enum";
 import { Portal } from "@angular/cdk/portal";
 import { SchemaPathTree } from "@angular/forms/signals";
@@ -102,13 +102,24 @@ export interface CrudFieldFlagLabelType {
 
     /**
      * datetime: string;
-     * Value to show when field value is not null 
+     * Value to show when field value is not null
      */
     is_datetime: string;
 }
 
+export interface CrudFieldRangeType {
+    /**
+     * from: string;
+     * Field key holding the lower value
+     */
+    from: string;
 
-
+    /**
+     * to: string;
+     * Field key holding the upper value
+     */
+    to: string;
+}
 
 export interface CrudFieldInfoType {
     /**
@@ -160,6 +171,16 @@ export interface CrudFieldInfoType {
      * If [type = status], then this filed is required to show label of that status.
      */
     flag_label?: CrudFieldFlagLabelType,
+
+    /**
+     * range_field: CrudFieldRangeType
+     * Used only when [type = RANGE].
+     * Names the two sibling field keys this one control writes into.
+     * Both keys keep their own url_matrix_param, validation and value, so the URL
+     * and the API still see two independent fields. The key that is not rendering
+     * the control must set [skip: true] so it does not draw a second control.
+     */
+    range_field?: CrudFieldRangeType,
 
     /**
      * default: any
@@ -255,6 +276,14 @@ export interface CrudFormFieldInfoType extends CrudFieldInfoType {
     mat_icon_append?: string;
 
     /**
+     * step: number
+     * Increment between allowed values.
+     * Used when [type = NUMBER | SLIDER | RANGE].
+     * NUMBER falls back to 'any' when not set, SLIDER and RANGE fall back to 1.
+     */
+    step?: number;
+
+    /**
      * validation: CrudFieldValidationType
      * Validation to apply on field value, this is used in mutation form to validate field value before submit.
      */
@@ -286,16 +315,14 @@ export interface CrudStateFormFieldObjType {
     [key: string]: CrudFormFieldInfoType;
 }
 export interface CrudStateSearchFilterFieldObjType extends CrudStateFormFieldObjType {
+    search_field: CrudFormFieldInfoType
 }
 export interface CrudStateMutationFieldObjType extends CrudStateFormFieldObjType {
 }
-
 export type CrudStateViewOptionFieldObjType = Record<CrudViewOptionFieldsEnum, CrudFormFieldInfoType> & {
     view_option: CrudFormFieldInfoType; // this is just a label field
 };
-
 export type CrudStateListOperationFieldObjType = Record<CrudListOperationFieldsEnum, CrudFormFieldInfoType>;
-
 
 
 
@@ -311,7 +338,8 @@ export interface CrudStateListingDataType {
 export type CrudUniqueKeyType = (string | string[])[];
 export type CrudSlotFieldPortalType = Portal<any>;
 export type CrudSlotFieldsType = Record<string, CrudSlotFieldPortalType>;
-export type CrudActionRecordIdType = string | number | string[] | number[] | null;
+export type CrudActionRecordPrimaryKeyValueType = string | number | string[] | number[] | null;
+export type CrudActionRecordSecondaryKeyValueType = string | number | string[] | number[] | null;
 export type CrudEndDrawerOnCloseType = Record<string, (() => void) | null> | null;
 
 export type CrudSearchFilterInputType = Partial<Record<keyof CrudStateSearchFilterFieldObjType, any>>;

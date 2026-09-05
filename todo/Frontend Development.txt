@@ -1,25 +1,762 @@
 
+Next week memo
+KNOW: For now we manage the direction only with the FIRSTROUND enum and based on that write the logic, I think we don't need 2 enum for the direction we can manage it with only one. So it will be like Direction and combine with the stage (FIRST, SECOND_DECISION, SECOND, COURTESY).
+The direction is just for the directions of animation.
 
+
+
+[tech][Frontend Development][D1] Converting static design data to real-time Gameplay data - Discard tile and Claim window, cross check with backend bot auto decision
+
+
+
+============== POINT ==================
+1]
+Set up rack tiles, getting from the response and change the type and logical flow to set up the initial seats rack tiles. 
+
+2]
+Completed the 1st round of charlestone.
+Working for submit action and votes for the 2nd charlestone round.
+
+3]
+2nd round charlestone submit votes wether need to perform the 2nd charleston rount.
+Handle if user select START and implement the logic as per that.
+Hanld if user STOP the second round vote (cancel) and implement the logic as per that.
+If STOP then directly start the CourtesyPass round.
+Implement the CourtesyPass round.
+
+Error handling for charlestone round
+
+4]
+Manage websocket connection for whole game, join the room and join the group. 
+
+
+5]
+Test the charleston round and fix the issues related to that. 
+
+6]
+Adjust some layout in responsive mode.
+
+
+
+
+DEMO server URL
+
+https://mahjfit-com.thatsend.dev/
+
+
+Username: test1ak56
+Password: test1@AK56
+
+
+
+
+There is a new update on the MahjFit User Testing Doc:
+
+I have checked all the points given in the  MahjFit User Testing Doc, and we have considered them. Currently, I am working on the main gameplay logic, which is a little complex. Once I complete the current gameplay logic, we will discuss these points and work on them later.
+
+Regarding the this week meeting time, no problem, we will meet on Thursday at 5pm pacific time.
+
+
+
+---
+Game Board sizing	- The blue racks can be narrower and the tiles should be as big as possible
+Charleston	- Resize the direction box so tiles do not cover the PASS button
+
+
+
+----
+In charlestone round, I want to add the sound so when we start the game the sound is for First Right (first-right.wav),  Across (across.wav), First Left (first-left.wav),
+
+And then if second round start then Second Left (second-left.wav),  Across (across.wav), Last Right (final-right.wav) and then when it Courtesy pass sound like Optional Across (optional-across.wav)
+
+
+1]
+Increase the space between th submenu items, in both main and setting
+2]
+Change the text of the instruction popup.
+Select 3 tiles to pass is the subtext not the title/header so replace this with the subtitle and current subtitle is the main title but we change the text as for first round first pass Right, for across title should be Across, and for left title sould be Left, so basically title should be Right/Across/Left any one.
+3]
+In mobile device, in instruction popup the pass tile couunt is 0/3 is touched with the bottom border there should  be small gap between the popup border and count.
+
+
+
+4]
+Want to show animation when any seat perform the pick and discard tile and that we know from the API response, and we can implemet animation with the API response when the action will be performed by any seat (real player or bot).
+When bot pick the tile and discard tile we have to show the animation of pick and discard tile and also remove the tile from the wall.
+
+5]
+Play Discarded tile sound when bot or player discard the tile.
+
+6]
+When any player performed the discard tile or pick tile the API response for that action should be come with the same time as the action is performed. Currently there is 5 second delay to get the response from the server.
+
+
+============== TODO ==================
+
+Remove static design related part, such as seat selection, phase chaneg and the test bottons which are reletead with the stitic design.
+After that we replce that parts with the realtime API response and make the dynamic things.
+
+I want to change the logic, when this.play_pass_stage() == GameCharlestoneStageEnum.SECOND_DECISION that time stop to pass the tiles before submit the response.
+
+When I selected 3 tiles for passing area, the next tile drag and drop I drop the tile any where and that tile will be stay there, instead it should be come back to the rack. 
+
+Remove the popup when charlestone round is completed and also the charlestone is finished, it should be automatically completed. So when we received API response and phase is Playing the charlesrone round is completed.
+Remove the popup of pick tile when turn is another seat, the pick tile popup is comming when the turn is current seat turn. Also remove the popup of charlestone when round is finished. In short PASSING phase is completed.
+
+
+
+I want to change the instructuion popup of the charlestone round can we make it small with the small text font and small button and reduce the unwanted space so the popup looks smaller. 
+
+
+
+I want to show the animation of pick tile when the turn is another seat as well, we got the response from the api whos turn is current and if the also get phase playing and turnstage PICK tile we have to remove one tile from the wall count or we might get the proper count from the api response when bot or real player pick the tile.
+In short when bot or other player seat pick the tile we have to show the proper animation from wall to seat.
+
+
+The source list for Content Security Policy directive 'script-src' contains an invalid source: "wasm-unsafe-eval". It will be ignored.
+ReferenceError: Can't find variable: Atomics 
+
+
+
+============== REPLY ==================
+FOR CLIENT]
+
+Today, I tested all the Charleston rounds and made the required modifications. I also deployed the latest changes to the live demo server and tested them using the live URLs.
+
+I will keep you posted on work progress.
+Thank you!
+
+
+FOR CLIENT]
+Today, I completed the courtesy pass charlestone round and currently working on game play discard tile and bot auto claim tile.
+
+Just for your information, the Charleston round implementation is a relatively complex process. The first Charleston round is ready for testing; however, testing the second round will take some additional time, as we need to complete the first round before proceeding with the second (courtesy) round.
+
+The same applies to the discard tile functionality. When a tile is discarded, the bot seats automatically make decisions on whether to pick, pass, or claim the tile. Testing all of these scenarios thoroughly is therefore somewhat time-consuming.
+
+Thank you!
+
+
+FOR CLIENT]
+Today, I completed the 2nd charleston voting handling and completed the 2nd charleston round, currently working on courtesy pass.
+
+I will keep you posted on work progress.
+Thank you!
+
+FOR CLIENT]
+Today, I continue working on converting the static design data into real-time gameplay. I completed the 1st charlestone round intefration and now working on submit action and votes for the 2nd charlestone round. 
+
+I will keep you posted on work progress.
+Thank you!
+
+
+FOR CLIENT]
+Today, I worked on converting the static design data into real-time gameplay. I prepared the player racks with the tiles and configured the tiles with their respective sound files. I also started working on the Charleston rounds and will continue with this. After that, I will move on to implementing the Discard Tile action.
+
+I will keep you posted on work progress.
+Thank you!
+
+============== PROMPT ===================
+Regarding, After time out or take claim window decision for boat is this publish the play and public final state via websocket?
+You said that yes we get the after request process and when run shceule call back after time out it publush the data, but I only get the data at once adter discard tile, I didn't get the after claim and resolve claim after some time on the server.
+-------
+After time out or take claim window decision for boat is this publish the play and public final state via websocket
+-------
+
+
+
+Remove discarad button, beacuse it just for the disign purpuse only from now and onward the discard tile from right, top, left is automatically based on the response getting from the API. We just have to adjust the animation.
+For pick tile for other seats right, top, left, this also manage from the server response. 
+
+
+For the "pick" tile related to other seats (right, top, left), its position and management should also be handled dynamically based on the server response.
+--------
+You are an expert game developer and API integration specialist with a strong understanding of real-time game state management, including WebSocket communication. Your task is to provide guidance, architectural suggestions, and relevant code examples for converting a static Mahjong game's UI/UX to dynamically respond to API and WebSocket data.
+
+As you know we have existing Mahjong game with a completed UI/UX and is using a custom BFW API node library for API calls. 
+
+The goal is to progressively replace static logic with dynamic data retrieved from an API or WebSocket, updating game signals as new data arrives from the server.
+
+We will proceed step-by-step through the following points. For each point, provide a high-level approach, potential challenges, and suggest how the BFW API node library might be leveraged. If applicable, include pseudocode or conceptual code snippets for handling API responses and updating the UI:
+
+1.  **Dynamic Seats Setup**: How to dynamically set up player seats based on server data.
+2.  **Personal Seat Rack Setup**: How to dynamically populate and manage a player's tile rack.
+3.  **Charleston Round Initiation**: How to trigger and manage the Charleston round flow based on server commands.
+4.  **Personal Discard Tile**: How to handle a player discarding a tile, sending this action to the server, and reflecting it dynamically.
+5.  **Sort Tile by Rank, Sort Tile by Hand**: How to implement client-side sorting of tiles (by rank, by hand type) after receiving dynamic tile data.
+6.  **Pick New Tile**: How to handle a player picking a new tile, both sending the request and updating the UI upon receiving the new tile from the server.
+7.  **All Player Interaction Logic**: General strategy for handling various interactions between players (e.g., passing tiles, claiming) via API/WebSocket.
+8.  **Seat Turn Management**: How to dynamically manage and display the current player's turn based on server state.
+9.  **Exposure for All Seats**: How to dynamically display exposed tiles (e.g., Pongs, Kangs, Chows) for all players.
+10. **Tile Claim Window (Popup)**: How to dynamically trigger and manage a popup window for tile claiming options available to players.
+11. **Mahjong Declare**: How to handle a player declaring Mahjong, sending the action, and validating it based on server response.
+12. **Dead Hand Action**: How to handle and display the state of a 'dead hand' as determined by the server.
+
+Be prepared for follow-up instructions and specific details for each individual point as we progress. Focus on robust, scalable solutions for a real-time multiplayer game.
+
+Begin with the overall strategy for integrating dynamic API/WebSocket responses into a pre-existing UI, then proceed to address point 1.
+
+
+
+
+
+
+You did the same repeated mistakes 
+
+we do not need to change any thing in the game template, we have to handle this with the state and signals
+(secondCharlestonVote)="handleSecondCharlestonVote($event)"
+
+And don't want to implement input based event. As we have signles we can directely manage it through signle
+
+Also you have chaged the condition and Enum usage
+
+ if (phase === GamePhaseEnum.PLAYING) {
+    if (phase === "playing" || phase === "discard") {
+
+We must need the condition based on the BFW enum and remember that everytime
+
+
+--------------
+
+One more thing for we must have to use sort_rack_one or sort_rack_two
+If in_rack_one not null that time the order is set in sort_rack_one and if in_rack_two is not null that time we consider the order from the sort_rack_two. 
+Right now sort_rack_one and sort_rack_two both are null and for that I think have to change the backend logic so it not null when getting from the server, for now if iits null then not consider that fields
+
+
+
+From now and onward we are going to converting the static type with the API response and type also modify the static logic with the dynamic response getting from the API or Websocket. 
+We update the signals when we get the latest update from the server.
+So now we have to upgrade everything step by step.
+
+1]
+We set up the dynamic seats.
+2]
+We setup the personal seat rack.
+3]
+We start the charlestone round. 
+4]
+Personal discarad tile.
+5]
+Sort tile by rank, sort tile by hand.
+6]
+Pick new tile.
+7]
+We handle the all player interaction logic.
+8]
+We handle seat turn.
+9]
+Handle exposure for all seat. 
+10]
+Tile Claim window (popup) for the available player.
+11]
+Mahjong declare.
+12]
+Dead hand action.
+
+Etc...
+There might other points as well we do it after finishing this or meanwhile we working on the specific point, so some time we also have to do the another relevant points as well.
+
+
+I will give the more instruction for the individual point one after one as we completed.
+
+
+
+For sorting the rack tile and display,
+
+We get the order in sort_rack_one or sort_rack_two
+
+we must have to use sort_rack_one or sort_rack_two
+If in_rack_one not null that time the order is set in sort_rack_one and if in_rack_two is not null that time we consider the order from the sort_rack_two. 
+Right now sort_rack_one and sort_rack_two both are null and for that I think have to change the backend logic so it not null when getting from the server, for now if iits null then not consider that fields
+
+
+
+============== Memo ==================
+THIS WEEK MEMO send to next week
+Game start completed actions, charleston all rounds, discard tile, pick tile, and claim discarded tile. 
+
+LAST WEEK MEMO
+Started work on frontend game play implementation and connected the API and WebSocket and set the initial seats data getting from the API.
+
+
+bot seat and player seat. Now it set the intenet but is this also perform the appluSkipClaimAction to submit the claim response?
+
+============== Progress meeting ==================
+
+Progress meeting: 26 AUG 2026 5 PM PDT
+https://meet.google.com/zfv-rkwd-ibm
+
+As per current on going process its all techncial work between backend and frontend for game play area.
+
+During last week developer has workd for 5 days only, He took half day off for 2 days.
+
+In previous response we planned to work on point 5 and 7 during next week but we worked on point 11 in relation with point 5,6,7,8. Point 6 was marked as already completed but, we we worked to convert satatic design into real game play. So, its all mixup work as per techncial flow.
+
+Todays updates are all techncial. Imtiaz will get clear idea.
+
+1]
+Developed entire game state using Angular signal.
+This is the major task we perform in frontend during last week.
+
+This hold real time data in frontend game board received from server API and Websocket triggered by game event or action.
+So, complex part simplified and this is very important for frontend.
+Now, techncial working flow is as below...
+- API has api endpoints and web sockets as a medium to receive updates from server
+- On front end we have API client side wrapper that allow us to place a call means request to api endpoint or web socket to retrive data from server
+- On front end we have developed a state using angular signal() that uses api client side wrapper to get the data from server
+- On ever response game state save data in signal that trigger change event on game board automatically
+- As data get updated in angular signal() - game board reflect the most reecent changes.
+
+Now, this process makes the game live and we worked on this entirely.
+We expected to work  on this step by step but we did it once and that changed the previous week plan.
+
+signal() is a technology provided by Angular. You can search on internet for more information.
+
+2]
+As per game state setup using signal we tested the modified frontend use case. Performed API call for all modified action required for game play area
+- Game Start
+- Charleston
+- Discard
+- Pick
+- Claim
+
+Now, all integreated along with Angular signal() and all wired inside to be used during game play time.
+
+
+3]
+Upgraded backend api call and response for the Web Socket.
+Prepare the public and private response for the game play state.
+Updated WS events (publishers and subscribers) for the exact use-case and the batter live intereaction while game play.
+
+Basically all subscribers and publishers web socket requests are aligned on frontend and its wired with angular signal().
+
+
+4]
+Upgrade the api client wrapper as per the API and web socket changed.
+Thsi include the data type changes means upgrade in DTO (Data Transfer Object) structure.
+
+5]
+Implmented game live interactions as user action and update game state using web socket.
+Connect the game room to publish the public updates using game id.
+Connect the personal room to get the specific user updates using game and player id.
+Entire interaction handled through angular signal() as the event trigger.
+
+6]
+As we had static design of game in frontend and we create prototype app, we converted that static design into real-time Gameplay layout.
+Developed signals() as per the logic flow, so data and game event align with each other and provide batter performance.
+
+7]
+Set up the player rack and rack tile and changed the type and connect with signal so server side data change can trigger update in UI.
+Developed logical flow for player rack and rack tile.
+
+Currently, working on the game play area and prepare the all seats UI and it's functionality.
+
+
+8]
+Basic now this is 4 layer architecture as below that we developed during last 5 days. 
+Layer 1 [BRAIN]: There is a server side API and Websocket that process request and return response 
+Layer 2 [NERVOUS SYSTEM]: There is an api client wrapper that allow frotend to connet with server api and response
+Layer 3 [BODY CELL]: There is an angular state developed using angular signal() which control and preaper the received data from server and trigger events
+Layer 4 [BODY PART LIKE LEG, HEAD, HANDS, EAR, NOSE]: Game board developed in Phaser consume this angular signal() as data source and update UI as game progress
+
+Now, everything is wired and working.
+Its not possible to say clearly where we are on provided 11 milestone but we are on track. This is because we are wokring with multiple point more or less as per use-case and also everthing is connect with each other we cannot pick and stick to specific milestone through the day during development. It's kind of dynamic process. During upcoming updates this will have some clarity.
+
+-- END OF UPDATE --
+
+######################################
+######################################
+######################################
+
+
+============== TODO ==================
+1]
+Remove private from the GameStatePublicStart
+
+2]
+Share only owner seat when return the final state from the GameStatePublicStart. So need to change the server and public response.
+
+3]
+Need to check the charlestone response, it get all the seats publically. So before return the we have to remove the seats from the private info.
+
+4]
+Need to implement personal.claim object might be right now we didnt set that in the API, so need to cross check the API response with the DTO.
+
+5]
+Once everything is done, need to remove the wall seat from the Personal and Play DTO and also change the count type as per that because for 4 player and siamese player that count the seats and based on that the current logic work, so need to cross check everything and decided based on that.
+
+6]
+
+
+
+
+Every decision tekan from the API and user allow the action accordingly, so from the public user part they can just take the action from the available option and as per the action we get the latest update vie websocket. 
+So the decision taker is API, not from frontend. 
+
+In short we can say as **“Server-Side Decision Engine.”** 
+
+
+
+
+One more thing for we must have to use sort_rack_one or sort_rack_two
+If in_rack_one not null that time the order is set in sort_rack_one and if in_rack_two is not null that time we consider the order from the sort_rack_two. 
+Right now sort_rack_one and sort_rack_two both are null and for that I think have to change the backend logic so it not null when getting from the server, for now if iits null then not consider that fields
+
+
+
+
+============== POINTS ==================
+1]
+Test the modified state with frontend use case.
+Performed API call for all action from graphql playground
+- Game Start
+- Charleston
+- Discard
+- Pick
+- Claim
+
+Cross check the API response and verfiy as per the fronten signals.
+As per the test cases, create modification points and after that do the required changes.
+
+2]
+Upgrade backend api call and response for the WS
+Changed the request and response type as per the upgraded API.
+Prepare the public and private response for the game play.
+Changed some WS events for the batter use case and the batter live intereaction while game play.
+
+3]
+Checked upgradate API and do required upgratation if any found
+Checked the all API for the gameState and it's update as per the latest design flow
+Again do the same process to check the API all action for the gameplay from graphql playground and verfiy the response.
+- Game Start
+- Charleston
+- Discard
+- Pick
+- Claim
+
+4]
+Prepare and upgrade signles as per the API response
+Connect GamePlay API calls and prepare sinlges.
+
+5]
+Upgrade the client wrapper as per the API upgrades.
+
+6]
+Connecting WS for event listner of game play.
+For the live interactions and the update connect websocket.
+Connect the game room to publish the public updates.
+Connect the personal room to get the specific user updates.
+Subscribe and Published all event of websocket related with the game play.
+Update signals as per the event performed.
+
+7]
+Converting static design data to real-time Gameplay data.
+Upgrade signals as per the logical flow the needs to get the batter performance. 
+Set up the player rack and rack tile and changed the type also as per the type also required to modify some logic.
+Upgrade the logical flow as per the new data type getting from the API response and as per the client wrapper.
+
+Currently, working on the game play area and prepare the all seats UI and it's functionality.
+After that moving forward start work on charlestone action.
+
+============== FOR CLIENT ==================
+
+FOR CLIENT]
+Today, I worked to converting static design data to real-time Gameplay data and continue work on it.
+
+I will keep you posted on work progress.
+Thank you!
+
+
+
+FOR CLIENT]
+Today, I worked to setup the WS implementation with the signles for the game live events publish and subscribe for the game live events.
+
+I will keep you posted on work progress.
+Thank you!
+
+
+FOR CLIENT]
+Today, I started work on froned side implementation and setup basic signles and continue working on it.
+
+I will keep you posted on work progress.
+Thank you!
+
+
+
+FOR CLIENT]
+Today, I completed the basic testing for upgraded backend API calls and responses, as per frontend state management approach.
+
+Next, I will move to frontend part and will start the implementation.
+
+I will keep you posted on work progress.
+Thank you!
+
+---
+
+1] 
+Game Creation & Game Start APIs
+Game will start from https://mahjfit.com (home page) 
+WILL MAHJFIT.COM ALSO BE THE MARKETING PAGE IF A USER IS NOT LOGGED IN?  
+IE: A NON-LOGGED IN USER WOULD LAND ON THE MAIN MAHJFIT,COM PAGE AND WOULD BE SHOWN THE FREE OR PREMIUM OPTIONS?
+REPLY]
+Yes, we will develop this page as designer will design it. So basically atlist home page is required for now, no matter what contant you want to show.
+As we don't have webpage manager for now, page will be loaded directly from the code.
+If you remember then at initially we discussed that if you need more pages then we will setup wordpress as it is a CMS. And we can save time and cost. will discuss on this. 
+
+So for your answer, on home page we can show anything whatever you want we can also use for marketing.
+
+Thank you!
+
+
+---
+FOR CLIENT]
+Today, I tested the upgraded backend API calls and responses, including the requests for creating and starting a game. Based on the test cases, I made the necessary modifications to the start-game functionality and overall gameplay management.
+
+Next, I will continue with the remaining testing and address any upgradation identified during the process.
+
+I will keep you posted on work progress.
+Thank you!
+
+=============== Memo =================
+This week Memo: 
+Upgrade backend API response as per the frontend state management and add multiple cache layer for performance tuning.
+
+================ Progress meeting ================
+
+Progress meeting: 19 AUG 2026 5 PM PDT
+No meeting conducted due to unavailability.
+
+Last week it was all technical work performed between frontend and backend.
+
+# MILESTONES:
+1) 
+Set up frontend with angular, capacitor, API sdk and utility. [approx. 10-12 days]
+This part might get complete in 2 phases 5+7. [3 days used 4 days remain andwill be used in future upgrades]
+2) 
+Convert Figma layout to HTML design [minimum 10 days - depends on layout and as needed throughout development] [estimated 10 days took 15 days]
+completed task with 4 player game board area. Remain HTML pages and 2 player game board is pending.
+3) 
+Setup static app and web demo for prototype [6-7 days] [used approx. 3 days, 3 to 4 days are still availabe will be used during future relase]
+4) 
+Develop user FREE signup/signin/forgot password for game play [3-4 days]
+(We have membership related things also that will be get done later on)
+This is pending. 
+5) 
+Start game [4-5 days] 
+80% completed [Used 3 days 2 days are still available]
+6) 
+Setup game play area [minimum 5-7 days] [took additional 3-4 days compared to estimated]
+This has been completed and demo also provided. 
+7)
+Integrate Charleston [approx. 2-3 days]
+Upcoming.
+8) 
+Integrate Discard, Claim and Pick [minimum 10 days]
+Upcoming.
+9) 
+Player personalisation, connection/disconnection related functionality [minimum 7 days]
+Upcoming.
+10] 
+(added later point) Development apart from Game Play area such as third party service integration (this point will be executed as per requirement and need)
+As needed.
+
+So, milestones status is as above and during last week we compoted point (5) but during development we required to tune backend API, so I am adding 1 mmore milesone (11) in this phase. This is because as we are working with frontend its going to happen that we have to adjust features and functionalities in api. This is normal process and this modification is use case based in real time. At initially we start development based on requirement, imeagination and logic and when we work on frontend we get real use case.
+
+11]
+API tune up as per real time front end use case. [as needed]
+There is no fixed time and not 100% necessary with every integration but required to do it.
+At this momnet we work on this for 3 days during last week. 
+
+
+# LAST WEEK UPDATE:
+1] 
+Game Creation & Game Start APIs
+Game will start from https://mahjfit.com (home page)
+After user will be redirect to url like below
+https://mahjfit.com/game/123e4567-e89b-12d3-a456-426614174000
+where game board will load, in url can see as below
+https://mahjfit.com => domain
+/game => game board page
+/123e4567-e89b-12d3-a456-426614174000 => started game id, is dynamic and will change on every new game start.
+
+Developed game verification logic on initila load of game through URL.
+Checked completed, canceled, active status and according to that game will load.
+
+2]
+1x Tile Atlas Testing
+Generated a 1x tile atlas using an AI and tested it on a mobile device.
+The initial result was tested for mobile compatibility and visual rendering.
+Some adjustments are still required to achieve the expected quality and alignment.
+Further improvements will be made based on the testing results.
+
+3]
+Backend changes as per frontend use cases
+
+API Response & Response Data Structure change
+Modified the API responses and data structure. 
+(This work gives us clerity to add point 11 in milestone)
+Frontend state management required to identify how the data should be maintained and consumed from api. This required to adjust api response due to data size limitation and mantain application performance.
+
+4]
+State Management
+Changed the approach for managing application state between the frontend and backend.
+Finalized data-flow approach as per use case is as below. Before it was all together as a singleton JSON object but now we seperated in 4 different main state and it's sub state. 
+
+State Segregation
+- Private data:
+information specific to an server process, stay on server only.
+- Personal data:
+user/player related information, stay on server and also sent to client side. individual response
+- Play data:
+game data that is sharable or used during gameplay among all playes. stay on server and sent to client side.
+- Game data:
+stared game parameters, sent by client and stored on server side and used during game play.
+
+This separation will make the data flow easier to manage and provide a cleaner structure for complex use cases. We have break these in 4 chunks because 1 big data set reduce the performance and take longer to finish process, instead 4 small dataset works fast. This is all on API side based on front end state management use case need.
+
+This was bigges and important change we did in last week, today developer will test this modification.
+
+5]
+Backend Performance using Cache
+As game state seperate in 4 different data set, planned multiple-cache approach for each to improve performance. Different types of data can be cached separately based on how frequently they change and how they are accessed (this is important for security reasons). 
+This approach is intended to reduce unnecessary API/database operations and provide better performance as the application grows.
+
+Using readis as a cache service and we save on-going game state inside.
+Here we need to find a solution to sync cache state with database which is pending. At this moment we cannot do it. Once game is created it's main source of data is cached state to speed up process.
+
+6]
+Next Steps
+Test the modified state with frontend use case.
+Complete and refine the real-player game data flow for the live game.
+Apply feedback received from testing.
+Now we will work on point 5 and 7 parallel during this week.
+
+
+########################################
+########################################
+########################################
 ================ POINTS ==================
 1]
 Make API call to create the new game.
 For first we set the fixed player and created 3 links to implement join functionality.
 First we decided to start the game with the realplayer and after that we extend and attache the remain things and feature functionality so you guys can Test the app with the live demo. 
-After your testing and feedbacks we will work on it.
 
-Tried 1x tiles with the mobile device. 
+
+Tried 1x tiles with the mobile device. Generated the 1x tile atlas using AI tool and tried but more adjustment 
 
 2]
 Set up the game seat as per the response and implement the logic with it.
-
 Worked on connect WS as with the real game play. Implement with the 
 
 
+3]
+Planout and upgrade the claim feature
+Game Allow Claim:
+FIRST_IN_FIRST_OUT
+NEAREST_FIRST
 
+4]
+Analysis the current API response and data.
+Cross checked the reponse and with the frontend state management. 
+Plan out the data to manage the proper state for frontend and backend, so it properly communicate each other.
+Upgrade the backend api as per the state management planing of the frontend.
+Segarigate the private, personal and public (play) data 
+Backend as per the planing also decided to manage multiple caches for the batter performance. 
+
+
+5]
+We have one milestone "Backend Development" which is on going and do work as required. 
+As we are working on frontend side and for stability, and performance and as per the game use case we need to required in API.
+
+
+
+
+========
+Weekly Development Update
+Frontend Development
+1] 
+Game Creation & Game Start APIs
+Implemented the frontend API integration for creating a new game.
+Implemented the API integration for starting a game.
+We decided to initially start the game with the real-player flow so that the core gameplay can be tested with a live/demo setup.
+Once the initial flow is tested, we will extend it with the remaining features and functionality based on the client’s testing and feedback.
+
+2]
+1x Tile Atlas Testing
+Generated a 1x tile atlas using an AI-based tool and tested it on a mobile device.
+The initial result was tested for mobile compatibility and visual rendering.
+Some adjustments are still required to achieve the expected quality and alignment.
+Further improvements will be made based on the testing results.
+
+3]
+Frontend & Backend Analysis and Planning
+
+API Response & Data Analysis
+Analyzed the existing API responses and data structure.
+Cross-checked the API response with the frontend state management to identify how the data should be maintained and consumed.
+Planned the required data flow so that the frontend and backend can communicate and maintain the application state correctly.
+
+State Management Planning
+Defined a clearer approach for managing application state between the frontend and backend.
+Based on this planning, identified the required backend API changes to properly support the frontend state-management requirements.
+Started upgrading the backend API structure according to the finalized data-flow approach.
+
+Data Segregation
+Planned the separation of data into different categories:
+Private data – information specific to an individual player/user.
+Personal data – user-related information that needs to be maintained separately.
+Public/Play data – game data that can be shared or used during gameplay.
+This separation will make the data flow easier to manage and provide a cleaner structure for future features.
+
+Backend Performance & Caching
+Planned a multiple-cache approach on the backend to improve performance.
+Different types of data can be cached separately based on how frequently they change and how they are accessed.
+This approach is intended to reduce unnecessary API/database operations and provide better performance as the application grows.
+
+4]
+Next Steps
+Test the backend api 
+Complete and refine the real-player game flow for the live demo.
+Continue testing the game flow with the frontend and backend working together.
+Apply feedback received from testing.
+Continue adjustments to the 1x tile atlas for mobile devices.
+
+
+[tech][Frontend Development][D1] Start Game implementation - structuring the game response in game, play and private
+[tech][Backedn Development][D1] Upgrade backend api call and response as per the fronntend angular signals
 ================ REPLYS ==================
+Upgrade the design as required and started work on game implementation. 
+
 FOR CLIENT]
-Today, I continue work on game play area and make API call of create game and start game. 
-Next, I will  continue work and setup state for game and prepare seat
+Today, I continued working on the backend upgrade and completed almost all the backend API calls and responses according to the frontend Angular Signals.
+
+I also separated the play, private, and personal data and managed them using the cache system.
+
+Next, I will thoroughly test these changes and make any required modifications. Once the backend work is fully completed, I will start working on the frontend.
+
+I will keep you posted on work progress.
+Thank you!
+
+
+FOR CLIENT]
+Today, I continued working on the backend upgrade, updating the API calls and responses according to the specific requirements. I also organized the code into appropriate modules and managed multiple caches to improve performance. I will continue working on these improvements.
+
+I will keep you posted on work progress.
+Thank you!
+
+
+
+
+
+FOR CLIENT]
+Today, I continue work on game play area setup upgrade the planing as per the frontend data requirement and startted the backend upgrade the api call and response.
+
+I will keep you posted on work progress.
+Thank you!
+
+
+FOR CLIENT]
+Today, I continue work on game play area setup state for game and prepare seat and other game play data. I continue work on this.
 
 I will keep you posted on work progress.
 Thank you!

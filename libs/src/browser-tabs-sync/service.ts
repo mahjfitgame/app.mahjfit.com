@@ -1,4 +1,4 @@
-// file: ./libs/src/browser-tabs-sync/service.ts
+// file: libs/src/browser-tabs-sync/service.ts
 import { DestroyRef, Service, inject } from '@angular/core';
 import { uuidv7 } from 'uuidv7';
 import { BrowserTabsSyncServiceMessageType } from './type';
