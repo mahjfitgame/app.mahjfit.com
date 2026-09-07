@@ -104,6 +104,7 @@ export interface TableSceneCallbacks {
   readonly onQuitGame: () => void;
   /** Discard a tile from the local player's rack. */
   readonly onLocalPlayerDiscard: (tileId: number) => void;
+  readonly onLocalPlayerPick: () => void;
   /** Updates the crisp HTML wall-count label when its value or layout changes. */
   readonly onWallCountOverlay: (state: WallCountOverlayState) => void;
   /** Updates native mobile player-name labels while Phaser retains their layout. */

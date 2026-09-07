@@ -35,12 +35,12 @@ const debugEnvironment: any = {
     BFW_API_SDK_REST_URL: 'https://192.168.0.230:20152/rest',
     BFW_API_SDK_WS_URL: 'https://192.168.0.230:20150', */
 
-    /* BFW_API_SDK_GRAPHQL_URL: 'https://192.168.0.200:20178/graphql',
+    BFW_API_SDK_GRAPHQL_URL: 'https://192.168.0.200:20178/graphql',
     BFW_API_SDK_REST_URL: 'https://192.168.0.200:20178/rest',
-    BFW_API_SDK_WS_URL: 'https://192.168.0.200:20179', */
+    BFW_API_SDK_WS_URL: 'https://192.168.0.200:20179',
 
-    BFW_API_SDK_GRAPHQL_URL: 'https://api-mahjfit-com.thatsend.dev/graphql',
+    /* BFW_API_SDK_GRAPHQL_URL: 'https://api-mahjfit-com.thatsend.dev/graphql',
     BFW_API_SDK_REST_URL: 'https://api-mahjfit-com.thatsend.dev/rest',
-    BFW_API_SDK_WS_URL: 'https://ws-mahjfit-com.thatsend.dev',
+    BFW_API_SDK_WS_URL: 'https://ws-mahjfit-com.thatsend.dev', */
 };
 export const environment: any = { ...defaultEnvironment, ...debugEnvironment };

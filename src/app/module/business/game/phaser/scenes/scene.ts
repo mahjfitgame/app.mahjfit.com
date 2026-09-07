@@ -95,6 +95,8 @@ export class PhaserScene extends Phaser.Scene {
   private get discardedTileIds(): number[] { return this.stateManager.discardedTileIds; }
   private get activeDragTile(): TileRuntime | undefined { return this.stateManager.activeDragTile; }
   private set activeDragTile(value: TileRuntime | undefined) { this.stateManager.activeDragTile = value; }
+  private isWaitingForPickResponse = false;
+  private pendingLocalPickRuntime?: TileRuntime;
   private get dragPointerId(): number | undefined { return this.stateManager.dragPointerId; }
   private set dragPointerId(value: number | undefined) { this.stateManager.dragPointerId = value; }
 
@@ -400,12 +402,21 @@ export class PhaserScene extends Phaser.Scene {
       // Only the local Bottom seat uses the 13-tile hand rule.
       // remain available to the temporary Pick test controls.
       if (!this.canPickFromWall()) return;
+      if (this.isPickAnimating) return;
 
       // Picking from the wall closes the opponent-discard call window. A tile
       // may only be called before the next player racks their pick.
       this.expireTileCallWindow();
       this.playHaptic("pick");
-      this.pickTileForSeat(this.pickTargetSeat);
+      
+      if (this.stateManager.isPersonalTurn) {
+        this.isPickAnimating = true;
+        this.isWaitingForPickResponse = true;
+        this.updatePassButtonState();
+        this.callbacks.onLocalPlayerPick();
+      } else {
+        this.pickTileForSeat(this.pickTargetSeat);
+      }
       return;
     }
 
@@ -748,6 +759,18 @@ export class PhaserScene extends Phaser.Scene {
 
     if (!needs1xAtlas && !needs2xAtlas) {
       this.reconcileRackTiles(animate);
+      if (this.pendingLocalPickRuntime) {
+        const runtime = this.pendingLocalPickRuntime;
+        this.pendingLocalPickRuntime = undefined;
+        
+        const targetPoint = this.slotFor(runtime);
+        this.animateWallTileToSeat("bottom", runtime.vm, targetPoint, () => {
+          runtime.image.setAlpha(1);
+          this.isPickAnimating = false;
+          this.updatePassButtonState();
+          this.updateInstructionText();
+        });
+      }
       const tileWidth = Math.round(this.layout.bottomTileLayout.width);
       this.activeRackAtlasKey = this.gameService.selectTileAtlas(tileWidth).atlasKey;
       return;
@@ -775,6 +798,18 @@ export class PhaserScene extends Phaser.Scene {
 
     this.load.once(Phaser.Loader.Events.COMPLETE, () => {
       this.reconcileRackTiles(animate);
+      if (this.pendingLocalPickRuntime) {
+        const runtime = this.pendingLocalPickRuntime;
+        this.pendingLocalPickRuntime = undefined;
+        
+        const targetPoint = this.slotFor(runtime);
+        this.animateWallTileToSeat("bottom", runtime.vm, targetPoint, () => {
+          runtime.image.setAlpha(1);
+          this.isPickAnimating = false;
+          this.updatePassButtonState();
+          this.updateInstructionText();
+        });
+      }
       const tileWidth = Math.round(this.layout.bottomTileLayout.width);
       this.activeRackAtlasKey = this.gameService.selectTileAtlas(tileWidth).atlasKey;
     });
@@ -869,11 +904,17 @@ export class PhaserScene extends Phaser.Scene {
       const runtime: TileRuntime = {
         vm: tile,
         image,
-        slotIndex: this.rackOrder.indexOf(tile.tile_id!),
+        zone: "rack",
         selected: false,
         isDragging: false,
-        zone: "rack",
+        slotIndex: this.rackOrder.length,
       };
+
+      if (this.isWaitingForPickResponse) {
+        this.isWaitingForPickResponse = false;
+        runtime.image.setAlpha(0);
+        this.pendingLocalPickRuntime = runtime;
+      }
 
       this.tileMap.set(tile.tile_id!, runtime);
       this.registerTileInput(runtime);
@@ -4163,7 +4204,7 @@ export class PhaserScene extends Phaser.Scene {
 
     const pickedTile = seat === "bottom" ? this.createMockPickedTile() : undefined;
 
-    this.animateWallTileToSeat(seat, pickedTile, () => {
+    this.animateWallTileToSeat(seat, pickedTile, undefined, () => {
       if (seat === "bottom" && pickedTile) {
         this.addMockPickedTileToRack(pickedTile);
       }
@@ -4177,10 +4218,11 @@ export class PhaserScene extends Phaser.Scene {
   private animateWallTileToSeat(
     seat: TableSeat,
     pickedTile: GameTileEntity | undefined,
+    targetPoint: Point | undefined,
     onComplete: () => void,
   ): void {
     const source = this.wallTileSourcePoint();
-    const target = this.pickTargetPointForSeat(seat);
+    const target = targetPoint ?? this.pickTargetPointForSeat(seat);
     const size = this.pickAnimationTileSize(seat);
     const startSize = this.wallTileBoxSize();
 

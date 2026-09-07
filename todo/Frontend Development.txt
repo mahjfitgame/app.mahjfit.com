@@ -3,10 +3,13 @@ Next week memo
 KNOW: For now we manage the direction only with the FIRSTROUND enum and based on that write the logic, I think we don't need 2 enum for the direction we can manage it with only one. So it will be like Direction and combine with the stage (FIRST, SECOND_DECISION, SECOND, COURTESY).
 The direction is just for the directions of animation.
 
+[tech][Frontend Development][D1] Converting static design data to real-time Gameplay data - submit second round charleston vote
+
+Converting static design data to real-time Gameplay data, completed the charlestone round implementation.
 
 
 [tech][Frontend Development][D1] Converting static design data to real-time Gameplay data - Discard tile and Claim window, cross check with backend bot auto decision
-
+[tech][Frontend][D1] Integreate discard and calim tile with bot auto turn
 
 
 ============== POINT ==================
@@ -90,6 +93,10 @@ Play Discarded tile sound when bot or player discard the tile.
 6]
 When any player performed the discard tile or pick tile the API response for that action should be come with the same time as the action is performed. Currently there is 5 second delay to get the response from the server.
 
+7]
+Why righnow discaraded tiles are not showing to the discarded area, when I discard the first tile, the tile is go away and hide the tile.
+
+Also when it not my turn even though I am able to discard the tile this is the wring behavior. The pick and discard tile is only for the current turn id.
 
 ============== TODO ==================
 
@@ -119,6 +126,19 @@ ReferenceError: Can't find variable: Atomics
 
 
 ============== REPLY ==================
+
+FOR CLIENT]
+
+Today, I worked on fixing the Charleston rounds and simultaneously worked with the backend API. I also considered a design correction and added a shadow to the rack tile.
+
+Later, I started working on the discard tile.
+
+Basically, I worked on multiple tasks simultaneously throughout the day.
+
+I will keep you posted on work progress.
+Thank you!
+
+
 FOR CLIENT]
 
 Today, I tested all the Charleston rounds and made the required modifications. I also deployed the latest changes to the live demo server and tested them using the live URLs.

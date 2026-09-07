@@ -504,6 +504,9 @@ export class PhaserComponent implements AfterViewInit {
           onLocalPlayerDiscard: (tileId) => {
             this.gameState.publishDiscardTile(tileId);
           },
+          onLocalPlayerPick: () => {
+            this.gameState.publishPickTile();
+          },
           onWallCountOverlay: (state) => this.setWallCountOverlay(state),
           onPlayerLabelOverlay: (states) => this.setPlayerLabelOverlays(states),
           onPointsOverlay: (state) => this.setPointsOverlay(state),
