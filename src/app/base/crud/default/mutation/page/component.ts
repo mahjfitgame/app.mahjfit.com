@@ -1,6 +1,6 @@
 // file: src/app/base/crud/default/mutation/page/component.ts
 import { Component, inject } from '@angular/core';
-import { CrudService } from '@base/crud/service';
+import { CrudService } from 'src/app/base/crud/service/entry';
 import { NgComponentOutlet } from '@angular/common';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';

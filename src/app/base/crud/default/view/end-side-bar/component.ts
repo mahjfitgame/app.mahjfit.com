@@ -5,7 +5,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { TranslocoModule } from '@jsverse/transloco';
 import { PrivateAreaLayoutDirective } from '@area/private/directive';
-import { CrudService } from '@base/crud/service';
+import { CrudService } from 'src/app/base/crud/service/entry';
 
 @Component({
   selector: 'app-crud-default-view-end-side-bar',

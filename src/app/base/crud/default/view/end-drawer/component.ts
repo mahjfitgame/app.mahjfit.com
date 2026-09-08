@@ -5,7 +5,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatSidenavModule } from '@angular/material/sidenav';
 import { MatToolbarModule } from '@angular/material/toolbar';
 import { TranslocoModule } from '@jsverse/transloco';
-import { CrudService } from '@base/crud/service';
+import { CrudService } from 'src/app/base/crud/service/entry';
 
 @Component({
   selector: 'app-crud-default-view-end-drawer',

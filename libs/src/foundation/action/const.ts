@@ -20,6 +20,59 @@ import { FoundationActionRouteConfigType } from './type';
  * guarantee — rename FoundationActionEnum.UPDATE and every consumer here moves
  * with it, no literal string left behind to drift
  */
+/**
+ * @FOUNDATION_MODULE_ACTION / @FOUNDATION_RECORD_ACTION / @FOUNDATION_LISTING_ACTION
+ *
+ * Single source of truth for "which category does this action belong to",
+ * mirroring the MODULE ACTION / RECORD ACTION / LISTING groupings already
+ * declared as section comments on FoundationActionEnum. Consumers that need
+ * "does this permission set include ANY action from this category" (e.g.
+ * CrudActionState's aggregate hasModuleAction/hasRecordAction gates) should
+ * derive from these lists instead of hand-maintaining their own OR-chain,
+ * so a new action added to the enum is automatically picked up everywhere
+ * it belongs without a second file to remember to update.
+ */
+export const FOUNDATION_MODULE_ACTION: FoundationActionEnum[] = [
+    FoundationActionEnum.CREATE,
+    FoundationActionEnum.IMPORT,
+    FoundationActionEnum.EXPORT,
+    FoundationActionEnum.INSIGHT,
+];
+
+export const FOUNDATION_RECORD_ACTION: FoundationActionEnum[] = [
+    FoundationActionEnum.RECORD_POSITION,
+    FoundationActionEnum.UPDATE,
+    FoundationActionEnum.QUICK_UPDATE,
+    FoundationActionEnum.VIEW,
+    FoundationActionEnum.PRINT,
+    FoundationActionEnum.SHARE,
+    FoundationActionEnum.DUPLICATE,
+    FoundationActionEnum.ACTIVE,
+    FoundationActionEnum.INACTIVE,
+    FoundationActionEnum.SOFT_DELETE,
+    FoundationActionEnum.DELETE,
+    FoundationActionEnum.RESTORE,
+    FoundationActionEnum.MARK_AS_MAIN,
+    FoundationActionEnum.UPLOAD,
+    FoundationActionEnum.UPLOAD_DELETE,
+    FoundationActionEnum.FILE_RELOCATION,
+    FoundationActionEnum.SOFT_REMOVE,
+    FoundationActionEnum.REMOVE,
+    FoundationActionEnum.RECOVER,
+    FoundationActionEnum.SUB_MODULE,
+];
+
+export const FOUNDATION_LISTING_ACTION: FoundationActionEnum[] = [
+    FoundationActionEnum.LISTING,
+    FoundationActionEnum.COLUMN_POSITION,
+    FoundationActionEnum.QUICK_SEARCH,
+    FoundationActionEnum.DISPLAY_FIELDS,
+    FoundationActionEnum.SORT_FIELDS,
+    FoundationActionEnum.ALPHA_SORT,
+    FoundationActionEnum.ADVANCE_SEARCH,
+    FoundationActionEnum.BULK_ACTION,
+];
+
 export const FOUNDATION_ACTION_ROUTE_CONFIG: Partial<Record<FoundationActionEnum, FoundationActionRouteConfigType>> = {
     [FoundationActionEnum.CREATE]:          { slug: FoundationActionEnum.CREATE,                                                          labelKey: 'GL.ACTION.CREATE',          aliasSuffix: 'Create' },
     [FoundationActionEnum.UPDATE]:          { slug: `${FoundationActionEnum.UPDATE}/:${FoundationFieldDefaultNameEnum.KEYID}`,             labelKey: 'GL.ACTION.UPDATE',          aliasSuffix: 'Update' },

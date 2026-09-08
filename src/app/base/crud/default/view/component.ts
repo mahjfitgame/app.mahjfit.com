@@ -1,6 +1,6 @@
 import { Component, inject } from '@angular/core';
 import { NgComponentOutlet } from '@angular/common';
-import { CrudService } from '@base/crud/service';
+import { CrudService } from 'src/app/base/crud/service/entry';
 import { CrudDefaultViewEndDrawerComponent } from './end-drawer/component';
 import { CrudDefaultViewEndSideBarComponent } from './end-side-bar/component';
 

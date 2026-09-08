@@ -1,7 +1,7 @@
 // file: src/app/base/crud/default/mutation/end-side-bar/component.ts
 import { Component, inject } from '@angular/core';
 import { NgComponentOutlet } from '@angular/common';
-import { CrudService } from '@base/crud/service';
+import { CrudService } from 'src/app/base/crud/service/entry';
 import { CdkPortal } from '@angular/cdk/portal';
 import { PrivateAreaLayoutDirective } from '@area/private/directive';
 import { MatButtonModule } from '@angular/material/button';

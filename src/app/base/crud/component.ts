@@ -11,7 +11,7 @@ import { RouterModule } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { CdkPortal } from '@angular/cdk/portal';
 import { PrivateAreaLayoutDirective } from '@area/private/directive';
-import { CrudService } from '@base/crud/service';
+import { CrudService } from 'src/app/base/crud/service/entry';
 import { CrudDefaultModule } from '@base/crud/default/module';
 import { MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatBottomSheetModule } from '@angular/material/bottom-sheet';

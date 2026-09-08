@@ -1,6 +1,6 @@
 // file: src/app/base/crud/default/pagination/component.ts
 import { Component, inject, viewChild, ViewChild } from '@angular/core';
-import { CrudService } from '@base/crud/service';
+import { CrudService } from 'src/app/base/crud/service/entry';
 import { PaginationComponent } from '@base/pagination/component';
 import { MatCardModule } from '@angular/material/card';
 import { AppPaginationEvent } from '@base/pagination/type';
@@ -15,26 +15,25 @@ import { TranslocoModule } from '@jsverse/transloco';
   providers: [],
 })
 export class CrudDefaultPaginationComponent {
-    //@ViewChild(PaginationComponent) private pagination?: PaginationComponent;
-    private pagination = viewChild(PaginationComponent);
+  //@ViewChild(PaginationComponent) private pagination?: PaginationComponent;
+  private pagination = viewChild(PaginationComponent);
 
   public readonly service = inject(CrudService);
 
   public async onPageChange(event: AppPaginationEvent): Promise<void> {
-    const loaded = await this.service.onPageChange(event);
+    const loaded = await this.service.listing.onPageChange(event);
 
     if (loaded) {
       return;
     }
-
-        /**
-         * API failed.
-         * CRUD state still has old/correct page and page size.
-         * Manually reset child paginator UI from CRUD state.
-         */
-        this.pagination()?.resetTo(
-            this.service.state.listing.getCurrentPageValue(),
-            this.service.state.listing.getRowsPerPageValue()
-        );
-    }
+      /**
+       * API failed.
+       * CRUD state still has old/correct page and page size.
+       * Manually reset child paginator UI from CRUD state.
+       */
+      this.pagination()?.resetTo(
+          this.service.state.listing.getCurrentPageValue(),
+          this.service.state.listing.getRowsPerPageValue()
+      );
+  }
 }

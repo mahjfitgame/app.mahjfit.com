@@ -75,7 +75,7 @@
                 @if(active === null) {
                     @if (service.state.action.hasInactive()) {
                         <!-- record is already active so show INACTIVE -->
-                        <button mat-menu-item (click)="service.runInactive(keyid)">
+                        <button mat-menu-item (click)="service.action.runInactive(keyid)">
                             <mat-icon class="material-symbols-rounded tw:lg:text-lg! tw:lg:h-6! tw:lg:w-6! tw:lg:flex! tw:lg:items-center! tw:lg:justify-center!">do_not_disturb_on</mat-icon>
                             <span>{{ 'GL.ACTION.INACTIVE' | transloco }}</span>
                         </button>
@@ -83,7 +83,7 @@
                 } @else {
                     @if (service.state.action.hasActive()) {
                         <!-- record is inactive so show ACTIVE -->
-                        <button mat-menu-item (click)="service.runActive(keyid)">
+                        <button mat-menu-item (click)="service.action.runActive(keyid)">
                             <mat-icon class="material-symbols-rounded tw:lg:text-lg! tw:lg:h-6! tw:lg:w-6! tw:lg:flex! tw:lg:items-center! tw:lg:justify-center!">check_circle_unread</mat-icon>
                             <span>{{ 'GL.ACTION.ACTIVE' | transloco }}</span>
                         </button>
@@ -105,7 +105,7 @@
                         <button
                             mat-menu-item
                             class="tw:text-yellow-600!"
-                            (click)="service.runSoftDelete(keyid)"
+                            (click)="service.action.runSoftDelete(keyid)"
                         >
                             <mat-icon class="material-symbols-rounded tw:text-yellow-600! tw:lg:text-lg! tw:lg:h-6! tw:lg:w-6! tw:lg:flex! tw:lg:items-center! tw:lg:justify-center!">delete</mat-icon>
                             <span>{{ 'GL.ACTION.SOFT_DELETE' | transloco }}</span>
@@ -117,7 +117,7 @@
                     }
                     <!-- record is in the bin so show RESTORE and permanent DELETE -->
                     @if (service.state.action.hasRestore()) {
-                        <button mat-menu-item (click)="service.runRestore(keyid)">
+                        <button mat-menu-item (click)="service.action.runRestore(keyid)">
                             <mat-icon class="material-symbols-rounded tw:lg:text-lg! tw:lg:h-6! tw:lg:w-6! tw:lg:flex! tw:lg:items-center! tw:lg:justify-center!">restore_from_trash</mat-icon>
                             <span>{{ 'GL.ACTION.RESTORE' | transloco }}</span>
                         </button>
@@ -126,7 +126,7 @@
                         <button
                             mat-menu-item
                             class="tw:text-red-700!"
-                            (click)="service.runDelete(keyid)"
+                            (click)="service.action.runDelete(keyid)"
                         >
                             <mat-icon class="material-symbols-rounded tw:text-red-700! tw:lg:text-lg! tw:lg:h-6! tw:lg:w-6! tw:lg:flex! tw:lg:items-center! tw:lg:justify-center!">delete_forever</mat-icon>
                             <span>{{ 'GL.ACTION.DELETE' | transloco }}</span>

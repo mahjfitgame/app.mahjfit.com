@@ -108,7 +108,9 @@ export class CrudValidation {
         [CrudFieldUiTypeEnum.DATETIME_RANGE]: (value, fieldInfo) => {
             return this.formatListingDate(value, this.conf.formatDateTime, fieldInfo.default);
         },
-        [CrudFieldUiTypeEnum.PASSWORD]: (value) => value,
+        [CrudFieldUiTypeEnum.PASSWORD]: (value, fieldInfo) => {
+            return this.utility.isBlankValue(value) ? (fieldInfo.default ?? value) : '••••••••';
+        },
         [CrudFieldUiTypeEnum.EMAIL]: (value) => value,
         [CrudFieldUiTypeEnum.URL]: (value) => value,
         [CrudFieldUiTypeEnum.TEL]: (value) => value,
@@ -125,7 +127,7 @@ export class CrudValidation {
                 return fieldInfo.default ?? value;
             }
 
-            return `<pre>${this.utility.escapeHtml(JSON.stringify(value, null, 2))}</pre>`;
+            return JSON.stringify(value, null, 2);
         },
     };
 
@@ -177,7 +179,7 @@ export class CrudValidation {
                 return dt >= minDt ? this.validationSuccess(v) : this.validationFailure(v, this.i18n.translate('GL.VALIDATION.MIN', { min: minValue }));
             }
 
-            return this.validationFailure(v, 'GL.VALIDATION.FN');
+            return this.validationFailure(v, this.i18n.translate('GL.VALIDATION.MIN', { min: minValue }));
         },
 
         [CrudFieldValidationEnum.MAX]: (v: any, fi: CrudFormFieldInfoType) => {
@@ -199,7 +201,7 @@ export class CrudValidation {
                 return dt <= maxDt ? this.validationSuccess(v) : this.validationFailure(v, this.i18n.translate('GL.VALIDATION.MAX', { max: maxValue }));
             }
 
-            return this.validationFailure(v, 'GL.VALIDATION.FN');
+            return this.validationFailure(v, this.i18n.translate('GL.VALIDATION.MAX', { max: maxValue }));
         },
 
         [CrudFieldValidationEnum.PATTERN]: (v: any, fi: CrudFormFieldInfoType) => {
@@ -360,6 +362,14 @@ export class CrudValidation {
                 const val = ctx.value();
                 if (val === null || val === undefined || val === '') return null;
 
+                const isNumericField = fi.type === CrudFieldUiTypeEnum.NUMBER
+                    || fi.type === CrudFieldUiTypeEnum.SLIDER
+                    || fi.type === CrudFieldUiTypeEnum.RANGE;
+
+                if (isNumericField) {
+                    return Number(val) >= Number(rule.value) ? null : { kind: 'min', message: rule.message };
+                }
+
                 const dateVal = new Date(val as any).getTime();
                 const minVal = new Date(rule.value as any).getTime();
 
@@ -376,6 +386,14 @@ export class CrudValidation {
             validate((sp as any)[f], (ctx) => {
                 const val = ctx.value();
                 if (val === null || val === undefined || val === '') return null;
+
+                const isNumericField = fi.type === CrudFieldUiTypeEnum.NUMBER
+                    || fi.type === CrudFieldUiTypeEnum.SLIDER
+                    || fi.type === CrudFieldUiTypeEnum.RANGE;
+
+                if (isNumericField) {
+                    return Number(val) <= Number(rule.value) ? null : { kind: 'max', message: rule.message };
+                }
 
                 const dateVal = new Date(val as any).getTime();
                 const maxVal = new Date(rule.value as any).getTime();
@@ -659,7 +677,7 @@ export class CrudValidation {
     /**
      * Normalize a form value according to its CRUD field type.
      */
-    private normalizeCrudFormFieldValue(
+    public normalizeCrudFormFieldValue(
         v: unknown,
         fi: CrudFormFieldInfoType,
         r: Record<string, any> = {},

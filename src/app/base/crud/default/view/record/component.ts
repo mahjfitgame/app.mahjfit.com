@@ -5,7 +5,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { TranslocoModule } from '@jsverse/transloco';
 import { CrudFieldInfoType } from '@base/crud/type';
 import { CrudFieldUiTypeEnum } from '@base/crud/enum';
-import { CrudService } from '@base/crud/service';
+import { CrudService } from 'src/app/base/crud/service/entry';
 
 @Component({
   selector: 'app-crud-default-view-record',

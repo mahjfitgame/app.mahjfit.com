@@ -5,7 +5,7 @@ import { FieldTree, form, validate } from "@angular/forms/signals";
 import { SelectionModel } from "@angular/cdk/collections";
 import { MatTableDataSource } from "@angular/material/table";
 import { CrudFieldOptionType, CrudFormFieldInfoType, CrudListingFormattedFieldObjType, CrudListingStateType, CrudListingViewOptionResultType, CrudModuleContextType, CrudStateFormFieldObjType, CrudStateListingDataType, CrudStateListingFieldObjType, CrudStateListingSearchFieldObjType, CrudStateListOperationFieldObjType, CrudStateViewOptionFieldObjType, CrudViewOptionInputType } from "@base/crud/type";
-import { CrudFieldNormalizeModeEnum, CrudFieldUiTypeEnum, CrudListingAdditionalColumnsEnum, CrudListingItemPerPageOptionEnum, CrudListOperationFieldsEnum, CrudViewOptionFieldsEnum } from "@base/crud/enum";
+import { CrudFieldNormalizeModeEnum, CrudFieldUiTypeEnum, CrudListingAdditionalColumnsEnum, CrudListingItemPerPageOptionEnum, CrudListingSearchFormGroupKeyEnum, CrudListOperationFieldsEnum, CrudViewOptionFieldsEnum } from "@base/crud/enum";
 import { CRUD_RECORD_SORT_DIRECTION_OPTION } from "@base/crud/const";
 import { RecordSortDirectionEnum, RecordSortNullPositionEnum } from "@bfw/api-sdk/graphql/libs/crud.enum";
 import { CrudValidation } from "../validation";
@@ -483,6 +483,12 @@ export class CrudListingState implements CrudListingStateType {
     // Using a computed or linkedSignal if the fields ever change dynamically
     public formattedListingFields = linkedSignal(() => this.formatListingFieldObj(this.listingFieldObj() ?? {}));
     public pageSkipIndex = computed(() => this.getStatePageSkipIndex());
+    public readonly rowSelectionSummary = computed(() => {
+        const rows = this.listingDataSource().data;
+        const selection = this.getListingSelectedRowsValue();
+        const selectedCount = rows.filter((row) => selection.isSelected(row)).length;
+        return { numRows: rows.length, selectedCount };
+    });
 
     // method ▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬
     public setListingFieldObj(finfo: CrudStateListingFieldObjType): void {
@@ -1083,16 +1089,24 @@ export class CrudListingState implements CrudListingStateType {
     // need a logic to get from child or auto generate from mutationFieldObj()
     // take reference from: src/app/module/shared/preboarding/signup/state.ts
     
+    private readonly _listingSearchFormLayoutOrder = signal<CrudListingSearchFormGroupKeyEnum[]>([
+        CrudListingSearchFormGroupKeyEnum.VIEW_OPTION, 
+        CrudListingSearchFormGroupKeyEnum.SEARCH_FILTER
+    ]);
+    public readonly listingSearchFormLayoutOrder = this._listingSearchFormLayoutOrder.asReadonly();
+    
     /**
      * The complete search form: viewOptionFieldObj() + searchFilterFieldObj()
      * merged into one field obj. Default order is view option first, a child
      * flips it with setSearchFormFieldObj() when it wants search filter first.
      */
-    private readonly _listingSearchFormLayout = signal<Signal<CrudStateFormFieldObjType[]> | null>(null);
-    public readonly listingSearchFormLayout = computed<CrudStateFormFieldObjType[]>(() =>
-        this._listingSearchFormLayout()?.()
-        ?? [this.viewOptionFieldObj(), this.searchFilter.searchFilterFieldObj()]
-    );
+    public readonly listingSearchFormLayout = computed<CrudStateFormFieldObjType[]>(() => {
+        const groups: Record<CrudListingSearchFormGroupKeyEnum, CrudStateFormFieldObjType> = {
+            view_option: this.viewOptionFieldObj(),
+            search_filter: this.searchFilter.searchFilterFieldObj(),
+        };
+        return this.listingSearchFormLayoutOrder().map((key) => groups[key]);
+    });
     
     // this signal required to build using listingSearchFormLayout, but have no strong idea how to do it, so adding it here randomly
     public readonly _listingSearchFieldObj = signal<CrudStateListingSearchFieldObjType>({} as any);
@@ -1110,8 +1124,8 @@ export class CrudListingState implements CrudListingStateType {
     public listingSearchForm!: FieldTree<Record<string, any>>;
 
     // form method ▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬
-    public setListingSearchFormLayout(layout: Signal<CrudStateFormFieldObjType[]>): void {
-        this._listingSearchFormLayout.set(layout);
+    public setListingSearchFormLayoutOrder(order: CrudListingSearchFormGroupKeyEnum[]): void {
+        this._listingSearchFormLayoutOrder.set(order);
     }
     public setListingSearchFormError(error: Record<string, any>): void {
         this._listingSearchFormError.set(error);

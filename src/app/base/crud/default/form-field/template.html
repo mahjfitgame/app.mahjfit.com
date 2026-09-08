@@ -510,8 +510,8 @@
 >
   @let datetime = finfo.datetime ?? {};
   @let isRange = finfo.type === service.CrudFieldUiTypeEnum.DATETIME_RANGE;
-  @let fromKey = isRange ? finfo.range_field.from : fkey;
-  @let toKey = isRange ? finfo.range_field.to : '';
+  @let fromKey = isRange ? finfo.range_field?.from : fkey;
+  @let toKey = isRange ? finfo.range_field?.to : '';
   @let fromInfo = isRange ? $any(ffObj)[fromKey] : finfo;
   @let toInfo = isRange ? $any(ffObj)[toKey] : null;
   @let dependency = fromInfo.value_dependency?.(ffObj);

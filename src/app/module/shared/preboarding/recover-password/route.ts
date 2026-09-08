@@ -82,13 +82,13 @@ export class RecoverPasswordRoute extends FoundationModuleRoute {
      * is type checked — a required argument fails to compile there
      */
     public static override absolutePathArr(token = ''): string[] {
-        return FoundationModulePath.arrOf(this.registryKey, {
-            [`:${SLUG_FOUNDATION_PARAM_PUBLICID}`]: token,
+        return this.absolutePathArrWithParams({ 
+            [`:${SLUG_FOUNDATION_PARAM_PUBLICID}`]: token 
         });
     }
     public static override absolutePath(token = ''): string {
-        return FoundationModulePath.of(this.registryKey, {
-            [`:${SLUG_FOUNDATION_PARAM_PUBLICID}`]: token,
+        return this.absolutePathWithParams({ 
+            [`:${SLUG_FOUNDATION_PARAM_PUBLICID}`]: token 
         });
     }
 

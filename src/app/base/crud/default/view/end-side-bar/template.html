@@ -5,7 +5,7 @@
     [privateAreaLayoutIndex]="1"
     [privateAreaLayoutLabel]="service.CrudEndSideBarTabEnum.VIEW"
 >
-    <span>{{ service.getViewTitle() | transloco }}</span>
+    <span>{{ service.view.getViewTitle() | transloco }}</span>
 </ng-template>
 
 <ng-template
@@ -16,7 +16,7 @@
 >
     <div class="bfw-safe-area-pe">
         <div class="tw:flex tw:min-w-0 tw:flex-col tw:gap-4 tw:p-3">
-            <ng-container *ngComponentOutlet="service.getViewRecordComponent(); injector: service.getComponentInjector()"></ng-container>
+            <ng-container *ngComponentOutlet="service.view.getViewRecordComponent(); injector: service.getComponentInjector()"></ng-container>
         </div>
     </div>
     @if (service.state.action.hasPrint()) {
@@ -25,7 +25,7 @@
                 <button
                     mat-icon-button
                     type="button"
-                    (click)="service.printRecord()"
+                    (click)="service.view.printRecord()"
                     [attr.aria-label]="'GL.ACTION.PRINT' | transloco"
                 >
                     <mat-icon class="material-symbols-rounded">print</mat-icon>

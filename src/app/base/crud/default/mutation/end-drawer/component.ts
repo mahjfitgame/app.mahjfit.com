@@ -1,7 +1,7 @@
 // file: src/app/base/crud/default/mutation/end-drawer/component.ts
 import { Component, inject } from '@angular/core';
 import { NgClass, NgComponentOutlet } from '@angular/common';
-import { CrudService } from '@base/crud/service';
+import { CrudService } from 'src/app/base/crud/service/entry';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatSidenavModule } from '@angular/material/sidenav';

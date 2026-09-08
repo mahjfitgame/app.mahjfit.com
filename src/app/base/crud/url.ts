@@ -5,7 +5,7 @@ import { UrlService } from "@libs/url/service";
 import { CrudFieldNormalizeModeEnum, CrudFieldUiTypeEnum, CrudUrlFieldFlagValueEnum } from "@base/crud/enum";
 import { LogService } from "@libs/log/service";
 import { FoundationActionEnum } from "@libs/foundation/action/enum";
-import { CrudState } from "@base/crud/state/init";
+import { CrudState } from "src/app/base/crud/state/entry";
 import { CrudStateFormFieldUpdaterType, CrudStateFormFieldObjType, CrudActionRecordPrimaryKeyValueType, CrudActionRecordSecondaryKeyValueType, CrudFormFieldInfoType } from "@base/crud/type";
 import { CrudUtility } from "@base/crud/utility";
 import { CrudValidation } from "@base/crud/validation";
@@ -53,8 +53,8 @@ export class CrudUrl {
              * Explicit reactive dependencies for CRUD → URL synchronization.
              */
             void this.state.searchFilter.searchFilterFieldObj();
-            void this.state.listing.viewOptionFieldObj();
             void this.state.listing.listOperationFieldObj();
+            void this.state.listing.viewOptionFieldObj();
 
             /**
              * Avoid echo while URL -> CRUD hydration is running.

@@ -1,5 +1,5 @@
 // file: src/app/area/auth/nav/component.ts
-import { ChangeDetectionStrategy, Component, inject, input, output } from '@angular/core';
+import { Component, inject, input, output } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { TranslocoModule } from '@jsverse/transloco';
 import { AuthNavService } from '@area/auth/nav/service';
@@ -26,7 +26,6 @@ import { FoundationNavPositionEnum } from '@libs/foundation/nav/enum';
     standalone: true,
     templateUrl: './template.html',
     styleUrl: './style.scss',
-    changeDetection: ChangeDetectionStrategy.OnPush,
     imports: [
         RouterLink,
         TranslocoModule,

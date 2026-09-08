@@ -4,7 +4,7 @@
 >
     <div class="tw:flex tw:min-w-0 tw:items-center tw:gap-2">
         <h1 class="tw:truncate tw:text-base tw:font-semibold">
-            {{ service.getViewTitle() | transloco }}
+            {{ service.view.getViewTitle() | transloco }}
         </h1>
 
         <mat-divider [vertical]="true" class="tw:mx-1 tw:h-6!"></mat-divider>
@@ -15,13 +15,13 @@
                 mat-icon-button
                 type="button"
                 class="tw:flex! tw:items-center! tw:justify-center!"
-                (click)="service.printRecord()"
+                (click)="service.view.printRecord()"
                 [attr.aria-label]="'GL.ACTION.PRINT' | transloco"
             >
                 <mat-icon class="material-symbols-rounded">print</mat-icon>
             </button>
         }
-        <button mat-icon-button type="button" class="tw:flex! tw:items-center! tw:justify-center!" (click)="service.closeViewAction()" [attr.aria-label]="'GL.COMMON.BACK' | transloco">
+        <button mat-icon-button type="button" class="tw:flex! tw:items-center! tw:justify-center!" (click)="service.view.closeViewAction()" [attr.aria-label]="'GL.COMMON.BACK' | transloco">
             <mat-icon class="material-symbols-rounded">close</mat-icon>
         </button>
         </div>
@@ -32,7 +32,7 @@
     <main class="tw:min-h-0 tw:flex-1 tw:p-4">
         <ng-container 
             *ngComponentOutlet="
-                service.getViewRecordComponent(); 
+                service.view.getViewRecordComponent(); 
                 injector: service.getComponentInjector()
             ">
         </ng-container>

@@ -3,12 +3,12 @@
     <header class="tw:flex tw:items-center tw:justify-between tw:gap-4 tw:px-4">
         <div>
             <h1 class="tw:text-xl tw:font-semibold">
-                {{ service.getMutationTitle() | transloco }}
+                {{ service.mutation.getMutationTitle() | transloco }}
             </h1>
 
-            @if (service.getCrudActionRecordSecondaryKeyValue()) {
+            @if (service.action.getCrudActionRecordSecondaryKeyValue()) {
                 <p class="tw:text-sm tw:opacity-70">
-                    {{ 'GL.COMMON.RECORD_KEY' | transloco }}: {{ service.getCrudActionRecordSecondaryKeyValue() }}
+                    {{ 'GL.COMMON.RECORD_KEY' | transloco }}: {{ service.action.getCrudActionRecordSecondaryKeyValue() }}
                 </p>
             }
         </div>
@@ -18,7 +18,7 @@
             type="button"
             class="tw:flex! tw:items-center! tw:justify-center!"
             [attr.aria-label]="'GL.COMMON.BACK' | transloco"
-            (click)="service.closeCrudAction()"
+            (click)="service.action.closeCrudAction()"
         >
             <mat-icon class="material-symbols-rounded">
                 close
@@ -29,7 +29,7 @@
     <main class="tw:flex-1 tw:p-4">
         <ng-container
             *ngComponentOutlet="
-                service.getMutationFormComponent();
+                service.mutation.getMutationFormComponent();
                 injector: service.getComponentInjector()
             "
         ></ng-container>

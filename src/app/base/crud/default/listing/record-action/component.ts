@@ -1,6 +1,6 @@
 // file: src/app/base/crud/default/listing/record-action/component.ts
 import { Component, inject, input } from '@angular/core';
-import { CrudService } from '@base/crud/service';
+import { CrudService } from 'src/app/base/crud/service/entry';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';

@@ -1,6 +1,7 @@
 // file: src/app/base/crud/default/form-field/component.ts
 import { Component, computed, inject, input } from '@angular/core';
-import { CrudService } from '@base/crud/service';
+import { FieldTree } from '@angular/forms/signals';
+import { CrudService } from 'src/app/base/crud/service/entry';
 import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
 import { MatInputModule } from '@angular/material/input';
@@ -81,8 +82,8 @@ export class CrudDefaultFormFieldComponent {
   // accepts object OR array of objects
   public readonly formFieldObj = input<CrudFieldObjInput>(null);
 
-  // accepts class object
-  public readonly formState = input<any>(null);
+  // accepts the signal-forms FieldTree driving this field set (mutationForm / listingSearchForm)
+  public readonly formState = input<FieldTree<Record<string, any>> | null>(null);
 
   // always gives array, so template stays simple
   public readonly formFieldObjList = computed<CrudFieldObj[]>(() => {

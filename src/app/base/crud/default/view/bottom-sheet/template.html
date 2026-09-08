@@ -2,21 +2,21 @@
     <mat-toolbar class="bfw-safe-area-px tw:flex tw:sticky tw:top-0 tw:z-20 tw:w-full tw:bg-transparent! tw:backdrop-blur-md tw:p-3!">
         <div class="tw:flex tw:w-full tw:items-center tw:justify-between tw:py-3">
             <h2 class="tw:m-0 tw:flex tw:items-center tw:gap-2 tw:text-xl! tw:font-semibold">
-                <mat-icon class="material-symbols-rounded">{{ service.getViewIcon() }}</mat-icon>
-                {{ service.getViewTitle() | transloco }}
+                <mat-icon class="material-symbols-rounded">{{ service.view.getViewIcon() }}</mat-icon>
+                {{ service.view.getViewTitle() | transloco }}
             </h2>
             <div class="tw:flex tw:items-center">
                 @if (service.state.action.hasPrint()) {
                     <button
                         mat-icon-button
                         type="button"
-                        (click)="service.printRecord()"
+                        (click)="service.view.printRecord()"
                         [attr.aria-label]="'GL.ACTION.PRINT' | transloco"
                     >
                         <mat-icon class="material-symbols-rounded">print</mat-icon>
                     </button>
                 }
-                <button mat-icon-button type="button" (click)="service.closeViewAction()" [attr.aria-label]="'GL.COMMON.CLOSE' | transloco">
+                <button mat-icon-button type="button" (click)="service.view.closeViewAction()" [attr.aria-label]="'GL.COMMON.CLOSE' | transloco">
                     <mat-icon class="material-symbols-rounded">close</mat-icon>
                 </button>
             </div>
@@ -24,7 +24,7 @@
     </mat-toolbar>
     <main class="bfw-safe-area-px bfw-safe-area-pb tw:min-h-0">
         <div class="tw:flex tw:min-w-0 tw:flex-col tw:gap-4 tw:p-3">
-            <ng-container *ngComponentOutlet="service.getViewRecordComponent(); injector: service.getComponentInjector()"></ng-container>
+            <ng-container *ngComponentOutlet="service.view.getViewRecordComponent(); injector: service.getComponentInjector()"></ng-container>
         </div>
     </main>
 </div>

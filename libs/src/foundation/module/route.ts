@@ -139,16 +139,17 @@ export abstract class FoundationModuleRoute {
      * absolutePath(): string and the registry map is where that static shape is
      * checked, so a required argument fails to compile.
      */
-    public static absolutePath(): string {
-        if (isDevMode() && !this.registryKey) {
-            console.error(`[route] ${this.name} does not declare a registryKey`);
-        }
-
-        return FoundationModulePath.of(this.registryKey);
-    }
-
     public static absolutePathArr(): string[] {
         return FoundationModulePath.arrOf(this.registryKey);
+    }
+    public static absolutePath(): string {
+        return FoundationModulePath.of(this.registryKey);
+    }
+    public static absolutePathArrWithParams(params: Record<string, string | number> = {}): string[] {
+        return FoundationModulePath.arrOf(this.registryKey, params);
+    }
+    public static absolutePathWithParams(params: Record<string, string | number> = {}): string {
+        return FoundationModulePath.of(this.registryKey, params);
     }
 
     /**

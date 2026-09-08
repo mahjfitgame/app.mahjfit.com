@@ -1,6 +1,6 @@
 // file: src/app/base/crud/child/type/service.ts
 import { PrivateAreaLayoutSlotEnum } from "@area/private/enum";
-import { CrudService } from "@base/crud/service";
+import { CrudService } from "src/app/base/crud/service/entry";
 import { ConfService } from "@libs/conf/service";
 import { LogService } from "@libs/log/service";
 import {
@@ -138,7 +138,7 @@ export interface CrudChildServiceType {
      * this is required to generate search form in ui and also handle its submit
      * call after initCrudStateFromUrl()
      */
-    setListingSearchFormLayout(): void;
+    listingSearchFormLayout(): void;
 
     /** On module init, load the initial listing data */
     initialListingLoad(): Promise<boolean>;

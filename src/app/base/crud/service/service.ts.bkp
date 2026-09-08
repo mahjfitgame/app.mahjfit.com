@@ -124,6 +124,8 @@ export class CrudService {
     public readonly confirmationDialog = inject(ConfirmationDialogService);
     public readonly mutationDialog = inject(MatDialog);
     public readonly mutationBottomSheet = inject(MatBottomSheet);
+    public readonly viewDialog = inject(MatDialog);
+    public readonly viewBottomSheet = inject(MatBottomSheet);
     public readonly ngxPrint = inject(NgxPrintService);
     
     private activeMutationDialogRef: MatDialogRef<CrudDefaultMutationDialogComponent> | null = null;
@@ -434,7 +436,8 @@ export class CrudService {
 
         return keys ?? null;
     }
-    public shouldShowCrudListingLayout(): boolean {
+    /** Live signal read. Should the listing DOM render right now? */
+    public shouldShowListingDom(): boolean {
         /**
          * Normal route:
          * /country
@@ -471,7 +474,7 @@ export class CrudService {
         return false;
     }
 
-    public shouldLoadListingForCurrentRoute(): boolean {
+    public shouldLoadListingOnRouteEnter(): boolean {
         const action = this.route.readCrudActionFromRoute();
 
         /**
@@ -517,7 +520,7 @@ export class CrudService {
         /**
          * Page actions own the whole screen. Overlay actions keep the already
          * mounted listing visible. Neither should trigger a background listing
-         * request while the action is active. closeMutationForm() clears the
+         * request while the action is active. closeMutationAction() clears the
          * action first, then refreshes the listing once.
          */
         return true;
@@ -530,12 +533,12 @@ export class CrudService {
         // the overlay effect in the constructor owns closing the UI now
         this.state.clearCrudActionAndRecordKey();
     }
-    public async closeCrudAction(refersh: boolean = true): Promise<void> {
+    public async closeCrudAction(refresh: boolean = true): Promise<void> {
         await this.url.navigateAwayFromCrudAction();
         this.clearCrudActionAndRecordKey();
 
         // as action if performed and listing needs to be refreshed as there might be some changes with data
-        if(refersh){
+        if(refresh){
             await this.loadListing();
         }   
     }
@@ -1112,14 +1115,12 @@ export class CrudService {
         return this.state.listing.getListingSelectedRowsValue().isSelected(row);
     }
     public isAllRowsSelected(): boolean {
-        const numRows = this.state.listing.listingDataSource().data.length;
-        const selectedRowsCount = this.state.listing.listingDataSource().data.filter((row) => this.state.listing.getListingSelectedRowsValue().isSelected(row)).length;
-        return numRows > 0 && selectedRowsCount === numRows;
+        const { numRows, selectedCount } = this.state.listing.rowSelectionSummary();
+        return numRows > 0 && selectedCount === numRows;
     }
     public isPartiallyRowsSelected(): boolean {
-        const numRows = this.state.listing.listingDataSource().data.length;
-        const selectedRowsCount = this.state.listing.listingDataSource().data.filter((row) => this.state.listing.getListingSelectedRowsValue().isSelected(row)).length;
-        return selectedRowsCount > 0 && selectedRowsCount < numRows;
+        const { numRows, selectedCount } = this.state.listing.rowSelectionSummary();
+        return selectedCount > 0 && selectedCount < numRows;
     }
     public toggleAllRows(): void {
         if (!this.state.action.hasBulkAction()) return;
@@ -1283,9 +1284,6 @@ export class CrudService {
         const loIn = input.LIST_OPERATION_INPUT ?? {};
         let skip = input.SKIP ?? 0;
 
-        // TODO we have issue here rows_per_page = 5 when new load
-        // it's not taking value from url
-        
         // normalize current page and rows per page
         loIn.current_page = Number(loIn.current_page ?? this.state.listing.getCurrentPageValue());
         loIn.rows_per_page = Number(loIn.rows_per_page ?? this.state.listing.getRowsPerPageValue());
@@ -1463,7 +1461,7 @@ export class CrudService {
 
         const fields = this.state.mutation.mutationFieldObj();
         const fieldCount = Object.keys(fields).length;
-        const columnCount = Object.values(fields).find((field) => field.colspan)?.colspan ?? 1;
+        const columnCount = Math.max(1, ...Object.values(fields).map((field) => field.colspan ?? 1));
 
         if(columnCount > 1 && this.bos.isLgAndUp()) {
             this.state.mutation.setMutationActionUiLayout(CrudActionUiLayoutEnum.DIALOG);
@@ -1732,6 +1730,11 @@ export class CrudService {
                 undefined,
                 context,
             );
+
+            if (!result.valid) {
+                this.log.error('[MUTATION SUBMIT] invalid field value coerced to default', { key, raw: input[key] });
+            }
+
             const value = result.value instanceof Date
                 ? result.value.toISOString()
                 : result.value;
@@ -1767,13 +1770,25 @@ export class CrudService {
                 continue;
             }
 
-            output[key] = this.validation.normalizeAndValidateCrudFormFieldValue(
+            const result = this.validation.normalizeAndValidateCrudFormFieldValue(
                 input[key],
                 fieldInfo,
                 input,
                 CrudFieldNormalizeModeEnum.STOC,
                 context,
-            ).value;
+            );
+
+            if (result.valid) {
+                output[key] = result.value;
+            } else {
+                output[key] = this.validation.normalizeCrudFormFieldValue(
+                    input[key],
+                    fieldInfo,
+                    input,
+                    CrudFieldNormalizeModeEnum.STOC,
+                    context,
+                );
+            }
         }
 
         return output;
@@ -1930,7 +1945,7 @@ export class CrudService {
             const size = this.state.view.viewActionUiSize();
             const fullscreen = size === UiSizeEnum.FULL;
 
-            this.activeViewDialogRef = this.mutationDialog.open(
+            this.activeViewDialogRef = this.viewDialog.open(
                 CrudDefaultViewDialogComponent,
                 {
                     panelClass: [
@@ -1959,7 +1974,7 @@ export class CrudService {
                 return;
             }
 
-            this.activeViewBottomSheetRef = this.mutationBottomSheet.open(
+            this.activeViewBottomSheetRef = this.viewBottomSheet.open(
                 CrudDefaultViewBottomSheetComponent,
                 {
                     injector: this.getComponentInjector(),
@@ -2036,7 +2051,7 @@ export class CrudService {
         await this.closeCrudAction(listingWasHidden);
     }
     public addViewEndDrawerOnCloseCallback(): void {
-        this.state.view.addViewEndDrawerOnCloseCallback('on_view_close', () => {
+        this.state.view.addViewEndDrawerOnCloseCallBack('on_view_close', () => {
             if (this.isViewActionActive()) {
                 void this.closeViewAction();
             }

@@ -1,6 +1,6 @@
 // file: src/app/base/crud/default/listing/component.ts
 import { Component, computed, inject } from '@angular/core';
-import { CrudService } from '@base/crud/service';
+import { CrudService } from 'src/app/base/crud/service/entry';
 import { MatCardModule } from '@angular/material/card';
 import { KeyValuePipe, NgClass, NgTemplateOutlet } from '@angular/common';
 import { CdkDrag, CdkDropList } from '@angular/cdk/drag-drop';

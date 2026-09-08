@@ -10,7 +10,7 @@
             cdkDropList
             cdkDropListOrientation="horizontal"
             [cdkDropListDisabled]="!service.state.action.hasColumnPosition()"
-            (cdkDropListDropped)="service.dragAndDropColumn($event)"
+            (cdkDropListDropped)="service.listing.dragAndDropColumn($event)"
             [dataSource]="service.state.listing.listingDataSource()"
         >
         @let base = 'tw:border-0! tw:bg-slate-100! tw:dark:bg-slate-100/10! tw:transition-all'; 
@@ -25,9 +25,9 @@
                 <div class="tw:flex tw:items-center tw:gap-2 tw:py-2">
                     @let selectAllLabel = 'GL.COMMON.SELECT_ALL' | transloco;
                     <mat-checkbox
-                        (change)="service.toggleAllRows()"
-                        [checked]="service.isAllRowsSelected()"
-                        [indeterminate]="service.isPartiallyRowsSelected()"
+                        (change)="service.listing.toggleAllRows()"
+                        [checked]="service.listing.isAllRowsSelected()"
+                        [indeterminate]="service.listing.isPartiallyRowsSelected()"
                         [aria-label]="selectAllLabel"
                         [matTooltip]="selectAllLabel"
                         matTooltipPosition="below"
@@ -37,8 +37,8 @@
             <td mat-cell *matCellDef="let row">
                 <mat-checkbox
                     (click)="$event.stopPropagation()"
-                    (change)="service.toggleRowSelection(row)"
-                    [checked]="service.isRecordSelected(row)"
+                    (change)="service.listing.toggleRowSelection(row)"
+                    [checked]="service.listing.isRecordSelected(row)"
                     [aria-label]="'GL.COMMON.SELECT_RECORD' | transloco"
                 ></mat-checkbox>
             </td>

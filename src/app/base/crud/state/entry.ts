@@ -1,5 +1,4 @@
-// file: src/app/base/crud/state/init.ts
-
+// file: src/app/base/crud/state/entry.ts
 import { Service } from "@angular/core";
 import { CrudListingState } from "./listing";
 import { CrudMutationState } from "./mutation";

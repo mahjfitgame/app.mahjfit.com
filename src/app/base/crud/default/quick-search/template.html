@@ -1,4 +1,4 @@
-<!-- file: src/app/base/crud/default/module-action/template.html -->
+<!-- file: src/app/base/crud/default/quick-search/template.html -->
  <ng-template #BfwCrudModuleQuickSearch>
     <mat-form-field
         appearance="outline"
@@ -22,7 +22,7 @@
             #BfwCrudQuickSearchInput
             type="text"
             [placeholder]="quickSearchField.placeholder | transloco"
-            (keyup)="service.setQuickSearchKeyword($event)"
+            (keyup)="service.listing.setQuickSearchKeyword($event)"
             [value]="service.state.listing.getQuickSearchValue() ?? ''"
         />
         <button
@@ -30,7 +30,7 @@
             matSuffix
             type="button"
             [aria-label]="'CRUD.LIST_OPERATION.QUICK_SEARCH.CLEAR_SEARCH' | transloco"
-            (click)="service.clearQuickSearchKeyword(BfwCrudQuickSearchInput)"
+            (click)="service.listing.clearQuickSearchKeyword(BfwCrudQuickSearchInput)"
             [class.tw:invisible]="!service.state.listing.getQuickSearchValue()"
         >
             <mat-icon class="material-symbols-rounded">{{ quickSearchField.mat_icon_append }}</mat-icon>

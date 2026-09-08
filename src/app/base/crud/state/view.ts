@@ -83,7 +83,8 @@ export class CrudViewState implements CrudViewStateType {
     private readonly _viewEndDrawerIsOpen = signal(false);
     public readonly viewEndDrawerIsOpen = this._viewEndDrawerIsOpen.asReadonly();
 
-    private readonly _viewEndDrawerOnCloseCallback = signal<CrudEndDrawerOnCloseType | null>(null);
+    private readonly _viewEndDrawerOnCloseCallBack = signal<CrudEndDrawerOnCloseType | null>(null);
+    public readonly viewEndDrawerOnCloseCallBack = this._viewEndDrawerOnCloseCallBack.asReadonly();
 
     // method ▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬
     public setViewActionUiLayout(layout: CrudActionUiLayoutEnum): void {
@@ -107,14 +108,14 @@ export class CrudViewState implements CrudViewStateType {
     public setViewEndDrawerIsOpen(open: boolean): void {
         this._viewEndDrawerIsOpen.set(open);
     }
-    public addViewEndDrawerOnCloseCallback(key: string, callback: () => void): void {
-        this._viewEndDrawerOnCloseCallback.update((current) => ({
+    public addViewEndDrawerOnCloseCallBack(key: string, callback: () => void): void {
+        this._viewEndDrawerOnCloseCallBack.update((current) => ({
             ...(current ?? {}),
             [key]: callback,
         }));
     }
     public runViewEndDrawerOnCloseCallback(): void {
-        for (const callback of Object.values(this._viewEndDrawerOnCloseCallback() ?? {})) {
+        for (const callback of Object.values(this.viewEndDrawerOnCloseCallBack() ?? {})) {
             callback?.();
         }
     }

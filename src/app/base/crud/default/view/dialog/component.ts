@@ -1,7 +1,7 @@
 // file: src/app/base/crud/default/view/dialog/component.ts
 import { Component, inject } from '@angular/core';
 import { NgComponentOutlet } from '@angular/common';
-import { CrudService } from '@base/crud/service';
+import { CrudService } from 'src/app/base/crud/service/entry';
 import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDialogRef } from '@angular/material/dialog';
@@ -19,8 +19,4 @@ import { TranslocoModule } from '@jsverse/transloco';
 export class CrudDefaultViewDialogComponent {
   public readonly service = inject(CrudService);
   private readonly dialogRef = inject(MatDialogRef<CrudDefaultViewDialogComponent>);
-
-  public closeDialog(): void {
-    this.dialogRef.close();
-  }
 }

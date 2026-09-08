@@ -1,6 +1,6 @@
 <!-- file: src/app/base/crud/template.html -->
 <!-- module listing component, initial render -->
-@if (service.state.action.hasListing() && service.shouldShowCrudListingLayout()) {
+@if (service.state.action.hasListing() && service.action.shouldShowListingDom()) {
     <div class="tw:flex tw:flex-col tw:gap-4 tw:mx-2!">
         <app-crud-default-listing></app-crud-default-listing>
         <app-crud-default-pagination></app-crud-default-pagination>

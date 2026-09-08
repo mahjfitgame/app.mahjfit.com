@@ -1,7 +1,7 @@
 import { Pipe, PipeTransform, inject } from '@angular/core';
 import { CrudFieldInfoType } from '@base/crud/type';
 import { CrudValidation } from '@base/crud/validation';
-import { CrudState } from '@base/crud/state/init';
+import { CrudState } from 'src/app/base/crud/state/entry';
 
 @Pipe({
     name: 'fieldValueFormat',

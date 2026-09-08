@@ -1,6 +1,6 @@
 // file: src/app/area/private/nav/component.ts
 import { NgClass, NgTemplateOutlet } from '@angular/common';
-import { ChangeDetectionStrategy, Component, inject, input, output } from '@angular/core';
+import { Component, inject, input, output } from '@angular/core';
 import { MatDividerModule } from '@angular/material/divider';
 import { MatExpansionModule } from '@angular/material/expansion';
 import { MatIconModule } from '@angular/material/icon';
@@ -30,7 +30,6 @@ import { FoundationNavPositionEnum } from '@libs/foundation/nav/enum';
     standalone: true,
     templateUrl: './template.html',
     styleUrl: './style.scss',
-    changeDetection: ChangeDetectionStrategy.OnPush,
     imports: [
         NgClass,
         NgTemplateOutlet,

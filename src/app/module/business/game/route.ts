@@ -115,16 +115,14 @@ export class GameInstanceRoute extends FoundationModuleRoute {
 
 
     // PATHS ▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬
-    public static override absolutePathArr(gkeyid: string = ''): string[] {
-        return FoundationModulePath.arrOf(this.registryKey, {
-            [`:${SLUG_GAME_PARAM_GKEYID}`]: gkeyid,
+    public static override absolutePathArr(gkeyid = ''): string[] {
+        return this.absolutePathArrWithParams({ 
+            [`:${SLUG_GAME_PARAM_GKEYID}`]: gkeyid 
         });
     }
-
-    // PATHS ▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬
-    public static override absolutePath(gkeyid: string = ''): string {
-        return FoundationModulePath.of(this.registryKey, {
-            [`:${SLUG_GAME_PARAM_GKEYID}`]: gkeyid,
+    public static override absolutePath(gkeyid = ''): string {
+        return this.absolutePathWithParams({ 
+            [`:${SLUG_GAME_PARAM_GKEYID}`]: gkeyid 
         });
     }
 }

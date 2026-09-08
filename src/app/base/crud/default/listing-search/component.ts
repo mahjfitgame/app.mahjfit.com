@@ -1,6 +1,6 @@
 // file: src/app/base/crud/default/listing-search/component.ts
 import { Component, inject } from '@angular/core';
-import { CrudService } from '@base/crud/service';
+import { CrudService } from 'src/app/base/crud/service/entry';
 import { MatIconModule } from '@angular/material/icon';
 import { CdkPortal } from '@angular/cdk/portal';
 import { PrivateAreaLayoutDirective } from '@area/private/directive';

@@ -1,5 +1,4 @@
 // file: src/app/base/crud/type.ts
-
 import { FormFieldDatetimeModeEnum } from '@base/form-fields/datetime/enum';
 
 export enum CrudListOperationFieldsEnum {
@@ -135,3 +134,8 @@ export enum CrudEndSideBarTabEnum {
     VIEW = 'crud-view-tab',
     FILTER = 'crud-filter-tab',
 }
+
+export enum CrudListingSearchFormGroupKeyEnum {
+    VIEW_OPTION = 'view_option',
+    SEARCH_FILTER = 'search_filter',
+};

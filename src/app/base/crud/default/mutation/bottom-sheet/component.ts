@@ -1,7 +1,7 @@
 // file: src/app/base/crud/default/mutation/bottom-sheet/component.ts
 import { Component, inject } from '@angular/core';
 import { NgComponentOutlet } from '@angular/common';
-import { CrudService } from '@base/crud/service';
+import { CrudService } from 'src/app/base/crud/service/entry';
 import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
 import { MatBottomSheetRef } from '@angular/material/bottom-sheet';
@@ -21,8 +21,4 @@ export class CrudDefaultMutationBottomSheetComponent {
   private readonly bottomSheetRef = inject(
     MatBottomSheetRef<CrudDefaultMutationBottomSheetComponent>,
   );
-
-  public closeBottomSheet(): void {
-    this.bottomSheetRef.dismiss();
-  }
 }

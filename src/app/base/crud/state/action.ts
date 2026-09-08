@@ -2,6 +2,7 @@
 
 import { computed, signal } from "@angular/core";
 import { FoundationActionEnum } from "@libs/foundation/action/enum";
+import { FOUNDATION_MODULE_ACTION, FOUNDATION_RECORD_ACTION } from "@libs/foundation/action/const";
 import { CrudRootState } from "./root";
 
 /** Action availability for one feature-scoped CRUD module. */
@@ -99,23 +100,11 @@ export class CrudActionState {
 
     public readonly hasRecordAction = computed(() =>
         Boolean(this.root.secondaryKey())
-        && (
-            this.hasView()
-            || this.hasPrint()
-            || this.hasUpdate()
-            || this.hasDuplicate()
-            || this.hasActive()
-            || this.hasInactive()
-            || this.hasSoftDelete()
-            || this.hasRestore()
-            || this.hasDelete()
-        )
+        && FOUNDATION_RECORD_ACTION.some((action) => this.hasPermittedAction(action))
     );
 
     public readonly hasModuleAction = computed(() =>
-        this.hasCreate()
-        || this.hasImport()
-        || this.hasExport()
+        FOUNDATION_MODULE_ACTION.some((action) => this.hasPermittedAction(action))
     );
 
     private readonly _hasViewOption = signal(false);

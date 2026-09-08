@@ -6,7 +6,7 @@
     matTooltip=""
     matTooltipPosition="above"
     class="tw:rounded-full! tw:text-primary!"
-    (click)="service.openListingSearchForm()"
+    (click)="service.listing.openListingSearchForm()"
 >
     <mat-icon class="material-symbols-rounded">filter_alt</mat-icon>
 </button>
@@ -18,7 +18,7 @@
 <ng-template cdkPortal [privateAreaLayout]="service.PrivateAreaLayoutSlotEnum.SLOT_END_SIDE_BAR_TAB_BODY" [privateAreaLayoutIndex]="0" [privateAreaLayoutLabel]="service.CrudEndSideBarTabEnum.FILTER">
     <div class="bfw-safe-area-pe">
         <div class="tw:flex tw:flex-col tw:min-w-0 tw:gap-4 tw:p-3">
-            <form id="crudListingSearchForm" (submit)="$event.preventDefault(); service.submitListingSearchForm()" novalidate>
+            <form id="crudListingSearchForm" (submit)="$event.preventDefault(); service.listing.submitListingSearchForm()" novalidate>
                 <app-crud-default-form-field 
                     [formFieldObj]="service.state.listing.listingSearchFormLayout()"
                     [formState]="service.state.listing.listingSearchForm"
