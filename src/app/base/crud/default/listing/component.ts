@@ -1,5 +1,5 @@
 // file: src/app/base/crud/default/listing/component.ts
-import { Component, inject } from '@angular/core';
+import { Component, computed, inject } from '@angular/core';
 import { CrudService } from '@base/crud/service';
 import { MatCardModule } from '@angular/material/card';
 import { KeyValuePipe, NgClass, NgTemplateOutlet } from '@angular/common';
@@ -16,6 +16,7 @@ import { TermHighlightDirective } from '@libs/utility/directive/term.highlight.d
 import { TranslocoModule } from '@jsverse/transloco';
 import { CrudDefaultListingRecordActionComponent } from '@base/crud/default/listing/record-action/component';
 import { CrudDefaultListingSelectedRecordActionComponent } from '@base/crud/default/listing/selected-record-action/component';
+import { CrudDefaultListingSearchComponent } from '../listing-search/component';
 
 @Component({
   selector: 'app-crud-default-listing',

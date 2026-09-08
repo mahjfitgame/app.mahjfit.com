@@ -1,0 +1,167 @@
+<!-- file: src/app/base/form-fields/select/template.html -->
+@let tpl = template();
+
+<mat-form-field appearance="outline" subscriptSizing="dynamic"
+    class="tw:w-full
+        tw:[&_.mat-mdc-form-field-icon-prefix]:self-start!
+        tw:[&_.mat-mdc-form-field-icon-prefix]:flex
+        tw:[&_.mat-mdc-form-field-icon-prefix]:items-center
+        tw:[&_.mat-mdc-form-field-icon-prefix]:min-h-(--mat-form-field-container-height)
+        tw:[&_.mat-mdc-form-field-icon-suffix]:self-start!
+        tw:[&_.mat-mdc-form-field-icon-suffix]:flex
+        tw:[&_.mat-mdc-form-field-icon-suffix]:items-center
+        tw:[&_.mat-mdc-form-field-icon-suffix]:min-h-(--mat-form-field-container-height)">
+
+    <mat-label>{{ label() }}</mat-label>
+
+    @if (iconPrepend()) {
+        <mat-icon matPrefix class="material-symbols-rounded">{{ iconPrepend() }}</mat-icon>
+    }
+
+    <mat-select
+        [multiple]="multiselect()"
+        [ngModel]="service.state.renderValue()"
+        [ngModelOptions]="{ standalone: true }"
+        [id]="inputId() || name()"
+        [attr.name]="multiselect() ? name() + '[]' : name()"
+        [placeholder]="placeholder()"
+        [required]="required()"
+        [disabled]="disabled()"
+        [errorStateMatcher]="errorMatcher"
+        (selectionChange)="service.onSelectionChange($event.value)"
+        (opened)="service.onPanelOpened()"
+        (closed)="service.onPanelClosed()">
+
+        <mat-select-trigger>
+            @if (!multiselect()) {
+                {{ service.state.triggerLabel() | transloco }}
+            } @else if (service.state.isFull()) {
+                {{ 'GL.FIELD.COMMON.MAX_SELECTED' | transloco: { max: maxSelection() } }}
+            } @else if (chips()) {
+                <!-- the trigger clips to one line, so the set scrolls nothing and simply ends -->
+                <mat-chip-set class="tw:inline-flex tw:overflow-hidden">
+                    @for (chip of service.state.selectedChip(); track chip.key) {
+                        <mat-chip [disabled]="disabled()"
+                            (removed)="service.onChipRemove(chip.key)">
+                            {{ chip.label | transloco }}
+                            <button matChipRemove type="button"
+                                [disabled]="disabled()"
+                                [attr.aria-label]="'GL.FIELD.COMMON.DESELECT' | transloco">
+                                <mat-icon class="material-symbols-rounded">cancel</mat-icon>
+                            </button>
+                        </mat-chip>
+                    }
+                </mat-chip-set>
+            } @else {
+                {{
+                    'GL.FIELD.COMMON.SELECTED_COUNT'
+                        | transloco: { count: service.state.selectedKey().length }
+                }}
+            }
+        </mat-select-trigger>
+
+        @if (searchable()) {
+            <div class="tw:sticky tw:-top-2 tw:z-10 tw:-mt-2 tw:mb-1 tw:px-4 tw:py-2
+                    tw:bg-surface-container/85 tw:backdrop-blur-sm
+                    tw:border-b tw:border-outline/20"
+                (click)="$event.stopPropagation()">
+                <input #AppFormFieldSelectSearch
+                    type="text"
+                    autocomplete="off"
+                    spellcheck="false"
+                    class="tw:w-full tw:bg-transparent tw:outline-none tw:text-sm
+                        tw:text-on-surface tw:placeholder:opacity-60"
+                    [attr.aria-label]="'GL.ACTION.SEARCH' | transloco"
+                    [placeholder]="'GL.ACTION.SEARCH' | transloco"
+                    (input)="service.onSearch($any($event.target).value)"
+                    (keydown)="service.onSearchKeydown($event)" />
+            </div>
+        }
+
+        @if (service.state.showAllRow()) {
+            <mat-option [value]="service.state.allValue">
+                {{
+                    (service.state.isAllSelected()
+                        ? 'GL.FIELD.COMMON.DESELECT'
+                        : 'GL.FIELD.COMMON.ALL') | transloco
+                }}
+                ({{ service.state.selectedKey().length }}/{{ service.state.allKey().length }})
+            </mat-option>
+            <mat-divider></mat-divider>
+        }
+
+        @if (service.state.defaultOption(); as opt) {
+            <mat-option [value]="opt.key">{{ opt.value | transloco }}</mat-option>
+            <mat-divider></mat-divider>
+        }
+
+        @if (service.state.isGrouped()) {
+            @for (grp of service.state.groupEntry(); track grp.key) {
+                <mat-optgroup [label]="tpl?.group ? '' : (grp.item.label | transloco)">
+                    @if (tpl?.group; as drawGroup) {
+                        <span [innerHTML]="drawGroup(grp.item, grp.key)"></span>
+                    }
+                    <ng-container>
+                        @for (opt of grp.option; track opt.key) {
+                            <mat-option [value]="opt.key"
+                                [disabled]="service.state.disabledKey().has(opt.key)">
+                                @if (tpl?.option; as drawOption) {
+                                    <!-- projected INTO mat-option: [innerHTML] on the option destroys its own DOM -->
+                                    <span [innerHTML]="drawOption(opt.item, opt.key)"></span>
+                                } @else {
+                                    {{ opt.label | transloco }}
+                                }
+                            </mat-option>
+                        }
+                    </ng-container>
+                </mat-optgroup>
+            }
+        } @else {
+            @for (opt of service.state.entry(); track opt.key) {
+                <mat-option [value]="opt.key"
+                    [disabled]="service.state.disabledKey().has(opt.key)">
+                    @if (tpl?.option; as drawOption) {
+                        <span [innerHTML]="drawOption(opt.item, opt.key)"></span>
+                    } @else {
+                        {{ opt.label | transloco }}
+                    }
+                </mat-option>
+            }
+        }
+
+        @if (service.state.showNoMatch()) {
+            <mat-option disabled>{{ 'GL.COMMON.NO_MATCH' | transloco }}</mat-option>
+        }
+    </mat-select>
+
+    @let showClear = clearable() && service.state.hasValue();
+
+    @if (showClear || iconAppend()) {
+        <div matSuffix class="tw:flex tw:items-center tw:gap-1">
+            @if (showClear) {
+                <button mat-icon-button type="button"
+                    [disabled]="disabled()"
+                    [attr.aria-label]="'GL.FIELD.COMMON.CLEAR' | transloco"
+                    (click)="service.onClear($event)">
+                    <mat-icon class="material-symbols-rounded">close</mat-icon>
+                </button>
+            }
+
+            @if (iconAppend()) {
+                <mat-icon class="material-symbols-rounded tw:mx-3">{{ iconAppend() }}</mat-icon>
+            }
+        </div>
+    }
+
+    @if (error()) {
+        <mat-error class="tw:flex! tw:items-center tw:gap-1">
+            <mat-icon class="material-symbols-rounded tw:text-xs! tw:h-4! tw:w-4! tw:shrink-0">error</mat-icon>
+            <span>{{ error() }}</span>
+        </mat-error>
+    } @else if (hint()) {
+        <mat-hint class="tw:flex tw:items-start tw:gap-1">
+            <mat-icon class="material-symbols-rounded tw:text-xs! tw:h-4! tw:w-4! tw:shrink-0">info</mat-icon>
+            <span>{{ hint() }}</span>
+        </mat-hint>
+    }
+</mat-form-field>

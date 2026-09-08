@@ -1,4 +1,5 @@
 <!-- file: src/app/base/crud/default/module-action/template.html -->
+@if (service.state.action.hasModuleAction()) {
 <!-- Module action menu template -->
 <ng-template #BfwCrudModuleActionMenu>
     <div>
@@ -29,25 +30,32 @@
             #BfwCrudModuleAction="matMenu"
             xPosition="before"
             yPosition="above"
+            class="tw:lg:[&_.mat-mdc-menu-item]:min-h-8! tw:lg:[&_.mat-mdc-menu-item]:px-3!"
         >
-            <a
-                mat-menu-item
-                [routerLink]="service.url.getCreateActionUrl()"
-                [state]="service.url.getCrudActionNavigationState()"
-            >
-                <mat-icon class="material-symbols-rounded">add</mat-icon>
-                <span>{{ 'GL.ACTION.CREATE' | transloco }}</span>
-            </a>
+            @if (service.state.action.hasCreate()) {
+                <a
+                    mat-menu-item
+                    [routerLink]="service.url.getCreateActionUrl()"
+                    [state]="service.url.getCrudActionNavigationState()"
+                >
+                    <mat-icon class="material-symbols-rounded tw:lg:text-lg! tw:lg:h-6! tw:lg:w-6! tw:lg:flex! tw:lg:items-center! tw:lg:justify-center!">add</mat-icon>
+                    <span>{{ 'GL.ACTION.CREATE' | transloco }}</span>
+                </a>
+            }
 
-            <button mat-menu-item>
-                <mat-icon class="material-symbols-rounded">cloud_upload</mat-icon>
-                <span>{{ 'GL.ACTION.IMPORT' | transloco }}</span>
-            </button>
+            @if (service.state.action.hasImport()) {
+                <button mat-menu-item>
+                    <mat-icon class="material-symbols-rounded tw:lg:text-lg! tw:lg:h-6! tw:lg:w-6! tw:lg:flex! tw:lg:items-center! tw:lg:justify-center!">cloud_upload</mat-icon>
+                    <span>{{ 'GL.ACTION.IMPORT' | transloco }}</span>
+                </button>
+            }
 
-            <button mat-menu-item>
-                <mat-icon class="material-symbols-rounded">cloud_download</mat-icon>
-                <span>{{ 'GL.ACTION.EXPORT' | transloco }}</span>
-            </button>
+            @if (service.state.action.hasExport()) {
+                <button mat-menu-item>
+                    <mat-icon class="material-symbols-rounded tw:lg:text-lg! tw:lg:h-6! tw:lg:w-6! tw:lg:flex! tw:lg:items-center! tw:lg:justify-center!">cloud_download</mat-icon>
+                    <span>{{ 'GL.ACTION.EXPORT' | transloco }}</span>
+                </button>
+            }
         </mat-menu>
     </div>
 </ng-template>
@@ -60,4 +68,5 @@
     <div class="tw:fixed tw:right-4 tw:top-[calc(100dvh-70px)] tw:z-50">
         <ng-container *ngTemplateOutlet="BfwCrudModuleActionMenu"></ng-container>
     </div>
+}
 }

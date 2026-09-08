@@ -216,6 +216,15 @@
                                     verified_user
                                 </mat-icon>
                                 <p class="tw:text-sm">{{ 'GL.COMMON.REDIRECTING' | transloco }}</p>
+                                @defer (on timer(4s)) {
+                                    <a
+                                        matButton="text"
+                                        class="tw:mt-3 te:text-sm tw:lowercase!"
+                                        [routerLink]="service.finishRedirectUrl ?? '/'"
+                                    >
+                                        {{ 'GL.COMMON.CONTINUE' | transloco }}
+                                    </a>
+                                }
                             </div>
                         </div>
                     }

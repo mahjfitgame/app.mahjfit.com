@@ -1,5 +1,7 @@
 // file: src/app/base/crud/type.ts
 
+import { FormFieldDatetimeModeEnum } from '@base/form-fields/datetime/enum';
+
 export enum CrudListOperationFieldsEnum {
     QUICK_SEARCH = 'quick_search',
     LISTING_COLUMN_POSITION = 'listing_column_position',
@@ -10,8 +12,8 @@ export enum CrudListOperationFieldsEnum {
 
 export enum CrudViewOptionFieldsEnum {
     DISPLAY_FIELDS = 'display_fields',
-    SORT_FIELDS_AND_DIRECTION = 'sort_fields_and_direction',
-    RBIN = 'rbin',
+    SORT_FIELDS = 'sort_fields',
+    SORT_DIRECTION = 'sort_direction',
 }
 
 export enum CrudFieldSlotPortalKeyPrefixEnum {
@@ -27,14 +29,19 @@ export enum CrudFieldUiTypeEnum {
     TEXTAREA = 'textarea', // text with multiple line
     SELECT = 'select', // used when field holds id of another data
     MULTISELECT = 'multiselect', // used when field holds id of another data
+    BUTTON_SELECT = 'button_select',
+    BUTTON_MULTISELECT = 'button_multiselect',
+    AUTOSUGGEST = 'autosuggest', // select whose options come from a resource() the module owns
+    MULTISELECTAUTOSUGGEST = 'multiselectautosuggest', // autosuggest holding MANY keys - value is an array
     RADIO = 'radio', // used when field holds id of another data
     CHECKBOX = 'checkbox', // used when field holds multiple value of another data
     NUMBER = 'number',
     FLAG = 'flag', // used when field holds 2 types of values: null or date time
     SWITCH = 'switch',
-    DATE = 'date',
-    TIME = 'time',
-    DATETIME = 'datetime',
+    DATE = FormFieldDatetimeModeEnum.DATE,
+    TIME = FormFieldDatetimeModeEnum.TIME,
+    DATETIME = FormFieldDatetimeModeEnum.DATETIME,
+    DATETIME_RANGE = FormFieldDatetimeModeEnum.DATETIME_RANGE, // two datetimes (from / to) in one picker, stored in two fields
     PASSWORD = 'password', // text with password
     EMAIL = 'email', // text with email format
     URL = 'url', // text with http:// or https://
@@ -46,6 +53,11 @@ export enum CrudFieldUiTypeEnum {
     HTML = 'html',
     ARRAY = 'array',
     JSON = 'json',   
+}
+
+export enum CrudUrlFieldFlagValueEnum {
+    NULL = 'false',
+    NOT_NULL = 'true',
 }
 
 export enum CrudListingAdditionalColumnsEnum {
@@ -120,5 +132,6 @@ export enum CrudActionUiLayoutEnum {
 
 export enum CrudEndSideBarTabEnum {
     MUTATION = 'crud-mutation-tab',
+    VIEW = 'crud-view-tab',
     FILTER = 'crud-filter-tab',
 }

@@ -2,394 +2,669 @@
 import { inject, Service } from "@angular/core";
 import { formatDate } from '@angular/common';
 import { SchemaPathTree, email, hidden, maxLength, minLength, pattern, required, validate, max, min } from "@angular/forms/signals";
-import { CrudFieldOptionType, CrudFieldSwitchOptionType, CrudFieldValidationResultType, CrudFieldValidationType, CrudFormFieldInfoType, CrudFormFieldValueAngularValidatorLookUpType, CrudFormFieldValueNormalizerLookUpType, CrudFormFieldValueValidatorLookUpType, CrudListingFieldInfoType, CrudListingFieldValueFormatterLookUpType, CrudStateMutationFieldObjType, CrudFieldValidationInfoType } from "@base/crud/type";
+import { CrudFieldInfoType, CrudFieldOptionType, CrudFieldValidationResultType, CrudFieldValidationType, CrudFormFieldInfoType, CrudFormFieldValueAngularValidatorLookUpType, CrudFormFieldValueNormalizerLookUpType, CrudFormFieldValueValidatorLookUpType, CrudFieldValueFormatterLookUpType, CrudStateMutationFieldObjType, CrudFieldValidationInfoType, CrudModuleContextType } from "@base/crud/type";
 import { CrudFieldNormalizeModeEnum, CrudFieldUiTypeEnum, CrudFieldValidationEnum } from "@base/crud/enum";
 import { ConfService } from "@libs/conf/service";
-import { LogService } from "@libs/log/service";
 import { CrudUtility } from "@base/crud/utility";
-import { CrudState } from "@base/crud/state";
 import { I18nService } from "@base/internationalization/service";
 
 @Service({ autoProvided: false })
 export class CrudValidation {
-    public readonly state = inject(CrudState);
+    private static readonly URL_PATTERN = /^(https?|ftp):\/\/[^\s$.?#].[^\s]*$/i;
+    private static readonly TIME_PATTERN = /^([01]?[0-9]|2[0-3]):[0-5][0-9](:[0-5][0-9])?(\s?[AP]M)?$/i;
+    private static readonly DATETIME_TIME_PATTERN = /[0-9]:[0-9]/;
+    private static readonly COLOR_PATTERN = /^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/;
+    private static readonly DIGIT_PATTERN = /^\d+$/;
+    private static readonly DECIMAL_PATTERN = /^[+-]?([0-9]*[.])?[0-9]+$/;
+    private static readonly TEXT_PATTERN = /^[a-zA-Z\s\u00C0-\u017F,.'-]+$/;
+
     private readonly utility = inject(CrudUtility);
 
     private readonly conf = inject(ConfService);
-    private readonly log = inject(LogService);
     private readonly i18n = inject(I18nService);
+
+    private readonly fieldFormatter: CrudFieldValueFormatterLookUpType = {
+        [CrudFieldUiTypeEnum.NONE]: (value) => value,
+        [CrudFieldUiTypeEnum.HIDDEN]: (value) => value,
+        [CrudFieldUiTypeEnum.TEXT]: (value) => value,
+        [CrudFieldUiTypeEnum.TEXTAREA]: (value) => value,
+        [CrudFieldUiTypeEnum.SELECT]: (value, fieldInfo, row) => {
+            return this.lookupSingleListingValue(value, fieldInfo, row);
+        },
+        [CrudFieldUiTypeEnum.BUTTON_SELECT]: (value, fieldInfo, row) => {
+            return this.lookupSingleListingValue(value, fieldInfo, row);
+        },
+        [CrudFieldUiTypeEnum.AUTOSUGGEST]: (value, fieldInfo, row) => {
+            return this.lookupSingleListingValue(value, fieldInfo, row);
+        },
+        [CrudFieldUiTypeEnum.MULTISELECTAUTOSUGGEST]: (value, fieldInfo, row) => {
+            return this.lookupMultiListingValues(value, fieldInfo, row).join(', ');
+        },
+        [CrudFieldUiTypeEnum.MULTISELECT]: (value, fieldInfo, row) => {
+            return this.lookupMultiListingValues(value, fieldInfo, row).join(', ');
+        },
+        [CrudFieldUiTypeEnum.BUTTON_MULTISELECT]: (value, fieldInfo, row) => {
+            return this.lookupMultiListingValues(value, fieldInfo, row).join(', ');
+        },
+        [CrudFieldUiTypeEnum.RADIO]: (value, fieldInfo, row) => {
+            return this.lookupSingleListingValue(value, fieldInfo, row);
+        },
+        [CrudFieldUiTypeEnum.CHECKBOX]: (value, fieldInfo, row) => {
+            return this.lookupMultiListingValues(value, fieldInfo, row).join(', ');
+        },
+        [CrudFieldUiTypeEnum.NUMBER]: (value) => value,
+        [CrudFieldUiTypeEnum.FLAG]: (value, fieldInfo) => {
+            const flagLabel = fieldInfo.flag?.label;
+
+            if (!flagLabel) {
+                return value;
+            }
+
+            if (value === null || value === undefined) {
+                return flagLabel.is_null
+                    ? this.i18n.translate(flagLabel.is_null)
+                    : '';
+            }
+
+            if (value === '') {
+                return flagLabel.is_datetime
+                    ? this.i18n.translate(flagLabel.is_datetime)
+                    : '';
+            }
+
+            const dateTimeLabel = flagLabel.is_datetime
+                ? this.i18n.translate(flagLabel.is_datetime)
+                : '';
+            const formattedDate = this.formatListingDate(
+                value,
+                this.conf.formatDateTime,
+                fieldInfo.default,
+            );
+
+            return dateTimeLabel ? `${dateTimeLabel} ${formattedDate}` : formattedDate;
+        },
+        [CrudFieldUiTypeEnum.SWITCH]: (value, fieldInfo) => {
+            if (this.utility.isSwitchOptionType(fieldInfo.option)) {
+                if (value === fieldInfo.option.on) {
+                    return this.i18n.translate('GL.FIELD.SWITCH.ON');
+                }
+
+                if (value === fieldInfo.option.off) {
+                    return this.i18n.translate('GL.FIELD.SWITCH.OFF');
+                }
+            }
+
+            return value;
+        },
+        [CrudFieldUiTypeEnum.DATE]: (value, fieldInfo) => {
+            return this.formatListingDate(value, this.conf.formatDate, fieldInfo.default);
+        },
+        [CrudFieldUiTypeEnum.TIME]: (value, fieldInfo) => {
+            return this.formatListingDate(value, this.conf.formatTime, fieldInfo.default);
+        },
+        [CrudFieldUiTypeEnum.DATETIME]: (value, fieldInfo) => {
+            return this.formatListingDate(value, this.conf.formatDateTime, fieldInfo.default);
+        },
+        [CrudFieldUiTypeEnum.DATETIME_RANGE]: (value, fieldInfo) => {
+            return this.formatListingDate(value, this.conf.formatDateTime, fieldInfo.default);
+        },
+        [CrudFieldUiTypeEnum.PASSWORD]: (value) => value,
+        [CrudFieldUiTypeEnum.EMAIL]: (value) => value,
+        [CrudFieldUiTypeEnum.URL]: (value) => value,
+        [CrudFieldUiTypeEnum.TEL]: (value) => value,
+        [CrudFieldUiTypeEnum.SLIDER]: (value) => value,
+        [CrudFieldUiTypeEnum.RANGE]: (value) => value,
+        [CrudFieldUiTypeEnum.FILE]: (value) => value,
+        [CrudFieldUiTypeEnum.COLOR]: (value) => value,
+        [CrudFieldUiTypeEnum.HTML]: (value) => value,
+        [CrudFieldUiTypeEnum.ARRAY]: (value, fieldInfo, row) => {
+            return this.lookupMultiListingValues(value, fieldInfo, row).join(', ');
+        },
+        [CrudFieldUiTypeEnum.JSON]: (value, fieldInfo) => {
+            if (this.utility.isBlankValue(value)) {
+                return fieldInfo.default ?? value;
+            }
+
+            return `<pre>${this.utility.escapeHtml(JSON.stringify(value, null, 2))}</pre>`;
+        },
+    };
+
+    private readonly formFieldValidator: CrudFormFieldValueValidatorLookUpType = {
+        [CrudFieldValidationEnum.REQUIRED]: (v: any) => {
+            return this.utility.isValidationEmpty(v)
+                ? this.validationFailure(v, 'GL.VALIDATION.REQUIRED')
+                : this.validationSuccess(v);
+        },
+
+        [CrudFieldValidationEnum.MIN_LENGTH]: (v: any, fi: CrudFormFieldInfoType) => {
+            const minLength = fi.validation?.[CrudFieldValidationEnum.MIN_LENGTH]?.value as number | undefined;
+            if (minLength === undefined || minLength === null) return this.validationSuccess(v);
+            if (this.utility.isValidationEmpty(v)) return this.validationSuccess(v);
+
+            const value = this.utility.toStringValue(v);
+            return value.length >= Number(minLength)
+                ? this.validationSuccess(v)
+                : this.validationFailure(v, this.i18n.translate('GL.VALIDATION.MIN_LENGTH', { min_length: minLength }));
+        },
+
+        [CrudFieldValidationEnum.MAX_LENGTH]: (v: any, fi: CrudFormFieldInfoType) => {
+            const maxLength = fi.validation?.[CrudFieldValidationEnum.MAX_LENGTH]?.value as number | undefined;
+            if (maxLength === undefined || maxLength === null) return this.validationSuccess(v);
+            if (this.utility.isValidationEmpty(v)) return this.validationSuccess(v);
+
+            const value = this.utility.toStringValue(v);
+            return value.length <= Number(maxLength)
+                ? this.validationSuccess(v)
+                : this.validationFailure(v, this.i18n.translate('GL.VALIDATION.MAX_LENGTH', { max_length: maxLength }));
+        },
+
+        [CrudFieldValidationEnum.MIN]: (v: any, fi: CrudFormFieldInfoType) => {
+            const minValue = fi.validation?.[CrudFieldValidationEnum.MIN]?.value;
+            if (minValue === undefined || minValue === null) return this.validationSuccess(v);
+            if (this.utility.isValidationEmpty(v)) return this.validationSuccess(v);
+
+            const n = this.utility.toFiniteNumber(v);
+            const min = this.utility.toFiniteNumber(minValue);
+
+            if (n !== null && min !== null) {
+                return n >= min ? this.validationSuccess(v) : this.validationFailure(v, this.i18n.translate('GL.VALIDATION.MIN', { min: minValue }));
+            }
+
+            // fallback: date compare
+            const dt = new Date(v as any).getTime();
+            const minDt = new Date(minValue as any).getTime();
+            if (!Number.isNaN(dt) && !Number.isNaN(minDt)) {
+                return dt >= minDt ? this.validationSuccess(v) : this.validationFailure(v, this.i18n.translate('GL.VALIDATION.MIN', { min: minValue }));
+            }
+
+            return this.validationFailure(v, 'GL.VALIDATION.FN');
+        },
+
+        [CrudFieldValidationEnum.MAX]: (v: any, fi: CrudFormFieldInfoType) => {
+            const maxValue = fi.validation?.[CrudFieldValidationEnum.MAX]?.value;
+            if (maxValue === undefined || maxValue === null) return this.validationSuccess(v);
+            if (this.utility.isValidationEmpty(v)) return this.validationSuccess(v);
+
+            const n = this.utility.toFiniteNumber(v);
+            const max = this.utility.toFiniteNumber(maxValue);
+
+            if (n !== null && max !== null) {
+                return n <= max ? this.validationSuccess(v) : this.validationFailure(v, this.i18n.translate('GL.VALIDATION.MAX', { max: maxValue }));
+            }
+
+            // fallback: date compare
+            const dt = new Date(v as any).getTime();
+            const maxDt = new Date(maxValue as any).getTime();
+            if (!Number.isNaN(dt) && !Number.isNaN(maxDt)) {
+                return dt <= maxDt ? this.validationSuccess(v) : this.validationFailure(v, this.i18n.translate('GL.VALIDATION.MAX', { max: maxValue }));
+            }
+
+            return this.validationFailure(v, 'GL.VALIDATION.FN');
+        },
+
+        [CrudFieldValidationEnum.PATTERN]: (v: any, fi: CrudFormFieldInfoType) => {
+            const patternValue = fi.validation?.[CrudFieldValidationEnum.PATTERN]?.value;
+            if (!patternValue) return this.validationSuccess(v);
+            if (this.utility.isValidationEmpty(v)) return this.validationSuccess(v);
+
+            const regex = patternValue instanceof RegExp ? patternValue : new RegExp(String(patternValue));
+            regex.lastIndex = 0;
+            return regex.test(this.utility.toStringValue(v))
+                ? this.validationSuccess(v)
+                : this.validationFailure(v, 'GL.VALIDATION.PATTERN');
+        },
+
+        [CrudFieldValidationEnum.EMAIL]: (v: any) => {
+            if (this.utility.isValidationEmpty(v)) return this.validationSuccess(v);
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            return emailRegex.test(this.utility.toStringValue(v))
+                ? this.validationSuccess(v)
+                : this.validationFailure(v, 'GL.VALIDATION.EMAIL');
+        },
+
+        [CrudFieldValidationEnum.DATE]: (v: any, fi: CrudFormFieldInfoType) => {
+            if (this.utility.isValidationEmpty(v)) return this.validationSuccess(v);
+            return this.utility.toValidDate(v) !== null
+                ? this.validationSuccess(v)
+                : this.validationFailure(v, 'GL.VALIDATION.DATE');
+        },
+
+        [CrudFieldValidationEnum.TIME]: (v: any, fi: CrudFormFieldInfoType) => {
+            if (this.utility.isValidationEmpty(v)) return this.validationSuccess(v);
+            return this.isTimeValueValid(v)
+                ? this.validationSuccess(v)
+                : this.validationFailure(v, 'GL.VALIDATION.TIME');
+        },
+
+        [CrudFieldValidationEnum.DATETIME]: (v: any, fi: CrudFormFieldInfoType) => {
+            if (this.utility.isValidationEmpty(v)) return this.validationSuccess(v);
+            return this.isDatetimeValueValid(v)
+                ? this.validationSuccess(v)
+                : this.validationFailure(v, 'GL.VALIDATION.DATETIME');
+        },
+
+        [CrudFieldValidationEnum.URL]: (v: any) => {
+            if (this.utility.isValidationEmpty(v)) return this.validationSuccess(v);
+            return CrudValidation.URL_PATTERN.test(this.utility.toStringValue(v))
+                ? this.validationSuccess(v)
+                : this.validationFailure(v, 'GL.VALIDATION.URL');
+        },
+
+        [CrudFieldValidationEnum.MATCH_FIELD]: (v: any, fi: CrudFormFieldInfoType, r?: Record<string, any>) => {
+            const matchField = fi.validation?.[CrudFieldValidationEnum.MATCH_FIELD]?.value as string | undefined;
+            if (!matchField || !r) return this.validationSuccess(v);
+            return v === r[matchField]
+                ? this.validationSuccess(v)
+                : this.validationFailure(v, this.i18n.translate('GL.VALIDATION.MATCH_FIELD', { expected: matchField }));
+        },
+
+        [CrudFieldValidationEnum.COLOR]: (v: any) => {
+            if (this.utility.isValidationEmpty(v)) return this.validationSuccess(v);
+            return CrudValidation.COLOR_PATTERN.test(this.utility.toStringValue(v))
+                ? this.validationSuccess(v)
+                : this.validationFailure(v, 'GL.VALIDATION.COLOR');
+        },
+
+        [CrudFieldValidationEnum.DIGIT]: (v: any) => {
+            if (this.utility.isValidationEmpty(v)) return this.validationSuccess(v);
+            return CrudValidation.DIGIT_PATTERN.test(this.utility.toStringValue(v))
+                ? this.validationSuccess(v)
+                : this.validationFailure(v, 'GL.VALIDATION.DIGIT');
+        },
+
+        [CrudFieldValidationEnum.DECIMAL]: (v: any) => {
+            if (this.utility.isValidationEmpty(v)) return this.validationSuccess(v);
+            return this.isDecimalValueValid(v)
+                ? this.validationSuccess(v)
+                : this.validationFailure(v, 'GL.VALIDATION.DECIMAL');
+        },
+
+        [CrudFieldValidationEnum.TEXT]: (v: any) => {
+            if (this.utility.isValidationEmpty(v)) return this.validationSuccess(v);
+            return this.isTextValueValid(v)
+                ? this.validationSuccess(v)
+                : this.validationFailure(v, 'GL.VALIDATION.TEXT');
+        },
+
+        [CrudFieldValidationEnum.EXTENSION]: (v: any, fi: CrudFormFieldInfoType) => {
+            if (this.utility.isValidationEmpty(v)) return this.validationSuccess(v);
+
+            const allowed = fi.validation?.[CrudFieldValidationEnum.EXTENSION]?.value as string[] | undefined;
+            if (!Array.isArray(allowed) || allowed.length === 0) return this.validationSuccess(v);
+
+            const fileName = this.utility.toStringValue(v);
+            const dotIndex = fileName.lastIndexOf('.');
+            if (dotIndex < 0) return this.validationFailure(v, this.i18n.translate('GL.VALIDATION.EXTENSION', { allowed: allowed.join(', ') }));
+
+            const ok = this.hasAllowedExtension(fileName, allowed);
+
+            return ok ? this.validationSuccess(v) : this.validationFailure(v, this.i18n.translate('GL.VALIDATION.EXTENSION', { allowed: allowed.join(', ') }));
+        },
+
+        [CrudFieldValidationEnum.OPTION_RANGE]: (v: any, fi: CrudFormFieldInfoType) => {
+            if (this.utility.isValidationEmpty(v)) return this.validationSuccess(v);
+            if (!fi.option) return this.validationSuccess(v);
+
+            const isValid = this.isOptionValueAllowed(v, fi.option);
+
+            return isValid
+                ? this.validationSuccess(v)
+                : this.validationFailure(v, 'GL.VALIDATION.OPTION_RANGE');
+        },
+
+        [CrudFieldValidationEnum.FN]: (v: any, fi: CrudFormFieldInfoType, r?: Record<string, any>) => {
+            const fn = fi.validation?.[CrudFieldValidationEnum.FN]?.value;
+            if (typeof fn !== 'function') {
+                return this.validationSuccess(v);
+            }
+
+            const result = fn(v, fi, r);
+
+            if (typeof result === 'boolean') {
+                return result ? this.validationSuccess(v) : this.validationFailure(v, 'GL.VALIDATION.FN');
+            }
+
+            if (
+                result &&
+                typeof result === 'object' &&
+                'valid' in result &&
+                'value' in result &&
+                'errors' in result
+            ) {
+                return result as CrudFieldValidationResultType;
+            }
+
+            return this.validationSuccess(v);
+        },
+    };
+
+    private readonly signalFormFieldValidator: CrudFormFieldValueAngularValidatorLookUpType = {
+        // REQUIRED
+        [CrudFieldValidationEnum.REQUIRED]: <T>(sp: SchemaPathTree<T>, f: string, validationType: CrudFieldValidationEnum, rule: CrudFieldValidationInfoType, fi: CrudFormFieldInfoType) => {
+            required((sp as any)[f], { message: rule.message });
+        },
+
+        // MIN_LENGTH
+        [CrudFieldValidationEnum.MIN_LENGTH]: <T>(sp: SchemaPathTree<T>, f: string, validationType: CrudFieldValidationEnum, rule: CrudFieldValidationInfoType, fi: CrudFormFieldInfoType) => {
+            minLength((sp as any)[f], rule.value as number, { message: rule.message });
+        },
+
+        // MAX_LENGTH
+        [CrudFieldValidationEnum.MAX_LENGTH]: <T>(sp: SchemaPathTree<T>, f: string, validationType: CrudFieldValidationEnum, rule: CrudFieldValidationInfoType, fi: CrudFormFieldInfoType) => {
+            maxLength((sp as any)[f], rule.value as number, { message: rule.message });
+        },
+
+        // MIN
+        [CrudFieldValidationEnum.MIN]: <T>(sp: SchemaPathTree<T>, f: string, validationType: CrudFieldValidationEnum, rule: CrudFieldValidationInfoType, fi: CrudFormFieldInfoType) => {
+            validate((sp as any)[f], (ctx) => {
+                const val = ctx.value();
+                if (val === null || val === undefined || val === '') return null;
+
+                const dateVal = new Date(val as any).getTime();
+                const minVal = new Date(rule.value as any).getTime();
+
+                if (!isNaN(dateVal) && !isNaN(minVal)) {
+                    return dateVal >= minVal ? null : { kind: 'min', message: rule.message };
+                }
+
+                return Number(val) >= Number(rule.value) ? null : { kind: 'min', message: rule.message };
+            });
+        },
+
+        // MAX
+        [CrudFieldValidationEnum.MAX]: <T>(sp: SchemaPathTree<T>, f: string, validationType: CrudFieldValidationEnum, rule: CrudFieldValidationInfoType, fi: CrudFormFieldInfoType) => {
+            validate((sp as any)[f], (ctx) => {
+                const val = ctx.value();
+                if (val === null || val === undefined || val === '') return null;
+
+                const dateVal = new Date(val as any).getTime();
+                const maxVal = new Date(rule.value as any).getTime();
+
+                if (!isNaN(dateVal) && !isNaN(maxVal)) {
+                    return dateVal <= maxVal ? null : { kind: 'max', message: rule.message };
+                }
+
+                return Number(val) <= Number(rule.value) ? null : { kind: 'max', message: rule.message };
+            });
+        },
+
+        // PATTERN
+        [CrudFieldValidationEnum.PATTERN]: <T>(sp: SchemaPathTree<T>, f: string, validationType: CrudFieldValidationEnum, rule: CrudFieldValidationInfoType, fi: CrudFormFieldInfoType) => {
+            pattern((sp as any)[f], rule.value as any, { message: rule.message });
+        },
+
+        // EMAIL
+        [CrudFieldValidationEnum.EMAIL]: <T>(sp: SchemaPathTree<T>, f: string, validationType: CrudFieldValidationEnum, rule: CrudFieldValidationInfoType, fi: CrudFormFieldInfoType) => {
+            email((sp as any)[f], { message: rule.message });
+        },
+
+        // DATE
+        [CrudFieldValidationEnum.DATE]: <T>(sp: SchemaPathTree<T>, f: string, validationType: CrudFieldValidationEnum, rule: CrudFieldValidationInfoType, fi: CrudFormFieldInfoType) => {
+            validate((sp as any)[f], (ctx) => {
+                const val = ctx.value();
+                if (!val) return null;
+                return this.utility.toValidDate(val) !== null
+                    ? null
+                    : { kind: 'date', message: rule.message };
+            });
+        },
+
+        // TIME
+        [CrudFieldValidationEnum.TIME]: <T>(sp: SchemaPathTree<T>, f: string, validationType: CrudFieldValidationEnum, rule: CrudFieldValidationInfoType, fi: CrudFormFieldInfoType) => {
+            validate((sp as any)[f], (ctx) => {
+                const val = ctx.value();
+                if (!val) return null;
+                return this.isTimeValueValid(val)
+                    ? null
+                    : { kind: 'time', message: rule.message };
+            });
+        },
+
+        // DATETIME
+        [CrudFieldValidationEnum.DATETIME]: <T>(sp: SchemaPathTree<T>, f: string, validationType: CrudFieldValidationEnum, rule: CrudFieldValidationInfoType, fi: CrudFormFieldInfoType) => {
+            validate((sp as any)[f], (ctx) => {
+                const val = ctx.value();
+                if (!val) return null;
+
+                return this.isDatetimeValueValid(val)
+                    ? null
+                    : { kind: 'datetime', message: rule.message };
+            });
+        },
+
+        // URL
+        [CrudFieldValidationEnum.URL]: <T>(sp: SchemaPathTree<T>, f: string, validationType: CrudFieldValidationEnum, rule: CrudFieldValidationInfoType, fi: CrudFormFieldInfoType) => {
+            pattern((sp as any)[f], CrudValidation.URL_PATTERN, { message: rule.message });
+        },
+
+        // MATCH_FIELD
+        [CrudFieldValidationEnum.MATCH_FIELD]: <T>(sp: SchemaPathTree<T>, f: string, validationType: CrudFieldValidationEnum, rule: CrudFieldValidationInfoType, fi: CrudFormFieldInfoType) => {
+            validate((sp as any)[f], (ctx) => {
+                const currentVal = ctx.value();
+                const otherVal = ctx.valueOf((sp as any)[rule.value as string]);
+                return currentVal === otherVal ? null : { kind: 'mismatch', message: rule.message };
+            });
+        },
+
+        // COLOR
+        [CrudFieldValidationEnum.COLOR]: <T>(sp: SchemaPathTree<T>, f: string, validationType: CrudFieldValidationEnum, rule: CrudFieldValidationInfoType, fi: CrudFormFieldInfoType) => {
+            pattern((sp as any)[f], CrudValidation.COLOR_PATTERN, { message: rule.message });
+        },
+
+        // DIGIT
+        [CrudFieldValidationEnum.DIGIT]: <T>(sp: SchemaPathTree<T>, f: string, validationType: CrudFieldValidationEnum, rule: CrudFieldValidationInfoType, fi: CrudFormFieldInfoType) => {
+            pattern((sp as any)[f], CrudValidation.DIGIT_PATTERN, { message: rule.message });
+        },
+
+        // DECIMAL
+        [CrudFieldValidationEnum.DECIMAL]: <T>(sp: SchemaPathTree<T>, f: string, validationType: CrudFieldValidationEnum, rule: CrudFieldValidationInfoType, fi: CrudFormFieldInfoType) => {
+            validate((sp as any)[f], (ctx) => {
+                const val = ctx.value();
+                if (val === null || val === undefined || val === '') return null;
+
+                return this.isDecimalValueValid(val)
+                    ? null
+                    : { kind: 'decimal', message: rule.message };
+            });
+        },
+
+        // TEXT
+        [CrudFieldValidationEnum.TEXT]: <T>(sp: SchemaPathTree<T>, f: string, validationType: CrudFieldValidationEnum, rule: CrudFieldValidationInfoType, fi: CrudFormFieldInfoType) => {
+            validate((sp as any)[f], (ctx) => {
+                const val = ctx.value();
+                if (val === null || val === undefined || val === '') return null;
+
+                return this.isTextValueValid(val, true)
+                    ? null
+                    : { kind: 'text', message: rule.message };
+            });
+        },
+
+        // EXTENSION
+        [CrudFieldValidationEnum.EXTENSION]: <T>(sp: SchemaPathTree<T>, f: string, validationType: CrudFieldValidationEnum, rule: CrudFieldValidationInfoType, fi: CrudFormFieldInfoType) => {
+            validate((sp as any)[f], (ctx) => {
+                const fileName = ctx.value() as string;
+                if (!fileName || typeof fileName !== 'string') return null;
+
+                const allowedExt = rule.value as string[];
+                const isValid = this.hasAllowedExtension(fileName, allowedExt);
+
+                return isValid ? null : { kind: 'extension', message: rule.message };
+            });
+        },
+
+        // OPTION_RANGE
+        [CrudFieldValidationEnum.OPTION_RANGE]: <T>(sp: SchemaPathTree<T>, f: string, validationType: CrudFieldValidationEnum, rule: CrudFieldValidationInfoType, fi: CrudFormFieldInfoType) => {
+            validate((sp as any)[f], (ctx) => {
+                const value = ctx.value();
+                if (this.utility.isValidationEmpty(value)) return null;
+
+                /**
+                 * Resolved HERE and not hoisted out: this runs inside validate(),
+                 * so reading a signal bag registers a dependency and the rule
+                 * re-runs by itself once the options land. A value restored before
+                 * they arrived stops being reported as out of range the moment
+                 * the real list is in.
+                 */
+                const options = this.utility.getOptionValues(fi.option);
+                if (options.length === 0) return null;
+
+                // support multiselect/array values
+                const isValid = this.isOptionValueAllowed(value, fi.option);
+
+                return isValid ? null : { kind: 'option_range', message: rule.message };
+            });
+        },
+
+        // FN
+        [CrudFieldValidationEnum.FN]: <T>(sp: SchemaPathTree<T>, f: string, validationType: CrudFieldValidationEnum, rule: CrudFieldValidationInfoType, fi: CrudFormFieldInfoType) => {
+            validate((sp as any)[f], (ctx) => {
+                if (typeof rule.value === 'function') {
+                    const record: any = ctx.valueOf(sp as any);
+                    const fv = record[f];
+                    const result = rule.value(fv, fi, record);
+                    const valid = typeof result === 'boolean'
+                        ? result
+                        : result?.valid !== false;
+
+                    return valid ? null : { kind: 'custom', message: rule.message };
+                }
+                return null;
+            });
+        },
+    };
+
 
     constructor() {}
 
-    /**
-     *  
-     */
-    public isSwitchOptionType(option: CrudFieldOptionType | undefined): option is CrudFieldSwitchOptionType {
-        if (!option || Array.isArray(option) || typeof option !== 'object') {
-            return false;
-        }
-
-        return Object.prototype.hasOwnProperty.call(option, 'on')
-            && Object.prototype.hasOwnProperty.call(option, 'off');
-    }
-
-    /**
-     *  
-     */
-    public formatCrudListingFieldValue(
-        v: any,
-        fi: CrudListingFieldInfoType,
-        r: Record<string, any>
+    private encryptFieldValueIfNeeded(
+        value: any,
+        fieldInfo: CrudFieldInfoType,
+        context?: CrudModuleContextType,
     ): any {
-        const isEmpty = (value: any): boolean => {
-            return value === null || value === undefined || value === '';
-        };
-
-        const getByPath = (obj: any, path?: string): any => {
-            if (!path) {
-                return undefined;
-            }
-
-            return path
-                .split('.')
-                .reduce((value, key) => value?.[key], obj);
-        };
-
-        const encIfNeeded = (value: any): any => {
-            if(fi.apply_enc && fi.apply_enc === true && !isEmpty(value)) {
-                if (Array.isArray(value)) {
-                    return value.map((item) => this.utility.encPrimaryKey(item));
-                }
-                return this.utility.encPrimaryKey(value);    
-            }
+        if (!fieldInfo.apply_enc || this.utility.isBlankValue(value)) {
             return value;
-        };
-
-        const escapeHtml = (value: any): string => {
-            return String(value ?? '')
-                .replace(/&/g, '&amp;')
-                .replace(/</g, '&lt;')
-                .replace(/>/g, '&gt;')
-                .replace(/"/g, '&quot;')
-                .replace(/'/g, '&#039;');
-        };
-
-        const toArray = (value: any): any[] => {
-            if (Array.isArray(value)) {
-                return value;
-            }
-
-            if (isEmpty(value)) {
-                return [];
-            }
-
-            if (typeof value === 'string') {
-                const trimmed = value.trim();
-
-                if (!trimmed) {
-                    return [];
-                }
-
-                /**
-                 * Supports:
-                 * "1,2,3"
-                 * "a,b,c"
-                 */
-                if (trimmed.includes(',')) {
-                    return trimmed
-                        .split(',')
-                        .map((item) => item.trim())
-                        .filter((item) => item !== '');
-                }
-            }
-
-            return [value];
-        };
-
-
-        const lookupOption = (value: any, option?: CrudFieldOptionType): any => {
-            if (!option || isEmpty(value)) {
-                return value;
-            }
-
-            if (Array.isArray(option)) {
-                /**
-                 * For array option:
-                 * option = ['Pending', 'Active']
-                 * value = 1 => 'Active'
-                 */
-                const index = Number(value);
-
-                if (Number.isInteger(index) && index >= 0) {
-                    return option[index] ?? value;
-                }
-
-                /**
-                 * Also support direct value match.
-                 * option = ['active', 'inactive']
-                 * value = 'active' => 'active'
-                 */
-                return option.includes(value) ? value : value;
-            }
-
-            /**
-             * For object option:
-             * option = { 1: 'Active', 2: 'Inactive' }
-             */
-            const optionRecord = option as Record<string, string | number | boolean>;
-
-            return optionRecord[String(value)] ?? value;
-        };
-
-        const lookupSingleValue = (value: any, fieldInfo: CrudListingFieldInfoType, row: any): any => {
-            if (fieldInfo.fr_field) {
-                const frValue = getByPath(row, fieldInfo.fr_field);
-
-                /**
-                 * If relation value exists, use it.
-                 * If relation is missing, fall back to option/value.
-                 */
-                if (!isEmpty(frValue)) {
-                    return frValue;
-                }
-            }
-
-            if (fieldInfo.option) {
-                return lookupOption(value, fieldInfo.option);
-            }
-
-            return value;
-        };
-
-        const lookupMultiValue = (value: any, fieldInfo: CrudListingFieldInfoType, row: any): any[] => {
-            if (fieldInfo.fr_field) {
-                const frValue = getByPath(row, fieldInfo.fr_field);
-
-                /**
-                 * fr_field may return:
-                 * ['Admin', 'Manager']
-                 * [{ name: 'Admin' }, { name: 'Manager' }]
-                 * 'Admin'
-                 */
-                if (!isEmpty(frValue)) {
-                    if (Array.isArray(frValue)) {
-                        return frValue.map((item) => {
-                            if (
-                                item &&
-                                typeof item === 'object' &&
-                                'label' in item
-                            ) {
-                                return item.label;
-                            }
-
-                            if (
-                                item &&
-                                typeof item === 'object' &&
-                                'name' in item
-                            ) {
-                                return item.name;
-                            }
-
-                            if (
-                                item &&
-                                typeof item === 'object' &&
-                                'title' in item
-                            ) {
-                                return item.title;
-                            }
-
-                            return item;
-                        });
-                    }
-
-                    return [frValue];
-                }
-            }
-
-            const values = toArray(value);
-
-            if (fieldInfo.option) {
-                return values.map((item) => lookupOption(item, fieldInfo.option));
-            }
-
-            return values;
-        };
-
-        const formatDateSafe = (value: any, format: string): any => {
-            if (isEmpty(value)) {
-                return fi.default ?? value;
-            }
-
-            try {
-                return formatDate(String(value), format, this.conf.languageCode);
-            } catch {
-                return value;
-            }
-        };
-
-        const formatter: CrudListingFieldValueFormatterLookUpType = {
-            [CrudFieldUiTypeEnum.NONE]: (v: any, fi: CrudListingFieldInfoType, r: any) => {
-                return v;
-            },
-
-            [CrudFieldUiTypeEnum.HIDDEN]: (v: any, fi: CrudListingFieldInfoType, r: any) => {
-                return v;
-            },
-
-            [CrudFieldUiTypeEnum.TEXT]: (v: any, fi: CrudListingFieldInfoType, r: any) => {
-                return v;
-            },
-
-            [CrudFieldUiTypeEnum.TEXTAREA]: (v: any, fi: CrudListingFieldInfoType, r: any) => {
-                return v;
-            },
-
-            [CrudFieldUiTypeEnum.SELECT]: (v: any, fi: CrudListingFieldInfoType, r: any) => {
-                return lookupSingleValue(v, fi, r);
-            },
-
-            [CrudFieldUiTypeEnum.MULTISELECT]: (v: any, fi: CrudListingFieldInfoType, r: any) => {
-                return lookupMultiValue(v, fi, r).join(', ');
-            },
-
-            [CrudFieldUiTypeEnum.RADIO]: (v: any, fi: CrudListingFieldInfoType, r: any) => {
-                return lookupSingleValue(v, fi, r);
-            },
-
-            [CrudFieldUiTypeEnum.CHECKBOX]: (v: any, fi: CrudListingFieldInfoType, r: any) => {
-                return lookupMultiValue(v, fi, r).join(', ');
-            },
-
-            [CrudFieldUiTypeEnum.NUMBER]: (v: any, fi: CrudListingFieldInfoType, r: any) => {
-                return v;
-            },
-
-            [CrudFieldUiTypeEnum.FLAG]: (v: any, fi: CrudListingFieldInfoType, r: any) => {
-                if (fi.flag_label) {
-                    /**
-                     * flag_label holds i18n KEYS. Resolved here, not returned as
-                     * keys, for the same reason as SWITCH below: this formatter
-                     * feeds BOTH the listing cell and applyQuickSearch()'s text
-                     * match, and the cell is printed without `| transloco`.
-                     *
-                     * An empty string is a deliberate 'no text here' (is_datetime
-                     * is usually blank, meaning no prefix in front of the date),
-                     * so it is passed through rather than looked up.
-                     */
-                    const label = (key: string): string => {
-                        return key ? this.i18n.translate(key) : '';
-                    };
-
-                    if (isEmpty(v)) {
-                        return label(fi.flag_label.is_null);
-                    }
-
-                    return `${label(fi.flag_label.is_datetime)}${formatDateSafe(v, this.conf.formatDateTime)}`;
-                }
-
-                return v;
-            },
-
-            [CrudFieldUiTypeEnum.SWITCH]: (v: any, fi: CrudListingFieldInfoType, r: any) => {
-                if (this.isSwitchOptionType(fi.option)) {
-                    /**
-                     * Resolved here, not returned as a key: this formatter feeds
-                     * BOTH the listing cell and applyQuickSearch()'s text match.
-                     * Returning a key would make quick search compare against
-                     * 'GL.FIELD.SWITCH.ON' instead of what the user can see.
-                     */
-                    if (v === fi.option.on) {
-                        return this.i18n.translate('GL.FIELD.SWITCH.ON');
-                    }
-
-                    if (v === fi.option.off) {
-                        return this.i18n.translate('GL.FIELD.SWITCH.OFF');
-                    }
-                }
-
-                return v;
-            },
-
-            [CrudFieldUiTypeEnum.DATE]: (v: any, fi: CrudListingFieldInfoType, r: any) => {
-                return formatDateSafe(v, this.conf.formatDate);
-            },
-
-            [CrudFieldUiTypeEnum.TIME]: (v: any, fi: CrudListingFieldInfoType, r: any) => {
-                return formatDateSafe(v, this.conf.formatTime);
-            },
-
-            [CrudFieldUiTypeEnum.DATETIME]: (v: any, fi: CrudListingFieldInfoType, r: any) => {
-                return formatDateSafe(v, this.conf.formatDateTime);
-            },
-
-            [CrudFieldUiTypeEnum.PASSWORD]: (v: any, fi: CrudListingFieldInfoType, r: any) => {
-                return v;
-            },
-
-            [CrudFieldUiTypeEnum.EMAIL]: (v: any, fi: CrudListingFieldInfoType, r: any) => {
-                return v;
-            },
-
-            [CrudFieldUiTypeEnum.URL]: (v: any, fi: CrudListingFieldInfoType, r: any) => {
-                return v;
-            },
-
-            [CrudFieldUiTypeEnum.TEL]: (v: any, fi: CrudListingFieldInfoType, r: any) => {
-                return v;
-            },
-
-            [CrudFieldUiTypeEnum.SLIDER]: (v: any, fi: CrudListingFieldInfoType, r: any) => {
-                return v;
-            },
-
-            // RANGE holds one half of the pair; the sibling field formats itself
-            [CrudFieldUiTypeEnum.RANGE]: (v: any, fi: CrudListingFieldInfoType, r: any) => {
-                return v;
-            },
-
-            [CrudFieldUiTypeEnum.FILE]: (v: any, fi: CrudListingFieldInfoType, r: any) => {
-                return v;
-            },
-
-            [CrudFieldUiTypeEnum.COLOR]: (v: any, fi: CrudListingFieldInfoType, r: any) => {
-                return v;
-            },
-
-            [CrudFieldUiTypeEnum.HTML]: (v: any, fi: CrudListingFieldInfoType, r: any) => {
-                return v;
-            },
-
-            [CrudFieldUiTypeEnum.ARRAY]: (v: any, fi: CrudListingFieldInfoType, r: any) => {
-                return lookupMultiValue(v, fi, r).join(', ');
-            },
-
-            [CrudFieldUiTypeEnum.JSON]: (v: any, fi: CrudListingFieldInfoType, r: any) => {
-                if (isEmpty(v)) {
-                    return fi.default ?? v;
-                }
-
-                return `<pre>${escapeHtml(JSON.stringify(v, null, 2))}</pre>`;
-            },
-        };
-
-        const formattedValue = formatter[fi.type](v, fi, r);
-        const encVal = encIfNeeded(formattedValue);
-
-        if(fi.format_val) {
-            return fi.format_val(encVal, fi, r);
         }
 
-        return encVal;
+        const moduleContext = this.utility.requireModuleContext(context);
+
+        if (Array.isArray(value)) {
+            return value.map((item) => this.utility.encPrimaryKey(item, moduleContext));
+        }
+
+        return this.utility.encPrimaryKey(value, moduleContext);
+    }
+
+    private lookupListingOption(
+        value: any,
+        source?: CrudFieldOptionType,
+    ): any {
+        const option = this.utility.resolveOption(source);
+
+        if (!option || this.utility.isBlankValue(value)) {
+            return value;
+        }
+
+        if (Array.isArray(option)) {
+            const index = Number(value);
+
+            if (Number.isInteger(index) && index >= 0) {
+                return option[index] ?? value;
+            }
+
+            return value;
+        }
+
+        const optionRecord = this.utility.flatOption(option);
+
+        return optionRecord[String(value)] ?? value;
+    }
+
+    private lookupSingleListingValue(
+        value: any,
+        fieldInfo: CrudFieldInfoType,
+        row: Record<string, any>,
+    ): any {
+        if (fieldInfo.fr_field) {
+            const relationValue = this.utility.getByPath(row, fieldInfo.fr_field);
+
+            if (!this.utility.isBlankValue(relationValue)) {
+                return relationValue;
+            }
+        }
+
+        return fieldInfo.option
+            ? this.lookupListingOption(value, fieldInfo.option)
+            : value;
+    }
+
+    private lookupMultiListingValues(
+        value: any,
+        fieldInfo: CrudFieldInfoType,
+        row: Record<string, any>,
+    ): any[] {
+        if (fieldInfo.fr_field) {
+            const relationValue = this.utility.getByPath(row, fieldInfo.fr_field);
+
+            if (!this.utility.isBlankValue(relationValue)) {
+                return Array.isArray(relationValue)
+                    ? relationValue.map((item) => this.getRelationItemLabel(item))
+                    : [relationValue];
+            }
+        }
+
+        const values = this.utility.toArrayValue(value);
+
+        return fieldInfo.option
+            ? values.map((item) => this.lookupListingOption(item, fieldInfo.option))
+            : values;
+    }
+
+    private getRelationItemLabel(item: any): any {
+        if (!item || typeof item !== 'object') {
+            return item;
+        }
+
+        if ('label' in item) {
+            return item.label;
+        }
+
+        if ('name' in item) {
+            return item.name;
+        }
+
+        if ('title' in item) {
+            return item.title;
+        }
+
+        return item;
+    }
+
+    private formatListingDate(
+        value: any,
+        format: string,
+        fallback: any,
+    ): any {
+        if (this.utility.isBlankValue(value)) {
+            return fallback ?? value;
+        }
+
+        try {
+            return formatDate(String(value), format, this.conf.languageCode);
+        } catch {
+            return value;
+        }
     }
 
     /**
-     *  
+     * Normalize a form value according to its CRUD field type.
      */
-    public normalizeCrudFormFieldValue(
+    private normalizeCrudFormFieldValue(
         v: unknown,
         fi: CrudFormFieldInfoType,
         r: Record<string, any> = {},
         mode: CrudFieldNormalizeModeEnum = CrudFieldNormalizeModeEnum.CTOS,
+        context?: CrudModuleContextType,
     ): any {
         /**
          * ctos = client to server
@@ -402,498 +677,6 @@ export class CrudValidation {
          * - normalize first
          * - encrypt before sending to client
          */
-
-        const isNil = (v: any): boolean => {
-            return v === null || v === undefined;
-        };
-
-        const isEmpty = (v: any): boolean => {
-            return v === null || v === undefined || v === '';
-        };
-
-        const getSourceValue = (
-            v: any,
-            fi: CrudFormFieldInfoType,
-            r: any,
-            mode: CrudFieldNormalizeModeEnum,
-        ): any => {
-            if (!isNil(v)) {
-                return v;
-            }
-
-            if (!isNil(fi.value)) {
-                return fi.value;
-            }
-
-            if (!isNil(fi.default)) {
-                return fi.default;
-            }
-
-            return v;
-        };
-
-        const toStringSafe = (
-            v: any,
-            fi: CrudFormFieldInfoType,
-            r: any,
-            mode: CrudFieldNormalizeModeEnum,
-        ): string => {
-            if (isNil(v)) {
-                return '';
-            }
-
-            if (typeof v === 'string') {
-                return v;
-            }
-
-            return String(v);
-        };
-
-        const toNumberSafe = (
-            v: any,
-            fi: CrudFormFieldInfoType,
-            r: any,
-            mode: CrudFieldNormalizeModeEnum,
-        ): number | null => {
-            if (isNil(v) || v === '') {
-                return null;
-            }
-
-            if (typeof v === 'number') {
-                return Number.isFinite(v) ? v : null;
-            }
-
-            const n = Number(String(v).trim());
-
-            return Number.isFinite(n) ? n : null;
-        };
-
-        const toBoolSafe = (
-            v: any,
-            fi: CrudFormFieldInfoType,
-            r: any,
-            mode: CrudFieldNormalizeModeEnum,
-        ): boolean => {
-            if (typeof v === 'boolean') {
-                return v;
-            }
-
-            if (typeof v === 'number') {
-                return v === 1;
-            }
-
-            if (typeof v === 'string') {
-                const s = v.trim().toLowerCase();
-
-                if (
-                    s === 'true' ||
-                    s === '1' ||
-                    s === 'yes' ||
-                    s === 'y' ||
-                    s === 'on'
-                ) {
-                    return true;
-                }
-
-                if (
-                    s === 'false' ||
-                    s === '0' ||
-                    s === 'no' ||
-                    s === 'n' ||
-                    s === 'off' ||
-                    s === ''
-                ) {
-                    return false;
-                }
-            }
-
-            return !!v;
-        };
-
-        const toDateSafe = (
-            v: any,
-            fi: CrudFormFieldInfoType,
-            r: any,
-            mode: CrudFieldNormalizeModeEnum,
-        ): Date | null => {
-            if (isNil(v) || v === '') {
-                return null;
-            }
-
-            if (v instanceof Date) {
-                return Number.isNaN(v.getTime()) ? null : v;
-            }
-
-            const d = new Date(v);
-
-            return Number.isNaN(d.getTime()) ? null : d;
-        };
-
-        const normalizeTimeString = (
-            v: any,
-            fi: CrudFormFieldInfoType,
-            r: any,
-            mode: CrudFieldNormalizeModeEnum,
-        ): string | null => {
-            if (isNil(v) || v === '') {
-                return null;
-            }
-
-            if (v instanceof Date && !Number.isNaN(v.getTime())) {
-                const hh = String(v.getHours()).padStart(2, '0');
-                const mm = String(v.getMinutes()).padStart(2, '0');
-                const ss = String(v.getSeconds()).padStart(2, '0');
-
-                return `${hh}:${mm}:${ss}`;
-            }
-
-            const s = String(v).trim();
-
-            if (!s) {
-                return null;
-            }
-
-            const parts = s.split(':');
-
-            if (parts.length < 2 || parts.length > 3) {
-                return s;
-            }
-
-            const hh = parts[0]?.padStart(2, '0');
-            const mm = parts[1]?.padStart(2, '0');
-            const ss = parts[2] != null ? parts[2].padStart(2, '0') : null;
-
-            return ss == null ? `${hh}:${mm}` : `${hh}:${mm}:${ss}`;
-        };
-
-        const toArraySafe = (
-            v: any,
-            fi: CrudFormFieldInfoType,
-            r: any,
-            mode: CrudFieldNormalizeModeEnum,
-        ): any[] => {
-            if (Array.isArray(v)) {
-                return v;
-            }
-
-            if (isNil(v) || v === '') {
-                return [];
-            }
-
-            if (typeof v === 'string') {
-                const s = v.trim();
-
-                if (!s) {
-                    return [];
-                }
-
-                if (s.startsWith('[') && s.endsWith(']')) {
-                    try {
-                        const parsed = JSON.parse(s);
-
-                        return Array.isArray(parsed) ? parsed : [parsed];
-                    } catch {
-                        // fallback to CSV because apparently strings enjoy cosplaying as arrays
-                    }
-                }
-
-                return s
-                    .split(',')
-                    .map((x) => x.trim())
-                    .filter(Boolean);
-            }
-
-            return [v];
-        };
-
-        const toJsonSafe = (
-            v: any,
-            fi: CrudFormFieldInfoType,
-            r: any,
-            mode: CrudFieldNormalizeModeEnum,
-        ): any => {
-            if (isNil(v) || v === '') {
-                return null;
-            }
-
-            if (typeof v === 'object') {
-                return v;
-            }
-
-            if (typeof v === 'string') {
-                const s = v.trim();
-
-                if (!s) {
-                    return null;
-                }
-
-                try {
-                    return JSON.parse(s);
-                } catch {
-                    return s;
-                }
-            }
-
-            return v;
-        };
-
-        const getByPath = (
-            v: any,
-            fi: CrudFormFieldInfoType,
-            r: any,
-            mode: CrudFieldNormalizeModeEnum,
-        ): any => {
-            if (typeof v !== 'string' || !v) {
-                return undefined;
-            }
-
-            return v
-                .split('.')
-                .reduce((value, key) => value?.[key], r);
-        };
-
-        const decryptOneSafe = (
-            v: any,
-            fi: CrudFormFieldInfoType,
-            r: any,
-            mode: CrudFieldNormalizeModeEnum,
-        ): any => {
-            if (!fi.apply_enc || isEmpty(v)) {
-                return v;
-            }
-
-            try {
-                const decrypted = this.utility.descPrimaryKey(v);
-                return decrypted ?? v;
-            } catch {
-                return v;
-            }
-        };
-
-        const encryptOneSafe = (
-            v: any,
-            fi: CrudFormFieldInfoType,
-            r: any,
-            mode: CrudFieldNormalizeModeEnum,
-        ): any => {
-            if (!fi.apply_enc || isEmpty(v)) {
-                return v;
-            }
-
-            try {
-                return this.utility.encPrimaryKey(v);
-            } catch {
-                return v;
-            }
-        };
-
-        const decryptInputByMode = (
-            v: any,
-            fi: CrudFormFieldInfoType,
-            r: any,
-            mode: CrudFieldNormalizeModeEnum,
-        ): any => {
-            if (mode !== CrudFieldNormalizeModeEnum.CTOS || !fi.apply_enc) {
-                return v;
-            }
-
-            if (Array.isArray(v)) {
-                return v.map((item) => decryptOneSafe(item, fi, r, mode));
-            }
-
-            if (
-                typeof v === 'string' &&
-                v.includes(',') &&
-                (
-                    fi.type === CrudFieldUiTypeEnum.MULTISELECT ||
-                    fi.type === CrudFieldUiTypeEnum.CHECKBOX ||
-                    fi.type === CrudFieldUiTypeEnum.ARRAY
-                )
-            ) {
-                return v
-                    .split(',')
-                    .map((item) => decryptOneSafe(item.trim(), fi, r, mode))
-                    .filter((item) => !isEmpty(item));
-            }
-
-            return decryptOneSafe(v, fi, r, mode);
-        };
-
-        const encryptOutputByMode = (
-            v: any,
-            fi: CrudFormFieldInfoType,
-            r: any,
-            mode: CrudFieldNormalizeModeEnum,
-        ): any => {
-            if (mode !== CrudFieldNormalizeModeEnum.STOC || !fi.apply_enc) {
-                return v;
-            }
-
-            if (Array.isArray(v)) {
-                return v.map((item) => encryptOneSafe(item, fi, r, mode));
-            }
-
-            return encryptOneSafe(v, fi, r, mode);
-        };
-
-        const optionHasKey = (
-            v: any,
-            fi: CrudFormFieldInfoType,
-            r: any,
-            mode: CrudFieldNormalizeModeEnum,
-        ): boolean => {
-            if (isNil(v)) {
-                return false;
-            }
-
-            if (
-                fi.option_default &&
-                !Array.isArray(fi.option_default) &&
-                typeof fi.option_default === 'object'
-            ) {
-                return Object.prototype.hasOwnProperty.call(
-                    fi.option_default,
-                    String(v),
-                );
-            }
-
-            if (fi.option && Array.isArray(fi.option)) {
-                return fi.option.some((optionValue) => String(optionValue) === String(v));
-            }
-
-            if (
-                fi.option &&
-                !Array.isArray(fi.option) &&
-                typeof fi.option === 'object'
-            ) {
-                return Object.prototype.hasOwnProperty.call(
-                    fi.option,
-                    String(v),
-                );
-            }
-
-            return true;
-        };
-
-        const pickDefaultOptionKey = (
-            v: any,
-            fi: CrudFormFieldInfoType,
-            r: any,
-            mode: CrudFieldNormalizeModeEnum,
-        ): any => {
-            if (
-                fi.option_default &&
-                !Array.isArray(fi.option_default) &&
-                typeof fi.option_default === 'object'
-            ) {
-                const keys = Object.keys(fi.option_default);
-
-                return keys.length ? keys[0] : null;
-            }
-
-            if (fi.option && Array.isArray(fi.option) && fi.option.length > 0) {
-                return fi.option[0];
-            }
-
-            if (
-                fi.option &&
-                !Array.isArray(fi.option) &&
-                typeof fi.option === 'object'
-            ) {
-                const keys = Object.keys(fi.option);
-
-                return keys.length ? keys[0] : null;
-            }
-
-            return null;
-        };
-
-        const normalizeSingleOptionValue = (
-            v: any,
-            fi: CrudFormFieldInfoType,
-            r: any,
-            mode: CrudFieldNormalizeModeEnum,
-        ): any => {
-            if (isNil(v) || v === '') {
-                if (!isNil(fi.value) && fi.value !== '') {
-                    return mode === CrudFieldNormalizeModeEnum.CTOS
-                        ? decryptInputByMode(fi.value, fi, r, mode)
-                        : fi.value;
-                }
-
-                if (!isNil(fi.default) && fi.default !== '') {
-                    return mode === CrudFieldNormalizeModeEnum.CTOS
-                        ? decryptInputByMode(fi.default, fi, r, mode)
-                        : fi.default;
-                }
-
-                return pickDefaultOptionKey(v, fi, r, mode);
-            }
-
-            let key = v;
-
-            if (typeof v === 'object') {
-                if (!isNil(v.id)) {
-                    key = v.id;
-                } else if (!isNil(v.value)) {
-                    key = v.value;
-                } else if (!isNil(v.key)) {
-                    key = v.key;
-                } else {
-                    key = toStringSafe(v, fi, r, mode);
-                }
-            }
-
-            if(!Number.isNaN(Number(key))) {
-                key = Number(key);
-            }
-
-            if (!optionHasKey(key, fi, r, mode)) {
-                if (!isNil(fi.value) && fi.value !== '') {
-                    return mode === CrudFieldNormalizeModeEnum.CTOS
-                        ? decryptInputByMode(fi.value, fi, r, mode)
-                        : fi.value;
-                }
-
-                if (!isNil(fi.default) && fi.default !== '') {
-                    return mode === CrudFieldNormalizeModeEnum.CTOS
-                        ? decryptInputByMode(fi.default, fi, r, mode)
-                        : fi.default;
-                }
-
-                return pickDefaultOptionKey(v, fi, r, mode);
-            }
-
-            return key;
-        };
-
-        const normalizeMultiOptionValue = (
-            v: any,
-            fi: CrudFormFieldInfoType,
-            r: any,
-            mode: CrudFieldNormalizeModeEnum,
-        ): any[] => {
-            const arr = toArraySafe(v, fi, r, mode)
-                .map((item) => normalizeSingleOptionValue(item, fi, r, mode));
-
-            const cleaned = arr.filter((item) => !isNil(item) && item !== '');
-
-            const seen = new Set<string>();
-            const out: any[] = [];
-
-            for (const item of cleaned) {
-                const key = typeof item === 'string' ? item : JSON.stringify(item);
-
-                if (seen.has(key)) {
-                    continue;
-                }
-
-                seen.add(key);
-                out.push(item);
-            }
-
-            return out;
-        };
 
         const normalizer: CrudFormFieldValueNormalizerLookUpType = {
             [CrudFieldUiTypeEnum.NONE]: (
@@ -911,7 +694,7 @@ export class CrudValidation {
                 r: any,
                 mode: CrudFieldNormalizeModeEnum,
             ) => {
-                return getSourceValue(v, fi, r, mode) ?? null;
+                return this.getFormFieldSourceValue(v, fi) ?? null;
             },
 
             [CrudFieldUiTypeEnum.TEXT]: (
@@ -920,13 +703,13 @@ export class CrudValidation {
                 r: any,
                 mode: CrudFieldNormalizeModeEnum,
             ) => {
-                const src = getSourceValue(v, fi, r, mode);
+                const src = this.getFormFieldSourceValue(v, fi);
 
-                if (isNil(src)) {
+                if (this.utility.isNil(src)) {
                     return '';
                 }
 
-                return toStringSafe(src, fi, r, mode);
+                return this.utility.toStringValue(src);
             },
 
             [CrudFieldUiTypeEnum.TEXTAREA]: (
@@ -935,13 +718,13 @@ export class CrudValidation {
                 r: any,
                 mode: CrudFieldNormalizeModeEnum,
             ) => {
-                const src = getSourceValue(v, fi, r, mode);
+                const src = this.getFormFieldSourceValue(v, fi);
 
-                if (isNil(src)) {
+                if (this.utility.isNil(src)) {
                     return '';
                 }
 
-                return toStringSafe(src, fi, r, mode);
+                return this.utility.toStringValue(src);
             },
 
             [CrudFieldUiTypeEnum.SELECT]: (
@@ -950,9 +733,71 @@ export class CrudValidation {
                 r: any,
                 mode: CrudFieldNormalizeModeEnum,
             ) => {
-                const a = normalizeSingleOptionValue(v, fi, r, mode);
+                const a = this.normalizeSingleOptionValue(v, fi, mode, context);
 
                 return a;
+            },
+
+            [CrudFieldUiTypeEnum.BUTTON_SELECT]: (
+                v: any,
+                fi: CrudFormFieldInfoType,
+                r: any,
+                mode: CrudFieldNormalizeModeEnum,
+            ) => {
+                return this.normalizeSingleOptionValue(v, fi, mode, context);
+            },
+
+            /**
+             * NOT normalizeSingleOptionValue(): suggestions are remote, so [option] is
+             * empty and fieldOptionHasValue() would throw every real key away as soon as the
+             * field also declares [option_default].
+             */
+            [CrudFieldUiTypeEnum.AUTOSUGGEST]: (
+                v: any,
+                fi: CrudFormFieldInfoType,
+                r: any,
+                mode: CrudFieldNormalizeModeEnum,
+            ) => {
+                const src = this.getFormFieldSourceValue(v, fi);
+
+                return this.utility.isBlankValue(src) ? null : src;
+            },
+
+            /**
+             * The array arm of AUTOSUGGEST above, and NOT normalizeMultiOptionValue():
+             * that runs every entry through normalizeSingleOptionValue, whose
+             * fieldOptionHasValue() would throw real keys away for the same reason the single
+             * arm avoids it - suggestions are remote, so [option] is empty.
+             *
+             * CrudUtility.toArrayValue() does the work that matters here: the URL carries
+             * ";test_autosuggest=2,3" as ONE string, and without the split it reaches
+             * the control as the single key "2,3" - one chip, named after nothing.
+             */
+            [CrudFieldUiTypeEnum.MULTISELECTAUTOSUGGEST]: (
+                v: any,
+                fi: CrudFormFieldInfoType,
+                r: any,
+                mode: CrudFieldNormalizeModeEnum,
+            ) => {
+                const src = this.getFormFieldSourceValue(v, fi);
+
+                if (this.utility.isBlankValue(src)) {
+                    return [];
+                }
+
+                const out: any[] = [];
+                const seen = new Set<string>();
+
+                this.utility.toArrayValue(src).forEach((key) => {
+                    if (this.utility.isBlankValue(key) || seen.has(String(key))) {
+                        return;
+                    }
+
+                    seen.add(String(key));
+                    out.push(key);
+                });
+
+                return out;
             },
 
             [CrudFieldUiTypeEnum.MULTISELECT]: (
@@ -961,7 +806,16 @@ export class CrudValidation {
                 r: any,
                 mode: CrudFieldNormalizeModeEnum,
             ) => {
-                return normalizeMultiOptionValue(v, fi, r, mode);
+                return this.normalizeMultiOptionValue(v, fi, mode, context);
+            },
+
+            [CrudFieldUiTypeEnum.BUTTON_MULTISELECT]: (
+                v: any,
+                fi: CrudFormFieldInfoType,
+                r: any,
+                mode: CrudFieldNormalizeModeEnum,
+            ) => {
+                return this.normalizeMultiOptionValue(v, fi, mode, context);
             },
 
             [CrudFieldUiTypeEnum.RADIO]: (
@@ -970,7 +824,7 @@ export class CrudValidation {
                 r: any,
                 mode: CrudFieldNormalizeModeEnum,
             ) => {
-                return normalizeSingleOptionValue(v, fi, r, mode);
+                return this.normalizeSingleOptionValue(v, fi, mode, context);
             },
 
             [CrudFieldUiTypeEnum.CHECKBOX]: (
@@ -979,7 +833,7 @@ export class CrudValidation {
                 r: any,
                 mode: CrudFieldNormalizeModeEnum,
             ) => {
-                return normalizeMultiOptionValue(v, fi, r, mode);
+                return this.normalizeMultiOptionValue(v, fi, mode, context);
             },
 
             [CrudFieldUiTypeEnum.NUMBER]: (
@@ -988,7 +842,7 @@ export class CrudValidation {
                 r: any,
                 mode: CrudFieldNormalizeModeEnum,
             ) => {
-                return toNumberSafe(getSourceValue(v, fi, r, mode), fi, r, mode);
+                return this.utility.toFiniteNumber(this.getFormFieldSourceValue(v, fi));
             },
 
             [CrudFieldUiTypeEnum.FLAG]: (
@@ -997,7 +851,8 @@ export class CrudValidation {
                 r: any,
                 mode: CrudFieldNormalizeModeEnum,
             ) => {
-                const src = getSourceValue(v, fi, r, mode);
+                // Unlike ordinary blank fields, a FLAG's null is an explicit off value.
+                const src = v === null ? null : this.getFormFieldSourceValue(v, fi);
 
                 if (src === null) {
                     return null;
@@ -1011,7 +866,7 @@ export class CrudValidation {
                     const s = src.trim();
 
                     if (!s) {
-                        return null;
+                        return '';
                     }
 
                     const sl = s.toLowerCase();
@@ -1062,13 +917,12 @@ export class CrudValidation {
                 r: any,
                 mode: CrudFieldNormalizeModeEnum,
             ) => {
-                const src = getSourceValue(v, fi, r, mode);
+                const src = this.getFormFieldSourceValue(v, fi);
 
-                if (this.isSwitchOptionType(fi.option)) {
+                if (this.utility.isSwitchOptionType(fi.option)) {
                     /**
-                     * Matched against the field's OWN option pair — for rbin
-                     * that is CRUD_RECYCLE_BIN_STATUS { on: 1, off: 0 } — never
-                     * against the words 'On'/'Off'.
+                     * Matched against the field's OWN option pair, never against
+                     * the translated words displayed for the switch.
                      *
                      * Those two literals used to be accepted here as a second
                      * chance at a match. They could not be translated (the
@@ -1078,7 +932,7 @@ export class CrudValidation {
                      * quick search, never back into normalization.
                      *
                      * Compared as strings because the URL hands every matrix
-                     * param over as text: `rb=1` arrives as "1" while option.on
+                     * param over as text: `enabled=1` arrives as "1" while option.on
                      * is the number 1, which strict === missed. Works the same
                      * for a boolean pair { on: true, off: false }.
                      */
@@ -1104,7 +958,7 @@ export class CrudValidation {
                 r: any,
                 mode: CrudFieldNormalizeModeEnum,
             ) => {
-                return toDateSafe(getSourceValue(v, fi, r, mode), fi, r, mode);
+                return this.utility.toValidDate(this.getFormFieldSourceValue(v, fi));
             },
 
             [CrudFieldUiTypeEnum.TIME]: (
@@ -1113,7 +967,7 @@ export class CrudValidation {
                 r: any,
                 mode: CrudFieldNormalizeModeEnum,
             ) => {
-                return normalizeTimeString(getSourceValue(v, fi, r, mode), fi, r, mode);
+                return this.utility.normalizeTimeString(this.getFormFieldSourceValue(v, fi));
             },
 
             [CrudFieldUiTypeEnum.DATETIME]: (
@@ -1122,7 +976,17 @@ export class CrudValidation {
                 r: any,
                 mode: CrudFieldNormalizeModeEnum,
             ) => {
-                return toDateSafe(getSourceValue(v, fi, r, mode), fi, r, mode);
+                return this.utility.toValidDate(this.getFormFieldSourceValue(v, fi));
+            },
+
+            // DATETIME_RANGE holds one half of the pair; each key normalizes as a datetime
+            [CrudFieldUiTypeEnum.DATETIME_RANGE]: (
+                v: any,
+                fi: CrudFormFieldInfoType,
+                r: any,
+                mode: CrudFieldNormalizeModeEnum,
+            ) => {
+                return this.utility.toValidDate(this.getFormFieldSourceValue(v, fi));
             },
 
             [CrudFieldUiTypeEnum.PASSWORD]: (
@@ -1131,13 +995,13 @@ export class CrudValidation {
                 r: any,
                 mode: CrudFieldNormalizeModeEnum,
             ) => {
-                const src = getSourceValue(v, fi, r, mode);
+                const src = this.getFormFieldSourceValue(v, fi);
 
-                if (isNil(src)) {
+                if (this.utility.isNil(src)) {
                     return '';
                 }
 
-                return toStringSafe(src, fi, r, mode);
+                return this.utility.toStringValue(src);
             },
 
             [CrudFieldUiTypeEnum.EMAIL]: (
@@ -1146,13 +1010,13 @@ export class CrudValidation {
                 r: any,
                 mode: CrudFieldNormalizeModeEnum,
             ) => {
-                const src = getSourceValue(v, fi, r, mode);
+                const src = this.getFormFieldSourceValue(v, fi);
 
-                if (isNil(src)) {
+                if (this.utility.isNil(src)) {
                     return '';
                 }
 
-                return toStringSafe(src, fi, r, mode);
+                return this.utility.toStringValue(src);
             },
 
             [CrudFieldUiTypeEnum.URL]: (
@@ -1161,13 +1025,13 @@ export class CrudValidation {
                 r: any,
                 mode: CrudFieldNormalizeModeEnum,
             ) => {
-                const src = getSourceValue(v, fi, r, mode);
+                const src = this.getFormFieldSourceValue(v, fi);
 
-                if (isNil(src)) {
+                if (this.utility.isNil(src)) {
                     return '';
                 }
 
-                return toStringSafe(src, fi, r, mode);
+                return this.utility.toStringValue(src);
             },
 
             [CrudFieldUiTypeEnum.TEL]: (
@@ -1176,13 +1040,13 @@ export class CrudValidation {
                 r: any,
                 mode: CrudFieldNormalizeModeEnum,
             ) => {
-                const src = getSourceValue(v, fi, r, mode);
+                const src = this.getFormFieldSourceValue(v, fi);
 
-                if (isNil(src)) {
+                if (this.utility.isNil(src)) {
                     return '';
                 }
 
-                return toStringSafe(src, fi, r, mode);
+                return this.utility.toStringValue(src);
             },
 
             [CrudFieldUiTypeEnum.SLIDER]: (
@@ -1191,7 +1055,7 @@ export class CrudValidation {
                 r: any,
                 mode: CrudFieldNormalizeModeEnum,
             ) => {
-                return toNumberSafe(getSourceValue(v, fi, r, mode), fi, r, mode);
+                return this.utility.toFiniteNumber(this.getFormFieldSourceValue(v, fi));
             },
 
             // RANGE holds one half of the pair; each key normalizes as a plain number
@@ -1201,7 +1065,7 @@ export class CrudValidation {
                 r: any,
                 mode: CrudFieldNormalizeModeEnum,
             ) => {
-                return toNumberSafe(getSourceValue(v, fi, r, mode), fi, r, mode);
+                return this.utility.toFiniteNumber(this.getFormFieldSourceValue(v, fi));
             },
 
             [CrudFieldUiTypeEnum.FILE]: (
@@ -1210,9 +1074,9 @@ export class CrudValidation {
                 r: any,
                 mode: CrudFieldNormalizeModeEnum,
             ) => {
-                const src = getSourceValue(v, fi, r, mode);
+                const src = this.getFormFieldSourceValue(v, fi);
 
-                return isEmpty(src) ? null : src;
+                return this.utility.isBlankValue(src) ? null : src;
             },
 
             [CrudFieldUiTypeEnum.COLOR]: (
@@ -1221,13 +1085,13 @@ export class CrudValidation {
                 r: any,
                 mode: CrudFieldNormalizeModeEnum,
             ) => {
-                const src = getSourceValue(v, fi, r, mode);
+                const src = this.getFormFieldSourceValue(v, fi);
 
-                if (isNil(src)) {
+                if (this.utility.isNil(src)) {
                     return '';
                 }
 
-                return toStringSafe(src, fi, r, mode).toLowerCase();
+                return this.utility.toStringValue(src).toLowerCase();
             },
 
             [CrudFieldUiTypeEnum.HTML]: (
@@ -1236,13 +1100,13 @@ export class CrudValidation {
                 r: any,
                 mode: CrudFieldNormalizeModeEnum,
             ) => {
-                const src = getSourceValue(v, fi, r, mode);
+                const src = this.getFormFieldSourceValue(v, fi);
 
-                if (isNil(src)) {
+                if (this.utility.isNil(src)) {
                     return '';
                 }
 
-                return toStringSafe(src, fi, r, mode);
+                return this.utility.toStringValue(src);
             },
 
             [CrudFieldUiTypeEnum.ARRAY]: (
@@ -1251,7 +1115,7 @@ export class CrudValidation {
                 r: any,
                 mode: CrudFieldNormalizeModeEnum,
             ) => {
-                return toArraySafe(getSourceValue(v, fi, r, mode), fi, r, mode);
+                return this.utility.toArrayValue(this.getFormFieldSourceValue(v, fi));
             },
 
             [CrudFieldUiTypeEnum.JSON]: (
@@ -1260,7 +1124,7 @@ export class CrudValidation {
                 r: any,
                 mode: CrudFieldNormalizeModeEnum,
             ) => {
-                return toJsonSafe(getSourceValue(v, fi, r, mode), fi, r, mode);
+                return this.utility.toJsonValue(this.getFormFieldSourceValue(v, fi));
             },
         };
 
@@ -1271,7 +1135,7 @@ export class CrudValidation {
          * stoc:
          * raw server value -> normalize -> encrypt
          */
-        const inputValue = decryptInputByMode(v, fi, r, mode);
+        const inputValue = this.decryptInputByMode(v, fi, mode, context);
         let normalizedValue = normalizer[fi.type](inputValue, fi, r, mode);
 
         // apply custom normalizer
@@ -1279,323 +1143,324 @@ export class CrudValidation {
             normalizedValue = fi.normalize_val(normalizedValue, fi, r, mode);
         }
 
-        const encVal = encryptOutputByMode(normalizedValue, fi, r, mode);
+        const encVal = this.encryptOutputByMode(normalizedValue, fi, mode, context);
         return encVal;
     }
-    
+
+    private getFormFieldSourceValue(
+        value: any,
+        fieldInfo: CrudFormFieldInfoType,
+    ): any {
+        if (!this.utility.isNil(value)) {
+            return value;
+        }
+
+        if (!this.utility.isNil(fieldInfo.value)) {
+            return fieldInfo.value;
+        }
+
+        if (!this.utility.isNil(fieldInfo.default)) {
+            return fieldInfo.default;
+        }
+
+        return value;
+    }
+
+    private decryptConfiguredFieldValue(
+        value: any,
+        fieldInfo: CrudFormFieldInfoType,
+        context?: CrudModuleContextType,
+    ): any {
+        if (!fieldInfo.apply_enc || this.utility.isBlankValue(value)) {
+            return value;
+        }
+
+        const moduleContext = this.utility.requireModuleContext(context);
+        const decrypted = this.utility.descPrimaryKey(value, moduleContext);
+
+        return decrypted ?? value;
+    }
+
+    private encryptConfiguredFieldValue(
+        value: any,
+        fieldInfo: CrudFormFieldInfoType,
+        context?: CrudModuleContextType,
+    ): any {
+        if (!fieldInfo.apply_enc || this.utility.isBlankValue(value)) {
+            return value;
+        }
+
+        const moduleContext = this.utility.requireModuleContext(context);
+
+        return this.utility.encPrimaryKey(value, moduleContext);
+    }
+
+    private decryptInputByMode(
+        value: any,
+        fieldInfo: CrudFormFieldInfoType,
+        mode: CrudFieldNormalizeModeEnum,
+        context?: CrudModuleContextType,
+    ): any {
+        if (mode !== CrudFieldNormalizeModeEnum.CTOS || !fieldInfo.apply_enc) {
+            return value;
+        }
+
+        if (Array.isArray(value)) {
+            return value.map((item) => {
+                return this.decryptConfiguredFieldValue(item, fieldInfo, context);
+            });
+        }
+
+        if (
+            typeof value === 'string'
+            && value.includes(',')
+            && (
+                fieldInfo.type === CrudFieldUiTypeEnum.MULTISELECT
+                || fieldInfo.type === CrudFieldUiTypeEnum.BUTTON_MULTISELECT
+                || fieldInfo.type === CrudFieldUiTypeEnum.CHECKBOX
+                || fieldInfo.type === CrudFieldUiTypeEnum.ARRAY
+            )
+        ) {
+            return value
+                .split(',')
+                .map((item) => {
+                    return this.decryptConfiguredFieldValue(item.trim(), fieldInfo, context);
+                })
+                .filter((item) => !this.utility.isBlankValue(item));
+        }
+
+        return this.decryptConfiguredFieldValue(value, fieldInfo, context);
+    }
+
+    private encryptOutputByMode(
+        value: any,
+        fieldInfo: CrudFormFieldInfoType,
+        mode: CrudFieldNormalizeModeEnum,
+        context?: CrudModuleContextType,
+    ): any {
+        if (mode !== CrudFieldNormalizeModeEnum.STOC || !fieldInfo.apply_enc) {
+            return value;
+        }
+
+        if (Array.isArray(value)) {
+            return value.map((item) => {
+                return this.encryptConfiguredFieldValue(item, fieldInfo, context);
+            });
+        }
+
+        return this.encryptConfiguredFieldValue(value, fieldInfo, context);
+    }
+
+    private fieldOptionHasValue(
+        value: any,
+        fieldInfo: CrudFormFieldInfoType,
+    ): boolean {
+        if (this.utility.isNil(value)) {
+            return false;
+        }
+
+        const option = this.utility.resolveOption(fieldInfo.option);
+        const hasDefaultOptions = !!fieldInfo.option_default
+            && typeof fieldInfo.option_default === 'object'
+            && Object.keys(fieldInfo.option_default).length > 0;
+        const hasOptions = Array.isArray(option)
+            ? option.length > 0
+            : !!option && typeof option === 'object' && Object.keys(option).length > 0;
+
+        if (!hasDefaultOptions && !hasOptions) {
+            return true;
+        }
+
+        return this.utility.hasOptionValue(fieldInfo.option_default, value)
+            || this.utility.hasOptionValue(fieldInfo.option, value);
+    }
+
+    private getDefaultOptionValue(fieldInfo: CrudFormFieldInfoType): any {
+        const defaultOption = this.utility.getFirstOptionValue(fieldInfo.option_default);
+
+        if (defaultOption !== null) {
+            return defaultOption;
+        }
+
+        return this.utility.getFirstOptionValue(fieldInfo.option);
+    }
+
+    private normalizeSingleOptionValue(
+        value: any,
+        fieldInfo: CrudFormFieldInfoType,
+        mode: CrudFieldNormalizeModeEnum,
+        context?: CrudModuleContextType,
+    ): any {
+        if (this.utility.isBlankValue(value)) {
+            if (!this.utility.isBlankValue(fieldInfo.value)) {
+                return mode === CrudFieldNormalizeModeEnum.CTOS
+                    ? this.decryptInputByMode(fieldInfo.value, fieldInfo, mode, context)
+                    : fieldInfo.value;
+            }
+
+            if (!this.utility.isBlankValue(fieldInfo.default)) {
+                return mode === CrudFieldNormalizeModeEnum.CTOS
+                    ? this.decryptInputByMode(fieldInfo.default, fieldInfo, mode, context)
+                    : fieldInfo.default;
+            }
+
+            return this.getDefaultOptionValue(fieldInfo);
+        }
+
+        let key = value;
+
+        if (typeof value === 'object') {
+            if (!this.utility.isNil(value.id)) {
+                key = value.id;
+            } else if (!this.utility.isNil(value.value)) {
+                key = value.value;
+            } else if (!this.utility.isNil(value.key)) {
+                key = value.key;
+            } else {
+                key = this.utility.toStringValue(value);
+            }
+        }
+
+        if (
+            typeof key === 'string'
+            || typeof key === 'number'
+            || typeof key === 'boolean'
+        ) {
+            key = this.utility.parseKey(key);
+        }
+
+        if (!this.fieldOptionHasValue(key, fieldInfo)) {
+            if (!this.utility.isBlankValue(fieldInfo.value)) {
+                return mode === CrudFieldNormalizeModeEnum.CTOS
+                    ? this.decryptInputByMode(fieldInfo.value, fieldInfo, mode, context)
+                    : fieldInfo.value;
+            }
+
+            if (!this.utility.isBlankValue(fieldInfo.default)) {
+                return mode === CrudFieldNormalizeModeEnum.CTOS
+                    ? this.decryptInputByMode(fieldInfo.default, fieldInfo, mode, context)
+                    : fieldInfo.default;
+            }
+
+            return this.getDefaultOptionValue(fieldInfo);
+        }
+
+        return key;
+    }
+
+    private normalizeMultiOptionValue(
+        value: any,
+        fieldInfo: CrudFormFieldInfoType,
+        mode: CrudFieldNormalizeModeEnum,
+        context?: CrudModuleContextType,
+    ): any[] {
+        const normalizedValues = this.utility.toArrayValue(value)
+            .map((item) => {
+                return this.normalizeSingleOptionValue(item, fieldInfo, mode, context);
+            })
+            .filter((item) => !this.utility.isBlankValue(item));
+
+        const seen = new Set<string>();
+        const output: any[] = [];
+
+        for (const item of normalizedValues) {
+            const key = typeof item === 'string'
+                ? item
+                : JSON.stringify(item);
+
+            if (seen.has(key)) {
+                continue;
+            }
+
+            seen.add(key);
+            output.push(item);
+        }
+
+        return output;
+    }
+
+    private validationSuccess(value: any): CrudFieldValidationResultType {
+        return {
+            valid: true,
+            value,
+            errors: [],
+        };
+    }
+
+    private validationFailure(
+        value: any,
+        message: string,
+    ): CrudFieldValidationResultType {
+        return {
+            valid: false,
+            value,
+            errors: [message],
+        };
+    }
+
+    private isTimeValueValid(value: any): boolean {
+        return CrudValidation.TIME_PATTERN.test(this.utility.toStringValue(value));
+    }
+
+    private isDatetimeValueValid(value: any): boolean {
+        return this.utility.toValidDate(value) !== null
+            && CrudValidation.DATETIME_TIME_PATTERN.test(this.utility.toStringValue(value));
+    }
+
+    private isDecimalValueValid(value: any): boolean {
+        return CrudValidation.DECIMAL_PATTERN.test(this.utility.toStringValue(value));
+    }
+
+    private isTextValueValid(
+        value: any,
+        requireString: boolean = false,
+    ): boolean {
+        if (requireString && typeof value !== 'string') {
+            return false;
+        }
+
+        return CrudValidation.TEXT_PATTERN.test(this.utility.toStringValue(value));
+    }
+
+    private hasAllowedExtension(
+        fileName: string,
+        allowedExtensions: string[],
+    ): boolean {
+        const fileExtension = fileName
+            .substring(fileName.lastIndexOf('.'))
+            .toLowerCase();
+
+        return allowedExtensions.some((extension) => {
+            return extension.toLowerCase() === fileExtension;
+        });
+    }
+
+    private isOptionValueAllowed(
+        value: any,
+        option: CrudFieldOptionType,
+    ): boolean {
+        return Array.isArray(value)
+            ? value.every((item) => this.utility.hasOptionValue(option, item))
+            : this.utility.hasOptionValue(option, value);
+    }
+
     /**
-     *  
+     * Validate one already-normalized CRUD form value.
      */
-    public validateCrudFormFieldValue(
-        v: unknown, 
+    private validateCrudFormFieldValue(
+        v: unknown,
         fi: CrudFormFieldInfoType,
         r?: Record<string, any>
     ): CrudFieldValidationResultType {
         const errors: string[] = [];
 
-        const success = (value: any): CrudFieldValidationResultType => ({
-            valid: true,
-            value,
-            errors: [],
-        });
-
-        const fail = (value: any, message: string): CrudFieldValidationResultType => ({
-            valid: false,
-            value,
-            errors: [message],
-        });
-
-        const isEmpty = (value: any): boolean => {
-            return (
-                value === null ||
-                value === undefined ||
-                value === '' ||
-                (Array.isArray(value) && value.length === 0)
-            );
-        };
-
-        const toStringValue = (value: any): string => {
-            if (value === null || value === undefined) {
-                return '';
-            }
-
-            return String(value);
-        };
-
-        const toNumberValue = (value: any): number => {
-            if (typeof value === 'number') {
-                return value;
-            }
-
-            if (typeof value === 'string' && value.trim() !== '') {
-                return Number(value);
-            }
-
-            return Number.NaN;
-        };
-
-        const isValidDateValue = (value: any): boolean => {
-            if (value instanceof Date) {
-                return !Number.isNaN(value.getTime());
-            }
-
-            if (typeof value !== 'string') {
-                return false;
-            }
-
-            const trimmed = value.trim();
-
-            if (!trimmed) {
-                return false;
-            }
-
-            const date = new Date(trimmed);
-
-            return !Number.isNaN(date.getTime());
-        };
-
-        const getOptionValues = (option: CrudFieldOptionType): any[] => {
-            if (Array.isArray(option)) {
-                return option as any[];
-            }
-
-            if (typeof option === 'object' && option !== null) {
-                return Object.keys(option);
-            }
-
-            return [];
-        };
-
-        const normalizedValue = v;
-
-        const validator: CrudFormFieldValueValidatorLookUpType = {
-            [CrudFieldValidationEnum.REQUIRED]: (v: any) => {
-                return isEmpty(v)
-                    ? fail(v, 'GL.VALIDATION.REQUIRED')
-                    : success(v);
-            },
-
-            [CrudFieldValidationEnum.MIN_LENGTH]: (v: any, fi: CrudFormFieldInfoType) => {
-                const minLength = fi.validation?.[CrudFieldValidationEnum.MIN_LENGTH]?.value as number | undefined;
-                if (minLength === undefined || minLength === null) return success(v);
-                if (isEmpty(v)) return success(v);
-
-                const value = toStringValue(v);
-                return value.length >= Number(minLength)
-                    ? success(v)
-                    : fail(v, this.i18n.translate('GL.VALIDATION.MIN_LENGTH', { min_length: minLength }));
-            },
-
-            [CrudFieldValidationEnum.MAX_LENGTH]: (v: any, fi: CrudFormFieldInfoType) => {
-                const maxLength = fi.validation?.[CrudFieldValidationEnum.MAX_LENGTH]?.value as number | undefined;
-                if (maxLength === undefined || maxLength === null) return success(v);
-                if (isEmpty(v)) return success(v);
-
-                const value = toStringValue(v);
-                return value.length <= Number(maxLength)
-                    ? success(v)
-                    : fail(v, this.i18n.translate('GL.VALIDATION.MAX_LENGTH', { max_length: maxLength }));
-            },
-
-            [CrudFieldValidationEnum.MIN]: (v: any, fi: CrudFormFieldInfoType) => {
-                const minValue = fi.validation?.[CrudFieldValidationEnum.MIN]?.value;
-                if (minValue === undefined || minValue === null) return success(v);
-                if (isEmpty(v)) return success(v);
-
-                const n = toNumberValue(v);
-                const min = toNumberValue(minValue);
-
-                if (!Number.isNaN(n) && !Number.isNaN(min)) {
-                    return n >= min ? success(v) : fail(v, this.i18n.translate('GL.VALIDATION.MIN', { min: minValue }));
-                }
-
-                // fallback: date compare
-                const dt = new Date(v as any).getTime();
-                const minDt = new Date(minValue as any).getTime();
-                if (!Number.isNaN(dt) && !Number.isNaN(minDt)) {
-                    return dt >= minDt ? success(v) : fail(v, this.i18n.translate('GL.VALIDATION.MIN', { min: minValue }));
-                }
-
-                return fail(v, 'GL.VALIDATION.FN');
-            },
-
-            [CrudFieldValidationEnum.MAX]: (v: any, fi: CrudFormFieldInfoType) => {
-                const maxValue = fi.validation?.[CrudFieldValidationEnum.MAX]?.value;
-                if (maxValue === undefined || maxValue === null) return success(v);
-                if (isEmpty(v)) return success(v);
-
-                const n = toNumberValue(v);
-                const max = toNumberValue(maxValue);
-
-                if (!Number.isNaN(n) && !Number.isNaN(max)) {
-                    return n <= max ? success(v) : fail(v, this.i18n.translate('GL.VALIDATION.MAX', { max: maxValue }));
-                }
-
-                // fallback: date compare
-                const dt = new Date(v as any).getTime();
-                const maxDt = new Date(maxValue as any).getTime();
-                if (!Number.isNaN(dt) && !Number.isNaN(maxDt)) {
-                    return dt <= maxDt ? success(v) : fail(v, this.i18n.translate('GL.VALIDATION.MAX', { max: maxValue }));
-                }
-
-                return fail(v, 'GL.VALIDATION.FN');
-            },
-
-            [CrudFieldValidationEnum.PATTERN]: (v: any, fi: CrudFormFieldInfoType) => {
-                const patternValue = fi.validation?.[CrudFieldValidationEnum.PATTERN]?.value;
-                if (!patternValue) return success(v);
-                if (isEmpty(v)) return success(v);
-
-                const regex = patternValue instanceof RegExp ? patternValue : new RegExp(String(patternValue));
-                return regex.test(toStringValue(v))
-                    ? success(v)
-                    : fail(v, 'GL.VALIDATION.PATTERN');
-            },
-
-            [CrudFieldValidationEnum.EMAIL]: (v: any) => {
-                if (isEmpty(v)) return success(v);
-                const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-                return emailRegex.test(toStringValue(v))
-                    ? success(v)
-                    : fail(v, 'GL.VALIDATION.EMAIL');
-            },
-
-            [CrudFieldValidationEnum.DATE]: (v: any) => {
-                if (isEmpty(v)) return success(v);
-                return isValidDateValue(v)
-                    ? success(v)
-                    : fail(v, 'GL.VALIDATION.DATE');
-            },
-
-            [CrudFieldValidationEnum.TIME]: (v: any) => {
-                if (isEmpty(v)) return success(v);
-                const timeRegex = /^([01]?[0-9]|2[0-3]):[0-5][0-9](:[0-5][0-9])?(\s?[AP]M)?$/i;
-                return timeRegex.test(toStringValue(v))
-                    ? success(v)
-                    : fail(v, 'GL.VALIDATION.TIME');
-            },
-
-            [CrudFieldValidationEnum.DATETIME]: (v: any) => {
-                if (isEmpty(v)) return success(v);
-                if (!isValidDateValue(v)) return fail(v, 'GL.VALIDATION.DATETIME');
-
-                const s = toStringValue(v);
-                const hasTime = /[0-9]:[0-9]/.test(s);
-                return hasTime ? success(v) : fail(v, 'GL.VALIDATION.DATETIME');
-            },
-
-            [CrudFieldValidationEnum.URL]: (v: any) => {
-                if (isEmpty(v)) return success(v);
-                const urlRegex = /^(https?|ftp):\/\/[^\s$.?#].[^\s]*$/i;
-                return urlRegex.test(toStringValue(v))
-                    ? success(v)
-                    : fail(v, 'GL.VALIDATION.URL');
-            },
-
-            [CrudFieldValidationEnum.MATCH_FIELD]: (v: any, fi: CrudFormFieldInfoType, r?: Record<string, any>) => {
-                const matchField = fi.validation?.[CrudFieldValidationEnum.MATCH_FIELD]?.value as string | undefined;
-                if (!matchField || !r) return success(v);
-                return v === r[matchField]
-                    ? success(v)
-                    : fail(v, this.i18n.translate('GL.VALIDATION.MATCH_FIELD', { expected: matchField }));
-            },
-
-            [CrudFieldValidationEnum.COLOR]: (v: any) => {
-                if (isEmpty(v)) return success(v);
-                const hexRegex = /^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/;
-                return hexRegex.test(toStringValue(v))
-                    ? success(v)
-                    : fail(v, 'GL.VALIDATION.COLOR');
-            },
-
-            [CrudFieldValidationEnum.DIGIT]: (v: any) => {
-                if (isEmpty(v)) return success(v);
-                return /^\d+$/.test(toStringValue(v))
-                    ? success(v)
-                    : fail(v, 'GL.VALIDATION.DIGIT');
-            },
-
-            [CrudFieldValidationEnum.DECIMAL]: (v: any) => {
-                if (isEmpty(v)) return success(v);
-                const decimalRegex = /^[+-]?([0-9]*[.])?[0-9]+$/;
-                return decimalRegex.test(toStringValue(v))
-                    ? success(v)
-                    : fail(v, 'GL.VALIDATION.DECIMAL');
-            },
-
-            [CrudFieldValidationEnum.TEXT]: (v: any) => {
-                if (isEmpty(v)) return success(v);
-                const textOnlyRegex = /^[a-zA-Z\s\u00C0-\u017F,.'-]+$/;
-                const s = toStringValue(v);
-                return textOnlyRegex.test(s)
-                    ? success(v)
-                    : fail(v, 'GL.VALIDATION.TEXT');
-            },
-
-            [CrudFieldValidationEnum.EXTENSION]: (v: any, fi: CrudFormFieldInfoType) => {
-                if (isEmpty(v)) return success(v);
-
-                const allowed = fi.validation?.[CrudFieldValidationEnum.EXTENSION]?.value as string[] | undefined;
-                if (!Array.isArray(allowed) || allowed.length === 0) return success(v);
-
-                const fileName = toStringValue(v);
-                const dotIndex = fileName.lastIndexOf('.');
-                if (dotIndex < 0) return fail(v, this.i18n.translate('GL.VALIDATION.EXTENSION', { allowed: allowed.join(', ') }));
-
-                const fileExt = fileName.substring(dotIndex).toLowerCase();
-                const ok = allowed.some((ext) => ext.toLowerCase() === fileExt);
-
-                return ok ? success(v) : fail(v, this.i18n.translate('GL.VALIDATION.EXTENSION', { allowed: allowed.join(', ') }));
-            },
-
-            [CrudFieldValidationEnum.OPTION_RANGE]: (v: any, fi: CrudFormFieldInfoType) => {
-                if (isEmpty(v)) return success(v);
-                if (!fi.option) return success(v);
-
-                const validValues = getOptionValues(fi.option);
-
-                const isValid = Array.isArray(v)
-                    ? v.every((item) => validValues.includes(item))
-                    : validValues.includes(v);
-
-                return isValid
-                    ? success(v)
-                    : fail(v, 'GL.VALIDATION.OPTION_RANGE');
-            },
-
-            [CrudFieldValidationEnum.FN]: (v: any, fi: CrudFormFieldInfoType, r?: Record<string, any>) => {
-                const fn = fi.validation?.[CrudFieldValidationEnum.FN]?.value;
-                if (typeof fn !== 'function') {
-                    return success(v);
-                }
-
-                const result = fn(v, fi, r);
-
-                if (typeof result === 'boolean') {
-                    return result ? success(v) : fail(v, 'GL.VALIDATION.FN');
-                }
-
-                if (
-                    result &&
-                    typeof result === 'object' &&
-                    'valid' in result &&
-                    'value' in result &&
-                    'errors' in result
-                ) {
-                    return result as CrudFieldValidationResultType;
-                }
-
-                return success(v);
-            },
-        };
-
         const validationEntries = Object.entries(fi.validation ?? {}) as [CrudFieldValidationEnum, CrudFieldValidationInfoType][];
 
         for (const [validationType, rule] of validationEntries) {
-            const validate = validator[validationType];
+            const validate = this.formFieldValidator[validationType];
             if (!validate) continue;
 
-            const result = validate(normalizedValue, fi, r);
+            const result = validate(v, fi, r);
 
             if (!result.valid) {
                 errors.push(rule?.message || result.errors[0]);
@@ -1604,250 +1469,23 @@ export class CrudValidation {
 
         return {
             valid: errors.length === 0,
-            value: normalizedValue,
+            value: v,
             errors,
         };
     }
 
     /**
-     *  
-     */
-    public setCrudFormFieldValueAngularValidation<T>(
-        sp: SchemaPathTree<T>, // schema path
-        fsi: CrudStateMutationFieldObjType, // fields info
-    ): void {
-
-        // Helper to check if string is a valid date logic-wise (e.g. not Feb 31st)
-        const isInvalidDate = (val: any) => {
-            const d = new Date(val);
-            return isNaN(d.getTime());
-        };
-
-        // apply validation methods available from "@angular/forms/signals"
-        // TODO: hidden() logic is pending with angular forms, not clear at this time
-        const setValidation: CrudFormFieldValueAngularValidatorLookUpType<T> = {
-            // REQUIRED
-            [CrudFieldValidationEnum.REQUIRED]: (sp: SchemaPathTree<T>, f: string, validationType: CrudFieldValidationEnum, rule: CrudFieldValidationInfoType, fi: CrudFormFieldInfoType) => {
-                required((sp as any)[f], { message: rule.message });
-            },
-
-            // MIN_LENGTH
-            [CrudFieldValidationEnum.MIN_LENGTH]: (sp: SchemaPathTree<T>, f: string, validationType: CrudFieldValidationEnum, rule: CrudFieldValidationInfoType, fi: CrudFormFieldInfoType) => {
-                minLength((sp as any)[f], rule.value as number, { message: rule.message });
-            },
-
-            // MAX_LENGTH
-            [CrudFieldValidationEnum.MAX_LENGTH]: (sp: SchemaPathTree<T>, f: string, validationType: CrudFieldValidationEnum, rule: CrudFieldValidationInfoType, fi: CrudFormFieldInfoType) => {
-                maxLength((sp as any)[f], rule.value as number, { message: rule.message });
-            },
-
-            // MIN
-            [CrudFieldValidationEnum.MIN]: (sp: SchemaPathTree<T>, f: string, validationType: CrudFieldValidationEnum, rule: CrudFieldValidationInfoType, fi: CrudFormFieldInfoType) => {
-                validate((sp as any)[f], (ctx) => {
-                    const val = ctx.value();
-                    if (!val) return null;
-
-                    const dateVal = new Date(val as any).getTime();
-                    const minVal = new Date(rule.value as any).getTime();
-
-                    if (!isNaN(dateVal) && !isNaN(minVal)) {
-                        return dateVal >= minVal ? null : { kind: 'min', message: rule.message };
-                    }
-
-                    return Number(val) >= Number(rule.value) ? null : { kind: 'min', message: rule.message };
-                });
-            },
-
-            // MAX
-            [CrudFieldValidationEnum.MAX]: (sp: SchemaPathTree<T>, f: string, validationType: CrudFieldValidationEnum, rule: CrudFieldValidationInfoType, fi: CrudFormFieldInfoType) => {
-                validate((sp as any)[f], (ctx) => {
-                    const val = ctx.value();
-                    if (!val) return null;
-
-                    const dateVal = new Date(val as any).getTime();
-                    const maxVal = new Date(rule.value as any).getTime();
-
-                    if (!isNaN(dateVal) && !isNaN(maxVal)) {
-                        return dateVal <= maxVal ? null : { kind: 'max', message: rule.message };
-                    }
-
-                    return Number(val) <= Number(rule.value) ? null : { kind: 'max', message: rule.message };
-                });
-            },
-
-            // PATTERN
-            [CrudFieldValidationEnum.PATTERN]: (sp: SchemaPathTree<T>, f: string, validationType: CrudFieldValidationEnum, rule: CrudFieldValidationInfoType, fi: CrudFormFieldInfoType) => {
-                pattern((sp as any)[f], rule.value as any, { message: rule.message });
-            },
-
-            // EMAIL
-            [CrudFieldValidationEnum.EMAIL]: (sp: SchemaPathTree<T>, f: string, validationType: CrudFieldValidationEnum, rule: CrudFieldValidationInfoType, fi: CrudFormFieldInfoType) => {
-                email((sp as any)[f], { message: rule.message });
-            },
-
-            // DATE
-            [CrudFieldValidationEnum.DATE]: (sp: SchemaPathTree<T>, f: string, validationType: CrudFieldValidationEnum, rule: CrudFieldValidationInfoType, fi: CrudFormFieldInfoType) => {
-                validate((sp as any)[f], (ctx) => {
-                    const val = ctx.value();
-                    if (!val) return null;
-                    return !isInvalidDate(val) ? null : { kind: 'date', message: rule.message };
-                });
-            },
-
-            // TIME
-            [CrudFieldValidationEnum.TIME]: (sp: SchemaPathTree<T>, f: string, validationType: CrudFieldValidationEnum, rule: CrudFieldValidationInfoType, fi: CrudFormFieldInfoType) => {
-                validate((sp as any)[f], (ctx) => {
-                    const val = ctx.value();
-                    if (!val) return null;
-                    const timeRegex = /^([01]?[0-9]|2[0-3]):[0-5][0-9](:[0-5][0-9])?(\s?[AP]M)?$/i;
-                    return timeRegex.test(val.toString()) ? null : { kind: 'time', message: rule.message };
-                });
-            },
-
-            // DATETIME
-            [CrudFieldValidationEnum.DATETIME]: (sp: SchemaPathTree<T>, f: string, validationType: CrudFieldValidationEnum, rule: CrudFieldValidationInfoType, fi: CrudFormFieldInfoType) => {
-                validate((sp as any)[f], (ctx) => {
-                    const val = ctx.value();
-                    if (!val) return null;
-                    
-                    if (isInvalidDate(val)) return { kind: 'datetime', message: rule.message };
-
-                    const hasTime = /[0-9]:[0-9]/.test(val.toString());
-                    return hasTime ? null : { kind: 'datetime', message: rule.message };
-                });
-            },
-
-            // URL
-            [CrudFieldValidationEnum.URL]: (sp: SchemaPathTree<T>, f: string, validationType: CrudFieldValidationEnum, rule: CrudFieldValidationInfoType, fi: CrudFormFieldInfoType) => {
-                const urlRegex = /^(https?|ftp):\/\/[^\s$.?#].[^\s]*$/i;
-                pattern((sp as any)[f], urlRegex, { message: rule.message });
-            },
-
-            // MATCH_FIELD
-            [CrudFieldValidationEnum.MATCH_FIELD]: (sp: SchemaPathTree<T>, f: string, validationType: CrudFieldValidationEnum, rule: CrudFieldValidationInfoType, fi: CrudFormFieldInfoType) => {
-                validate((sp as any)[f], (ctx) => {
-                    const currentVal = ctx.value();
-                    const otherVal = ctx.valueOf((sp as any)[rule.value as string]);
-                    return currentVal === otherVal ? null : { kind: 'mismatch', message: rule.message };
-                });
-            },
-            
-            // COLOR
-            [CrudFieldValidationEnum.COLOR]: (sp: SchemaPathTree<T>, f: string, validationType: CrudFieldValidationEnum, rule: CrudFieldValidationInfoType, fi: CrudFormFieldInfoType) => {
-                const hexRegex = /^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/;
-                pattern((sp as any)[f], hexRegex, { message: rule.message });
-            },
-
-            // DIGIT
-            [CrudFieldValidationEnum.DIGIT]: (sp: SchemaPathTree<T>, f: string, validationType: CrudFieldValidationEnum, rule: CrudFieldValidationInfoType, fi: CrudFormFieldInfoType) => {
-                pattern((sp as any)[f], /^\d+$/, { message: rule.message });
-            },
-
-            // DECIMAL
-            [CrudFieldValidationEnum.DECIMAL]: (sp: SchemaPathTree<T>, f: string, validationType: CrudFieldValidationEnum, rule: CrudFieldValidationInfoType, fi: CrudFormFieldInfoType) => {
-                validate((sp as any)[f], (ctx) => {
-                    const val = ctx.value();
-                    if (val === null || val === undefined || val === '') return null;
-
-                    const decimalRegex = /^[+-]?([0-9]*[.])?[0-9]+$/;
-                    const isValid = decimalRegex.test(val.toString());
-
-                    return isValid ? null : { kind: 'decimal', message: rule.message };
-                });
-            },
-
-            // TEXT
-            [CrudFieldValidationEnum.TEXT]: (sp: SchemaPathTree<T>, f: string, validationType: CrudFieldValidationEnum, rule: CrudFieldValidationInfoType, fi: CrudFormFieldInfoType) => {
-                validate((sp as any)[f], (ctx) => {
-                    const val = ctx.value();
-                    if (val === null || val === undefined || val === '') return null;
-
-                    const textOnlyRegex = /^[a-zA-Z\s\u00C0-\u017F,.'-]+$/;
-                    const isString = typeof val === 'string';
-                    const isValidText = isString && textOnlyRegex.test(val);
-
-                    return isValidText ? null : { kind: 'text', message: rule.message };
-                });
-            },
-
-            // EXTENSION
-            [CrudFieldValidationEnum.EXTENSION]: (sp: SchemaPathTree<T>, f: string, validationType: CrudFieldValidationEnum, rule: CrudFieldValidationInfoType, fi: CrudFormFieldInfoType) => {
-                validate((sp as any)[f], (ctx) => {
-                    const fileName = ctx.value() as string;
-                    if (!fileName || typeof fileName !== 'string') return null;
-
-                    const allowedExt = rule.value as string[];
-                    const fileExt = fileName.substring(fileName.lastIndexOf('.')).toLowerCase();
-                    const isValid = allowedExt.some(ext => ext.toLowerCase() === fileExt);
-
-                    return isValid ? null : { kind: 'extension', message: rule.message };
-                });
-            },
-
-            // OPTION_RANGE
-            [CrudFieldValidationEnum.OPTION_RANGE]: (sp: SchemaPathTree<T>, f: string, validationType: CrudFieldValidationEnum, rule: CrudFieldValidationInfoType, fi: CrudFormFieldInfoType) => {
-                validate((sp as any)[f], (ctx) => {
-                    const value = ctx.value();
-                    if (value === null || value === undefined || value === '') return null;
-
-                    const options = fi.option;
-                    if (!options) return null;
-
-                    // Existing behavior: options can be array or object
-                    const allowedValues = Array.isArray(options)
-                    ? options
-                    : (typeof options === 'object' ? Object.keys(options) : []);
-
-                    // support multiselect/array values
-                    const isValid = Array.isArray(value)
-                    ? value.every((item) => allowedValues.includes(item as any))
-                    : allowedValues.includes(value as any);
-
-                    return isValid ? null : { kind: 'option_range', message: rule.message };
-                });
-            },
-
-            // FN
-            [CrudFieldValidationEnum.FN]: (sp: SchemaPathTree<T>, f: string, validationType: CrudFieldValidationEnum, rule: CrudFieldValidationInfoType, fi: CrudFormFieldInfoType) => {
-                validate((sp as any)[f], (ctx) => {
-                    if (typeof rule.value === 'function') {
-                        const record: any = ctx.valueOf(sp as any);
-                        const fv = record[f];
-                        const result = rule.value(fv, fi, record);
-                        return result?.valid ? null : { kind: 'custom', message: rule.message };
-                    }
-                    return null;
-                });
-            },
-        };
-
-        const keys = Object.keys(fsi);
-        for (let i = 0; i < keys.length; i++) {
-            const f = keys[i];
-            const fi = fsi[f];
-
-            if (fi.validation) {
-                const rules = Object.entries(fi.validation) as [CrudFieldValidationEnum, CrudFieldValidationInfoType][];
-
-                for (const [validationType, rule] of rules) {
-                    const apply = setValidation[validationType];
-                    if (!apply) continue;
-                    apply(sp, f, validationType, rule, fi);
-                }
-            }
-        }
-    }
-
-    /**
-     *  
+     * @normalizeAndValidateCrudFormFieldValue
+     * Normalize and validate a CRUD form field value.
      */
     public normalizeAndValidateCrudFormFieldValue(
-        v: unknown, 
+        v: unknown,
         fi: CrudFormFieldInfoType,
         r?: Record<string, any>,
-        mode: CrudFieldNormalizeModeEnum = CrudFieldNormalizeModeEnum.CTOS
+        mode: CrudFieldNormalizeModeEnum = CrudFieldNormalizeModeEnum.CTOS,
+        context?: CrudModuleContextType,
     ): CrudFieldValidationResultType {
-        const nv = this.normalizeCrudFormFieldValue(v, fi, r, mode);
+        const nv = this.normalizeCrudFormFieldValue(v, fi, r, mode, context);
 
         const vr = this.validateCrudFormFieldValue(nv, fi, r);
 
@@ -1856,7 +1494,57 @@ export class CrudValidation {
             value: (vr.valid ? nv : fi.default) ?? null,
             errors: vr.errors,
         };
-        
+
         return resp;
+    }
+
+    /**
+     * Format a configured field value for listing, quick-search and read-only views.
+     */
+    public formatCrudFieldValue(
+        v: any,
+        fi: CrudFieldInfoType,
+        r: Record<string, any>,
+        context?: CrudModuleContextType,
+    ): any {
+        const formattedValue = this.fieldFormatter[fi.type](v, fi, r);
+        const encryptedValue = this.encryptFieldValueIfNeeded(
+            formattedValue,
+            fi,
+            context,
+        );
+
+        if (fi.format_val) {
+            return fi.format_val(encryptedValue, fi, r);
+        }
+
+        return encryptedValue;
+    }
+
+    // Apply validation methods available from "@angular/forms/signals".
+    // TODO: hidden() logic is pending with angular forms, not clear at this time.
+    /**
+     *  @setCrudSignalFormValidation
+     */
+    public setCrudSignalFormValidation<T>(
+        sp: SchemaPathTree<T>, // schema path
+        fObj: CrudStateMutationFieldObjType, // fields info
+    ): void {
+
+        const keys = Object.keys(fObj);
+        for (let i = 0; i < keys.length; i++) {
+            const f = keys[i];
+            const fi = fObj[f];
+
+            if (fi.validation) {
+                const rules = Object.entries(fi.validation) as [CrudFieldValidationEnum, CrudFieldValidationInfoType][];
+
+                for (const [validationType, rule] of rules) {
+                    const apply = this.signalFormFieldValidator[validationType];
+                    if (!apply) continue;
+                    apply(sp, f, validationType, rule, fi);
+                }
+            }
+        }
     }
 }

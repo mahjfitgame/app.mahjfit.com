@@ -7,6 +7,7 @@ import { MatMenuModule } from '@angular/material/menu';
 import { MatButtonModule } from '@angular/material/button';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { TranslocoModule } from '@jsverse/transloco';
+import { MatDividerModule } from '@angular/material/divider';
 
 @Component({
   selector: 'app-crud-default-listing-selected-record-action',
@@ -20,6 +21,7 @@ import { TranslocoModule } from '@jsverse/transloco';
     MatMenuModule,
     MatButtonModule,
     MatTooltipModule,
+    MatDividerModule,
   ],
   providers: [],
 })

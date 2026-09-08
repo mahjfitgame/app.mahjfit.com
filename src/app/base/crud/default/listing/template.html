@@ -1,4 +1,7 @@
 <!-- file: src/app/base/crud/default/listing/template.html -->
+ @let displayFields = service.state.listing.getDisplayFieldsValue() 
+    ?? service.state.listing.getDisplayFieldsDefault() 
+    ?? [];
 <mat-card>
     <mat-card-content class="tw:p-1! tw:overflow-auto">
         <table
@@ -6,15 +9,17 @@
             class="tw:w-full tw:bg-transparent!"
             cdkDropList
             cdkDropListOrientation="horizontal"
+            [cdkDropListDisabled]="!service.state.action.hasColumnPosition()"
             (cdkDropListDropped)="service.dragAndDropColumn($event)"
-            [dataSource]="service.state.listingDataSource()"
+            [dataSource]="service.state.listing.listingDataSource()"
         >
         @let base = 'tw:border-0! tw:bg-slate-100! tw:dark:bg-slate-100/10! tw:transition-all'; 
         @let hoverColor = 'tw:hover:bg-slate-200! tw:dark:hover:bg-slate-200/15!';
         @let roundedCorner = 'tw:first:rounded-s-md tw:last:rounded-e-md';
         @let columnMove = 'tw:cursor-grab tw:active:cursor-grabbing!';
 
-        @if(service.state.grantRecordSelectionColumn()){
+        <!-- FIRST COLUMN -->
+        @if(service.state.action.hasRecordSelectionAction()){
         <ng-container [matColumnDef]="service.CrudListingAdditionalColumnsEnum.RECORD_SELECT">
             <th mat-header-cell *matHeaderCellDef [ngClass]="[base, hoverColor, roundedCorner]">
                 <div class="tw:flex tw:items-center tw:gap-2 tw:py-2">
@@ -38,7 +43,7 @@
                 ></mat-checkbox>
             </td>
             <td mat-footer-cell *matFooterCellDef [ngClass]="[base, roundedCorner]">
-                @if(service.state.getListingSelectedRowsValue().selected.length > 0) {
+                @if(service.state.listing.getListingSelectedRowsValue().selected.length > 0) {
                     <app-crud-default-listing-selected-record-action>
                     </app-crud-default-listing-selected-record-action>
                 }
@@ -46,18 +51,26 @@
         </ng-container>    
         }
         
-        @for (field of service.state.listingFieldObj() | keyvalue: null; track field.key) {
+        <!-- ALL FIELDS COLUMN -->
+        @for (field of service.state.listing.listingFieldObj() | keyvalue: null; track field.key) {
             <!-- Assigning local variables -->
             @let fkey = field.key;
             @let finfo = field.value;
             
             <ng-container [matColumnDef]="fkey">
                 <!-- Header Cell -->
-                <th mat-header-cell cdkDrag *matHeaderCellDef [ngClass]="[base, hoverColor, columnMove, roundedCorner]">
+                <th mat-header-cell cdkDrag [cdkDragDisabled]="!service.state.action.hasColumnPosition()" *matHeaderCellDef [ngClass]="[base, hoverColor, service.state.action.hasColumnPosition() ? columnMove : '', roundedCorner]">
                     <div class="tw:flex tw:items-center tw:gap-2 tw:py-2">
                         <div class="tw:h-6 tw:w-1 tw:rounded-full tw:bg-primary/40 tw:hover:bg-primary/90"></div>
                         <strong class="tw:text-primary/90 tw:font-bold tw:text-base tw:tracking-tight tw:leading-none">
-                            {{ finfo.label | transloco }}
+                            @defer (on idle) {
+                                {{ finfo.label | transloco }}
+                            } @placeholder (minimum 200ms) {
+                                <span
+                                    class="tw:block tw:h-4 tw:w-20 tw:animate-pulse tw:rounded tw:bg-primary/15"
+                                    aria-hidden="true"
+                                ></span>
+                            }
                         </strong>
                     </div>
                 </th>
@@ -74,15 +87,17 @@
                             @for (fieldSub of finfo.sub | keyvalue: null; track fieldSub.key) {
                                 @let fskey = fieldSub.key;
                                 @let fsinfo = fieldSub.value;
-                                <p>
-                                    <!--  TODO: in case of fsinfo.skip = true we do not need to show label, need some logic which can avoid if condition checking for performance -->
-                                    <strong class="tw:text-black/70 tw:dark:text-white/50">{{ fsinfo.label | transloco }}:</strong>
-                                    <ng-container 
-                                        *ngTemplateOutlet="CRUD_LISTING_FIELD_LAYOUT; 
-                                        context: { row: row, fkey: fskey, finfo: fsinfo,  }"
-                                    >
-                                    </ng-container>
-                                </p>
+                                @if (fsinfo.type !== service.CrudFieldUiTypeEnum.NONE && displayFields.includes(fskey)) {
+                                    <p>
+                                        <!--  TODO: in case of fsinfo.skip = true we do not need to show label, need some logic which can avoid if condition checking for performance -->
+                                        <strong class="tw:text-black/70 tw:dark:text-white/50">{{ fsinfo.label | transloco }}:</strong>
+                                        <ng-container
+                                            *ngTemplateOutlet="CRUD_LISTING_FIELD_LAYOUT;
+                                            context: { row: row, fkey: fskey, finfo: fsinfo,  }"
+                                        >
+                                        </ng-container>
+                                    </p>
+                                }
                             }
                         </div>
                     } @else {
@@ -99,10 +114,11 @@
             </ng-container>
         }
 
-        @if(service.state.grantRecordActionColumn()){
+        <!-- LAST COLUMN -->
+        @if(service.state.action.hasRecordAction()){
         <ng-container [matColumnDef]="service.CrudListingAdditionalColumnsEnum.RECORD_ACTION">
             <!-- Header Cell -->
-            <th mat-header-cell cdkDrag *matHeaderCellDef [ngClass]="[base, hoverColor, columnMove, roundedCorner]">
+            <th mat-header-cell cdkDrag [cdkDragDisabled]="!service.state.action.hasColumnPosition()" *matHeaderCellDef [ngClass]="[base, hoverColor, service.state.action.hasColumnPosition() ? columnMove : '', roundedCorner]">
                 <div class="tw:flex tw:items-center tw:justify-center tw:gap-2 tw:py-2">
                     <div class="tw:h-6 tw:w-1 tw:rounded-full tw:bg-primary/40 tw:hover:bg-primary/90"></div>
                 </div>
@@ -110,7 +126,9 @@
             
             <!-- Data Cell -->
             <td mat-cell *matCellDef="let row" class="tw:align-top tw:text-center!">
-                <app-crud-default-listing-record-action [row]="row">
+                <app-crud-default-listing-record-action
+                    [row]="row"
+                >
                 </app-crud-default-listing-record-action>
             </td>
 
@@ -120,15 +138,16 @@
         </ng-container>
         }
 
-        <tr mat-header-row *matHeaderRowDef="service.state.getListingColumnPositionValue()"></tr>
-        <tr mat-row *matRowDef="let row; columns: service.state.getListingColumnPositionValue()" class="tw:hover:bg-slate-50/60! tw:dark:hover:bg-slate-50/3!"></tr>
-        <tr mat-footer-row *matFooterRowDef="service.state.getListingColumnPositionValue()"></tr>
+        @let listingColumns = service.state.listing.getListingColumnPositionValue() ?? [];
+        <tr mat-header-row *matHeaderRowDef="listingColumns"></tr>
+        <tr mat-row *matRowDef="let row; columns: listingColumns" class="tw:hover:bg-slate-50/60! tw:dark:hover:bg-slate-50/3!"></tr>
+        <tr mat-footer-row *matFooterRowDef="listingColumns"></tr>
         <tr class="mat-row" *matNoDataRow>
-            <td class="mat-cell tw:text-center!" [attr.colspan]="service.state.getListingColumnPositionValue().length">
+            <td class="mat-cell tw:text-center!" [attr.colspan]="listingColumns.length">
                 @if(service.gpbs.processing){
                     {{ 'GL.COMMON.LOADING' | transloco }}
                 } @else {
-                    @if(service.state.totalRecords() === 0){
+                    @if(service.state.listing.totalRecords() === 0){
                         {{ 'GL.COMMON.NO_DATA' | transloco }}
                     }
                 }
@@ -146,7 +165,7 @@
     let-finfo="finfo"
 >
     @let fvalue = row[fkey] | fieldValueFormat: finfo : row;
-    <span [termHighlight]="service.state.getQuickSearchValue()">{{ fvalue }}</span>
+    <span [termHighlight]="service.state.listing.getQuickSearchValue()">{{ fvalue }}</span>
     @if(finfo.mat_icon_prepend){
         <mat-icon class="material-symbols-rounded tw:text-primary! tw:text-sm! tw:w-4! tw:h-4! -tw:leading-none!">{{ finfo.mat_icon_prepend }}</mat-icon>
     }
@@ -164,12 +183,21 @@
                         : service.CrudFieldSlotPortalKeyPrefixEnum.LISTING + fkey;
     @let customFieldPortal = service.state.getSlotField(portalKey);
 
-    @if (finfo?.slot && customFieldPortal) {
+    @if (
+        finfo?.slot &&
+        customFieldPortal &&
+        (finfo.type === service.CrudFieldUiTypeEnum.NONE || displayFields.includes(fkey))
+    ) {
         <ng-container
             *ngTemplateOutlet="$any(customFieldPortal).templateRef; 
             context: { row: row, fkey: fkey, finfo: finfo }"
         ></ng-container>
-    } @else if (finfo.type !== service.CrudFieldUiTypeEnum.NONE && (!finfo?.skip || finfo?.skip === false)) {
+    } @else if (
+        !finfo?.slot &&
+        finfo.type !== service.CrudFieldUiTypeEnum.NONE &&
+        displayFields.includes(fkey) &&
+        (!finfo?.skip || finfo?.skip === false)
+    ) {
         <!-- TODO: [finfo?.skip] flag is not working properly need to understand use case and make it usable -->
         <ng-container 
             *ngTemplateOutlet="DEF_CRUD_LISTING_FIELD_LAYOUT; 

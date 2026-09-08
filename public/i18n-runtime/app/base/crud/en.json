@@ -49,21 +49,23 @@
                     "OPTION_RANGE": "Invalid field selection."
                 }
             },
-            "SORT_FIELDS_AND_DIRECTION": {
-                "LABEL": "Sort fields and direction",
-                "PLACEHOLDER": "Select fields and direction to sort",
-                "HINT": "Sort field and direction to refine your data.",
+            "SORT_FIELDS": {
+                "LABEL": "Sort field",
+                "PLACEHOLDER": "Select a field to sort",
+                "HINT": "Select the field used to order your data.",
                 "VALIDATION": {
                     "OPTION_RANGE": "Invalid sort field."
                 }
             },
-            "RBIN": {
-                "LABEL": "Recycle bin",
-                "PLACEHOLDER": "Show record in recycle bin",
-                "HINT": "Click to view recycle bin records."
+            "SORT_DIRECTION": {
+                "LABEL": "Sort direction",
+                "HINT": "Choose ascending or descending order.",
+                "VALIDATION": {
+                    "OPTION_RANGE": "Invalid sort direction."
+                }
             }
         },
-        "SEARCH_FILTER": {
+        "LISTING_SEARCH": {
             "OPEN_LABEL": "Open search filter",
             "TAB_NAME": "Filter"
         }

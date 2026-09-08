@@ -8,6 +8,7 @@ export class ConfPublic {
 
   // General
   public DEBUG: boolean = false;
+  public ENABLE_LOCAL_DB: boolean = true;
   public TZ: string =  'US/Eastern';
   public PROJECT_NAME: string = 'bfw.nestjs.microservice.api/web';
   public GRAPHQL_ROOT_SLUG: string = 'graphql';

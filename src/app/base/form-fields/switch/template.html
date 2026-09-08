@@ -1,0 +1,50 @@
+<mat-form-field appearance="outline" subscriptSizing="dynamic" class="tw:w-full">
+  <mat-label>{{ label() }}</mat-label>
+
+  @if (iconPrepend()) {
+    <mat-icon matPrefix class="material-symbols-rounded">{{ iconPrepend() }}</mat-icon>
+  }
+
+  <div class="tw:flex tw:items-center">
+    <input
+      matInput
+      readonly
+      [errorStateMatcher]="errorMatcher"
+      [ngModel]="(service.state.checked() ? onLabel() : offLabel()) | transloco"
+      [ngModelOptions]="{ standalone: true }"
+      [attr.name]="name()"
+      [attr.id]="inputId() || name()"
+      [required]="required()"
+      [disabled]="disabled()"
+    />
+
+    <mat-slide-toggle
+      [checked]="service.state.checked()"
+      [required]="required()"
+      [disabled]="disabled()"
+      [attr.aria-label]="label()"
+      (change)="service.onChange($event.checked)"
+    >
+    </mat-slide-toggle>
+  </div>
+
+  @if (iconAppend()) {
+    <mat-icon matSuffix class="material-symbols-rounded">{{ iconAppend() }}</mat-icon>
+  }
+
+  @if (error()) {
+    <mat-error class="tw:flex! tw:items-center tw:gap-1">
+      <mat-icon class="material-symbols-rounded tw:text-xs! tw:h-4! tw:w-4! tw:shrink-0"
+        >error</mat-icon
+      >
+      <span>{{ error() }}</span>
+    </mat-error>
+  } @else if (hint()) {
+    <mat-hint class="tw:flex tw:items-start tw:gap-1">
+      <mat-icon class="material-symbols-rounded tw:text-xs! tw:h-4! tw:w-4! tw:shrink-0"
+        >info</mat-icon
+      >
+      <span>{{ hint() }}</span>
+    </mat-hint>
+  }
+</mat-form-field>

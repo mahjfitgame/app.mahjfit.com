@@ -18,8 +18,8 @@
     </div>
     <footer class="bfw-safe-area-pb bfw-safe-area-px tw:sticky tw:bottom-0 tw:z-20 tw:w-full tw:backdrop-blur-md tw:mbs-auto">
         <div class="tw:flex tw:gap-2 tw:p-3!">
-            <button mat-button type="reset" form="crudMutationForm" class="tw:flex-1">{{ 'GL.COMMON.RESET' | transloco }}</button>
-            <button mat-flat-button type="submit" form="crudMutationForm" color="primary" class="tw:flex-1">{{ 'GL.COMMON.SAVE' | transloco }}</button>
+            <button mat-button type="button" class="tw:flex-1" [disabled]="service.state.mutation.mutationForm().submitting()" (click)="service.state.mutation.resetMutationForm()">{{ 'GL.COMMON.RESET' | transloco }}</button>
+            <button mat-flat-button type="submit" form="crudMutationForm" color="primary" class="tw:flex-1" [disabled]="service.state.mutation.mutationForm().invalid() || service.state.mutation.mutationForm().pending() || service.state.mutation.mutationForm().submitting()">{{ 'GL.COMMON.SAVE' | transloco }}</button>
         </div>
     </footer>
 </div>

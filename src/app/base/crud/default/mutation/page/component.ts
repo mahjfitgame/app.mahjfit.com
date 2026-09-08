@@ -11,7 +11,12 @@ import { TranslocoModule } from '@jsverse/transloco';
   standalone: true,
   templateUrl: './template.html',
   styleUrl: './style.scss',
-  imports: [NgComponentOutlet, TranslocoModule, MatButtonModule, MatIconModule],
+  imports: [
+    NgComponentOutlet, 
+    TranslocoModule,
+    MatButtonModule, 
+    MatIconModule,
+  ],
 })
 export class CrudDefaultMutationPageComponent {
   public readonly service = inject(CrudService);

@@ -15,12 +15,12 @@ import { LogService } from '@libs/log/service';
 import { GlobalProgressBarService } from '@base/global-progress-bar/service';
 import { ContextProfileService } from '@libs/context-profile/service';
 import { BfwApiService } from '@libs/third-party-apis/bfw-api/service';
-import { CrudChildMutationStateType } from 'src/app/base/crud/child/type/mutation.state';
 import { PREBOARDING_RECOVERPASSWORD_STATE_STORE_KEY } from './const';
+import { CrudChildStateType } from 'src/app/base/crud/child/type/state';
+import { CrudMutationStateType } from 'src/app/base/crud/type';
 
 @Service({ autoProvided: false })
-export class RecoverPasswordState extends SignalStateService implements FoundationModuleStateType, CrudChildMutationStateType
-{
+export class RecoverPasswordState extends SignalStateService implements FoundationModuleStateType, CrudChildStateType, CrudMutationStateType {
     // ████ DEPENDENCIES ████████████████████████████████████████████████
     public readonly conf = inject(ConfService);
     public readonly log = inject(LogService);
@@ -258,6 +258,9 @@ export class RecoverPasswordState extends SignalStateService implements Foundati
 
     public setMutationFormProcessing(processing: boolean): void {
         this._mutationFormProcessing.set(processing);
+    }
+    public setMutationFormValues(input?: RecoverPasswordMutationFormModelType): void {
+        // not in use but required to satisfy the interface   
     }
     public resetMutationForm(): void {
         // reset the form when needed

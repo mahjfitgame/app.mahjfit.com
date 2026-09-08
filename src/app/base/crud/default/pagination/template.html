@@ -1,12 +1,12 @@
 <!-- file: src/app/base/crud/default/pagination/template.html -->
-@if(service.state.totalRecords() > 0) {
+@if(service.state.listing.totalRecords() > 0) {
 <mat-card>
     <mat-card-actions class="tw:p-1! tw:justify-center">
         <app-pagination
-            [totalRecords]="service.state.totalRecords()"
-            [pageIndex]="service.state.getCurrentPageValue()"
-            [pageSize]="service.state.getRowsPerPageValue()"
-            [pageSizeOptions]="service.state.getRowsPerPageOption()"
+            [totalRecords]="service.state.listing.totalRecords()"
+            [pageIndex]="service.state.listing.getCurrentPageValue()"
+            [pageSize]="service.state.listing.getRowsPerPageValue()"
+            [pageSizeOptions]="service.state.listing.getRowsPerPageOption()"
             [showFirstLastButtons]="true"
             [showJumpToPage]="true"
             [disabled]="service.gpbs.processing"

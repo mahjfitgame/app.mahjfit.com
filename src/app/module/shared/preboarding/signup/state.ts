@@ -11,11 +11,12 @@ import { ContextProfileService } from "@libs/context-profile/service";
 import { BfwApiService } from "@libs/third-party-apis/bfw-api/service";
 import { FoundationModuleStateType } from "@libs/foundation/module/type";
 import { SignupMutationFieldObjType, SignupMutationFormErrorType, SignupMutationFormModelType } from "src/app/module/shared/preboarding/signup/type";
-import { CrudChildMutationStateType } from "src/app/base/crud/child/type/mutation.state";
 import { PREBOARDING_SIGNUP_STATE_STORE_KEY } from "./const";
+import { CrudChildStateType } from "src/app/base/crud/child/type/state";
+import { CrudMutationStateType } from "src/app/base/crud/type";
 
 @Service({ autoProvided: false })
-export class SignupState extends SignalStateService implements FoundationModuleStateType, CrudChildMutationStateType {
+export class SignupState extends SignalStateService implements FoundationModuleStateType, CrudChildStateType, CrudMutationStateType {
 
     // ████ DEPENDENCIES ████████████████████████████████████████████████
 
@@ -381,6 +382,9 @@ export class SignupState extends SignalStateService implements FoundationModuleS
     }
     public setMutationFormProcessing(processing: boolean): void {
         this._mutationFormProcessing.set(processing);
+    }
+    public setMutationFormValues(input?: SignupMutationFormModelType): void {
+        // not in use but required to satisfy the interface   
     }
     public resetMutationForm(): void {
         // reset the form when needed

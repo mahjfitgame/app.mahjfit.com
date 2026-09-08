@@ -8,9 +8,7 @@ import { FoundationNavPositionEnum } from '@libs/foundation/nav/enum';
 import { PrivateAreaRoute } from '@area/private/route';
 import { HomeRoute } from '@module/business/home/route';
 import { DashboardRoute } from '@module/shared/dashboard/route';
-import { GeoCountryRoute } from '@module/shared/geo/country/route';
 import { GeoRoute } from '@module/shared/geo/route';
-import { GeoStateRoute } from '@module/shared/geo/state/route';
 import { MyProfileRoute } from '@module/shared/onboarding/my-profile/route';
 import { OnboardingRoute } from '@module/shared/onboarding/route';
 import { SignoutRoute } from '@module/shared/onboarding/signout/route';
@@ -37,8 +35,6 @@ export class PrivateAreaRegistry {
         [OnboardingRoute.registryKey]: OnboardingRoute,   // group: no url, onboarding position
         [MyProfileRoute.registryKey]: MyProfileRoute,
         [GeoRoute.registryKey]: GeoRoute,                 // group: owns /geo
-        [GeoCountryRoute.registryKey]: GeoCountryRoute,
-        [GeoStateRoute.registryKey]: GeoStateRoute,
 
         // BUSINESS MODULES
     };

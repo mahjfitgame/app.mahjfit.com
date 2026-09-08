@@ -1,0 +1,78 @@
+<!-- file: src/app/base/crud/default/view/record/template.html -->
+<div [id]="service.CRUD_PRINT_SECTION_ID">
+    @if (service.state.view.viewRecordProcessing()) {
+        <p class="tw:m-0 tw:p-3 tw:text-sm tw:opacity-70 tw:text-center">
+            {{ 'GL.COMMON.LOADING' | transloco }}...
+        </p>
+    }
+    @else if (service.state.view.viewRecord(); as record) {
+        <div class="tw:grid tw:grid-cols-1 tw:gap-2 tw:lg:grid-cols-12 tw:print:grid-cols-12">
+            @for (entry of fields(); track entry[0]) {
+                @let key = entry[0];
+                @let field = entry[1];
+
+                @if (field.type === service.CrudFieldUiTypeEnum.NONE) {
+                    @let label = field.label | transloco;
+                    @let icon = field.mat_icon_prepend ?? field.mat_icon_append ?? 'docs';
+                    @if (label) {
+                        <header class="tw:col-span-full tw:flex tw:items-center tw:gap-1 tw:mb-2 tw:text-primary">
+                            <span class="tw:grid tw:place-content-center tw:h-8 tw:w-8 tw:shrink-0 tw:rounded-full tw:shadow-sm tw:bg-primary/20">
+                                <mat-icon class="material-symbols-rounded">{{ icon }}</mat-icon>
+                            </span>
+                            <h2>{{ label }}</h2>
+                        </header>
+                    } @else {
+                        <mat-divider class="tw:col-span-full"></mat-divider>
+                    }
+                }
+                @else {
+                    @let colspan = field.colspan ?? 12;
+                    <section
+                        class="tw:min-w-0 tw:rounded-xl tw:border tw:border-outline/30 tw:p-2"
+                        [class.tw:lg:col-span-1]="colspan === 1"
+                        [class.tw:lg:col-span-2]="colspan === 2"
+                        [class.tw:lg:col-span-3]="colspan === 3"
+                        [class.tw:lg:col-span-4]="colspan === 4"
+                        [class.tw:lg:col-span-5]="colspan === 5"
+                        [class.tw:lg:col-span-6]="colspan === 6"
+                        [class.tw:lg:col-span-7]="colspan === 7"
+                        [class.tw:lg:col-span-8]="colspan === 8"
+                        [class.tw:lg:col-span-9]="colspan === 9"
+                        [class.tw:lg:col-span-10]="colspan === 10"
+                        [class.tw:lg:col-span-11]="colspan === 11"
+                        [class.tw:lg:col-span-12]="colspan === 12"
+                        [class.tw:print:col-span-1]="colspan === 1"
+                        [class.tw:print:col-span-2]="colspan === 2"
+                        [class.tw:print:col-span-3]="colspan === 3"
+                        [class.tw:print:col-span-4]="colspan === 4"
+                        [class.tw:print:col-span-5]="colspan === 5"
+                        [class.tw:print:col-span-6]="colspan === 6"
+                        [class.tw:print:col-span-7]="colspan === 7"
+                        [class.tw:print:col-span-8]="colspan === 8"
+                        [class.tw:print:col-span-9]="colspan === 9"
+                        [class.tw:print:col-span-10]="colspan === 10"
+                        [class.tw:print:col-span-11]="colspan === 11"
+                        [class.tw:print:col-span-12]="colspan === 12"
+                    >
+                        <h4 class="tw:m-0 tw:flex tw:items-center tw:gap-1 tw:text-sm tw:font-semibold tw:opacity-40">
+                            @if (field.mat_icon_prepend) {
+                                <mat-icon class="material-symbols-rounded tw:text-base!">
+                                    {{ field.mat_icon_prepend }}
+                                </mat-icon>
+                            }
+                            <span>{{ field.label | transloco }}</span>
+                            @if (field.mat_icon_append) {
+                                <mat-icon class="material-symbols-rounded tw:text-base!">
+                                    {{ field.mat_icon_append }}
+                                </mat-icon>
+                            }
+                        </h4>
+                        <div class="tw:mt-1 tw:wrap-break-word tw:whitespace-pre-wrap tw:text-sm">
+                            {{ service.formatViewFieldValue(key, field, record) }}
+                        </div>
+                    </section>
+                }
+            }
+        </div>
+    }
+</div>

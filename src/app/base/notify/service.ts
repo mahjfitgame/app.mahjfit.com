@@ -51,7 +51,7 @@ export class NotifyService {
     }
     public success(
         message: string,
-        title = 'Success',
+        title?:  string,
         options?: NotifyOptions,
     ): void {
         this.toastr.success(message, title, this.getDefaultOptions(options));

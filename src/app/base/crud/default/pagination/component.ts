@@ -33,8 +33,8 @@ export class CrudDefaultPaginationComponent {
          * Manually reset child paginator UI from CRUD state.
          */
         this.pagination()?.resetTo(
-            this.service.state.getCurrentPageValue(),
-            this.service.state.getRowsPerPageValue()
+            this.service.state.listing.getCurrentPageValue(),
+            this.service.state.listing.getRowsPerPageValue()
         );
     }
 }

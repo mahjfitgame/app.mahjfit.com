@@ -1,22 +1,141 @@
 <!-- file: src/app/base/crud/default/listing/record-action/template.html -->
- <button mat-icon-button [matMenuTriggerFor]="menu" [attr.aria-label]="'GL.COMMON.ACTIONS_MENU' | transloco">
+@if (service.state.action.hasRecordAction()) {
+<button mat-icon-button
+    [matMenuTriggerFor]="menu" 
+    [attr.aria-label]="'GL.COMMON.ACTIONS_MENU' | transloco"
+>
     <mat-icon class="material-symbols-rounded">more_vert</mat-icon>
 </button>
-<mat-menu #menu="matMenu" xPosition="before">
-    <a
-        mat-menu-item
-        [routerLink]="service.url.getUpdateActionUrlBySecondaryKey(service.state.getRecordSecondaryKeyValue(row()))"
-        [state]="service.url.getCrudActionNavigationState()"
-    >
-        <mat-icon class="material-symbols-rounded">edit</mat-icon>
-        <span>{{ 'GL.ACTION.UPDATE' | transloco }}</span>
-    </a>
-    <button mat-menu-item click="">
-        <mat-icon class="material-symbols-rounded">block</mat-icon>
-        <span>Ban</span>
-    </button>
-    <button mat-menu-item click="">
-        <mat-icon class="material-symbols-rounded">delete</mat-icon>
-        <span>{{ 'GL.ACTION.DELETE' | transloco }}</span>
-    </button>
+<mat-menu #menu="matMenu" xPosition="before" class="tw:lg:[&_.mat-mdc-menu-item]:min-h-8! tw:lg:[&_.mat-mdc-menu-item]:px-3!">
+<!-- lazily render menu contents using [matMenuContent] -->
+<ng-template matMenuContent>
+    @let keyid = service.state.getRecordSecondaryKeyValue(row());
+    <!-- any action must require a keyid -->
+    @if(keyid !== null) {
+        <!-- SUB_MODULE -->
+        @if (service.state.action.hasSubModule()) {
+            
+        }
+        
+        <!-- ████ EDIT -->
+        @if (service.state.action.hasUpdate()) {
+            <a
+                mat-menu-item
+                [routerLink]="service.url.getUpdateActionUrlBySecondaryKey(keyid)"
+                [state]="service.url.getCrudActionNavigationState()"
+            >
+                <mat-icon class="material-symbols-rounded tw:lg:text-lg! tw:lg:h-6! tw:lg:w-6! tw:lg:flex! tw:lg:items-center! tw:lg:justify-center!">edit</mat-icon>
+                <span>{{ 'GL.ACTION.UPDATE' | transloco }}</span>
+            </a>
+        }
+
+        <!-- ████ VIEW -->
+        @if (service.state.action.hasView()) {
+            <a
+                mat-menu-item
+                [routerLink]="service.url.getViewActionUrlBySecondaryKey(keyid)"
+                [state]="service.url.getCrudActionNavigationState()"
+            >
+                <mat-icon class="material-symbols-rounded tw:lg:text-lg! tw:lg:h-6! tw:lg:w-6! tw:lg:flex! tw:lg:items-center! tw:lg:justify-center!">visibility</mat-icon>
+                <span>{{ 'GL.ACTION.VIEW' | transloco }}</span>
+            </a>
+        }
+
+        <!-- ████ PRINT -->
+        @if (service.state.action.hasPrint()) {
+            <a
+                mat-menu-item
+                [routerLink]="service.url.getPrintActionUrlBySecondaryKey(keyid)"
+                [state]="service.url.getCrudActionNavigationState()"
+            >
+                <mat-icon class="material-symbols-rounded tw:lg:text-lg! tw:lg:h-6! tw:lg:w-6! tw:lg:flex! tw:lg:items-center! tw:lg:justify-center!">print</mat-icon>
+                <span>{{ 'GL.ACTION.PRINT' | transloco }}</span>
+            </a>
+        }
+
+        <!-- ████ SHARE -->
+
+        <!-- ████ DUPLICATE -->
+        @if (service.state.action.hasDuplicate()) {
+            <a
+                mat-menu-item
+                [routerLink]="service.url.getDuplicateActionUrlBySecondaryKey(keyid)"
+                [state]="service.url.getCrudActionNavigationState()"
+            >
+                <mat-icon class="material-symbols-rounded tw:lg:text-lg! tw:lg:h-6! tw:lg:w-6! tw:lg:flex! tw:lg:items-center! tw:lg:justify-center!">content_copy</mat-icon>
+                <span>{{ 'GL.ACTION.DUPLICATE' | transloco }}</span>
+            </a>
+        }
+
+        <!-- ████ ACTIVE, INACTIVE -->
+        @let activeField = service.state.activeField();
+        @if(activeField) {
+            @let active = row()[activeField];
+            @if(active !== undefined) {
+                @if(active === null) {
+                    @if (service.state.action.hasInactive()) {
+                        <!-- record is already active so show INACTIVE -->
+                        <button mat-menu-item (click)="service.runInactive(keyid)">
+                            <mat-icon class="material-symbols-rounded tw:lg:text-lg! tw:lg:h-6! tw:lg:w-6! tw:lg:flex! tw:lg:items-center! tw:lg:justify-center!">do_not_disturb_on</mat-icon>
+                            <span>{{ 'GL.ACTION.INACTIVE' | transloco }}</span>
+                        </button>
+                    }
+                } @else {
+                    @if (service.state.action.hasActive()) {
+                        <!-- record is inactive so show ACTIVE -->
+                        <button mat-menu-item (click)="service.runActive(keyid)">
+                            <mat-icon class="material-symbols-rounded tw:lg:text-lg! tw:lg:h-6! tw:lg:w-6! tw:lg:flex! tw:lg:items-center! tw:lg:justify-center!">check_circle_unread</mat-icon>
+                            <span>{{ 'GL.ACTION.ACTIVE' | transloco }}</span>
+                        </button>
+                    }
+                }
+            }
+        }
+        
+        <!-- ████ SOFT DELETE, RESTORE, DELETE -->
+        @let deletedField = service.state.deletedField();
+        @if(deletedField) {
+            @let deleted = row()[deletedField];
+            @if(deleted !== undefined) {
+
+                @if(deleted === null) {
+                    @if (service.state.action.hasSoftDelete()) {
+                        <mat-divider></mat-divider>
+                        <!-- record is not in the bin so show SOFT DELETE -->
+                        <button
+                            mat-menu-item
+                            class="tw:text-yellow-600!"
+                            (click)="service.runSoftDelete(keyid)"
+                        >
+                            <mat-icon class="material-symbols-rounded tw:text-yellow-600! tw:lg:text-lg! tw:lg:h-6! tw:lg:w-6! tw:lg:flex! tw:lg:items-center! tw:lg:justify-center!">delete</mat-icon>
+                            <span>{{ 'GL.ACTION.SOFT_DELETE' | transloco }}</span>
+                        </button>
+                    }
+                } @else {
+                    @if(service.state.action.hasRestore() || service.state.action.hasDelete()){
+                        <mat-divider></mat-divider>
+                    }
+                    <!-- record is in the bin so show RESTORE and permanent DELETE -->
+                    @if (service.state.action.hasRestore()) {
+                        <button mat-menu-item (click)="service.runRestore(keyid)">
+                            <mat-icon class="material-symbols-rounded tw:lg:text-lg! tw:lg:h-6! tw:lg:w-6! tw:lg:flex! tw:lg:items-center! tw:lg:justify-center!">restore_from_trash</mat-icon>
+                            <span>{{ 'GL.ACTION.RESTORE' | transloco }}</span>
+                        </button>
+                    }
+                    @if (service.state.action.hasDelete()) {
+                        <button
+                            mat-menu-item
+                            class="tw:text-red-700!"
+                            (click)="service.runDelete(keyid)"
+                        >
+                            <mat-icon class="material-symbols-rounded tw:text-red-700! tw:lg:text-lg! tw:lg:h-6! tw:lg:w-6! tw:lg:flex! tw:lg:items-center! tw:lg:justify-center!">delete_forever</mat-icon>
+                            <span>{{ 'GL.ACTION.DELETE' | transloco }}</span>
+                        </button>
+                    }
+                }
+            }
+        }
+    }
+</ng-template>
 </mat-menu>
+}

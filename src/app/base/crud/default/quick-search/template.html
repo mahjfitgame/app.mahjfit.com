@@ -5,8 +5,17 @@
         subscriptSizing="dynamic"
         class="tw:w-full"
     >
-        @let quickSearchField = service.state.listOperationFieldObj().quick_search;
-        <mat-label>{{ quickSearchField.label | transloco }}</mat-label>
+        @let quickSearchField = service.state.listing.listOperationFieldObj().quick_search;
+        <mat-label>
+            @defer (on idle) {
+                {{ quickSearchField.label | transloco }}
+            } @placeholder (minimum 200ms) {
+                <span
+                    class="tw:block tw:h-4 tw:w-20 tw:animate-pulse tw:rounded tw:bg-gray-200"
+                    aria-hidden="true"
+                ></span>
+            }
+        </mat-label>
         <mat-icon matPrefix class="material-symbols-rounded">{{ quickSearchField.mat_icon_prepend }}</mat-icon>
         <input
             matInput
@@ -14,7 +23,7 @@
             type="text"
             [placeholder]="quickSearchField.placeholder | transloco"
             (keyup)="service.setQuickSearchKeyword($event)"
-            [value]="service.state.getQuickSearchValue() ?? ''"
+            [value]="service.state.listing.getQuickSearchValue() ?? ''"
         />
         <button
             mat-icon-button
@@ -22,7 +31,7 @@
             type="button"
             [aria-label]="'CRUD.LIST_OPERATION.QUICK_SEARCH.CLEAR_SEARCH' | transloco"
             (click)="service.clearQuickSearchKeyword(BfwCrudQuickSearchInput)"
-            [class.tw:invisible]="!service.state.getQuickSearchValue()"
+            [class.tw:invisible]="!service.state.listing.getQuickSearchValue()"
         >
             <mat-icon class="material-symbols-rounded">{{ quickSearchField.mat_icon_append }}</mat-icon>
         </button>
@@ -52,6 +61,6 @@
         class="tw:rounded-full! tw:text-primary!  tw:block! tw:lg:hidden!"
         (click)="BfwMobileQickSearch.style.display = ''"
     >
-        <mat-icon class="material-symbols-rounded">{{ service.state.listOperationFieldObj().quick_search.mat_icon_prepend }}</mat-icon>
+        <mat-icon class="material-symbols-rounded">{{ service.state.listing.listOperationFieldObj().quick_search.mat_icon_prepend }}</mat-icon>
     </button>
 }

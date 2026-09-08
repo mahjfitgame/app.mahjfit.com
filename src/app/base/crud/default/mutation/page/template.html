@@ -1,6 +1,6 @@
 <!-- file: src/app/base/crud/default/mutation/page/template.html -->
  <section class="tw:flex tw:min-h-full tw:flex-col">
-    <header class="tw:flex tw:items-center tw:justify-between tw:gap-4 tw:p-4">
+    <header class="tw:flex tw:items-center tw:justify-between tw:gap-4 tw:px-4">
         <div>
             <h1 class="tw:text-xl tw:font-semibold">
                 {{ service.getMutationTitle() | transloco }}
@@ -16,10 +16,13 @@
         <button
             mat-icon-button
             type="button"
+            class="tw:flex! tw:items-center! tw:justify-center!"
             [attr.aria-label]="'GL.COMMON.BACK' | transloco"
             (click)="service.closeCrudAction()"
         >
-            <mat-icon class="material-symbols-rounded">arrow_back</mat-icon>
+            <mat-icon class="material-symbols-rounded">
+                close
+            </mat-icon>
         </button>
     </header>
 
@@ -33,11 +36,11 @@
     </main>
 
     <footer class="tw:flex tw:gap-3 tw:p-4">
-        <button mat-button type="reset" form="crudMutationForm" class="tw:flex-1">
+        <button mat-button type="button" class="tw:flex-1" [disabled]="service.state.mutation.mutationFormProcessing() || service.state.mutation.mutationForm().submitting()" (click)="service.state.mutation.resetMutationForm()">
             {{ 'GL.COMMON.RESET' | transloco }}
         </button>
 
-        <button mat-flat-button type="submit" form="crudMutationForm" color="primary" class="tw:flex-1">
+        <button mat-flat-button type="submit" form="crudMutationForm" color="primary" class="tw:flex-1" [disabled]="service.state.mutation.mutationFormProcessing() || service.state.mutation.mutationForm().invalid() || service.state.mutation.mutationForm().pending() || service.state.mutation.mutationForm().submitting()">
             {{ 'GL.COMMON.SAVE' | transloco }}
         </button>
     </footer>

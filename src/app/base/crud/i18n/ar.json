@@ -49,21 +49,23 @@
                     "OPTION_RANGE": "اختيار حقل غير صالح."
                 }
             },
-            "SORT_FIELDS_AND_DIRECTION": {
-                "LABEL": "حقول الفرز واتجاهه",
-                "PLACEHOLDER": "اختر الحقول واتجاه الفرز",
-                "HINT": "افرز حسب الحقل والاتجاه لتنقيح بياناتك.",
+            "SORT_FIELDS": {
+                "LABEL": "حقل الفرز",
+                "PLACEHOLDER": "اختر حقلاً للفرز",
+                "HINT": "اختر الحقل المستخدم لترتيب بياناتك.",
                 "VALIDATION": {
                     "OPTION_RANGE": "حقل فرز غير صالح."
                 }
             },
-            "RBIN": {
-                "LABEL": "سلة المحذوفات",
-                "PLACEHOLDER": "إظهار السجلات في سلة المحذوفات",
-                "HINT": "انقر لعرض سجلات سلة المحذوفات."
+            "SORT_DIRECTION": {
+                "LABEL": "اتجاه الفرز",
+                "HINT": "اختر ترتيبًا تصاعديًا أو تنازليًا.",
+                "VALIDATION": {
+                    "OPTION_RANGE": "اتجاه فرز غير صالح."
+                }
             }
         },
-        "SEARCH_FILTER": {
+        "LISTING_SEARCH": {
             "OPEN_LABEL": "فتح مرشح البحث",
             "TAB_NAME": "تصفية"
         }

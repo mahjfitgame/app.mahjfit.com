@@ -6,13 +6,21 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
 import { RouterModule } from '@angular/router';
 import { TranslocoModule } from '@jsverse/transloco';
+import { MatDividerModule } from '@angular/material/divider';
 
 @Component({
   selector: 'app-crud-default-listing-record-action',
   standalone: true,
   templateUrl: './template.html',
   styleUrl: './style.scss',
-  imports: [RouterModule, TranslocoModule, MatIconModule, MatMenuModule, MatButtonModule],
+  imports: [
+    RouterModule, 
+    TranslocoModule, 
+    MatIconModule, 
+    MatMenuModule, 
+    MatButtonModule,
+    MatDividerModule
+  ],
   providers: [],
 })
 export class CrudDefaultListingRecordActionComponent {

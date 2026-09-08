@@ -17,6 +17,8 @@ import { HttpStatusCode } from "@angular/common/http";
 import { Router } from "@angular/router";
 import { SignoutRoute } from "./module/shared/onboarding/signout/route";
 import { OpenAreaRoute } from "./area/open/route";
+import { NotifyService } from "./base/notify/service";
+import { NotifyBannerService } from "./base/notify-banner/service";
 
 @Service()
 export class AppService {
@@ -30,18 +32,21 @@ export class AppService {
 
     public readonly conf = inject(ConfService);
     public readonly log = inject(LogService);
-
+    
     public readonly cookie = inject(CookieService);
     public readonly scroll = inject(ScrollDirectionService);
     public readonly ps = inject(PlatformService);
     public readonly splash = inject(SplashScreenService);
     public readonly gpbs = inject(GlobalProgressBarService);
     public readonly ctxp = inject(ContextProfileService);
+    public readonly notify = inject(NotifyService);
+    public readonly notifyBanner = inject(NotifyBannerService);
+        
 
     public readonly i18n = inject(I18nService);
     public readonly api = inject(BfwApiService);
 
-    constructor() { }
+    constructor() {}
 
     public initialize(): Promise<boolean> {
         this.initializationPromise ??= this.initializeOnce();
@@ -88,12 +93,15 @@ export class AppService {
 
     // ████ CLIENT SERVER HANDSHAKE ████████████████████████████████
 
-    public async clientServerHandShake(retryOnSessionFailure: boolean = true): Promise<string | false> {
+    public async clientServerHandShake(): Promise<string | false> {
         // TODO: need to add or setup logic when user logged in or already logged in we might need to update token with logged in user id
         // need to find some way and work around for this
         try {
             // wait for context state to sync and ready
             await this.ctxp.state.whenReady();
+
+            // push (re)hydrated tokens into the sdk before this request leaves
+            this.ctxp.state.configureBfwApiHeaders();
 
             // load api service
             this.api.sdk.graphql.initialize(UserAuthentication);
@@ -121,15 +129,10 @@ export class AppService {
                 screen_width: Number(hsi.screen_width),
                 screen_height: Number(hsi.screen_height),
                 device_pixel_ratio: Number(hsi.device_pixel_ratio),
-                hardware_concurrency: hsi.hardware_concurrency,
+                hardware_concurrency:hsi.hardware_concurrency,
                 max_touch_points: hsi.max_touch_points,
                 device_memory: hsi.device_memory,
             };
-
-            // if token is alreadu exist
-            if (this.ctxp.state.hostToken() && this.ctxp.state.hostToken() !== null && this.ctxp.state.hostToken() !== '') {
-                this.log.info('[AppService] Host Token Found.');
-            }
 
             // api handshake: check if existing or add new both in one request
             const http = await this.api.sdk.graphql.userAuthentication.appClientServerHandShake({
@@ -142,17 +145,6 @@ export class AppService {
                         dtoken: true,
                         dpid: true,
                     },*/
-                    /**
-                     * ⚠ NO csrf field here. the server renamed it csrf_token -> csrft and the
-                     * installed @bfw/api-sdk still models the old name, so selecting either one
-                     * is wrong: `csrf_token` fails GraphQL validation with a 400 and takes the
-                     * whole handshake (and therefore startup) down, `csrft` is silently dropped
-                     * by the sdk's selection builder because its schema class has no such field.
-                     *
-                     * the csrf token arrives on the `csrft` RESPONSE HEADER regardless, and
-                     * registerAfterApiResponseInterceptor() already stores it.
-                     * put it back in the selection once the sdk is regenerated.
-                     */
                     htoken: true,
                     ctxs: true,
                     csrft: true,
@@ -177,27 +169,21 @@ export class AppService {
 
             // set hand shake identity
             if ((client && Object.keys(client).length > 0 && client.dtoken) || (htoken && ctxs)) {
-                // set csrf token in state
-                this.ctxp.state.setCsrfToken(csrft as unknown as string | null);
-
                 // set state host authorization
                 this.ctxp.state.setHostToken(htoken);
 
                 // set user session ctxs in state
                 this.ctxp.state.setCtxs(ctxs);
 
+                // set csrf token in state
+                this.ctxp.state.setCsrfToken(csrft);
+
                 // set or clear stateful token in state
-                if (logged_in && stoken) {
+                if(logged_in && stoken) {
                     this.ctxp.state.setSessionToken(stoken);
                 } else {
                     this.ctxp.state.clearSession();
                 }
-
-                // push the tokens into the sdk right now instead of waiting for the header effect.
-                // that effect is created in state onActivate(), after the authenticated resource,
-                // so on the same flush the resource loader runs first and its request would leave
-                // without the stateful token.
-                this.ctxp.state.configureBfwApiHeaders();
 
                 // handshake is complete and every token is in state and in the sdk, state driven
                 // requests may now leave. keep this last, nothing may fire on a half set state.
@@ -209,7 +195,7 @@ export class AppService {
             // handshake failed so do not allow app to run
             this.log.error('App client/server hand shake failed.');
         } catch (e: any | BfwApiSdkError) {
-            this.log.error(`[CLIENT SERVER HANDSHAKE ERROR]`, e);
+            this.log.error(`[CLIENT SERVER HANDSHAKE ERROR]`,e);
         }
         return false;
     }
@@ -222,7 +208,7 @@ export class AppService {
      */
     public async afterClientServerHandShake(): Promise<void> {
         // connect to web socket
-        await this.api.sdk.graphql.ws.connect();
+        //await this.api.sdk.graphql.ws.connect();
     }
 
     // ████ REGISTER API INTERCEPTORS ██████████████████████████████
@@ -239,28 +225,28 @@ export class AppService {
     public registerAfterApiResponseInterceptor(): void {
         // make sure do not add any error related logic
         // it will go inside registerAfterResponseErrorInterceptor()
-        const interceptor: BfwApiSdkResponseInterceptor =
-            async <T>(res: BfwApiSdkResponse<T>): Promise<BfwApiSdkResponse<T>> => {
+        const interceptor: BfwApiSdkResponseInterceptor = 
+            async <T>(res: BfwApiSdkResponse<T>): Promise<BfwApiSdkResponse<T>>  => {
 
                 // update csrf token after response
                 const csrfToken = res.getResHeaderCsrfToken();
-                if (csrfToken) {
+                if(csrfToken) {
                     this.ctxp.state.setCsrfToken(csrfToken);
                 }
 
                 // update host token after response
                 const hostToken = res.getResHeaderHostAuthorization();
-                if (hostToken) {
+                if(hostToken) {
                     this.ctxp.state.setHostToken(hostToken);
-                }
+                } 
 
                 // update ctxs after response
                 const ctxs = res.getResHeaderCtxs();
-                if (ctxs) {
+                if(ctxs) {
                     this.ctxp.state.setCtxs(ctxs);
                 }
 
-                this.log.info(`[RES INTERCEPTOR] Completed ${res.getResHeaderReqResId()}`);
+                //this.log.info(`[RES INTERCEPTOR] Completed ${res.getResHeaderReqResId()}`);
 
                 return res;
             };
@@ -272,8 +258,8 @@ export class AppService {
         // make sure that if its error then also registerAfterResponseInterceptor() will execute
         // so do not duplicate same process in error interceptor
 
-        const interceptor: BfwApiSdkErrorInterceptor =
-            async (err: BfwApiSdkError): Promise<BfwApiSdkError> => {
+        const interceptor: BfwApiSdkErrorInterceptor = 
+            async (err: BfwApiSdkError): Promise<BfwApiSdkError>  => {
                 // if server throw 401, and has failure signal message in error clear session token
                 if (err.status === HttpStatusCode.Unauthorized) {
                     const messages = err.errors();
@@ -288,13 +274,13 @@ export class AppService {
                     ];
 
                     const hasFailureSignal = checkFailureSignal(triggers, messages);
-
-                    if (hasFailureSignal) {
+                    
+                    if(hasFailureSignal) {
                         const lastcode: any = getLastCode(fm);
 
-                        if (lastcode === FAILURE_CODE.FC_401_SF3) {
+                        if(lastcode === FAILURE_CODE.FC_401_SF3) {
                             // sf token corrupted, this is very serious but rare case
-
+                            
                             // logically session will stay as it is on server but server gateway clear client side cookie
                             // clear the session as service cleared sid
                             this.ctxp.state.clearSession();
@@ -305,23 +291,32 @@ export class AppService {
                             // redirect to home page with a full page reload
                             //const homeUrl = OpenAreaRoute.absolutePath();
                             //this.document.defaultView?.location.replace(homeUrl);
-                        } else if (lastcode === FAILURE_CODE.FC_401_SF2) {
+
+                            this.notifyBanner.error(this.i18n.translate('GL.COMMON.AUTHENTICATION_INTERRUPTED'), 30);
+                        } else if(lastcode === FAILURE_CODE.FC_401_SF2) {
                             // sf token is expired
+                            this.notifyBanner.error(this.i18n.translate('GL.COMMON.AUTHENTICATION_EXPIRED'), 30);
+                            
                             const signoutUrl = SignoutRoute.absolutePath();
                             this.router.navigateByUrl(signoutUrl, {
                                 replaceUrl: true
                             });
+                        } else if (lastcode === FAILURE_CODE.FC_401_H1 || lastcode === FAILURE_CODE.FC_401_H2) {
+                            // reload the current page, as host token is expired or missing
+                            this.router.navigateByUrl(this.router.url, {
+                                replaceUrl: true
+                            }); 
                         } else {
-
+                            this.notifyBanner.error(this.i18n.translate('GL.COMMON.AUTHENTICATION_REQUIRED'), 30);
                         }
                     }
                 }
 
-                if (err.response) {
+                if(err.response) {
                     // make sure err.response is readonly in error interceptor
                     const res = err.response;
 
-                    this.log.info(`[RES ERR INTERCEPTOR] Completed ${res.getResHeaderReqResId()}`);
+                    //this.log.info(`[RES ERR INTERCEPTOR] Completed ${res.getResHeaderReqResId()}`);
                 }
                 return err;
             };
@@ -329,12 +324,12 @@ export class AppService {
         this.api.sdk.rest.registerAfterResponseErrorInterceptor(interceptor);
     }
     public registerBeforeApiRequestInterceptor(): void {
-        const interceptor: BfwApiSdkRequestInterceptor =
-            async <T>(req: BfwApiSdkRequest<T>): Promise<BfwApiSdkRequest<T>> => {
+        const interceptor: BfwApiSdkRequestInterceptor = 
+            async <T>(req: BfwApiSdkRequest<T>): Promise<BfwApiSdkRequest<T>>  => {
                 // add logic to mofify request
-                this.log.info(`[REQ INTERCEPTOR] Started ${req.headers[BfwApiSdkDefaultRequestHeaders.REQ_RES_ID] ?? '0'}`);
+                //this.log.info(`[REQ INTERCEPTOR] Started ${req.headers[BfwApiSdkDefaultRequestHeaders.REQ_RES_ID] ?? '0'}`);
                 return req;
-            }
+        }
         this.api.sdk.graphql.registerBeforeRequestInterceptor(interceptor);
         this.api.sdk.rest.registerBeforeRequestInterceptor(interceptor);
     }

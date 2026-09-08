@@ -15,6 +15,7 @@ import { GlobalProgressBarComponent } from '@base/global-progress-bar/component'
 import { MatIconModule } from '@angular/material/icon';
 import { AppService } from '@app/app.service';
 import { HttpStatusServiceUnavailableRoute } from 'src/app/module/shared/http-status/service-unavailable/route';
+import { NotifyBannerComponent } from './base/notify-banner/component';
 
 @Component({
   selector: 'app-root',

@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-09-07T04:22:54.193Z",
+  "generated_at": "2026-09-08T06:09:11.882Z",
   "items": [
     {
       "key": "global",
@@ -61,34 +61,6 @@
       "key": "app.module.shared.dashboard",
       "source": "src/app/module/shared/dashboard/i18n",
       "path": "/i18n-runtime/app/module/shared/dashboard",
-      "langs": [
-        "ar",
-        "en",
-        "es",
-        "fr",
-        "gu",
-        "hi"
-      ],
-      "global": false
-    },
-    {
-      "key": "app.module.shared.geo.country",
-      "source": "src/app/module/shared/geo/country/i18n",
-      "path": "/i18n-runtime/app/module/shared/geo/country",
-      "langs": [
-        "ar",
-        "en",
-        "es",
-        "fr",
-        "gu",
-        "hi"
-      ],
-      "global": false
-    },
-    {
-      "key": "app.module.shared.geo.state",
-      "source": "src/app/module/shared/geo/state/i18n",
-      "path": "/i18n-runtime/app/module/shared/geo/state",
       "langs": [
         "ar",
         "en",

@@ -4,24 +4,24 @@ import { inject, Service } from '@angular/core';
 import { Router } from '@angular/router';
 import { FoundationAreaEnum } from '@libs/foundation/enum';
 import { FoundationModuleRouteDefinitionType, FoundationModuleRouteNavType } from '@libs/foundation/module/type';
-import { FoundationModulePath } from '@libs/foundation/module/path';
+import { FoundationModuleRoute } from '@libs/foundation/module/route';
 import { FoundationNavPositionEnum } from '@libs/foundation/nav/enum';
 import { UrlService } from '@libs/url/service';
 import { SLUG_MY_PROFILE } from '@module/shared/onboarding/my-profile/slug';
 import { OnboardingRoute } from '@module/shared/onboarding/route';
 
 @Service({ autoProvided: false })
-export class MyProfileRoute {
+export class MyProfileRoute extends FoundationModuleRoute {
     // CLASS PROPERTIES ▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬
-    public static readonly registryKey = 'ONBOARDING_MY_PROFILE';
-    public static readonly area = FoundationAreaEnum.PRIVATE;
+    public static override readonly registryKey = 'ONBOARDING_MY_PROFILE';
+    public static override readonly area = FoundationAreaEnum.PRIVATE;
 
     // DEPENDENCIES ▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬
     public readonly url = inject(UrlService);
     public readonly router = inject(Router);
 
     // DEFINITION ▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬
-    public static definition(): FoundationModuleRouteDefinitionType {
+    public static override definition(): FoundationModuleRouteDefinitionType {
         return {
             registryKey: this.registryKey,
             component: () => import('@module/shared/onboarding/my-profile/component').then((c) => c.MyProfileComponent),
@@ -29,6 +29,7 @@ export class MyProfileRoute {
             canActivate: [],
             canActivateChild: [],
             canDeactivate: [],
+            resolve: this.resolve(),
             breadcrumbAlias: 'myProfile',
             actions: [],
         };
@@ -40,7 +41,7 @@ export class MyProfileRoute {
      * this renders in the avatar menu instead of the sidebar — and because the
      * group is a pass through, the url is still /private/my-profile
      */
-    public static nav(): FoundationModuleRouteNavType {
+    public static override nav(): FoundationModuleRouteNavType {
         return {
             registry_key: this.registryKey,
             area_key: this.area,
@@ -49,17 +50,17 @@ export class MyProfileRoute {
             label: 'GL.MODULE.ONBOARDING.MY_PROFILE',
             icon: 'person',
             sort_order: 10,
+            actions: [],
             nav_position: [FoundationNavPositionEnum.ONBOARDING],
         };
     }
 
     // PATHS ▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬
-    public static absolutePathArr(): string[] {
-        return FoundationModulePath.arrOf(this.registryKey);
-    }
-    public static absolutePath(): string {
-        return FoundationModulePath.of(this.registryKey);
-    }
+    /**
+     * ⚠ absolutePath() / absolutePathArr() are INHERITED from FoundationModuleRoute —
+     * they read this.registryKey off this class, so the two identical copies that
+     * used to sit here are gone.
+     */
 
     // NAVIGATION ▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬
 

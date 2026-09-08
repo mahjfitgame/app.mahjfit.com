@@ -1,6 +1,7 @@
 import { Pipe, PipeTransform, inject } from '@angular/core';
-import { CrudListingFieldInfoType } from '@base/crud/type';
+import { CrudFieldInfoType } from '@base/crud/type';
 import { CrudValidation } from '@base/crud/validation';
+import { CrudState } from '@base/crud/state/init';
 
 @Pipe({
     name: 'fieldValueFormat',
@@ -9,8 +10,14 @@ import { CrudValidation } from '@base/crud/validation';
 })
 export class CrudFieldValueFormatPipe implements PipeTransform {
     private readonly validation = inject(CrudValidation);
+    private readonly state = inject(CrudState);
 
-    public transform(value: any, finfo: CrudListingFieldInfoType, record: any): string {
-        return this.validation.formatCrudListingFieldValue(value, finfo, record);
+    public transform(value: any, finfo: CrudFieldInfoType, record: any): string {
+        return this.validation.formatCrudFieldValue(
+            value,
+            finfo,
+            record,
+            this.state.getCrudModuleContext(),
+        );
     }
 }

@@ -1,5 +1,6 @@
 // file: src/app/app.config.ts
 import { ApplicationConfig, provideBrowserGlobalErrorListeners } from '@angular/core';
+import { OVERLAY_DEFAULT_CONFIG } from '@angular/cdk/overlay';
 import {
     provideRouter,
     withComponentInputBinding,
@@ -18,6 +19,7 @@ import { provideSqliteModule } from '@libs/sqlite/provider';
 import { provideSplashScreenModule } from '@base/splash-screen/provider';
 import { provideThemeModule } from '@base/theme/provider';
 import { provideAppModule } from '@app/app.provider';
+import { provideNavigationProgressModule } from '@base/global-progress-bar/provider';
 import { provideUrlModule } from '@libs/url/provider';
 import { provideWebPageTitleModule } from '@libs/web-page/title/provider';
 
@@ -33,6 +35,7 @@ export const appConfig: ApplicationConfig = {
 
     provideHttpClient(withXhr(), withInterceptors([i18nInterceptor])),
     provideBrowserGlobalErrorListeners(),
+    { provide: OVERLAY_DEFAULT_CONFIG, useValue: { usePopover: false } },
     provideRouter(
         routes,
         withComponentInputBinding(),
@@ -56,6 +59,10 @@ export const appConfig: ApplicationConfig = {
 
     // route state and URL sync, root scope — depends on Router above
     provideUrlModule(),
+
+    // the global bar follows navigation, so a resolver's wait is visible rather
+    // than reading as a frozen app — depends on Router above
+    provideNavigationProgressModule(),
 
     // document.title from data.title — overrides the router's DefaultTitleStrategy,
     // so it must come after provideRouter(...) above

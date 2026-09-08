@@ -3,23 +3,32 @@ import { Component, computed, inject, input } from '@angular/core';
 import { CrudService } from '@base/crud/service';
 import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
-import { MatButtonToggleModule } from '@angular/material/button-toggle';
-import { MatSelectModule } from '@angular/material/select';
 import { MatInputModule } from '@angular/material/input';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatDividerModule } from '@angular/material/divider';
 import { MatTooltipModule } from '@angular/material/tooltip';
-import { MatSlideToggleModule } from '@angular/material/slide-toggle';
-import { MatSliderModule } from '@angular/material/slider';
 import { KeyValuePipe, NgTemplateOutlet } from '@angular/common';
-import { CrudFieldObj, CrudFieldObjInput } from '@base/crud/type';
-import { MatRadioModule } from '@angular/material/radio';
-import { MatCheckboxModule } from '@angular/material/checkbox';
-import { OwlDateTimeModule, OwlNativeDateTimeModule } from '@danielmoncada/angular-datetime-picker';
-import { FormsModule } from '@angular/forms';
-import { provideDateTimeFormat } from '@libs/date-time/provider';
+import { CrudFieldObj, CrudFieldObjInput, CrudFormFieldInfoType } from '@base/crud/type';
 import { CrudFieldSlotPortalKeyPrefixEnum } from '@base/crud/enum';
 import { TranslocoModule } from '@jsverse/transloco';
+import { FormFieldAutosuggestComponent } from '@base/form-fields/autosuggest/component';
+import { FormFieldSelectComponent } from '@base/form-fields/select/component';
+import { FormFieldButtonSelectComponent } from '@base/form-fields/button-select/component';
+import { FormFieldRadioComponent } from '@base/form-fields/radio/component';
+import { FormFieldTextComponent } from '@base/form-fields/text/component';
+import { FormFieldTextareaComponent } from '@base/form-fields/textarea/component';
+import { FormFieldPasswordComponent } from '@base/form-fields/password/component';
+import { FormFieldEmailComponent } from '@base/form-fields/email/component';
+import { FormFieldUrlComponent } from '@base/form-fields/url/component';
+import { FormFieldTelComponent } from '@base/form-fields/tel/component';
+import { FormFieldNumberComponent } from '@base/form-fields/number/component';
+import { FormFieldCheckboxComponent } from '@base/form-fields/checkbox/component';
+import { FormFieldColorComponent } from '@base/form-fields/color/component';
+import { FormFieldSliderComponent } from '@base/form-fields/slider/component';
+import { FormFieldRangeComponent } from '@base/form-fields/range/component';
+import { FormFieldSwitchComponent } from '@base/form-fields/switch/component';
+import { FormFieldFlagComponent } from '@base/form-fields/flag/component';
+import { FormFieldDatetimeComponent } from '@base/form-fields/datetime/component';
 
 @Component({
   selector: 'app-crud-default-form-field',
@@ -32,21 +41,36 @@ import { TranslocoModule } from '@jsverse/transloco';
     TranslocoModule,
     MatIconModule,
     MatButtonModule,
-    MatButtonToggleModule,
-    MatSelectModule,
     MatInputModule,
     MatFormFieldModule,
     MatDividerModule,
     MatTooltipModule,
-    MatSlideToggleModule,
-    MatSliderModule,
-    MatRadioModule,
-    MatCheckboxModule,
-    FormsModule,
-    OwlDateTimeModule,
-    OwlNativeDateTimeModule,
+    /**
+     * The field types CRUD no longer draws itself. Each brings its own Material pieces
+     * with it - mat-autocomplete and mat-spinner for one, mat-select and its panel for
+     * another, mat-radio-group / mat-checkbox for others - which is why FormsModule,
+     * MatSelectModule and MatCheckboxModule are no longer imported here: nothing left
+     * in this template uses ngModel, mat-select/mat-option or mat-checkbox directly.
+     */
+    FormFieldAutosuggestComponent,
+    FormFieldSelectComponent,
+    FormFieldButtonSelectComponent,
+    FormFieldRadioComponent,
+    FormFieldTextComponent,
+    FormFieldTextareaComponent,
+    FormFieldPasswordComponent,
+    FormFieldEmailComponent,
+    FormFieldUrlComponent,
+    FormFieldTelComponent,
+    FormFieldNumberComponent,
+    FormFieldCheckboxComponent,
+    FormFieldColorComponent,
+    FormFieldSliderComponent,
+    FormFieldRangeComponent,
+    FormFieldSwitchComponent,
+    FormFieldFlagComponent,
+    FormFieldDatetimeComponent,
   ],
-  providers: [provideDateTimeFormat()],
 })
 export class CrudDefaultFormFieldComponent {
   public readonly service = inject(CrudService);
@@ -66,4 +90,19 @@ export class CrudDefaultFormFieldComponent {
     if (!value) return [];
     return Array.isArray(value) ? value : [value];
   });
-} 
+
+  /** Interpolation values used by the shared GL.VALIDATION messages. */
+  public validationMessageParams(finfo: CrudFormFieldInfoType): Record<string, any> {
+    const validation = finfo.validation;
+    const allowed = validation?.extension?.value;
+
+    return {
+      min_length: validation?.min_length?.value,
+      max_length: validation?.max_length?.value,
+      min: validation?.min?.value,
+      max: validation?.max?.value,
+      expected: validation?.match_field?.value,
+      allowed: Array.isArray(allowed) ? allowed.join(', ') : allowed,
+    };
+  }
+}

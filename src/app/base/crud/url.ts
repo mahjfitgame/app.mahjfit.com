@@ -2,10 +2,11 @@
 import { effect, inject, Service, untracked } from "@angular/core";
 import { UrlParamsType } from "@libs/url/type";
 import { UrlService } from "@libs/url/service";
-import { CrudFieldNormalizeModeEnum } from "@base/crud/enum";
-import { FoundationActionEnum, FoundationActionSlugEnum } from "@libs/foundation/action/enum";
-import { CrudState } from "@base/crud/state";
-import { CrudStateFormFieldUpdaterType, CrudStateFormFieldObjType, CrudActionRecordPrimaryKeyValueType, CrudActionRecordSecondaryKeyValueType } from "@base/crud/type";
+import { CrudFieldNormalizeModeEnum, CrudFieldUiTypeEnum, CrudUrlFieldFlagValueEnum } from "@base/crud/enum";
+import { LogService } from "@libs/log/service";
+import { FoundationActionEnum } from "@libs/foundation/action/enum";
+import { CrudState } from "@base/crud/state/init";
+import { CrudStateFormFieldUpdaterType, CrudStateFormFieldObjType, CrudActionRecordPrimaryKeyValueType, CrudActionRecordSecondaryKeyValueType, CrudFormFieldInfoType } from "@base/crud/type";
 import { CrudUtility } from "@base/crud/utility";
 import { CrudValidation } from "@base/crud/validation";
 import { NavigationEnd, Router } from "@angular/router";
@@ -27,6 +28,7 @@ export class CrudUrl {
      */
     private readonly url = inject(UrlService);
     
+    private readonly log = inject(LogService);
     public readonly state = inject(CrudState);
     public readonly route = inject(CrudRoute);
     public readonly utility = inject(CrudUtility);
@@ -48,10 +50,11 @@ export class CrudUrl {
             /**
              * Track only CRUD-owned state groups.
              * Any update to these groups will re-run this effect.
+             * Explicit reactive dependencies for CRUD → URL synchronization.
              */
-            this.state.searchFilterFieldObj();
-            this.state.viewOptionFieldObj();
-            this.state.listOperationFieldObj();
+            void this.state.searchFilter.searchFilterFieldObj();
+            void this.state.listing.viewOptionFieldObj();
+            void this.state.listing.listOperationFieldObj();
 
             /**
              * Avoid echo while URL -> CRUD hydration is running.
@@ -115,22 +118,22 @@ export class CrudUrl {
             // SearchFilterFieldObj
             this.syncCrudFieldObjGroupFromUrlState(
                 sourceMatrixParams,
-                this.state.searchFilterFieldObj(),
-                (key, patch) => this.state.updateSearchFilterFieldObj(key, patch),
+                this.state.searchFilter.searchFilterFieldObj(),
+                (key, patch) => this.state.searchFilter.updateSearchFilterFieldObj(key, patch),
             );
 
             // ViewOptionFieldObj
             this.syncCrudFieldObjGroupFromUrlState(
                 sourceMatrixParams,
-                this.state.viewOptionFieldObj(),
-                (key, patch) => this.state.updateViewOptionFieldObj(key as any, patch),
+                this.state.listing.viewOptionFieldObj(),
+                (key, patch) => this.state.listing.updateViewOptionFieldObj(key as any, patch),
             );
 
             // ListOperationFieldObj
             this.syncCrudFieldObjGroupFromUrlState(
                 sourceMatrixParams,
-                this.state.listOperationFieldObj(),
-                (key, patch) => this.state.updateListOperationFieldObj(key as any, patch)
+                this.state.listing.listOperationFieldObj(),
+                (key, patch) => this.state.listing.updateListOperationFieldObj(key as any, patch)
             );
         } finally {
             this.syncingCrudAndUrlState = false;
@@ -178,6 +181,13 @@ export class CrudUrl {
     ): void {
         const keys = Object.keys(fieldObj);
 
+        /**
+         * Collected here rather than re-walked afterwards: updateField() rebuilds the
+         * field object, so [fieldObj] is a stale snapshot the moment the first value
+         * is written. The fresh value has to be carried out of this loop by hand.
+         */
+        const restored: Array<{ fieldKey: string; fieldInfo: any; value: any }> = [];
+
         for (let i = 0; i < keys.length; i++) {
             const fieldKey = keys[i];
             const fieldInfo = fieldObj[fieldKey];
@@ -201,10 +211,11 @@ export class CrudUrl {
             }
 
             const result = this.validation.normalizeAndValidateCrudFormFieldValue(
-                sourceMatrixParams[matrixParamName],
+                this.decodeFlagUrlValue(sourceMatrixParams[matrixParamName], fieldInfo),
                 fieldInfo,
                 undefined,
                 CrudFieldNormalizeModeEnum.CTOS,
+                this.state.getCrudModuleContext(),
             );
             
             if (!result.valid) {
@@ -215,6 +226,117 @@ export class CrudUrl {
             updateField(fieldKey, {
                 value: result.value,
             });
+
+            if (typeof (fieldInfo as any)?.value_loader === 'function') {
+                restored.push({
+                    fieldKey: fieldKey,
+                    fieldInfo: fieldInfo,
+                    value: result.value,
+                });
+            }
+        }
+
+        if (restored.length === 0) {
+            return;
+        }
+
+        /**
+         * Deliberately not awaited. The values above are already applied, and the
+         * search drawer that renders these fields is closed at init time, so the
+         * label lands long before anything paints it.
+         *
+         * The one window it does not cover: opening the drawer while the lookup is
+         * still in flight shows the raw key until the field is rendered again.
+         */
+        void this.loadValueLabelFromUrlState(restored, updateField);
+    }
+
+    /**
+     * A value restored from the URL is a key with no label: the URL carries
+     * ";region=3" and never the name. There is no record here either, so fr_field
+     * has nothing to read - the field's own value_loader() is the only thing that
+     * can name it.
+     *
+     * The answer is merged into [option], so every ui type that already reads
+     * [option] - SELECT, MULTISELECT, BUTTON_SELECT, BUTTON_MULTISELECT, RADIO,
+     * CHECKBOX, AUTOSUGGEST - is served by this one pass, and none of them need to know
+     * it happened.
+     */
+    private async loadValueLabelFromUrlState(
+        restored: Array<{ fieldKey: string; fieldInfo: any; value: any }>,
+        updateField: CrudStateFormFieldUpdaterType,
+    ): Promise<void> {
+        for (let i = 0; i < restored.length; i++) {
+            const { fieldKey, fieldInfo, value } = restored[i];
+
+            const loader = fieldInfo?.value_loader;
+
+            if (typeof loader !== 'function' || value === null || value === undefined || value === '') {
+                continue;
+            }
+
+            /**
+             * AUTOSUGGEST and MULTIAUTOSUGGEST name their own values, so asking here is
+             * the same request twice.
+             *
+             * <app-form-field-autosuggest> is handed this very value_loader through
+             * [valueLoader] and asks for whatever it cannot name, ONCE PER KEY, from
+             * its own mount. It is also the more complete of the two: this pass only
+             * ever sees values that arrived in the URL, while the control equally
+             * covers a field object carrying its own `value:` and a value set later
+             * in code.
+             *
+             * Every other ui type reading [option] - SELECT, MULTISELECT, BUTTON_SELECT,
+             * BUTTON_MULTISELECT, RADIO, CHECKBOX - has no such loader of its own and
+             * still needs this.
+             */
+            if (
+                fieldInfo?.type === CrudFieldUiTypeEnum.AUTOSUGGEST ||
+                fieldInfo?.type === CrudFieldUiTypeEnum.MULTISELECTAUTOSUGGEST
+            ) {
+                continue;
+            }
+
+            /**
+             * A SIGNAL [option] bag names its own keys the moment it lands, so asking
+             * a loader here is the same request twice - the same reason the two
+             * autosuggest types are skipped above.
+             *
+             * And it would not merely be wasted: updateField() writes a PLAIN object,
+             * so the answer would replace the signal on the field object and the field
+             * would stop following it for good - a later reload() would repaint
+             * nothing.
+             */
+            if (typeof fieldInfo.option === 'function') {
+                continue;
+            }
+
+            const known = { ...(fieldInfo.option ?? {}), ...(fieldInfo.option_default ?? {}) };
+
+            // every key already named - asking again would be a wasted request
+            const pending = (Array.isArray(value) ? value : [value])
+                .filter((v) => v !== null && v !== undefined && v !== '' && !(String(v) in known));
+
+            if (pending.length === 0) {
+                continue;
+            }
+
+            try {
+                const loaded = await loader(value, fieldInfo);
+
+                if (!loaded || Object.keys(loaded).length === 0) {
+                    continue;
+                }
+
+                // merged, not replaced: a static [option] bag stays authoritative
+                updateField(fieldKey, {
+                    option: { ...(fieldInfo.option ?? {}), ...loaded },
+                });
+            } catch (e) {
+                // a value that cannot be named is not worth breaking the page for;
+                // the control falls back to showing the raw key
+                this.log.error('loadValueLabelFromUrlState', e);
+            }
         }
     }
 
@@ -311,8 +433,9 @@ export class CrudUrl {
             }
 
             const sourceValue = fieldInfo.value;
+            const preserveEmptyFlag = this.isClearableFlag(fieldInfo);
 
-            if (this.shouldSkipUrlValue(sourceValue)) {
+            if (!preserveEmptyFlag && this.shouldSkipUrlValue(sourceValue)) {
                 continue;
             }
 
@@ -321,13 +444,16 @@ export class CrudUrl {
                 fieldInfo,
                 undefined,
                 CrudFieldNormalizeModeEnum.STOC,
+                this.state.getCrudModuleContext(),
             );
 
-            if (!result.valid || this.shouldSkipUrlValue(result.value)) {
+            const urlValue = this.encodeFlagUrlValue(result.value, fieldInfo);
+
+            if (!result.valid || this.shouldSkipUrlValue(urlValue)) {
                 continue;
             }
 
-            params[matrixParamName] = result.value;
+            params[matrixParamName] = urlValue;
         }
         return params;
     }
@@ -391,13 +517,17 @@ export class CrudUrl {
             }
 
             const result = this.validation.normalizeAndValidateCrudFormFieldValue(
-                sourceMatrixParams[matrixParamName],
+                this.decodeFlagUrlValue(sourceMatrixParams[matrixParamName], fieldInfo),
                 fieldInfo,
                 undefined,
                 CrudFieldNormalizeModeEnum.CTOS,
+                this.state.getCrudModuleContext(),
             );
 
-            if (!result.valid || this.shouldSkipUrlValue(result.value)) {
+            if (
+                !result.valid
+                || (!this.isClearableFlag(fieldInfo) && this.shouldSkipUrlValue(result.value))
+            ) {
                 continue;
             }
 
@@ -450,9 +580,9 @@ export class CrudUrl {
      */
     public getCrudStateFieldGroupsWithOrder(): CrudStateFormFieldObjType[] {
         return [
-            this.state.searchFilterFieldObj(),
-            this.state.listOperationFieldObj(),
-            this.state.viewOptionFieldObj(),
+            this.state.searchFilter.searchFilterFieldObj(),
+            this.state.listing.listOperationFieldObj(),
+            this.state.listing.viewOptionFieldObj(),
         ];
     }
 
@@ -463,82 +593,75 @@ export class CrudUrl {
         };
     }
     public getCrudBaseUrl(): string {
-        const urlWithoutHash = this.router.url.split('#')[0];
-        const [pathOnly] = urlWithoutHash.split('?');
-
-        const cleanSegments = pathOnly
-            .split('/')
-            .map((segment) => segment.split(';')[0]);
-
-        const lastSegment = cleanSegments.at(-1);
-        const secondLastSegment = cleanSegments.at(-2);
-
-        if (lastSegment === FoundationActionEnum.CREATE) {
-            cleanSegments.pop();
-        } else if (secondLastSegment === FoundationActionEnum.UPDATE) {
-            cleanSegments.splice(-2);
-        }
-
-        return cleanSegments.join('/');
+        return this.state.getModuleRoute().absolutePath();
     }
     public getCreateActionUrl(): string {
-        return `${this.getCrudBaseUrl()}/${FoundationActionEnum.CREATE}`;
+        return this.state.getModuleRoute().absolutePathCreate();
+    }
+    /** LIVE — secondary-key addressed read-only record url. */
+    public getViewActionUrlBySecondaryKey(key: CrudActionRecordSecondaryKeyValueType): string {
+        return this.state.getModuleRoute().absolutePathView(this.getActionRouteKey(key));
+    }
+    /** LIVE — secondary-key addressed print url. */
+    public getPrintActionUrlBySecondaryKey(key: CrudActionRecordSecondaryKeyValueType): string {
+        return this.state.getModuleRoute().absolutePathPrint(this.getActionRouteKey(key));
     }
     /**
      * PARKED — primary-key addressed update url.
      *
      * Fills ':id', the param the parked CrudState/CrudRoute primary chain reads
-     * back. FoundationActionSlugEnum.UPDATE is ':keyid', so this produces a url
-     * with an unfilled placeholder until a primary-key addressed slug exists —
-     * that is the parked state, not a bug to patch by pointing it at ':keyid'.
-     * Doing that would silently make it a duplicate of the secondary builder.
+     * back. The UPDATE route currently declares ':keyid', so the central path
+     * builder drops that unmatched placeholder until a primary-key addressed
+     * action slug exists. That remains parked rather than silently becoming a
+     * duplicate of the secondary builder.
      *
      * Use getUpdateActionUrlBySecondaryKey() for anything real.
      */
     public getUpdateActionUrlByPrimaryKey(id: CrudActionRecordPrimaryKeyValueType): string {
-        return this.buildUpdateActionUrl(id, FoundationFieldDefaultNameEnum.ID);
+        return this.getCrudActionUrl(FoundationActionEnum.UPDATE, {
+            [`:${FoundationFieldDefaultNameEnum.ID}`]: this.getActionRouteKey(id),
+        });
     }
 
     /**
      * LIVE — secondary-key addressed update url.
      *
-     * Fills ':keyid', which is what FoundationActionSlugEnum.UPDATE declares
-     * and what CrudState.crudActionRecordSecondaryKey reads back, so the
-     * builder and the reader cannot drift.
+     * Fills ':keyid', which is what the UPDATE action route declares and what
+     * CrudState.crudActionRecordSecondaryKey reads back, so the builder and the
+     * reader cannot drift.
      */
     public getUpdateActionUrlBySecondaryKey(key: CrudActionRecordSecondaryKeyValueType): string {
-        return this.buildUpdateActionUrl(key, FoundationFieldDefaultNameEnum.KEYID);
+        return this.state.getModuleRoute().absolutePathUpdate(this.getActionRouteKey(key));
     }
 
     /**
-     * ⚠ the placeholder name is a PARAMETER here, derived from the same
-     * FoundationFieldDefaultNameEnum the slug template is built from. It used
-     * to be hardcoded on one side while the template came from a constant —
-     * rename the constant and only half of it moved, leaving a literal
-     * ':keyid' in the emitted url. No compile error, no test, just a dead link.
+     * PARKED — primary-key addressed duplicate url. The DUPLICATE route currently
+     * declares ':keyid', so this follows the same parked contract as UPDATE above
+     * until a primary-key addressed action slug exists.
      */
-    private buildUpdateActionUrl(
-        value: CrudActionRecordPrimaryKeyValueType | CrudActionRecordSecondaryKeyValueType,
-        paramName: FoundationFieldDefaultNameEnum,
-    ): string {
-        // 1. join the parent and child slugs
-        let fullPath = [this.getCrudBaseUrl(), FoundationActionSlugEnum.UPDATE].join('/');
-
-        // 2. check if values are array then join them with commas
-        if (Array.isArray(value)) {
-            value = value.join(',');
-        }
-
-        // 3. replace placeholders with actual values, all parameters stay in service only
-        const params: Record<string, string | number> = {
-            [`:${paramName}`]: value ?? '',
-        };
-
-        Object.entries(params).forEach(([key, val]) => {
-            fullPath = fullPath.replace(key, val.toString());
+    public getDuplicateActionUrlByPrimaryKey(id: CrudActionRecordPrimaryKeyValueType): string {
+        return this.getCrudActionUrl(FoundationActionEnum.DUPLICATE, {
+            [`:${FoundationFieldDefaultNameEnum.ID}`]: this.getActionRouteKey(id),
         });
+    }
 
-        return fullPath;
+    /** LIVE — secondary-key addressed duplicate url. */
+    public getDuplicateActionUrlBySecondaryKey(key: CrudActionRecordSecondaryKeyValueType): string {
+        return this.state.getModuleRoute().absolutePathDuplicate(this.getActionRouteKey(key));
+    }
+
+    private getActionRouteKey(
+        value: CrudActionRecordPrimaryKeyValueType | CrudActionRecordSecondaryKeyValueType,
+    ): string | number {
+        return Array.isArray(value) ? value.join(',') : value ?? '';
+    }
+
+    /** Only parked action URLs use this generic path API. */
+    private getCrudActionUrl(
+        action: FoundationActionEnum,
+        params: Record<string, string | number> = {},
+    ): string {
+        return this.state.getModuleRoute().absolutePathAction(action, params);
     }
     public async navigateAwayFromCrudAction(): Promise<boolean> {
         const returnUrl = history.state?.crudReturnUrl;
@@ -571,6 +694,37 @@ export class CrudUrl {
     
 
     // █████ SMALL VALUE HELPERS ████████████████████████████████████████████
+
+    private isClearableFlag(fieldInfo: CrudFormFieldInfoType): boolean {
+        return fieldInfo.type === CrudFieldUiTypeEnum.FLAG
+            && fieldInfo.flag?.clearable === true;
+    }
+
+    private encodeFlagUrlValue(
+        value: unknown,
+        fieldInfo: CrudFormFieldInfoType,
+    ): any {
+        if (!this.isClearableFlag(fieldInfo)) return value;
+        if (value === null || value === undefined) return CrudUrlFieldFlagValueEnum.NULL;
+        if (value === '') return CrudUrlFieldFlagValueEnum.NOT_NULL;
+
+        return value;
+    }
+
+    private decodeFlagUrlValue(
+        value: unknown,
+        fieldInfo: CrudFormFieldInfoType,
+    ): any {
+        if (!this.isClearableFlag(fieldInfo)) return value;
+        if (value === CrudUrlFieldFlagValueEnum.NULL) {
+            return null;
+        }
+        if (value === CrudUrlFieldFlagValueEnum.NOT_NULL) {
+            return '';
+        }
+
+        return value;
+    }
 
     private shouldSkipUrlValue(value: unknown): boolean {
         if (value === null || value === undefined) {

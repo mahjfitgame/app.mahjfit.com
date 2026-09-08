@@ -1,0 +1,74 @@
+<!-- file: src/app/base/form-fields/color/template.html -->
+<mat-form-field appearance="outline" subscriptSizing="dynamic" class="tw:w-full">
+    <mat-label>{{ label() }}</mat-label>
+
+    @if (iconPrepend()) {
+        <mat-icon matPrefix class="material-symbols-rounded">{{ iconPrepend() }}</mat-icon>
+    }
+
+    <div class="tw:flex tw:items-center tw:gap-3">
+        <!--
+          text half is typeable: (change) not (input), so it commits on blur/Enter and
+          angular never rewrites [value] mid-edit. the swatch is the native picker.
+        -->
+        <input
+            matInput
+            type="text"
+            autocomplete="off"
+            autocapitalize="off"
+            spellcheck="false"
+            class="tw:min-w-0 tw:flex-1"
+            [errorStateMatcher]="errorMatcher"
+            [ngModel]="service.state.renderValue()"
+            [ngModelOptions]="{ standalone: true }"
+            [attr.name]="name()"
+            [attr.id]="inputId() || name()"
+            [attr.placeholder]="placeholder() || '#rrggbb'"
+            [required]="required()"
+            [disabled]="disabled()"
+            (change)="service.onTextChange($any($event.target).value)"
+            (keyup.enter)="$any($event.target).blur()">
+
+        <!--
+          the swatch is a shadow pseudo element, so rounding the input alone leaves a
+          square inside it. -webkit-color-swatch is Chromium + WebKit (both capacitor
+          webviews), -moz-color-swatch is firefox on the web build.
+        -->
+        <input
+            type="color"
+            class="tw:h-7 tw:w-7 tw:shrink-0 tw:cursor-pointer tw:appearance-none tw:overflow-hidden
+                   tw:rounded-full tw:border-0 tw:bg-transparent tw:p-0
+                   tw:[&::-webkit-color-swatch-wrapper]:p-0
+                   tw:[&::-webkit-color-swatch]:rounded-full tw:[&::-webkit-color-swatch]:border-0
+                   tw:[&::-moz-color-swatch]:rounded-full tw:[&::-moz-color-swatch]:border-0"
+            [disabled]="disabled()"
+            [attr.aria-label]="'GL.FIELD.COLOR.SELECT' | transloco"
+            [value]="service.state.swatchValue()"
+            (input)="service.onSwatchChange($any($event.target).value)">
+    </div>
+
+    <div matSuffix class="tw:flex tw:items-center tw:gap-1">
+        @if (clearable() && !disabled() && service.state.hasValue()) {
+            <button mat-icon-button type="button"
+                [attr.aria-label]="'GL.FIELD.COMMON.CLEAR' | transloco"
+                (click)="service.onClear($event)">
+                <mat-icon class="material-symbols-rounded">close</mat-icon>
+            </button>
+        }
+        @if (iconAppend()) {
+            <mat-icon class="material-symbols-rounded tw:mx-3">{{ iconAppend() }}</mat-icon>
+        }
+    </div>
+
+    @if (error()) {
+        <mat-error class="tw:flex! tw:items-center tw:gap-1">
+            <mat-icon class="material-symbols-rounded tw:text-xs! tw:h-4! tw:w-4! tw:shrink-0">error</mat-icon>
+            <span>{{ error() }}</span>
+        </mat-error>
+    } @else if (hint()) {
+        <mat-hint class="tw:flex tw:items-start tw:gap-1">
+            <mat-icon class="material-symbols-rounded tw:text-xs! tw:h-4! tw:w-4! tw:shrink-0">info</mat-icon>
+            <span>{{ hint() }}</span>
+        </mat-hint>
+    }
+</mat-form-field>

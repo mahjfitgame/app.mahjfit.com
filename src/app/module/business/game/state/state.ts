@@ -839,7 +839,7 @@ export class GameState extends SignalStateService implements FoundationModuleSta
     // ████ API CALLS ███████████████████████████████████████████████████
     public async afterGameStart(): Promise<void> {
         // connect to web socket to listen the game live events
-        // await this.api.sdk.graphql.ws.connect();
+        await this.api.sdk.graphql.ws.connect();
 
 
         this.api.sdk.graphql.ws.subscribeError({

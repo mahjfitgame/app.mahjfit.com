@@ -16,6 +16,8 @@ import { CrudDefaultModule } from '@base/crud/default/module';
 import { MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatBottomSheetModule } from '@angular/material/bottom-sheet';
 import { MatSidenavModule } from '@angular/material/sidenav';
+import { MatIconModule } from '@angular/material/icon';
+import { TranslocoModule } from '@jsverse/transloco';
 
 @Component({
   selector: 'app-crud',
@@ -30,6 +32,8 @@ import { MatSidenavModule } from '@angular/material/sidenav';
     MatSnackBarModule,
     MatBottomSheetModule,
     MatSidenavModule,
+    MatIconModule,
+    TranslocoModule,
 
     // for parent private area layout slot
     CdkPortal,

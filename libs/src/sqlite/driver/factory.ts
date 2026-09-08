@@ -1,15 +1,25 @@
 // file: libs/src/sqlite/driver/factory.ts
 
-import { Service } from '@angular/core';
+import { Service, inject } from '@angular/core';
 import { Capacitor } from '@capacitor/core';
+import { ConfService } from '@libs/conf/service';
+import { LogService } from '@libs/log/service';
 import { SqliteDriverType } from '../type';
 import { SqliteCapacitorDriver } from './capacitor';
+import { SqliteDisabledDriver } from './disabled';
 import { SqliteElectronDriver } from './electron';
 import { SqliteOpfsWebDriver } from './opfs.web';
 
 @Service()
 export class SqliteDriverFactory {
+  private readonly conf = inject(ConfService);
+  private readonly log = inject(LogService);
+
   public create(): SqliteDriverType {
+    if (!this.conf.enableLocalDb) {
+      return new SqliteDisabledDriver(this.log);
+    }
+
     const platform = Capacitor.getPlatform();
 
     if (platform === 'ios' || platform === 'android') {
@@ -36,7 +46,7 @@ export class SqliteDriverFactory {
       return new SqliteOpfsWebDriver();
     }
 
-    console.warn(
+    this.log.warn(
       '[SQLITE] OPFS storage is unavailable in this browser context. Using Capacitor SQLite IndexedDB driver instead.',
     );
 
@@ -63,7 +73,7 @@ export class SqliteDriverFactory {
       await navigator.storage.getDirectory();
       return true;
     } catch (error) {
-      console.warn(
+      this.log.warn(
         '[SQLITE] navigator.storage.getDirectory() failed. OPFS SQLite will be skipped.',
         error
       );

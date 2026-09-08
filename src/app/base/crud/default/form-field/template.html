@@ -7,30 +7,35 @@
     text: CRUD_FT_TEXT,
     textarea: CRUD_FT_TEXTAREA,
     select: CRUD_FT_SELECT,
-    multiselect: CRUD_FT_MULTISELECT,
+    multiselect: CRUD_FT_SELECT,
+    button_select: CRUD_FT_BUTTON_SELECT,
+    button_multiselect: CRUD_FT_BUTTON_SELECT,
+    autosuggest: CRUD_FT_AUTOSUGGEST,
+    multiselectautosuggest: CRUD_FT_AUTOSUGGEST,
     radio: CRUD_FT_RADIO,
     checkbox: CRUD_FT_CHECKBOX,
-    number: CRUD_FT_NUMBER,
+    slider: CRUD_FT_SLIDER,
+    range: CRUD_FT_RANGE,
     flag: CRUD_FT_FLAG,
     switch: CRUD_FT_SWITCH,
-    date: CRUD_FT_DATE,
-    time: CRUD_FT_TIME,
+    date: CRUD_FT_DATETIME,
+    time: CRUD_FT_DATETIME,
     datetime: CRUD_FT_DATETIME,
+    datetime_range: CRUD_FT_DATETIME,
+    number: CRUD_FT_NUMBER,
     password: CRUD_FT_PASSWORD,
     email: CRUD_FT_EMAIL,
     url: CRUD_FT_URL,
     tel: CRUD_FT_TEL,
-    slider: CRUD_FT_SLIDER,
-    range: CRUD_FT_RANGE,
-    file: CRUD_FT_FILE,
     color: CRUD_FT_COLOR,
+    file: CRUD_FT_FILE,
     html: CRUD_FT_HTML,
     array: CRUD_FT_ARRAY,
     json: CRUD_FT_JSON,
   };
 
 <!-- ████ LOOP THROUGH FORM ALL OBJECTS OF FIELDS -->
-<div class="tw:grid tw:gap-7">
+<div class="tw:grid tw:grid-cols-1 tw:gap-7 tw:lg:grid-cols-12">
   @for (obj of formFieldObjList(); track $index) {
     <ng-container *ngTemplateOutlet="CRUD_FIELDS_OBJ_TEMPLATE; context: { ffObj: obj }">
     </ng-container>
@@ -54,37 +59,59 @@
         : slotPrefix() + $any(fkey);
     @let customFieldPortal = service.state.getSlotField(portalKey);
 
-    <!-- SLOT: custom field template from child component -->
-    @if (finfo?.slot && customFieldPortal) {
-      <!-- [finfo?.skip] will be checked in child component in case of slot portal -->
-      <ng-container
-        *ngTemplateOutlet="
-          $any(customFieldPortal).templateRef;
-          context: {
-            fkey: fkey,
-            finfo: finfo,
-            fstate: fstate,
-            hasError: hasError,
-            ffObj: ffObj,
-          }
-        "
-      ></ng-container>
-    }
-    <!-- LOAD form field info type -->
-    @else if (!finfo?.skip || finfo?.skip === false) {
-      <ng-container
-        *ngTemplateOutlet="
-          $any(fieldTemplates)[ftype] ?? DEF_CRUD_FIELD_TEMPLATE_NOT_FOUND;
-          context: {
-            fkey: fkey,
-            finfo: finfo,
-            fstate: fstate,
-            hasError: hasError,
-            ffObj: ffObj,
-          }
-        "
+    <!-- field-level grid span: NONE (header/divider) always takes the full row -->
+    @let colspan = ftype === service.CrudFieldUiTypeEnum.NONE ? 12 : (finfo?.colspan ?? 12);
+    @let showSlot = !!(finfo?.slot && customFieldPortal);
+    @let showField = !finfo?.skip || finfo?.skip === false;
+
+    @if (showSlot || showField) {
+      <div
+        [class.tw:lg:col-span-1]="colspan === 1"
+        [class.tw:lg:col-span-2]="colspan === 2"
+        [class.tw:lg:col-span-3]="colspan === 3"
+        [class.tw:lg:col-span-4]="colspan === 4"
+        [class.tw:lg:col-span-5]="colspan === 5"
+        [class.tw:lg:col-span-6]="colspan === 6"
+        [class.tw:lg:col-span-7]="colspan === 7"
+        [class.tw:lg:col-span-8]="colspan === 8"
+        [class.tw:lg:col-span-9]="colspan === 9"
+        [class.tw:lg:col-span-10]="colspan === 10"
+        [class.tw:lg:col-span-11]="colspan === 11"
+        [class.tw:lg:col-span-12]="colspan === 12"
       >
-      </ng-container>
+        <!-- SLOT: custom field template from child component -->
+        @if (showSlot) {
+          <!-- [finfo?.skip] will be checked in child component in case of slot portal -->
+          <ng-container
+            *ngTemplateOutlet="
+              $any(customFieldPortal).templateRef;
+              context: {
+                fkey: fkey,
+                finfo: finfo,
+                fstate: fstate,
+                hasError: hasError,
+                ffObj: ffObj,
+              }
+            "
+          ></ng-container>
+        }
+        <!-- LOAD form field info type -->
+        @else {
+          <ng-container
+            *ngTemplateOutlet="
+              $any(fieldTemplates)[ftype] ?? DEF_CRUD_FIELD_TEMPLATE_NOT_FOUND;
+              context: {
+                fkey: fkey,
+                finfo: finfo,
+                fstate: fstate,
+                hasError: hasError,
+                ffObj: ffObj,
+              }
+            "
+          >
+          </ng-container>
+        }
+      </div>
     }
   }
 </ng-template>
@@ -120,7 +147,7 @@
   </div>
 </ng-template>
 
-<!-- ████ type = NONE -->
+<!-- ████ finfo.type = NONE -->
 <ng-template
   #CRUD_FT_NONE
   let-fkey="fkey"
@@ -131,17 +158,21 @@
 >
   @let label = finfo.label | transloco;
   @let icon = finfo.mat_icon_append ?? 'docs';
-  <header class="tw:col-span-1 tw:flex tw:items-center tw:gap-2 tw:mb-2 tw:text-primary">
-    <span
-      class="tw:grid tw:place-content-center tw:h-8 tw:w-8 tw:shrink-0 tw:rounded-full tw:shadow-sm tw:bg-primary/20"
-    >
-      <mat-icon class="material-symbols-rounded">{{ icon }}</mat-icon>
-    </span>
-    <h2>{{ label }}</h2>
-  </header>
+  @if (label) {
+    <header class="tw:flex tw:items-center tw:gap-2 tw:mb-2 tw:text-primary">
+      <span
+        class="tw:grid tw:place-content-center tw:h-8 tw:w-8 tw:shrink-0 tw:rounded-full tw:shadow-sm tw:bg-primary/20"
+      >
+        <mat-icon class="material-symbols-rounded">{{ icon }}</mat-icon>
+      </span>
+      <h2>{{ label }}</h2>
+    </header>
+  } @else {
+    <mat-divider></mat-divider>
+  }
 </ng-template>
 
-<!-- ████ type = HIDDEN -->
+<!-- ████ finfo.type = HIDDEN -->
 <ng-template
   #CRUD_FT_HIDDEN
   let-fkey="fkey"
@@ -155,7 +186,7 @@
   </span>
 </ng-template>
 
-<!-- ████ type = TEXT -->
+<!-- ████ finfo.type = TEXT -->
 <ng-template
   #CRUD_FT_TEXT
   let-fkey="fkey"
@@ -164,57 +195,28 @@
   let-hasError="hasError"
   let-ffObj="ffObj"
 >
-  <mat-form-field appearance="outline" subscriptSizing="dynamic" class="tw:w-full">
-    <mat-label>{{ finfo.label | transloco }}</mat-label>
-    @if (finfo.mat_icon_prepend) {
-      <mat-icon matPrefix class="material-symbols-rounded">{{ finfo.mat_icon_prepend }}</mat-icon>
-    }
-    <input
-      matInput
-      [attr.name]="fkey"
-      [attr.id]="fkey"
-      [attr.placeholder]="(finfo.placeholder | transloco) || ''"
-      [attr.minlength]="finfo?.validation?.min_length?.value ?? null"
-      [attr.maxlength]="finfo?.validation?.max_length?.value ?? null"
-      [(ngModel)]="finfo.value"
-    />
-    <div matSuffix class="tw:flex tw:items-center tw:gap-1">
-      @if (finfo.value) {
-        <button
-          mat-icon-button
-          type="button"
-          [attr.aria-label]="'GL.FIELD.COMMON.CLEAR' | transloco"
-          (click)="service.clear(finfo); $event.stopPropagation()"
-        >
-          <mat-icon class="material-symbols-rounded">close</mat-icon>
-        </button>
-      }
-      @if (finfo.mat_icon_append) {
-        <mat-icon class="material-symbols-rounded tw:mx-3">
-          {{ finfo.mat_icon_append }}
-        </mat-icon>
-      }
-    </div>
-    @if (hasError) {
-      <mat-error class="tw:flex! tw:items-center tw:gap-1">
-        <mat-icon class="material-symbols-rounded tw:text-xs! tw:h-4! tw:w-4!"> error </mat-icon>
-        <span>{{ fstate.errors?.()?.[0]?.message | transloco }}</span>
-      </mat-error>
-    } @else if (finfo.hint) {
-      <mat-hint class="tw:flex tw:items-start tw:gap-1">
-        <mat-icon class="material-symbols-rounded tw:text-xs! tw:h-4! tw:w-4!"> info </mat-icon>
-        <span>{{ finfo.hint | transloco }}</span>
-      </mat-hint>
-    }
-    @if (finfo?.validation?.max_length?.value) {
-      <mat-hint align="end">
-        {{ finfo.value?.length || 0 }} / {{ finfo.validation.max_length.value }}
-      </mat-hint>
-    }
-  </mat-form-field>
+  @let dependency = finfo.value_dependency?.(ffObj);
+
+  <app-form-field-text
+    [name]="fkey"
+    [inputId]="fkey"
+    [required]="!!finfo.validation?.required"
+    [disabled]="(finfo.disabled ?? false) || (fstate?.disabled?.() ?? false) || (dependency?.disabledByDependency ?? false)"
+    [value]="finfo.value ?? finfo.default ?? null"
+    (valueChange)="service.onCrudFieldValueChange(ffObj, fkey, finfo, $event)"
+    [dependentFieldValue]="dependency?.dependentFieldValue"
+    [label]="finfo.label | transloco"
+    [placeholder]="(finfo.placeholder | transloco) || ''"
+    [hint]="(finfo.hint | transloco) || ''"
+    [error]="hasError ? (fstate.errors?.()?.[0]?.message | transloco: validationMessageParams(finfo)) : ''"
+    [iconPrepend]="finfo.mat_icon_prepend ?? ''"
+    [iconAppend]="finfo.mat_icon_append ?? ''"
+    [minLength]="finfo?.validation?.min_length?.value ?? null"
+    [maxLength]="finfo?.validation?.max_length?.value ?? null"
+  ></app-form-field-text>
 </ng-template>
 
-<!-- ████ type = TEXTAREA -->
+<!-- ████ finfo.type = TEXTAREA -->
 <ng-template
   #CRUD_FT_TEXTAREA
   let-fkey="fkey"
@@ -223,61 +225,30 @@
   let-hasError="hasError"
   let-ffObj="ffObj"
 >
-  <mat-form-field appearance="outline" subscriptSizing="dynamic" class="tw:w-full">
-    <mat-label>{{ finfo.label | transloco }}</mat-label>
-    @if (finfo.mat_icon_prepend) {
-      <mat-icon matPrefix class="material-symbols-rounded">{{ finfo.mat_icon_prepend }}</mat-icon>
-    }
-    <textarea
-      matInput
-      cdkTextareaAutosize
-      cdkAutosizeMinRows="3"
-      cdkAutosizeMaxRows="8"
-      class="tw:resize-none"
-      [attr.name]="fkey"
-      [attr.id]="fkey"
-      [attr.placeholder]="(finfo.placeholder | transloco) || ''"
-      [attr.minlength]="finfo?.validation?.min_length?.value ?? null"
-      [attr.maxlength]="finfo?.validation?.max_length?.value ?? null"
-      [(ngModel)]="finfo.value"
-    ></textarea>
-    <div matSuffix class="tw:flex tw:items-center tw:gap-1">
-      @if (finfo.value) {
-        <button
-          mat-icon-button
-          type="button"
-          [attr.aria-label]="'GL.FIELD.COMMON.CLEAR' | transloco"
-          (click)="service.clear(finfo); $event.stopPropagation()"
-        >
-          <mat-icon class="material-symbols-rounded">close</mat-icon>
-        </button>
-      }
-      @if (finfo.mat_icon_append) {
-        <mat-icon class="material-symbols-rounded tw:mx-3">
-          {{ finfo.mat_icon_append }}
-        </mat-icon>
-      }
-    </div>
-    @if (hasError) {
-      <mat-error class="tw:flex! tw:items-center tw:gap-1">
-        <mat-icon class="material-symbols-rounded tw:text-xs! tw:h-4! tw:w-4!"> error </mat-icon>
-        <span>{{ fstate.errors?.()?.[0]?.message | transloco }}</span>
-      </mat-error>
-    } @else if (finfo.hint) {
-      <mat-hint class="tw:flex tw:items-start tw:gap-1">
-        <mat-icon class="material-symbols-rounded tw:text-xs! tw:h-4! tw:w-4!"> info </mat-icon>
-        <span>{{ finfo.hint | transloco }}</span>
-      </mat-hint>
-    }
-    @if (finfo?.validation?.max_length?.value) {
-      <mat-hint align="end">
-        {{ finfo.value?.length || 0 }} / {{ finfo.validation.max_length.value }}
-      </mat-hint>
-    }
-  </mat-form-field>
+  @let dependency = finfo.value_dependency?.(ffObj);
+
+  <app-form-field-textarea
+    [name]="fkey"
+    [inputId]="fkey"
+    [required]="!!finfo.validation?.required"
+    [disabled]="(finfo.disabled ?? false) || (fstate?.disabled?.() ?? false) || (dependency?.disabledByDependency ?? false)"
+    [value]="finfo.value ?? finfo.default ?? null"
+    (valueChange)="service.onCrudFieldValueChange(ffObj, fkey, finfo, $event)"
+    [dependentFieldValue]="dependency?.dependentFieldValue"
+    [label]="finfo.label | transloco"
+    [placeholder]="(finfo.placeholder | transloco) || ''"
+    [hint]="(finfo.hint | transloco) || ''"
+    [error]="hasError ? (fstate.errors?.()?.[0]?.message | transloco: validationMessageParams(finfo)) : ''"
+    [iconPrepend]="finfo.mat_icon_prepend ?? ''"
+    [iconAppend]="finfo.mat_icon_append ?? ''"
+    [minLength]="finfo?.validation?.min_length?.value ?? null"
+    [maxLength]="finfo?.validation?.max_length?.value ?? null"
+    [minRows]="finfo.textarea?.min_rows ?? 3"
+    [maxRows]="finfo.textarea?.max_rows ?? 8"
+  ></app-form-field-textarea>
 </ng-template>
 
-<!-- ████ type = SELECT -->
+<!-- ████ finfo.type = SELECT | MULTISELECT -->
 <ng-template
   #CRUD_FT_SELECT
   let-fkey="fkey"
@@ -286,152 +257,118 @@
   let-hasError="hasError"
   let-ffObj="ffObj"
 >
-  <mat-form-field appearance="outline" subscriptSizing="dynamic" class="tw:w-full">
-    <mat-label>{{ finfo.label | transloco }}</mat-label>
-    @if (finfo.mat_icon_prepend) {
-      <mat-icon matPrefix class="material-symbols-rounded">{{ finfo.mat_icon_prepend }}</mat-icon>
-    }
-    <mat-select
-      [attr.name]="fkey"
-      [attr.id]="fkey"
-      [placeholder]="(finfo.placeholder | transloco) || ''"
-      [value]="finfo.value ?? ''"
-    >
-      @if (service.firstDefaultOption(finfo.option_default); as opt) {
-        <mat-option [value]="opt.key">{{ opt.value | transloco }}</mat-option>
-        <mat-divider></mat-divider>
-      }
-      @if (finfo.option) {
-        <!-- CASE 1: Options is an Array -->
-        @if (service.utility.isArray(finfo.option)) {
-          @for (option of finfo.option; track option) {
-            <mat-option [value]="option">
-              {{ option }}
-            </mat-option>
-          }
-        }
-        <!-- CASE 2: Options is a Record/Object -->
-        @else {
-          @for (opt of finfo.option | keyvalue; track opt.key) {
-            <!-- 
-                          opt.key is the object key (string format)
-                          opt.value is the displayed label ('Open', 'Close', etc.)
-                        -->
-            <mat-option [value]="service.utility.parseKey(opt.key)">
-              {{ opt.value | transloco }}
-            </mat-option>
-          }
-        }
-      }
-    </mat-select>
-    @if (finfo.mat_icon_append) {
-      <mat-icon matSuffix class="material-symbols-rounded">{{ finfo.mat_icon_append }}</mat-icon>
-    }
-    @if (hasError) {
-      <mat-error class="tw:flex! tw:items-center tw:gap-1">
-        <mat-icon class="material-symbols-rounded tw:text-xs! tw:h-4! tw:w-4!"> error </mat-icon>
-        <span>{{ fstate.errors?.()?.[0]?.message | transloco }}</span>
-      </mat-error>
-    } @else if (finfo.hint) {
-      <mat-hint class="tw:flex tw:items-start tw:gap-1">
-        <mat-icon class="material-symbols-rounded tw:text-xs! tw:h-4! tw:w-4!"> info </mat-icon>
-        <span>{{ finfo.hint | transloco }}</span>
-      </mat-hint>
-    }
-  </mat-form-field>
+  @let multiselect = service.CrudFieldUiTypeEnum.MULTISELECT;
+  @let dependency = finfo.value_dependency?.(ffObj);
+
+  <app-form-field-select
+    [name]="fkey"
+    [inputId]="fkey"
+    [required]="!!finfo.validation?.required"
+    [disabled]="(finfo.disabled ?? false) || (fstate?.disabled?.() ?? false) || (dependency?.disabledByDependency ?? false)"
+    [value]="finfo.value ?? finfo.default ?? null"
+    (valueChange)="service.onCrudFieldValueChange(ffObj, fkey, finfo, $event)"
+    [dependentFieldValue]="dependency?.dependentFieldValue"
+    [option]="finfo.option ?? null"
+    (optionChange)="finfo.option = $event"
+    [optionLoader]="$any(finfo.option_loader ?? null)"
+    [disabledByDependency]="dependency?.disabledByDependency ?? false"
+    [optionDefault]="finfo.option_default ?? service.emptyOptionBag"
+    [template]="finfo.template ?? null"
+    [label]="finfo.label | transloco"
+    [placeholder]="(finfo.placeholder | transloco) || ''"
+    [hint]="(finfo.hint | transloco) || ''"
+    [error]="hasError ? (fstate.errors?.()?.[0]?.message | transloco: validationMessageParams(finfo)) : ''"
+    [iconPrepend]="finfo.mat_icon_prepend ?? ''"
+    [iconAppend]="finfo.mat_icon_append ?? ''"
+    [clearable]="finfo.select?.clearable ?? true"
+    [searchable]="finfo.select?.searchable ?? false"
+    [multiselect]="finfo.type === multiselect"
+    [maxSelection]="finfo.type === multiselect ? (finfo.select?.max_selection ?? 0) : 0"
+    [selectAll]="finfo.type === multiselect ? (finfo.select?.select_all ?? true) : true"
+    [chips]="finfo.type === multiselect ? (finfo.select?.chips ?? false) : false"
+  ></app-form-field-select>
 </ng-template>
 
-<!-- ████ type = MULTISELECT -->
+<!-- ████ finfo.type = BUTTON_SELECT | BUTTON_MULTISELECT -->
 <ng-template
-  #CRUD_FT_MULTISELECT
+  #CRUD_FT_BUTTON_SELECT
   let-fkey="fkey"
   let-finfo="finfo"
   let-fstate="fstate"
   let-hasError="hasError"
   let-ffObj="ffObj"
 >
-  <mat-form-field appearance="outline" subscriptSizing="dynamic" class="tw:w-full">
-    <mat-label>{{ finfo.label | transloco }}</mat-label>
-    @if (finfo.mat_icon_prepend) {
-      <mat-icon matPrefix class="material-symbols-rounded">{{ finfo.mat_icon_prepend }}</mat-icon>
-    }
-    <mat-select
-      multiple
-      [attr.name]="fkey"
-      [attr.id]="fkey"
-      [placeholder]="(finfo.placeholder | transloco) || ''"
-      [value]="service.multiSelectValue(finfo)"
-      (selectionChange)="service.multiSelectChange(finfo, $event.value)"
-    >
-      <mat-select-trigger>
-        @let selected = finfo.value ?? finfo.default ?? [];
+  @let multiselect = service.CrudFieldUiTypeEnum.BUTTON_MULTISELECT;
+  @let dependency = finfo.value_dependency?.(ffObj);
 
-        @if (selected.length) {
-          {{ 'GL.FIELD.COMMON.SELECTED_COUNT' | transloco: { count: selected.length } }}
-        } @else {
-          {{ (finfo.placeholder | transloco) || ('GL.FIELD.COMMON.SELECT' | transloco) }}
-        }
-      </mat-select-trigger>
-      <!-- All / Deselect option -->
-      <mat-option [value]="service.ALL_VALUE">
-        {{
-          (finfo.value ?? finfo.default ?? []).length === service.multiSelectOptionCount(finfo)
-            ? ('GL.FIELD.COMMON.DESELECT' | transloco)
-            : ('GL.FIELD.COMMON.ALL' | transloco)
-        }}
-        ({{ (finfo.value ?? finfo.default ?? []).length }}/{{
-          service.multiSelectOptionCount(finfo)
-        }})
-      </mat-option>
-
-      <mat-divider></mat-divider>
-
-      @if (service.firstDefaultOption(finfo.option_default); as opt) {
-        <mat-option [value]="opt.key">{{ opt.value | transloco }}</mat-option>
-        <mat-divider></mat-divider>
-      }
-
-      @if (finfo.option) {
-        <!-- CASE 1: Options is an Array -->
-        @if (service.utility.isArray(finfo.option)) {
-          @for (option of finfo.option; track option) {
-            <mat-option [value]="option">
-              {{ option }}
-            </mat-option>
-          }
-        }
-        <!-- CASE 2: Options is a Record/Object -->
-        @else {
-          @for (opt of finfo.option | keyvalue; track opt.key) {
-            <!-- 
-                          opt.key is the object key (string format)
-                          opt.value is the displayed label ('Open', 'Close', etc.)
-                        -->
-            <mat-option [value]="service.utility.parseKey(opt.key)">
-              {{ opt.value | transloco }}
-            </mat-option>
-          }
-        }
-      }
-    </mat-select>
-    @if (finfo.mat_icon_append) {
-      <mat-icon matSuffix class="material-symbols-rounded">{{ finfo.mat_icon_append }}</mat-icon>
-    }
-    @if (hasError) {
-      <mat-error class="tw:flex! tw:items-center tw:gap-1">
-        <mat-icon class="material-symbols-rounded tw:text-xs! tw:h-4! tw:w-4!"> error </mat-icon>
-        <span>{{ fstate.errors?.()?.[0]?.message | transloco }}</span>
-      </mat-error>
-    } @else if (finfo.hint) {
-      <mat-hint class="tw:flex tw:items-start tw:gap-1">
-        <mat-icon class="material-symbols-rounded tw:text-xs! tw:h-4! tw:w-4!"> info </mat-icon>
-        <span>{{ finfo.hint | transloco }}</span>
-      </mat-hint>
-    }
-  </mat-form-field>
+  <app-form-field-button-select
+    [name]="fkey"
+    [inputId]="fkey"
+    [required]="!!finfo.validation?.required"
+    [disabled]="(finfo.disabled ?? false) || (fstate?.disabled?.() ?? false) || (dependency?.disabledByDependency ?? false)"
+    [value]="finfo.value ?? finfo.default ?? null"
+    (valueChange)="service.onCrudFieldValueChange(ffObj, fkey, finfo, $event)"
+    [dependentFieldValue]="dependency?.dependentFieldValue"
+    [option]="finfo.option ?? null"
+    (optionChange)="finfo.option = $event"
+    [optionLoader]="$any(finfo.option_loader ?? null)"
+    [disabledByDependency]="dependency?.disabledByDependency ?? false"
+    [optionDefault]="finfo.option_default ?? service.emptyOptionBag"
+    [template]="finfo.template ?? null"
+    [label]="finfo.label | transloco"
+    [hint]="(finfo.hint | transloco) || ''"
+    [error]="hasError ? (fstate.errors?.()?.[0]?.message | transloco: validationMessageParams(finfo)) : ''"
+    [iconPrepend]="finfo.mat_icon_prepend ?? ''"
+    [iconAppend]="finfo.mat_icon_append ?? ''"
+    [clearable]="finfo.select?.clearable ?? true"
+    [multiselect]="finfo.type === multiselect"
+    [maxSelection]="finfo.type === multiselect ? (finfo.select?.max_selection ?? 0) : 0"
+    [selectAll]="finfo.type === multiselect ? (finfo.select?.select_all ?? true) : true"
+  ></app-form-field-button-select>
 </ng-template>
 
-<!-- ████ type = RADIO -->
+<!-- ████ finfo.type = AUTOSUGGEST | MULTISELECTAUTOSUGGEST -->
+<ng-template
+  #CRUD_FT_AUTOSUGGEST
+  let-fkey="fkey"
+  let-finfo="finfo"
+  let-fstate="fstate"
+  let-hasError="hasError"
+  let-ffObj="ffObj"
+>
+  @let multiselect = service.CrudFieldUiTypeEnum.MULTISELECTAUTOSUGGEST;
+  @let dependency = finfo.value_dependency?.(ffObj);
+
+  <app-form-field-autosuggest
+    [name]="fkey"
+    [inputId]="fkey"
+    [required]="!!finfo.validation?.required"
+    [disabled]="(finfo.disabled ?? false) || (fstate?.disabled?.() ?? false) || (dependency?.disabledByDependency ?? false)"
+    [value]="finfo.value ?? finfo.default ?? null"
+    (valueChange)="service.onCrudFieldValueChange(ffObj, fkey, finfo, $event)"
+    [dependentFieldValue]="dependency?.dependentFieldValue"
+    [template]="finfo.template"
+    [option]="finfo.option ?? service.emptyOptionBag"
+    [optionDefault]="finfo.option_default ?? service.emptyOptionBag"
+    [label]="finfo.label | transloco"
+    [placeholder]="(finfo.placeholder | transloco) || ''"
+    [hint]="(finfo.hint | transloco) || ''"
+    [error]="hasError ? (fstate.errors?.()?.[0]?.message | transloco: validationMessageParams(finfo)) : ''"
+    [iconPrepend]="finfo.mat_icon_prepend ?? ''"
+    [iconAppend]="finfo.mat_icon_append ?? ''"
+    [optionLoader]="$any(finfo.option_loader ?? null)"
+    [valueLoader]="finfo.value_loader ?? null"
+    [minLength]="finfo.autosuggest?.min_length ?? 2"
+    [debounce]="finfo.autosuggest?.debounce ?? 300"
+    [requireSelection]="finfo.autosuggest?.require_selection ?? true"
+    [customValue]="finfo.autosuggest?.custom_value ?? false"
+    (customAdd)="$event.keep(finfo.autosuggest?.on_custom_add?.($event, fkey, finfo))"
+    [multiselect]="finfo.type === multiselect ? true : false"
+    [maxSelection]="finfo.type === multiselect ? (finfo.autosuggest?.max_selection ?? 0) : 1"
+  ></app-form-field-autosuggest>
+</ng-template>
+
+<!-- ████ finfo.type = RADIO -->
 <ng-template
   #CRUD_FT_RADIO
   let-fkey="fkey"
@@ -440,92 +377,33 @@
   let-hasError="hasError"
   let-ffObj="ffObj"
 >
-  <div class="tw:w-full tw:min-w-0">
-    <!-- header row: same structure as CHECKBOX / SLIDER so the label always sits on top -->
-    <div class="tw:mb-2 tw:flex tw:items-center tw:gap-1 tw:min-w-0">
-      @if (finfo.mat_icon_prepend) {
-        <mat-icon class="material-symbols-rounded tw:text-sm! tw:h-4! tw:w-4! tw:shrink-0">
-          {{ finfo.mat_icon_prepend }}
-        </mat-icon>
-      }
+  @let dependency = finfo.value_dependency?.(ffObj);
 
-      @if (finfo.label) {
-        <mat-label class="tw:min-w-0 tw:truncate tw:text-xs tw:tracking-(--mat-sys-body-large-tracking) tw:text-(--mat-sys-on-surface-variant)">
-          {{ finfo.label | transloco }}
-        </mat-label>
-      }
-
-      @if (finfo.mat_icon_append) {
-        <mat-icon class="material-symbols-rounded tw:text-sm! tw:h-4! tw:w-4! tw:shrink-0">
-          {{ finfo.mat_icon_append }}
-        </mat-icon>
-      }
-    </div>
-
-    <mat-radio-group
-      class="tw:grid tw:grid-cols-2 tw:gap-x-6 tw:gap-y-2 tw:w-full tw:min-w-0"
-      [attr.name]="fkey"
-      [value]="finfo.value ?? ''"
-    >
-      @if (service.firstDefaultOption(finfo.option_default); as opt) {
-        <mat-radio-button
-          class="tw:w-full tw:min-w-0 tw:overflow-hidden tw:[&_.mdc-form-field]:w-full tw:[&_.mdc-form-field]:min-w-0 tw:[&_.mdc-label]:min-w-0 tw:[&_.mdc-label]:flex-1 tw:[&_.mdc-label]:overflow-hidden"
-          [value]="opt.key"
-        >
-          <span class="tw:block tw:w-full tw:min-w-0 tw:truncate tw:text-sm" [title]="opt.value | transloco">
-            {{ opt.value | transloco }}
-          </span>
-        </mat-radio-button>
-      }
-      @if (finfo.option) {
-        <!-- CASE 1: Options is an Array -->
-        @if (service.utility.isArray(finfo.option)) {
-          @for (option of finfo.option; track option) {
-            <mat-radio-button
-              class="tw:w-full tw:min-w-0 tw:overflow-hidden tw:[&_.mdc-form-field]:w-full tw:[&_.mdc-form-field]:min-w-0 tw:[&_.mdc-label]:min-w-0 tw:[&_.mdc-label]:flex-1 tw:[&_.mdc-label]:overflow-hidden"
-              [value]="option"
-            >
-              <span class="tw:block tw:w-full tw:min-w-0 tw:truncate tw:text-sm" [title]="option">
-                {{ option }}
-              </span>
-            </mat-radio-button>
-          }
-        }
-        <!-- CASE 2: Options is a Record/Object -->
-        @else {
-          @for (opt of finfo.option | keyvalue; track opt.key) {
-            <mat-radio-button
-              class="tw:w-full tw:min-w-0 tw:overflow-hidden tw:[&_.mdc-form-field]:w-full tw:[&_.mdc-form-field]:min-w-0 tw:[&_.mdc-label]:min-w-0 tw:[&_.mdc-label]:flex-1 tw:[&_.mdc-label]:overflow-hidden"
-              [value]="service.utility.parseKey(opt.key)"
-            >
-              <span
-                class="tw:block tw:w-full tw:min-w-0 tw:truncate tw:text-sm"
-                [title]="opt.value | transloco"
-              >
-                {{ opt.value | transloco }}
-              </span>
-            </mat-radio-button>
-          }
-        }
-      }
-    </mat-radio-group>
-    @if (hasError) {
-      <div class="tw:mt-1 tw:flex! tw:items-center tw:gap-1 tw:text-xs tw:text-error">
-        <mat-icon class="material-symbols-rounded tw:text-xs! tw:h-4! tw:w-4!">error</mat-icon>
-        <span>{{ fstate.errors?.()?.[0]?.message | transloco }}</span>
-      </div>
-    } @else if (finfo.hint) {
-      <div
-        class="tw:mt-1 tw:flex tw:items-start tw:gap-1 tw:text-xs tw:text-(--mat-sys-on-surface-variant)"
-      >
-        <mat-icon class="material-symbols-rounded tw:text-xs! tw:h-4! tw:w-4!">info</mat-icon>
-        <span>{{ finfo.hint | transloco }}</span>
-      </div>
-    }
-  </div>
+  <app-form-field-radio
+    [name]="fkey"
+    [inputId]="fkey"
+    [required]="!!finfo.validation?.required"
+    [disabled]="(finfo.disabled ?? false) || (fstate?.disabled?.() ?? false) || (dependency?.disabledByDependency ?? false)"
+    [value]="finfo.value ?? finfo.default ?? null"
+    (valueChange)="service.onCrudFieldValueChange(ffObj, fkey, finfo, $event)"
+    [dependentFieldValue]="dependency?.dependentFieldValue"
+    [option]="finfo.option ?? null"
+    (optionChange)="finfo.option = $event"
+    [optionLoader]="$any(finfo.option_loader ?? null)"
+    [disabledByDependency]="dependency?.disabledByDependency ?? false"
+    [optionDefault]="finfo.option_default ?? service.emptyOptionBag"
+    [template]="finfo.template ?? null"
+    [label]="finfo.label | transloco"
+    [hint]="(finfo.hint | transloco) || ''"
+    [error]="hasError ? (fstate.errors?.()?.[0]?.message | transloco: validationMessageParams(finfo)) : ''"
+    [iconPrepend]="finfo.mat_icon_prepend ?? ''"
+    [iconAppend]="finfo.mat_icon_append ?? ''"
+    [columns]="finfo.radio?.columns ?? 2"
+    [clearable]="finfo.radio?.clearable ?? false"
+  ></app-form-field-radio>
 </ng-template>
 
-<!-- ████ type = CHECKBOX -->
+<!-- ████ finfo.type = CHECKBOX -->
 <ng-template
   #CRUD_FT_CHECKBOX
   let-fkey="fkey"
@@ -534,193 +412,34 @@
   let-hasError="hasError"
   let-ffObj="ffObj"
 >
-  <div class="tw:w-full tw:min-w-0">
-    <div class="tw:mb-2 tw:flex tw:items-center tw:gap-1 tw:min-w-0">
-      @if (finfo.mat_icon_prepend) {
-        <mat-icon class="material-symbols-rounded tw:text-sm! tw:h-4! tw:w-4! tw:shrink-0">
-          {{ finfo.mat_icon_prepend }}
-        </mat-icon>
-      }
+  @let dependency = finfo.value_dependency?.(ffObj);
 
-      @if (finfo.label) {
-        <mat-label class="tw:min-w-0 tw:truncate tw:text-xs tw:tracking-(--mat-sys-body-large-tracking) tw:text-(--mat-sys-on-surface-variant)">
-          {{ finfo.label | transloco }}
-        </mat-label>
-      }
-
-      @if (finfo.mat_icon_append) {
-        <mat-icon class="material-symbols-rounded tw:text-sm! tw:h-4! tw:w-4! tw:shrink-0">
-          {{ finfo.mat_icon_append }}
-        </mat-icon>
-      }
-    </div>
-
-    <div
-      class="tw:grid tw:grid-cols-2 tw:gap-x-6 tw:gap-y-2 tw:w-full tw:min-w-0"
-      [attr.name]="fkey"
-      [attr.id]="fkey"
-    >
-      <!-- All / Deselect checkbox -->
-      <mat-checkbox
-        class="tw:w-full tw:min-w-0 tw:overflow-hidden tw:[&_.mdc-form-field]:w-full tw:[&_.mdc-form-field]:min-w-0 tw:[&_.mdc-label]:min-w-0 tw:[&_.mdc-label]:flex-1 tw:[&_.mdc-label]:overflow-hidden"
-        [checked]="
-          (finfo.value ?? finfo.default ?? []).length === service.multiSelectOptionCount(finfo)
-        "
-        [indeterminate]="
-          (finfo.value ?? finfo.default ?? []).length > 0 &&
-          (finfo.value ?? finfo.default ?? []).length < service.multiSelectOptionCount(finfo)
-        "
-        (change)="service.multiSelectChange(finfo, [service.ALL_VALUE])"
-      >
-        <span
-          class="tw:block tw:w-full tw:min-w-0 tw:truncate tw:text-sm"
-          [title]="
-            (finfo.value ?? finfo.default ?? []).length === service.multiSelectOptionCount(finfo)
-              ? ('GL.FIELD.COMMON.DESELECT' | transloco)
-              : ('GL.FIELD.COMMON.ALL' | transloco)
-          "
-        >
-          {{
-            (finfo.value ?? finfo.default ?? []).length === service.multiSelectOptionCount(finfo)
-              ? ('GL.FIELD.COMMON.DESELECT' | transloco)
-              : ('GL.FIELD.COMMON.ALL' | transloco)
-          }}
-          ({{ (finfo.value ?? finfo.default ?? []).length }}/{{
-            service.multiSelectOptionCount(finfo)
-          }})
-        </span>
-      </mat-checkbox>
-
-      @if (service.firstDefaultOption(finfo.option_default); as opt) {
-        <mat-checkbox
-          class="tw:w-full tw:min-w-0 tw:overflow-hidden tw:[&_.mdc-form-field]:w-full tw:[&_.mdc-form-field]:min-w-0 tw:[&_.mdc-label]:min-w-0 tw:[&_.mdc-label]:flex-1 tw:[&_.mdc-label]:overflow-hidden"
-          [checked]="(finfo.value ?? finfo.default ?? []).includes(opt.key)"
-          (change)="service.checkboxChange(finfo, opt.key, $event.checked)"
-        >
-          <span class="tw:block tw:w-full tw:min-w-0 tw:truncate tw:text-sm" [title]="opt.value | transloco">
-            {{ opt.value | transloco }}
-          </span>
-        </mat-checkbox>
-      }
-
-      @if (finfo.option) {
-        <!-- CASE 1: Options is an Array -->
-        @if (service.utility.isArray(finfo.option)) {
-          @for (option of finfo.option; track option) {
-            <mat-checkbox
-              class="tw:w-full tw:min-w-0 tw:overflow-hidden tw:[&_.mdc-form-field]:w-full tw:[&_.mdc-form-field]:min-w-0 tw:[&_.mdc-label]:min-w-0 tw:[&_.mdc-label]:flex-1 tw:[&_.mdc-label]:overflow-hidden"
-              [checked]="(finfo.value ?? finfo.default ?? []).includes(option)"
-              (change)="service.checkboxChange(finfo, option, $event.checked)"
-            >
-              <span class="tw:block tw:w-full tw:min-w-0 tw:truncate tw:text-sm" [title]="option">
-                {{ option }}
-              </span>
-            </mat-checkbox>
-          }
-        }
-
-        <!-- CASE 2: Options is a Record/Object -->
-        @else {
-          @for (opt of finfo.option | keyvalue; track opt.key) {
-            @let value = service.utility.parseKey(opt.key);
-
-            <mat-checkbox
-              class="tw:w-full tw:min-w-0 tw:overflow-hidden tw:[&_.mdc-form-field]:w-full tw:[&_.mdc-form-field]:min-w-0 tw:[&_.mdc-label]:min-w-0 tw:[&_.mdc-label]:flex-1 tw:[&_.mdc-label]:overflow-hidden"
-              [checked]="(finfo.value ?? finfo.default ?? []).includes(value)"
-              (change)="service.checkboxChange(finfo, value, $event.checked)"
-            >
-              <span
-                class="tw:block tw:w-full tw:min-w-0 tw:truncate tw:text-sm"
-                [title]="opt.value | transloco"
-              >
-                {{ opt.value | transloco }}
-              </span>
-            </mat-checkbox>
-          }
-        }
-      }
-    </div>
-
-    @if (hasError) {
-      <div class="tw:mt-1 tw:flex! tw:items-center tw:gap-1 tw:text-xs tw:text-error">
-        <mat-icon class="material-symbols-rounded tw:text-xs! tw:h-4! tw:w-4!"> error </mat-icon>
-        <span>{{ fstate.errors?.()?.[0]?.message | transloco }}</span>
-      </div>
-    } @else if (finfo.hint) {
-      <div
-        class="tw:mt-1 tw:flex tw:items-start tw:gap-1 tw:text-xs tw:text-(--mat-sys-on-surface-variant)"
-      >
-        <mat-icon class="material-symbols-rounded tw:text-xs! tw:h-4! tw:w-4!"> info </mat-icon>
-        <span>{{ finfo.hint | transloco }}</span>
-      </div>
-    }
-  </div>
+  <app-form-field-checkbox
+    [name]="fkey"
+    [inputId]="fkey"
+    [required]="!!finfo.validation?.required"
+    [disabled]="(finfo.disabled ?? false) || (fstate?.disabled?.() ?? false) || (dependency?.disabledByDependency ?? false)"
+    [value]="finfo.value ?? finfo.default ?? []"
+    (valueChange)="service.onCrudFieldValueChange(ffObj, fkey, finfo, $event)"
+    [dependentFieldValue]="dependency?.dependentFieldValue"
+    [option]="finfo.option ?? null"
+    (optionChange)="finfo.option = $event"
+    [optionLoader]="$any(finfo.option_loader ?? null)"
+    [disabledByDependency]="dependency?.disabledByDependency ?? false"
+    [optionDefault]="finfo.option_default ?? service.emptyOptionBag"
+    [template]="finfo.template ?? null"
+    [label]="finfo.label | transloco"
+    [hint]="(finfo.hint | transloco) || ''"
+    [error]="hasError ? (fstate.errors?.()?.[0]?.message | transloco: validationMessageParams(finfo)) : ''"
+    [iconPrepend]="finfo.mat_icon_prepend ?? ''"
+    [iconAppend]="finfo.mat_icon_append ?? ''"
+    [columns]="finfo.checkbox?.columns ?? 2"
+    [selectAll]="finfo.checkbox?.select_all ?? true"
+    [maxSelection]="finfo.checkbox?.max_selection ?? 0"
+  ></app-form-field-checkbox>
 </ng-template>
 
-<!-- ████ type = NUMBER -->
-<ng-template
-  #CRUD_FT_NUMBER
-  let-fkey="fkey"
-  let-finfo="finfo"
-  let-fstate="fstate"
-  let-hasError="hasError"
-  let-ffObj="ffObj"
->
-  <mat-form-field appearance="outline" subscriptSizing="dynamic" class="tw:w-full">
-    <mat-label>{{ finfo.label | transloco }}</mat-label>
-
-    @if (finfo.mat_icon_prepend) {
-      <mat-icon matPrefix class="material-symbols-rounded">
-        {{ finfo.mat_icon_prepend }}
-      </mat-icon>
-    }
-
-    <input
-      matInput
-      type="number"
-      [attr.name]="fkey"
-      [attr.id]="fkey"
-      [attr.placeholder]="(finfo.placeholder | transloco) || ''"
-      [attr.min]="finfo?.validation?.min.value ?? null"
-      [attr.max]="finfo?.validation?.max.value ?? null"
-      [attr.step]="finfo.step ?? 'any'"
-      [(ngModel)]="finfo.value"
-    />
-
-    <div matSuffix class="tw:flex tw:items-center tw:gap-1">
-      @if (finfo.value) {
-        <button
-          mat-icon-button
-          type="button"
-          [attr.aria-label]="'GL.FIELD.COMMON.CLEAR' | transloco"
-          (click)="service.clear(finfo); $event.stopPropagation()"
-        >
-          <mat-icon class="material-symbols-rounded">close</mat-icon>
-        </button>
-      }
-
-      @if (finfo.mat_icon_append) {
-        <mat-icon class="material-symbols-rounded tw:mx-3">
-          {{ finfo.mat_icon_append }}
-        </mat-icon>
-      }
-    </div>
-
-    @if (hasError) {
-      <mat-error class="tw:flex! tw:items-center tw:gap-1">
-        <mat-icon class="material-symbols-rounded tw:text-xs! tw:h-4! tw:w-4!"> error </mat-icon>
-        <span>{{ fstate.errors?.()?.[0]?.message | transloco }}</span>
-      </mat-error>
-    } @else if (finfo.hint) {
-      <mat-hint class="tw:flex tw:items-start tw:gap-1">
-        <mat-icon class="material-symbols-rounded tw:text-xs! tw:h-4! tw:w-4!"> info </mat-icon>
-        <span>{{ finfo.hint | transloco }}</span>
-      </mat-hint>
-    }
-  </mat-form-field>
-</ng-template>
-
-<!-- ████ type = FLAG -->
+<!-- ████ finfo.type = FLAG -->
 <ng-template
   #CRUD_FT_FLAG
   let-fkey="fkey"
@@ -729,96 +448,30 @@
   let-hasError="hasError"
   let-ffObj="ffObj"
 >
-  @let flag = service.flagMeta(finfo);
+  @let dependency = finfo.value_dependency?.(ffObj);
 
-  <mat-form-field appearance="outline" subscriptSizing="dynamic" class="tw:w-full">
-    <mat-label>{{ finfo.label | transloco }}</mat-label>
-
-    @if (finfo.mat_icon_prepend) {
-      <mat-icon matPrefix class="material-symbols-rounded">{{ finfo.mat_icon_prepend }}</mat-icon>
-    }
-
-    <div class="tw:relative tw:flex tw:items-center tw:gap-2">
-      <input
-        matInput
-        readonly
-        class="tw:min-w-0 tw:flex-1 tw:text-sm!"
-        [attr.name]="fkey"
-        [attr.id]="fkey"
-        [value]="flag.labelKey ? (flag.labelKey | transloco) : flag.display"
-      />
-
-      <!--
-        visibility instead of @if: the button keeps its box when the flag is off, so the
-        toggle never shifts sideways as the user switches it on and off.
-      -->
-      <button
-        mat-icon-button
-        type="button"
-        class="tw:shrink-0 tw:h-8! tw:w-8! tw:p-1!"
-        [style.visibility]="flag.isSet ? 'visible' : 'hidden'"
-        [disabled]="!flag.isSet"
-        [owlDateTimeTrigger]="BfwFlagDateTimePicker"
-        [attr.aria-label]="'GL.FIELD.DATETIME.SELECT' | transloco"
-      >
-        <mat-icon class="material-symbols-rounded tw:h-6! tw:w-6!">
-          calendar_clock
-        </mat-icon>
-      </button>
-
-      <mat-slide-toggle
-        class="tw:shrink-0"
-        [checked]="flag.isSet"
-        (change)="service.flagChange(finfo, $event.checked)"
-      ></mat-slide-toggle>
-
-      <!--
-        owl overlay anchor.
-        the visible input above shows a label, not the date, so the picker cannot sit on it.
-        this input must stay in layout - [hidden] gives it a 0x0 rect and owl then drops the
-        panel in the top left corner of the viewport instead of under the field.
-      -->
-      <input
-        readonly
-        tabindex="-1"
-        aria-hidden="true"
-        class="tw:absolute tw:inset-x-0 tw:bottom-0 tw:h-0 tw:w-full tw:opacity-0 tw:pointer-events-none tw:border-0 tw:p-0"
-        [owlDateTime]="BfwFlagDateTimePicker"
-        [value]="service.datetime.owlDateTimeValue(finfo)"
-        (dateTimeChange)="service.datetime.owlDateTimeChange(finfo, $event.value)"
-        [min]="finfo?.validation?.min?.value ?? null"
-        [max]="finfo?.validation?.max?.value ?? null"
-      />
-    </div>
-
-    @if (finfo.mat_icon_append) {
-      <mat-icon matSuffix class="material-symbols-rounded tw:mx-3">
-        {{ finfo.mat_icon_append }}
-      </mat-icon>
-    }
-
-    <owl-date-time
-      #BfwFlagDateTimePicker
-      pickerType="both"
-      [hour12Timer]="true"
-      [showSecondsTimer]="true"
-    ></owl-date-time>
-
-    @if (hasError) {
-      <mat-error class="tw:flex! tw:items-center tw:gap-1">
-        <mat-icon class="material-symbols-rounded tw:text-xs! tw:h-4! tw:w-4!"> error </mat-icon>
-        <span>{{ fstate.errors?.()?.[0]?.message | transloco }}</span>
-      </mat-error>
-    } @else if (finfo.hint) {
-      <mat-hint class="tw:flex tw:items-start tw:gap-1">
-        <mat-icon class="material-symbols-rounded tw:text-xs! tw:h-4! tw:w-4!"> info </mat-icon>
-        <span>{{ finfo.hint | transloco }}</span>
-      </mat-hint>
-    }
-  </mat-form-field>
+  <app-form-field-flag
+    [name]="fkey"
+    [inputId]="fkey"
+    [required]="!!finfo.validation?.required"
+    [disabled]="(finfo.disabled ?? false) || (fstate?.disabled?.() ?? false) || (dependency?.disabledByDependency ?? false)"
+    [value]="finfo.value ?? finfo.default ?? null"
+    (valueChange)="service.onCrudFieldValueChange(ffObj, fkey, finfo, $event)"
+    [dependentFieldValue]="dependency?.dependentFieldValue"
+    [flagLabel]="finfo.flag?.label ?? null"
+    [clearable]="finfo.flag?.clearable ?? false"
+    [mode]="finfo.flag?.mode ?? service.FormFieldDatetimeModeEnum.DATETIME"
+    [min]="finfo?.validation?.min?.value ?? null"
+    [max]="finfo?.validation?.max?.value ?? null"
+    [label]="finfo.label | transloco"
+    [hint]="(finfo.hint | transloco) || ''"
+    [error]="hasError ? (fstate.errors?.()?.[0]?.message | transloco: validationMessageParams(finfo)) : ''"
+    [iconPrepend]="finfo.mat_icon_prepend ?? ''"
+    [iconAppend]="finfo.mat_icon_append ?? ''"
+  ></app-form-field-flag>
 </ng-template>
 
-<!-- ████ type = SWITCH -->
+<!-- ████ finfo.type = SWITCH -->
 <ng-template
   #CRUD_FT_SWITCH
   let-fkey="fkey"
@@ -827,202 +480,26 @@
   let-hasError="hasError"
   let-ffObj="ffObj"
 >
-  @let meta = service.switchMeta(finfo);
-  @let currentValue = finfo.value ?? finfo.default ?? meta.offValue;
-  @let checked = currentValue === meta.onValue;
+  @let dependency = finfo.value_dependency?.(ffObj);
 
-  <mat-form-field appearance="outline" subscriptSizing="dynamic" class="tw:w-full">
-    <mat-label>{{ finfo.label | transloco }}</mat-label>
-    @if (finfo.mat_icon_prepend) {
-      <mat-icon matPrefix class="material-symbols-rounded">{{ finfo.mat_icon_prepend }}</mat-icon>
-    }
-    <div class="tw:flex tw:items-center">
-      <input
-        matInput
-        readonly
-        [attr.name]="fkey"
-        [attr.id]="fkey"
-        [value]="(checked ? meta.onLabel : meta.offLabel) | transloco"
-      />
-      <mat-slide-toggle
-        [checked]="checked"
-        (change)="service.switchChange(finfo, $event.checked)"
-      ></mat-slide-toggle>
-    </div>
-    @if (finfo.mat_icon_append) {
-      <mat-icon matSuffix class="material-symbols-rounded">{{ finfo.mat_icon_append }}</mat-icon>
-    }
-    @if (hasError) {
-      <mat-error class="tw:flex! tw:items-center tw:gap-1">
-        <mat-icon class="material-symbols-rounded tw:text-xs! tw:h-4! tw:w-4!"> error </mat-icon>
-        <span>{{ fstate.errors?.()?.[0]?.message | transloco }}</span>
-      </mat-error>
-    } @else if (finfo.hint) {
-      <mat-hint class="tw:flex tw:items-start tw:gap-1">
-        <mat-icon class="material-symbols-rounded tw:text-xs! tw:h-4! tw:w-4!"> info </mat-icon>
-        <span>{{ finfo.hint | transloco }}</span>
-      </mat-hint>
-    }
-  </mat-form-field>
+  <app-form-field-switch
+    [name]="fkey"
+    [inputId]="fkey"
+    [required]="!!finfo.validation?.required"
+    [disabled]="(finfo.disabled ?? false) || (fstate?.disabled?.() ?? false) || (dependency?.disabledByDependency ?? false)"
+    [value]="finfo.value ?? finfo.default ?? null"
+    (valueChange)="service.onCrudFieldValueChange(ffObj, fkey, finfo, $event)"
+    [dependentFieldValue]="dependency?.dependentFieldValue"
+    [option]="finfo.option ?? null"
+    [label]="finfo.label | transloco"
+    [hint]="(finfo.hint | transloco) || ''"
+    [error]="hasError ? (fstate.errors?.()?.[0]?.message | transloco: validationMessageParams(finfo)) : ''"
+    [iconPrepend]="finfo.mat_icon_prepend ?? ''"
+    [iconAppend]="finfo.mat_icon_append ?? ''"
+  ></app-form-field-switch>
 </ng-template>
 
-<!-- ████ type = DATE -->
-<ng-template
-  #CRUD_FT_DATE
-  let-fkey="fkey"
-  let-finfo="finfo"
-  let-fstate="fstate"
-  let-hasError="hasError"
-  let-ffObj="ffObj"
->
-  <mat-form-field appearance="outline" subscriptSizing="dynamic" class="tw:w-full">
-    <mat-label>{{ finfo.label | transloco }}</mat-label>
-
-    @if (finfo.mat_icon_prepend) {
-      <mat-icon matPrefix class="material-symbols-rounded">
-        {{ finfo.mat_icon_prepend }}
-      </mat-icon>
-    }
-
-    <input
-      matInput
-      readonly
-      [owlDateTime]="BfwOwlDatePicker"
-      [owlDateTimeTrigger]="BfwOwlDatePicker"
-      [attr.name]="fkey"
-      [attr.id]="fkey"
-      [attr.placeholder]="(finfo.placeholder | transloco) || ''"
-      [value]="service.datetime.owlDateValue(finfo)"
-      (dateTimeChange)="service.datetime.owlDateChange(finfo, $event.value)"
-      [min]="finfo?.validation?.min?.value ?? null"
-      [max]="finfo?.validation?.max?.value ?? null"
-    />
-
-    <div matSuffix class="tw:flex tw:items-center tw:gap-1">
-      @if (finfo.value) {
-        <button
-          mat-icon-button
-          type="button"
-          [attr.aria-label]="'GL.FIELD.DATE.CLEAR' | transloco"
-          (click)="service.datetime.clear(finfo); $event.stopPropagation()"
-        >
-          <mat-icon class="material-symbols-rounded">close</mat-icon>
-        </button>
-      }
-      <button
-        mat-icon-button
-        type="button"
-        [owlDateTimeTrigger]="BfwOwlDatePicker"
-        [attr.aria-label]="'GL.FIELD.DATE.SELECT' | transloco"
-      >
-        <mat-icon class="material-symbols-rounded">today</mat-icon>
-      </button>
-    </div>
-
-    <owl-date-time #BfwOwlDatePicker pickerType="calendar"></owl-date-time>
-
-    @if (finfo.mat_icon_append) {
-      <mat-icon matSuffix class="material-symbols-rounded">
-        {{ finfo.mat_icon_append }}
-      </mat-icon>
-    }
-
-    @if (hasError) {
-      <mat-error class="tw:flex! tw:items-center tw:gap-1">
-        <mat-icon class="material-symbols-rounded tw:text-xs! tw:h-4! tw:w-4!"> error </mat-icon>
-        <span>{{ fstate.errors?.()?.[0]?.message | transloco }}</span>
-      </mat-error>
-    } @else if (finfo.hint) {
-      <mat-hint class="tw:flex tw:items-start tw:gap-1">
-        <mat-icon class="material-symbols-rounded tw:text-xs! tw:h-4! tw:w-4!"> info </mat-icon>
-        <span>{{ finfo.hint | transloco }}</span>
-      </mat-hint>
-    }
-  </mat-form-field>
-</ng-template>
-
-<!-- ████ type = TIME -->
-<ng-template
-  #CRUD_FT_TIME
-  let-fkey="fkey"
-  let-finfo="finfo"
-  let-fstate="fstate"
-  let-hasError="hasError"
-  let-ffObj="ffObj"
->
-  <mat-form-field appearance="outline" subscriptSizing="dynamic" class="tw:w-full">
-    <mat-label>{{ finfo.label | transloco }}</mat-label>
-
-    @if (finfo.mat_icon_prepend) {
-      <mat-icon matPrefix class="material-symbols-rounded">
-        {{ finfo.mat_icon_prepend }}
-      </mat-icon>
-    }
-
-    <input
-      matInput
-      readonly
-      [attr.name]="fkey"
-      [attr.id]="fkey"
-      [attr.placeholder]="(finfo.placeholder | transloco) || ''"
-      [owlDateTime]="BfwOwlTimePicker"
-      [owlDateTimeTrigger]="BfwOwlTimePicker"
-      [value]="service.datetime.owlTimeValue(finfo)"
-      (dateTimeChange)="service.datetime.owlTimeChange(finfo, $event.value)"
-      [min]="finfo?.validation?.min?.value ?? null"
-      [max]="finfo?.validation?.max?.value ?? null"
-    />
-
-    <div matSuffix class="tw:flex tw:items-center tw:gap-1">
-      @if (finfo.value) {
-        <button
-          mat-icon-button
-          type="button"
-          [attr.aria-label]="'GL.FIELD.TIME.CLEAR' | transloco"
-          (click)="service.datetime.clear(finfo); $event.stopPropagation()"
-        >
-          <mat-icon class="material-symbols-rounded">close</mat-icon>
-        </button>
-      }
-
-      <button
-        mat-icon-button
-        type="button"
-        [owlDateTimeTrigger]="BfwOwlTimePicker"
-        [attr.aria-label]="'GL.FIELD.TIME.SELECT' | transloco"
-      >
-        <mat-icon class="material-symbols-rounded">schedule</mat-icon>
-      </button>
-    </div>
-
-    <owl-date-time
-      #BfwOwlTimePicker
-      pickerType="timer"
-      [hour12Timer]="true"
-      [showSecondsTimer]="true"
-    ></owl-date-time>
-
-    @if (finfo.mat_icon_append) {
-      <mat-icon matSuffix class="material-symbols-rounded">
-        {{ finfo.mat_icon_append }}
-      </mat-icon>
-    }
-
-    @if (hasError) {
-      <mat-error class="tw:flex! tw:items-center tw:gap-1">
-        <mat-icon class="material-symbols-rounded tw:text-xs! tw:h-4! tw:w-4!"> error </mat-icon>
-        <span>{{ fstate.errors?.()?.[0]?.message | transloco }}</span>
-      </mat-error>
-    } @else if (finfo.hint) {
-      <mat-hint class="tw:flex tw:items-start tw:gap-1">
-        <mat-icon class="material-symbols-rounded tw:text-xs! tw:h-4! tw:w-4!"> info </mat-icon>
-        <span>{{ finfo.hint | transloco }}</span>
-      </mat-hint>
-    }
-  </mat-form-field>
-</ng-template>
-
-<!-- ████ type = DATETIME -->
+<!-- ████ finfo.type = DATE | TIME | DATETIME | DATETIME_RANGE -->
 <ng-template
   #CRUD_FT_DATETIME
   let-fkey="fkey"
@@ -1031,368 +508,66 @@
   let-hasError="hasError"
   let-ffObj="ffObj"
 >
-  <mat-form-field appearance="outline" subscriptSizing="dynamic" class="tw:w-full">
-    <mat-label>{{ finfo.label | transloco }}</mat-label>
+  @let datetime = finfo.datetime ?? {};
+  @let isRange = finfo.type === service.CrudFieldUiTypeEnum.DATETIME_RANGE;
+  @let fromKey = isRange ? finfo.range_field.from : fkey;
+  @let toKey = isRange ? finfo.range_field.to : '';
+  @let fromInfo = isRange ? $any(ffObj)[fromKey] : finfo;
+  @let toInfo = isRange ? $any(ffObj)[toKey] : null;
+  @let dependency = fromInfo.value_dependency?.(ffObj);
 
-    @if (finfo.mat_icon_prepend) {
-      <mat-icon matPrefix class="material-symbols-rounded">
-        {{ finfo.mat_icon_prepend }}
-      </mat-icon>
-    }
-
-    <input
-      matInput
-      readonly
-      [attr.name]="fkey"
-      [attr.id]="fkey"
-      [placeholder]="(finfo.placeholder | transloco) || ''"
-      [owlDateTime]="BfwDateTimePicker"
-      [owlDateTimeTrigger]="BfwDateTimePicker"
-      [value]="service.datetime.owlDateTimeValue(finfo)"
-      (dateTimeChange)="service.datetime.owlDateTimeChange(finfo, $event.value)"
-      [min]="finfo?.validation?.min?.value ?? null"
-      [max]="finfo?.validation?.max?.value ?? null"
-    />
-
-    <div matSuffix class="tw:flex tw:items-center tw:gap-1">
-      @if (finfo.value) {
-        <button
-          mat-icon-button
-          type="button"
-          [attr.aria-label]="'GL.FIELD.DATETIME.CLEAR' | transloco"
-          (click)="service.datetime.clear(finfo); $event.stopPropagation()"
-        >
-          <mat-icon class="material-symbols-rounded">close</mat-icon>
-        </button>
-      }
-
-      <button
-        mat-icon-button
-        type="button"
-        [owlDateTimeTrigger]="BfwDateTimePicker"
-        [attr.aria-label]="'GL.FIELD.DATETIME.SELECT' | transloco"
-      >
-        <mat-icon class="material-symbols-rounded">calendar_clock</mat-icon>
-      </button>
-    </div>
-
-    <owl-date-time
-      #BfwDateTimePicker
-      pickerType="both"
-      [hour12Timer]="true"
-      [showSecondsTimer]="true"
-    ></owl-date-time>
-    <!--
-        to allow seconds use below in <owl-date-time>
-        [showSecondsTimer]="true"
-        [stepSecond]="1"
-        -->
-
-    @if (finfo.mat_icon_append) {
-      <mat-icon matSuffix class="material-symbols-rounded">
-        {{ finfo.mat_icon_append }}
-      </mat-icon>
-    }
-
-    @if (hasError) {
-      <mat-error class="tw:flex! tw:items-center tw:gap-1">
-        <mat-icon class="material-symbols-rounded tw:text-xs! tw:h-4! tw:w-4!"> error </mat-icon>
-        <span>{{ fstate.errors?.()?.[0]?.message | transloco }}</span>
-      </mat-error>
-    } @else if (finfo.hint) {
-      <mat-hint class="tw:flex tw:items-start tw:gap-1">
-        <mat-icon class="material-symbols-rounded tw:text-xs! tw:h-4! tw:w-4!"> info </mat-icon>
-        <span>{{ finfo.hint | transloco }}</span>
-      </mat-hint>
-    }
-  </mat-form-field>
+  <app-form-field-datetime
+    [mode]="$any(finfo.type)"
+    [name]="fromKey"
+    [inputId]="fromKey"
+    [required]="!!fromInfo.validation?.required"
+    [disabled]="(fromInfo.disabled ?? false) || (fstate?.disabled?.() ?? false) || (dependency?.disabledByDependency ?? false)"
+    [value]="fromInfo.value ?? fromInfo.default ?? null"
+    (valueChange)="service.onCrudFieldValueChange(ffObj, fromKey, fromInfo, $event)"
+    [rangeEndValue]="toInfo?.value ?? toInfo?.default ?? null"
+    (rangeEndValueChange)="service.onCrudFieldValueChange(ffObj, toKey, toInfo, $event)"
+    [dependentFieldValue]="dependency?.dependentFieldValue"
+    [label]="finfo.label | transloco"
+    [placeholder]="(finfo.placeholder | transloco) || ''"
+    [hint]="(finfo.hint | transloco) || ''"
+    [error]="hasError ? (fstate.errors?.()?.[0]?.message | transloco: validationMessageParams(finfo)) : ''"
+    [iconPrepend]="finfo.mat_icon_prepend ?? ''"
+    [iconAppend]="finfo.mat_icon_append ?? ''"
+    [min]="fromInfo.validation?.min?.value ?? null"
+    [max]="fromInfo.validation?.max?.value ?? null"
+    [readonlyInput]="datetime.readonly_input ?? true"
+    [clearable]="datetime.clearable ?? true"
+    [rangeSeparator]="datetime.range_separator ?? ' - '"
+    [filter]="datetime.filter ?? null"
+    [pickerMode]="datetime.picker_mode ?? service.FormFieldDatetimePickerModeEnum.POPUP"
+    [startView]="datetime.start_view ?? service.FormFieldDatetimeStartViewEnum.MONTH"
+    [startAt]="datetime.start_at ?? null"
+    [endAt]="datetime.end_at ?? null"
+    [showCalendarWeeks]="datetime.show_calendar_weeks ?? false"
+    [yearOnly]="datetime.year_only ?? false"
+    [multiyearOnly]="datetime.multiyear_only ?? false"
+    [firstDayOfWeek]="datetime.first_day_of_week ?? 0"
+    [hideOtherMonths]="datetime.hide_other_months ?? false"
+    [hour12Timer]="datetime.hour12_timer ?? true"
+    [showSecondsTimer]="datetime.show_seconds_timer ?? true"
+    [stepHour]="datetime.step_hour ?? 1"
+    [stepMinute]="datetime.step_minute ?? 1"
+    [stepSecond]="datetime.step_second ?? 1"
+    [opened]="datetime.opened ?? false"
+    [backdropClass]="datetime.backdrop_class ?? []"
+    [panelClass]="datetime.panel_class ?? []"
+    [scrollStrategy]="datetime.scroll_strategy"
+    (dateTimeInput)="datetime.on_input?.($event, fromKey, fromInfo)"
+    (beforePickerOpen)="datetime.on_before_open?.(fromKey, fromInfo)"
+    (afterPickerOpen)="datetime.on_after_open?.(fromKey, fromInfo)"
+    (afterPickerClosed)="datetime.on_after_close?.(fromKey, fromInfo)"
+    (yearSelected)="datetime.on_year_selected?.($event, fromKey, fromInfo)"
+    (monthSelected)="datetime.on_month_selected?.($event, fromKey, fromInfo)"
+    (dateSelected)="datetime.on_date_selected?.($event, fromKey, fromInfo)"
+  ></app-form-field-datetime>
 </ng-template>
 
-<!-- ████ type = PASSWORD -->
-<ng-template
-  #CRUD_FT_PASSWORD
-  let-fkey="fkey"
-  let-finfo="finfo"
-  let-fstate="fstate"
-  let-hasError="hasError"
-  let-ffObj="ffObj"
->
-  @let revealed = service.isPasswordRevealed(fkey);
-
-  <mat-form-field appearance="outline" subscriptSizing="dynamic" class="tw:w-full">
-    <mat-label>{{ finfo.label | transloco }}</mat-label>
-
-    @if (finfo.mat_icon_prepend) {
-      <mat-icon matPrefix class="material-symbols-rounded">
-        {{ finfo.mat_icon_prepend }}
-      </mat-icon>
-    }
-
-    <input
-      matInput
-      [type]="revealed ? 'text' : 'password'"
-      autocomplete="off"
-      [attr.name]="fkey"
-      [attr.id]="fkey"
-      [attr.placeholder]="(finfo.placeholder | transloco) || ''"
-      [attr.minlength]="finfo?.validation?.min_length?.value ?? null"
-      [attr.maxlength]="finfo?.validation?.max_length?.value ?? null"
-      [(ngModel)]="finfo.value"
-    />
-
-    <div matSuffix class="tw:flex tw:items-center tw:gap-1">
-      @if (finfo.value) {
-        <button
-          mat-icon-button
-          type="button"
-          [attr.aria-label]="
-            (revealed ? 'GL.FIELD.PASSWORD.HIDE' : 'GL.FIELD.PASSWORD.SHOW') | transloco
-          "
-          (click)="service.togglePasswordReveal(fkey); $event.stopPropagation()"
-        >
-          <mat-icon class="material-symbols-rounded">
-            {{ revealed ? 'visibility_off' : 'visibility' }}
-          </mat-icon>
-        </button>
-
-        <button
-          mat-icon-button
-          type="button"
-          [attr.aria-label]="'GL.FIELD.COMMON.CLEAR' | transloco"
-          (click)="service.clear(finfo); $event.stopPropagation()"
-        >
-          <mat-icon class="material-symbols-rounded">close</mat-icon>
-        </button>
-      }
-
-      @if (finfo.mat_icon_append) {
-        <mat-icon class="material-symbols-rounded tw:mx-3">
-          {{ finfo.mat_icon_append }}
-        </mat-icon>
-      }
-    </div>
-
-    @if (hasError) {
-      <mat-error class="tw:flex! tw:items-center tw:gap-1">
-        <mat-icon class="material-symbols-rounded tw:text-xs! tw:h-4! tw:w-4!"> error </mat-icon>
-        <span>{{ fstate.errors?.()?.[0]?.message | transloco }}</span>
-      </mat-error>
-    } @else if (finfo.hint) {
-      <mat-hint class="tw:flex tw:items-start tw:gap-1">
-        <mat-icon class="material-symbols-rounded tw:text-xs! tw:h-4! tw:w-4!"> info </mat-icon>
-        <span>{{ finfo.hint | transloco }}</span>
-      </mat-hint>
-    }
-  </mat-form-field>
-</ng-template>
-
-<!-- ████ type = EMAIL -->
-<ng-template
-  #CRUD_FT_EMAIL
-  let-fkey="fkey"
-  let-finfo="finfo"
-  let-fstate="fstate"
-  let-hasError="hasError"
-  let-ffObj="ffObj"
->
-  <mat-form-field appearance="outline" subscriptSizing="dynamic" class="tw:w-full">
-    <mat-label>{{ finfo.label | transloco }}</mat-label>
-
-    @if (finfo.mat_icon_prepend) {
-      <mat-icon matPrefix class="material-symbols-rounded">
-        {{ finfo.mat_icon_prepend }}
-      </mat-icon>
-    }
-
-    <input
-      matInput
-      type="email"
-      inputmode="email"
-      autocomplete="email"
-      spellcheck="false"
-      [attr.name]="fkey"
-      [attr.id]="fkey"
-      [attr.placeholder]="(finfo.placeholder | transloco) || ''"
-      [attr.minlength]="finfo?.validation?.min_length?.value ?? null"
-      [attr.maxlength]="finfo?.validation?.max_length?.value ?? null"
-      [(ngModel)]="finfo.value"
-    />
-
-    <div matSuffix class="tw:flex tw:items-center tw:gap-1">
-      @if (finfo.value) {
-        <button
-          mat-icon-button
-          type="button"
-          [attr.aria-label]="'GL.FIELD.COMMON.CLEAR' | transloco"
-          (click)="service.clear(finfo); $event.stopPropagation()"
-        >
-          <mat-icon class="material-symbols-rounded">close</mat-icon>
-        </button>
-      }
-
-      <!-- built in email glyph so the control reads as an email input; mat_icon_append wins -->
-      <mat-icon class="material-symbols-rounded tw:mx-3">
-        {{ finfo.mat_icon_append || 'alternate_email' }}
-      </mat-icon>
-    </div>
-
-    @if (hasError) {
-      <mat-error class="tw:flex! tw:items-center tw:gap-1">
-        <mat-icon class="material-symbols-rounded tw:text-xs! tw:h-4! tw:w-4!"> error </mat-icon>
-        <span>{{ fstate.errors?.()?.[0]?.message | transloco }}</span>
-      </mat-error>
-    } @else if (finfo.hint) {
-      <mat-hint class="tw:flex tw:items-start tw:gap-1">
-        <mat-icon class="material-symbols-rounded tw:text-xs! tw:h-4! tw:w-4!"> info </mat-icon>
-        <span>{{ finfo.hint | transloco }}</span>
-      </mat-hint>
-    }
-  </mat-form-field>
-</ng-template>
-
-<!-- ████ type = URL -->
-<ng-template
-  #CRUD_FT_URL
-  let-fkey="fkey"
-  let-finfo="finfo"
-  let-fstate="fstate"
-  let-hasError="hasError"
-  let-ffObj="ffObj"
->
-  <mat-form-field appearance="outline" subscriptSizing="dynamic" class="tw:w-full">
-    <mat-label>{{ finfo.label | transloco }}</mat-label>
-
-    @if (finfo.mat_icon_prepend) {
-      <mat-icon matPrefix class="material-symbols-rounded">
-        {{ finfo.mat_icon_prepend }}
-      </mat-icon>
-    }
-
-    <input
-      matInput
-      type="url"
-      inputmode="url"
-      autocomplete="url"
-      spellcheck="false"
-      [attr.name]="fkey"
-      [attr.id]="fkey"
-      [attr.placeholder]="(finfo.placeholder | transloco) || ''"
-      [attr.minlength]="finfo?.validation?.min_length?.value ?? null"
-      [attr.maxlength]="finfo?.validation?.max_length?.value ?? null"
-      [(ngModel)]="finfo.value"
-    />
-
-    <div matSuffix class="tw:flex tw:items-center tw:gap-1">
-      <!-- open in a new tab, only once there is something to open -->
-      @if (finfo.value) {
-        <a
-          mat-icon-button
-          target="_blank"
-          rel="noopener noreferrer"
-          [href]="finfo.value"
-          [attr.aria-label]="'GL.FIELD.URL.OPEN' | transloco"
-          (click)="$event.stopPropagation()"
-        >
-          <mat-icon class="material-symbols-rounded">open_in_new</mat-icon>
-        </a>
-
-        <button
-          mat-icon-button
-          type="button"
-          [attr.aria-label]="'GL.FIELD.COMMON.CLEAR' | transloco"
-          (click)="service.clear(finfo); $event.stopPropagation()"
-        >
-          <mat-icon class="material-symbols-rounded">close</mat-icon>
-        </button>
-      }
-
-      <!-- built in link glyph so the control reads as a url input; mat_icon_append wins -->
-      <mat-icon class="material-symbols-rounded tw:mx-3">
-        {{ finfo.mat_icon_append || 'link' }}
-      </mat-icon>
-    </div>
-
-    @if (hasError) {
-      <mat-error class="tw:flex! tw:items-center tw:gap-1">
-        <mat-icon class="material-symbols-rounded tw:text-xs! tw:h-4! tw:w-4!"> error </mat-icon>
-        <span>{{ fstate.errors?.()?.[0]?.message | transloco }}</span>
-      </mat-error>
-    } @else if (finfo.hint) {
-      <mat-hint class="tw:flex tw:items-start tw:gap-1">
-        <mat-icon class="material-symbols-rounded tw:text-xs! tw:h-4! tw:w-4!"> info </mat-icon>
-        <span>{{ finfo.hint | transloco }}</span>
-      </mat-hint>
-    }
-  </mat-form-field>
-</ng-template>
-
-<!-- ████ type = TEL -->
-<ng-template
-  #CRUD_FT_TEL
-  let-fkey="fkey"
-  let-finfo="finfo"
-  let-fstate="fstate"
-  let-hasError="hasError"
-  let-ffObj="ffObj"
->
-  <mat-form-field appearance="outline" subscriptSizing="dynamic" class="tw:w-full">
-    <mat-label>{{ finfo.label | transloco }}</mat-label>
-
-    @if (finfo.mat_icon_prepend) {
-      <mat-icon matPrefix class="material-symbols-rounded">
-        {{ finfo.mat_icon_prepend }}
-      </mat-icon>
-    }
-
-    <input
-      matInput
-      type="tel"
-      inputmode="tel"
-      autocomplete="tel"
-      spellcheck="false"
-      [attr.name]="fkey"
-      [attr.id]="fkey"
-      [attr.placeholder]="(finfo.placeholder | transloco) || ''"
-      [attr.minlength]="finfo?.validation?.min_length?.value ?? null"
-      [attr.maxlength]="finfo?.validation?.max_length?.value ?? null"
-      [attr.pattern]="finfo?.validation?.pattern?.value ?? null"
-      [(ngModel)]="finfo.value"
-    />
-
-    <div matSuffix class="tw:flex tw:items-center tw:gap-1">
-      @if (finfo.value) {
-        <button
-          mat-icon-button
-          type="button"
-          [attr.aria-label]="'GL.FIELD.COMMON.CLEAR' | transloco"
-          (click)="service.clear(finfo); $event.stopPropagation()"
-        >
-          <mat-icon class="material-symbols-rounded">close</mat-icon>
-        </button>
-      }
-
-      <!-- built in call glyph so the control reads as a phone input; mat_icon_append wins -->
-      <mat-icon class="material-symbols-rounded tw:mx-3">
-        {{ finfo.mat_icon_append || 'call' }}
-      </mat-icon>
-    </div>
-
-    @if (hasError) {
-      <mat-error class="tw:flex! tw:items-center tw:gap-1">
-        <mat-icon class="material-symbols-rounded tw:text-xs! tw:h-4! tw:w-4!"> error </mat-icon>
-        <span>{{ fstate.errors?.()?.[0]?.message | transloco }}</span>
-      </mat-error>
-    } @else if (finfo.hint) {
-      <mat-hint class="tw:flex tw:items-start tw:gap-1">
-        <mat-icon class="material-symbols-rounded tw:text-xs! tw:h-4! tw:w-4!"> info </mat-icon>
-        <span>{{ finfo.hint | transloco }}</span>
-      </mat-hint>
-    }
-  </mat-form-field>
-</ng-template>
-
-
-<!-- ████ type = SLIDER -->
+<!-- ████ finfo.type = SLIDER -->
 <ng-template
   #CRUD_FT_SLIDER
   let-fkey="fkey"
@@ -1401,141 +576,27 @@
   let-hasError="hasError"
   let-ffObj="ffObj"
 >
-  @let sliderMin = finfo?.validation?.min?.value ?? 0;
-  @let sliderMax = finfo?.validation?.max?.value ?? 100;
+  @let dependency = finfo.value_dependency?.(ffObj);
 
-  <!--
-  OLD - DO NOT USE. kept for reference only.
-
-  mat-slider does not implement MatFormFieldControl, so mat-form-field never adopts it as
-  its control. the slider ends up rendered outside the outline box and is not reachable.
-  replaced by the plain div layout below, same as RADIO / CHECKBOX already use.
-
-  <mat-form-field appearance="outline" subscriptSizing="dynamic" class="tw:w-full">
-    <mat-label>{{ finfo.label | transloco }}</mat-label>
-
-    @if (finfo.mat_icon_prepend) {
-      <mat-icon matPrefix class="material-symbols-rounded">
-        {{ finfo.mat_icon_prepend }}
-      </mat-icon>
-    }
-
-    <div class="tw:flex tw:items-center tw:gap-3">
-      <input
-        matInput
-        readonly
-        class="tw:w-12 tw:shrink-0"
-        [attr.name]="fkey"
-        [attr.id]="fkey"
-        [value]="finfo.value ?? finfo.default ?? sliderMin"
-      />
-      <mat-slider class="tw:min-w-0 tw:flex-1" [min]="sliderMin" [max]="sliderMax" [step]="finfo.step ?? 1" discrete>
-        <input
-          matSliderThumb
-          [value]="finfo.value ?? finfo.default ?? sliderMin"
-          (valueChange)="service.sliderChange(finfo, $event)"
-        />
-      </mat-slider>
-    </div>
-
-    @if (finfo.mat_icon_append) {
-      <mat-icon matSuffix class="material-symbols-rounded tw:mx-3">
-        {{ finfo.mat_icon_append }}
-      </mat-icon>
-    }
-
-    @if (hasError) {
-      <mat-error class="tw:flex! tw:items-center tw:gap-1">
-        <mat-icon class="material-symbols-rounded tw:text-xs! tw:h-4! tw:w-4!"> error </mat-icon>
-        <span>{{ fstate.errors?.()?.[0]?.message | transloco }}</span>
-      </mat-error>
-    } @else if (finfo.hint) {
-      <mat-hint class="tw:flex tw:items-start tw:gap-1">
-        <mat-icon class="material-symbols-rounded tw:text-xs! tw:h-4! tw:w-4!"> info </mat-icon>
-        <span>{{ finfo.hint | transloco }}</span>
-      </mat-hint>
-    }
-  </mat-form-field>
-  -->
-
-  <!-- NEW - plain div layout, mat-slider is not a MatFormFieldControl -->
-  <div class="tw:w-full tw:min-w-0">
-    <!-- header row carries the label only; the icons flank the slider instead -->
-    @if (finfo.label) {
-      <div class="tw:mb-2 tw:flex tw:items-center tw:gap-1 tw:min-w-0">
-        <mat-label class="tw:min-w-0 tw:truncate tw:text-xs tw:tracking-(--mat-sys-body-large-tracking) tw:text-(--mat-sys-on-surface-variant)">
-          {{ finfo.label | transloco }}
-        </mat-label>
-      </div>
-    }
-
-    <!--
-      the icons sit on either side of the track, which is where matPrefix / matSuffix land on
-      a mat-form-field control. same 24px size and on-surface-variant colour Material uses for
-      leading / trailing icons, so SLIDER reads like the rest of the form.
-    -->
-    <div class="tw:flex tw:items-center tw:gap-1">
-      @if (finfo.mat_icon_prepend) {
-        <mat-icon
-          class="material-symbols-rounded tw:shrink-0 tw:text-(--mat-sys-on-surface-variant)"
-        >
-          {{ finfo.mat_icon_prepend }}
-        </mat-icon>
-      }
-
-      <!--
-        mat-slider ships width:auto; min-width:112px; margin:0 8px - it will not fill the row
-        on its own, so both are forced here.
-
-        the 8px side margin was also the room for the thumb state layer, which sticks out past
-        the track ends. mx-0 takes that away and the shadow gets clipped at min / max, so the
-        wrapper puts it back as padding instead - padding does not overflow a w-full child the
-        way a margin does. tune px-5 to taste.
-      -->
-      <div class="tw:min-w-0 tw:flex-1 tw:px-5">
-        <mat-slider
-          class="tw:w-full! tw:mx-0!"
-          discrete
-          [min]="sliderMin"
-          [max]="sliderMax"
-          [step]="finfo.step ?? 1"
-        >
-          <input
-            matSliderThumb
-            [attr.name]="fkey"
-            [attr.id]="fkey"
-            [value]="finfo.value ?? finfo.default ?? sliderMin"
-            (valueChange)="service.sliderChange(finfo, $event)"
-          />
-        </mat-slider>
-      </div>
-
-      @if (finfo.mat_icon_append) {
-        <mat-icon
-          class="material-symbols-rounded tw:shrink-0 tw:text-(--mat-sys-on-surface-variant)"
-        >
-          {{ finfo.mat_icon_append }}
-        </mat-icon>
-      }
-    </div>
-
-    @if (hasError) {
-      <div class="tw:mt-1 tw:flex! tw:items-center tw:gap-1 tw:text-xs tw:text-error">
-        <mat-icon class="material-symbols-rounded tw:text-xs! tw:h-4! tw:w-4!">error</mat-icon>
-        <span>{{ fstate.errors?.()?.[0]?.message | transloco }}</span>
-      </div>
-    } @else if (finfo.hint) {
-      <div
-        class="tw:mt-1 tw:flex tw:items-start tw:gap-1 tw:text-xs tw:text-(--mat-sys-on-surface-variant)"
-      >
-        <mat-icon class="material-symbols-rounded tw:text-xs! tw:h-4! tw:w-4!">info</mat-icon>
-        <span>{{ finfo.hint | transloco }}</span>
-      </div>
-    }
-  </div>
+  <app-form-field-slider
+    [name]="fkey"
+    [inputId]="fkey"
+    [disabled]="(finfo.disabled ?? false) || (fstate?.disabled?.() ?? false) || (dependency?.disabledByDependency ?? false)"
+    [value]="finfo.value ?? finfo.default ?? null"
+    (valueChange)="service.onCrudFieldValueChange(ffObj, fkey, finfo, $event)"
+    [dependentFieldValue]="dependency?.dependentFieldValue"
+    [label]="finfo.label | transloco"
+    [hint]="(finfo.hint | transloco) || ''"
+    [error]="hasError ? (fstate.errors?.()?.[0]?.message | transloco: validationMessageParams(finfo)) : ''"
+    [iconPrepend]="finfo.mat_icon_prepend ?? ''"
+    [iconAppend]="finfo.mat_icon_append ?? ''"
+    [min]="finfo?.validation?.min?.value ?? 0"
+    [max]="finfo?.validation?.max?.value ?? 100"
+    [step]="finfo.step ?? 1"
+  ></app-form-field-slider>
 </ng-template>
 
-<!-- ████ type = RANGE -->
+<!-- ████ finfo.type = RANGE -->
 <ng-template
   #CRUD_FT_RANGE
   let-fkey="fkey"
@@ -1552,80 +613,185 @@
   -->
   @let fromInfo = $any(ffObj)[finfo.range_field.from];
   @let toInfo = $any(ffObj)[finfo.range_field.to];
+  @let dependency = finfo.value_dependency?.(ffObj);
 
-  @let rangeMin = finfo?.validation?.min?.value ?? 0;
-  @let rangeMax = finfo?.validation?.max?.value ?? 100;
-
-  <div class="tw:w-full tw:min-w-0">
-    @if (finfo.label) {
-      <div class="tw:mb-2 tw:flex tw:items-center tw:gap-1 tw:min-w-0"> <!-- tw:px-8 -->
-        <mat-label class="tw:min-w-0 tw:truncate tw:text-xs tw:tracking-(--mat-sys-body-large-tracking) tw:text-(--mat-sys-on-surface-variant)">
-          {{ finfo.label | transloco }}
-        </mat-label>
-      </div>
-    }
-
-    <div class="tw:flex tw:items-center tw:gap-1">
-      @if (finfo.mat_icon_prepend) {
-        <mat-icon
-          class="material-symbols-rounded tw:shrink-0 tw:text-(--mat-sys-on-surface-variant)"
-        >
-          {{ finfo.mat_icon_prepend }}
-        </mat-icon>
-      }
-
-      <!-- px-5 is the room for the thumb state layer, see CRUD_FT_SLIDER -->
-      <div class="tw:min-w-0 tw:flex-1 tw:px-5">
-        <mat-slider
-          class="tw:w-full! tw:mx-0!"
-          discrete
-          [min]="rangeMin"
-          [max]="rangeMax"
-          [step]="finfo.step ?? 1"
-        >
-          <input
-            matSliderStartThumb
-            [attr.name]="finfo.range_field.from"
-            [attr.id]="finfo.range_field.from"
-            [value]="fromInfo?.value ?? fromInfo?.default ?? rangeMin"
-            (valueChange)="service.sliderChange(fromInfo, $event)"
-          />
-          <input
-            matSliderEndThumb
-            [attr.name]="finfo.range_field.to"
-            [attr.id]="finfo.range_field.to"
-            [value]="toInfo?.value ?? toInfo?.default ?? rangeMax"
-            (valueChange)="service.sliderChange(toInfo, $event)"
-          />
-        </mat-slider>
-      </div>
-
-      @if (finfo.mat_icon_append) {
-        <mat-icon
-          class="material-symbols-rounded tw:shrink-0 tw:text-(--mat-sys-on-surface-variant)"
-        >
-          {{ finfo.mat_icon_append }}
-        </mat-icon>
-      }
-    </div>
-
-    @if (hasError) {
-      <div class="tw:mt-1 tw:flex! tw:items-center tw:gap-1 tw:text-xs tw:text-error">
-        <mat-icon class="material-symbols-rounded tw:text-xs! tw:h-4! tw:w-4!">error</mat-icon>
-        <span>{{ fstate.errors?.()?.[0]?.message | transloco }}</span>
-      </div>
-    } @else if (finfo.hint) {
-      <div
-        class="tw:mt-1 tw:flex tw:items-start tw:gap-1 tw:text-xs tw:text-(--mat-sys-on-surface-variant)"
-      >
-        <mat-icon class="material-symbols-rounded tw:text-xs! tw:h-4! tw:w-4!">info</mat-icon>
-        <span>{{ finfo.hint | transloco }}</span>
-      </div>
-    }
-  </div>
+  <app-form-field-range
+    [fromName]="finfo.range_field.from"
+    [fromInputId]="finfo.range_field.from"
+    [toName]="finfo.range_field.to"
+    [toInputId]="finfo.range_field.to"
+    [disabled]="(finfo.disabled ?? false) || (fstate?.disabled?.() ?? false) || (dependency?.disabledByDependency ?? false)"
+    [fromValue]="fromInfo?.value ?? fromInfo?.default ?? null"
+    (fromValueChange)="service.onCrudFieldValueChange(ffObj, finfo.range_field.from, fromInfo, $event)"
+    [toValue]="toInfo?.value ?? toInfo?.default ?? null"
+    (toValueChange)="service.onCrudFieldValueChange(ffObj, finfo.range_field.to, toInfo, $event)"
+    [dependentFieldValue]="dependency?.dependentFieldValue"
+    [label]="finfo.label | transloco"
+    [hint]="(finfo.hint | transloco) || ''"
+    [error]="hasError ? (fstate.errors?.()?.[0]?.message | transloco: validationMessageParams(finfo)) : ''"
+    [iconPrepend]="finfo.mat_icon_prepend ?? ''"
+    [iconAppend]="finfo.mat_icon_append ?? ''"
+    [min]="finfo?.validation?.min?.value ?? 0"
+    [max]="finfo?.validation?.max?.value ?? 100"
+    [step]="finfo.step ?? 1"
+  ></app-form-field-range>
 </ng-template>
 
-<!-- ████ type = COLOR -->
+<!-- ████ finfo.type = NUMBER -->
+<ng-template
+  #CRUD_FT_NUMBER
+  let-fkey="fkey"
+  let-finfo="finfo"
+  let-fstate="fstate"
+  let-hasError="hasError"
+  let-ffObj="ffObj"
+>
+  @let dependency = finfo.value_dependency?.(ffObj);
+
+  <app-form-field-number
+    [name]="fkey"
+    [inputId]="fkey"
+    [required]="!!finfo.validation?.required"
+    [disabled]="(finfo.disabled ?? false) || (fstate?.disabled?.() ?? false) || (dependency?.disabledByDependency ?? false)"
+    [value]="finfo.value ?? finfo.default ?? null"
+    (valueChange)="service.onCrudFieldValueChange(ffObj, fkey, finfo, $event)"
+    [dependentFieldValue]="dependency?.dependentFieldValue"
+    [label]="finfo.label | transloco"
+    [placeholder]="(finfo.placeholder | transloco) || ''"
+    [hint]="(finfo.hint | transloco) || ''"
+    [error]="hasError ? (fstate.errors?.()?.[0]?.message | transloco: validationMessageParams(finfo)) : ''"
+    [iconPrepend]="finfo.mat_icon_prepend ?? ''"
+    [iconAppend]="finfo.mat_icon_append ?? ''"
+    [min]="finfo?.validation?.min?.value ?? null"
+    [max]="finfo?.validation?.max?.value ?? null"
+    [step]="finfo.step ?? 'any'"
+  ></app-form-field-number>
+</ng-template>
+
+<!-- ████ finfo.type = PASSWORD -->
+<ng-template
+  #CRUD_FT_PASSWORD
+  let-fkey="fkey"
+  let-finfo="finfo"
+  let-fstate="fstate"
+  let-hasError="hasError"
+  let-ffObj="ffObj"
+>
+  @let dependency = finfo.value_dependency?.(ffObj);
+
+  <app-form-field-password
+    [name]="fkey"
+    [inputId]="fkey"
+    [required]="!!finfo.validation?.required"
+    [disabled]="(finfo.disabled ?? false) || (fstate?.disabled?.() ?? false) || (dependency?.disabledByDependency ?? false)"
+    [value]="finfo.value ?? finfo.default ?? null"
+    (valueChange)="service.onCrudFieldValueChange(ffObj, fkey, finfo, $event)"
+    [dependentFieldValue]="dependency?.dependentFieldValue"
+    [label]="finfo.label | transloco"
+    [placeholder]="(finfo.placeholder | transloco) || ''"
+    [hint]="(finfo.hint | transloco) || ''"
+    [error]="hasError ? (fstate.errors?.()?.[0]?.message | transloco: validationMessageParams(finfo)) : ''"
+    [iconPrepend]="finfo.mat_icon_prepend ?? ''"
+    [iconAppend]="finfo.mat_icon_append ?? ''"
+    [minLength]="finfo?.validation?.min_length?.value ?? null"
+    [maxLength]="finfo?.validation?.max_length?.value ?? null"
+  ></app-form-field-password>
+</ng-template>
+
+<!-- ████ finfo.type = EMAIL -->
+<ng-template
+  #CRUD_FT_EMAIL
+  let-fkey="fkey"
+  let-finfo="finfo"
+  let-fstate="fstate"
+  let-hasError="hasError"
+  let-ffObj="ffObj"
+>
+  @let dependency = finfo.value_dependency?.(ffObj);
+
+  <app-form-field-email
+    [name]="fkey"
+    [inputId]="fkey"
+    [required]="!!finfo.validation?.required"
+    [disabled]="(finfo.disabled ?? false) || (fstate?.disabled?.() ?? false) || (dependency?.disabledByDependency ?? false)"
+    [value]="finfo.value ?? finfo.default ?? null"
+    (valueChange)="service.onCrudFieldValueChange(ffObj, fkey, finfo, $event)"
+    [dependentFieldValue]="dependency?.dependentFieldValue"
+    [label]="finfo.label | transloco"
+    [placeholder]="(finfo.placeholder | transloco) || ''"
+    [hint]="(finfo.hint | transloco) || ''"
+    [error]="hasError ? (fstate.errors?.()?.[0]?.message | transloco: validationMessageParams(finfo)) : ''"
+    [iconPrepend]="finfo.mat_icon_prepend ?? ''"
+    [iconAppend]="finfo.mat_icon_append ?? ''"
+    [minLength]="finfo?.validation?.min_length?.value ?? null"
+    [maxLength]="finfo?.validation?.max_length?.value ?? null"
+    [pattern]="finfo?.validation?.pattern?.value ?? null"
+  ></app-form-field-email>
+</ng-template>
+
+<!-- ████ finfo.type = URL -->
+<ng-template
+  #CRUD_FT_URL
+  let-fkey="fkey"
+  let-finfo="finfo"
+  let-fstate="fstate"
+  let-hasError="hasError"
+  let-ffObj="ffObj"
+>
+  @let dependency = finfo.value_dependency?.(ffObj);
+
+  <app-form-field-url
+    [name]="fkey"
+    [inputId]="fkey"
+    [required]="!!finfo.validation?.required"
+    [disabled]="(finfo.disabled ?? false) || (fstate?.disabled?.() ?? false) || (dependency?.disabledByDependency ?? false)"
+    [value]="finfo.value ?? finfo.default ?? null"
+    (valueChange)="service.onCrudFieldValueChange(ffObj, fkey, finfo, $event)"
+    [dependentFieldValue]="dependency?.dependentFieldValue"
+    [label]="finfo.label | transloco"
+    [placeholder]="(finfo.placeholder | transloco) || ''"
+    [hint]="(finfo.hint | transloco) || ''"
+    [error]="hasError ? (fstate.errors?.()?.[0]?.message | transloco: validationMessageParams(finfo)) : ''"
+    [iconPrepend]="finfo.mat_icon_prepend ?? ''"
+    [iconAppend]="finfo.mat_icon_append ?? ''"
+    [minLength]="finfo?.validation?.min_length?.value ?? null"
+    [maxLength]="finfo?.validation?.max_length?.value ?? null"
+    [pattern]="finfo?.validation?.pattern?.value ?? null"
+  ></app-form-field-url>
+</ng-template>
+
+<!-- ████ finfo.type = TEL -->
+<ng-template
+  #CRUD_FT_TEL
+  let-fkey="fkey"
+  let-finfo="finfo"
+  let-fstate="fstate"
+  let-hasError="hasError"
+  let-ffObj="ffObj"
+>
+  @let dependency = finfo.value_dependency?.(ffObj);
+
+  <app-form-field-tel
+    [name]="fkey"
+    [inputId]="fkey"
+    [required]="!!finfo.validation?.required"
+    [disabled]="(finfo.disabled ?? false) || (fstate?.disabled?.() ?? false) || (dependency?.disabledByDependency ?? false)"
+    [value]="finfo.value ?? finfo.default ?? null"
+    (valueChange)="service.onCrudFieldValueChange(ffObj, fkey, finfo, $event)"
+    [dependentFieldValue]="dependency?.dependentFieldValue"
+    [label]="finfo.label | transloco"
+    [placeholder]="(finfo.placeholder | transloco) || ''"
+    [hint]="(finfo.hint | transloco) || ''"
+    [error]="hasError ? (fstate.errors?.()?.[0]?.message | transloco: validationMessageParams(finfo)) : ''"
+    [iconPrepend]="finfo.mat_icon_prepend ?? ''"
+    [iconAppend]="finfo.mat_icon_append ?? ''"
+    [minLength]="finfo?.validation?.min_length?.value ?? null"
+    [maxLength]="finfo?.validation?.max_length?.value ?? null"
+    [pattern]="finfo?.validation?.pattern?.value ?? null"
+  ></app-form-field-tel>
+</ng-template>
+
+<!-- ████ finfo.type = COLOR -->
 <ng-template
   #CRUD_FT_COLOR
   let-fkey="fkey"
@@ -1634,88 +800,26 @@
   let-hasError="hasError"
   let-ffObj="ffObj"
 >
-  @let colorValue = service.colorSwatchValue(finfo);
+  @let dependency = finfo.value_dependency?.(ffObj);
 
-  <mat-form-field appearance="outline" subscriptSizing="dynamic" class="tw:w-full">
-    <mat-label>{{ finfo.label | transloco }}</mat-label>
-
-    @if (finfo.mat_icon_prepend) {
-      <mat-icon matPrefix class="material-symbols-rounded">
-        {{ finfo.mat_icon_prepend }}
-      </mat-icon>
-    }
-
-    <div class="tw:flex tw:items-center tw:gap-3">
-      <!--
-        text half is typeable: (change) not (input), so it commits on blur/Enter
-        and angular never rewrites [value] mid-edit. the swatch is the native picker.
-      -->
-      <input
-        matInput
-        type="text"
-        autocomplete="off"
-        autocapitalize="off"
-        spellcheck="false"
-        class="tw:min-w-0 tw:flex-1"
-        [attr.name]="fkey"
-        [attr.id]="fkey"
-        [attr.placeholder]="(finfo.placeholder | transloco) || '#rrggbb'"
-        [value]="finfo.value ?? ''"
-        (change)="service.colorTextChange(finfo, $any($event.target).value)"
-        (keyup.enter)="$any($event.target).blur()"
-      />
-      <!--
-        the swatch is a shadow pseudo element, so rounding the input alone leaves a
-        square inside it. -webkit-color-swatch is Chromium + WebKit (both capacitor
-        webviews), -moz-color-swatch is firefox on the web build.
-      -->
-      <input
-        type="color"
-        class="tw:h-7 tw:w-7 tw:shrink-0 tw:cursor-pointer tw:appearance-none tw:overflow-hidden
-               tw:rounded-full tw:border-0 tw:bg-transparent tw:p-0
-               tw:[&::-webkit-color-swatch-wrapper]:p-0
-               tw:[&::-webkit-color-swatch]:rounded-full tw:[&::-webkit-color-swatch]:border-0
-               tw:[&::-moz-color-swatch]:rounded-full tw:[&::-moz-color-swatch]:border-0"
-        [attr.aria-label]="'GL.FIELD.COLOR.SELECT' | transloco"
-        [value]="colorValue"
-        (input)="service.colorChange(finfo, $any($event.target).value)"
-      />
-    </div>
-
-    <div matSuffix class="tw:flex tw:items-center tw:gap-1">
-      @if (finfo.value) {
-        <button
-          mat-icon-button
-          type="button"
-          [attr.aria-label]="'GL.FIELD.COMMON.CLEAR' | transloco"
-          (click)="service.clear(finfo); $event.stopPropagation()"
-        >
-          <mat-icon class="material-symbols-rounded">close</mat-icon>
-        </button>
-      }
-
-      @if (finfo.mat_icon_append) {
-        <mat-icon class="material-symbols-rounded tw:mx-3">
-          {{ finfo.mat_icon_append }}
-        </mat-icon>
-      }
-    </div>
-
-    @if (hasError) {
-      <mat-error class="tw:flex! tw:items-center tw:gap-1">
-        <mat-icon class="material-symbols-rounded tw:text-xs! tw:h-4! tw:w-4!"> error </mat-icon>
-        <span>{{ fstate.errors?.()?.[0]?.message | transloco }}</span>
-      </mat-error>
-    } @else if (finfo.hint) {
-      <mat-hint class="tw:flex tw:items-start tw:gap-1">
-        <mat-icon class="material-symbols-rounded tw:text-xs! tw:h-4! tw:w-4!"> info </mat-icon>
-        <span>{{ finfo.hint | transloco }}</span>
-      </mat-hint>
-    }
-  </mat-form-field>
+  <app-form-field-color
+    [name]="fkey"
+    [inputId]="fkey"
+    [required]="!!finfo.validation?.required"
+    [disabled]="(finfo.disabled ?? false) || (fstate?.disabled?.() ?? false) || (dependency?.disabledByDependency ?? false)"
+    [value]="finfo.value ?? finfo.default ?? null"
+    (valueChange)="service.onCrudFieldValueChange(ffObj, fkey, finfo, $event)"
+    [dependentFieldValue]="dependency?.dependentFieldValue"
+    [label]="finfo.label | transloco"
+    [placeholder]="(finfo.placeholder | transloco) || ''"
+    [hint]="(finfo.hint | transloco) || ''"
+    [error]="hasError ? (fstate.errors?.()?.[0]?.message | transloco: validationMessageParams(finfo)) : ''"
+    [iconPrepend]="finfo.mat_icon_prepend ?? ''"
+    [iconAppend]="finfo.mat_icon_append ?? ''"
+  ></app-form-field-color>
 </ng-template>
 
-<!-- ████ type = FILE -->
+<!-- ████ finfo.type = FILE -->
 <ng-template
   #CRUD_FT_FILE
   let-fkey="fkey"
@@ -1727,7 +831,7 @@
 <!-- Holding this for now as we need module with upload end point -->
 </ng-template>
 
-<!-- ████ type = HTML -->
+<!-- ████ finfo.type = HTML -->
 <!-- TODO: Need rich text editor GrapesJS https://github.com/GrapesJS/grapesjs()-->
 <ng-template
   #CRUD_FT_HTML
@@ -1740,7 +844,7 @@
 </ng-template>
 
 
-<!-- ████ type = ARRAY -->
+<!-- ████ finfo.type = ARRAY -->
 <!-- TODO: we need to integrate Monaco Editor (https://github.com/microsoft/monaco-editor) (ready to go: npm monaco-editor ngx-monaco-editor-v2) -->
 <ng-template
   #CRUD_FT_ARRAY
@@ -1753,7 +857,7 @@
 </ng-template>
 
 
-<!-- ████ type = JSON -->
+<!-- ████ finfo.type = JSON -->
 <!-- TODO: we need to integrate Monaco Editor (https://github.com/microsoft/monaco-editor) (ready to go: npm monaco-editor ngx-monaco-editor-v2) -->
 <ng-template
   #CRUD_FT_JSON

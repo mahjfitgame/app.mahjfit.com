@@ -1,0 +1,53 @@
+<!-- file: src/app/base/form-fields/slider/template.html -->
+<div class="tw:w-full tw:min-w-0">
+    @if (label()) {
+        <div class="tw:mb-2 tw:flex tw:items-center tw:gap-1 tw:min-w-0">
+            <mat-label class="tw:min-w-0 tw:truncate tw:text-sm">
+                {{ label() }}
+            </mat-label>
+        </div>
+    }
+
+    <!--
+        the icons sit on either side of the track, matching matPrefix / matSuffix on a
+        mat-form-field control - same 24px size and on-surface-variant colour.
+    -->
+    <div class="tw:flex tw:items-center tw:gap-1">
+        @if (iconPrepend()) {
+            <mat-icon class="material-symbols-rounded tw:font-bold tw:text-2xl! tw:leading-none! tw:h-6! tw:w-6! tw:shrink-0">
+                {{ iconPrepend() }}
+            </mat-icon>
+        }
+
+        <!-- px-5 is the room for the thumb's state-layer shadow, which pokes out past the track ends -->
+        <div class="tw:min-w-0 tw:flex-1 tw:px-5">
+            <mat-slider class="tw:w-full! tw:mx-0!" discrete
+                [min]="min()" [max]="max()" [step]="step()" [disabled]="disabled()">
+                <input matSliderThumb
+                    [attr.name]="name()"
+                    [attr.id]="inputId() || name()"
+                    [value]="service.state.renderValue()"
+                    (valueChange)="service.onChange($event)">
+            </mat-slider>
+        </div>
+
+        @if (iconAppend()) {
+            <mat-icon class="material-symbols-rounded tw:font-bold tw:text-2xl! tw:leading-none! tw:h-6! tw:w-6! tw:shrink-0">
+                {{ iconAppend() }}
+            </mat-icon>
+        }
+    </div>
+
+    <!-- error/hint footer: hand-drawn, because there is no <mat-form-field> to project into -->
+    @if (error()) {
+        <div class="tw:mt-1 tw:flex tw:items-center tw:gap-1 tw:text-xs tw:text-error">
+            <mat-icon class="material-symbols-rounded tw:text-xs! tw:h-4! tw:w-4! tw:shrink-0">error</mat-icon>
+            <span>{{ error() }}</span>
+        </div>
+    } @else if (hint()) {
+        <div class="tw:mt-1 tw:flex tw:items-start tw:gap-1 tw:text-xs">
+            <mat-icon class="material-symbols-rounded tw:text-xs! tw:h-4! tw:w-4! tw:shrink-0">info</mat-icon>
+            <span>{{ hint() }}</span>
+        </div>
+    }
+</div>
