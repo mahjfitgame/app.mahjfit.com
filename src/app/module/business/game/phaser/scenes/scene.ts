@@ -224,7 +224,7 @@ export class PhaserScene extends Phaser.Scene {
       canStartDrag: (runtime) => runtime.zone !== "pass",
       canDropTile: () => true,
       canDiscard: (runtime, x, y) =>
-        this.tablePhase === GamePhaseEnum.PLAYING && runtime.zone === "rack" && this.isInsidePlayableDiscardArea(x, y),
+        this.tablePhase === GamePhaseEnum.PLAYING && this.canDiscard && runtime.zone === "rack" && this.isInsidePlayableDiscardArea(x, y),
       canPass: (runtime, x, y) =>
         this.isPassingPhase() && runtime.zone === "rack" && this.isInsidePassWaitingArea(x, y),
       onTileSelected: () => undefined,
@@ -240,6 +240,12 @@ export class PhaserScene extends Phaser.Scene {
       this.uiLayoutManager,
       {
         isPassPhaseAllowed: () => this.tablePhase === GamePhaseEnum.PASSING,
+        isBlindPassAllowed: () => {
+          if (!this.charlestonState) return false;
+          if (this.charlestonState.stage === GameCharlestoneStageEnum.FIRST && this.passDirection === GamePhaseFirstRoundDirectionEnum.LEFT) return true;
+          if (this.charlestonState.stage === GameCharlestoneStageEnum.SECOND && this.passDirection === GamePhaseSecondRoundDirectionEnum.RIGHT) return true;
+          return false;
+        },
         getTablePhase: () => this.tablePhase,
         onPassWaitingStateChanged: (payload) => this.callbacks.onPassWaitingStateChanged?.(payload),
         validateSubmission: () => this.passFlowManager.canSubmitPassWaitingTiles(),
@@ -280,6 +286,7 @@ export class PhaserScene extends Phaser.Scene {
     this.game.events.on("tileCall:offer", this.setTileCallOffer, this);
     this.game.events.on("allTiles:set", this.setAllTiles, this);
     this.game.events.on("opponent:discard", this.handleOpponentDiscard, this);
+    this.game.events.on("discards:set", this.handleDiscardsSet, this);
     this.game.events.on("opponent:pick", this.handleOpponentPick, this);
     this.game.events.on("mahjong:win", this.showMahjongWinCelebration, this);
     this.game.events.on("charleston:state", this.setCharlestonState, this);
@@ -315,6 +322,7 @@ export class PhaserScene extends Phaser.Scene {
       this.game.events.off("ui:set-is-personal-turn");
       this.game.events.off("tile-call:offer", this.setTileCallOffer, this);
       this.game.events.off("opponent:discard", this.handleOpponentDiscard, this);
+      this.game.events.off("discards:set", this.handleDiscardsSet, this);
       this.game.events.off("opponent:pick", this.handleOpponentPick, this);
       this.game.events.off("mahjong:win", this.showMahjongWinCelebration, this);
 
@@ -833,7 +841,7 @@ export class PhaserScene extends Phaser.Scene {
     }
     for (const [id, runtime] of this.tileMap.entries()) {
       if (!incomingIds.has(id)) {
-        if (this.passWaitingTileIds.includes(id)) {
+        if (this.passWaitingTileIds.includes(id) || this.discardedTileIds.includes(id)) {
           continue;
         }
 
@@ -2575,14 +2583,30 @@ export class PhaserScene extends Phaser.Scene {
     this.layoutRackTiles(true);
   }
 
+  private lastOpponentPickTime: number = 0;
+
   private handleOpponentPick(payload: { seat: TableSeat }): void {
     if (this.tablePhase !== GamePhaseEnum.PLAYING || !this.layout) return;
+    this.lastOpponentPickTime = Date.now();
     this.playHaptic("pick");
     this.pickTileForSeat(payload.seat);
   }
 
   private handleOpponentDiscard(payload: { seat: TableSeat, tile: GameTileEntityGSDto }): void {
+    const timeSincePick = Date.now() - this.lastOpponentPickTime;
+    if (timeSincePick < 500) {
+      setTimeout(() => {
+        this.processOpponentDiscard(payload);
+      }, 500 - timeSincePick);
+    } else {
+      this.processOpponentDiscard(payload);
+    }
+  }
+
+  private processOpponentDiscard(payload: { seat: TableSeat, tile: GameTileEntityGSDto }): void {
     if (this.tablePhase === GamePhaseEnum.PASSING || !this.layout) return;
+
+    this.playHaptic("tile-discard");
 
     this.pendingTileCallOffer = undefined;
     this.closeTileCallWindow();
@@ -2593,9 +2617,9 @@ export class PhaserScene extends Phaser.Scene {
       return;
     }
 
-    const exposure = this.exposureRectForSeat(payload.seat);
-    const sourceX = exposure.x + exposure.width / 2;
-    const sourceY = exposure.y + exposure.height / 2;
+    const targetPoint = this.pickTargetPointForSeat(payload.seat);
+    const sourceX = targetPoint.x;
+    const sourceY = targetPoint.y;
     const discardId = payload.tile.id ?? (9999000 + ++this.demoDiscardSequence);
 
     this.addDiscardSlot(discardId);
@@ -2627,6 +2651,34 @@ export class PhaserScene extends Phaser.Scene {
     });
   }
 
+  private handleDiscardsSet(tiles: GameTileEntityGSDto[]): void {
+    if (!this.layout || this.tablePhase !== GamePhaseEnum.PLAYING) return;
+    const grid = this.discardGrid();
+
+    for (const tile of tiles) {
+      const discardId = tile.id ?? (9999000 + ++this.demoDiscardSequence);
+      if (this.discardSlotOrder.includes(discardId)) continue; // Already rendered
+
+      const texture = this.gameService.resolve(tile as any, grid.tileWidth);
+      if (!texture || !this.textures.exists(texture.atlasKey) || !this.textures.get(texture.atlasKey).has(texture.frameKey)) continue;
+
+      this.addDiscardSlot(discardId);
+      const discardSlot = this.discardSlotFor(
+        this.discardSlotIndex(discardId, this.opponentDiscardTiles.length),
+        grid,
+      );
+
+      const image = this.add
+        .image(discardSlot.x, discardSlot.y, texture.atlasKey, texture.frameKey)
+        .setDisplaySize(grid.tileWidth, grid.tileHeight)
+        .setDepth(this.discardTileDepth() + 2);
+
+      this.applyTileTextureFilter(image);
+      image.setData("discard-id", discardId);
+      this.opponentDiscardTiles.push(image);
+    }
+  }
+
   /** Returns the current HUD wall-counter size for responsive positioning. */
   private wallTileBoxSize(): { readonly width: number; readonly height: number } {
     return this.uiLayoutManager.wallTileBoxSize(this.layout);
@@ -2643,12 +2695,14 @@ export class PhaserScene extends Phaser.Scene {
   }
 
   private updateInstructionText(): void {
+    const isBlindPassAllowed = this.passFlowManager?.isBlindPassAllowed ? this.passFlowManager.isBlindPassAllowed() : false;
     this.uiLayoutManager.updateInstruction(
       this.tablePhase,
       this.charlestonState?.stage,
       this.stateManager.isPersonalTurn,
       this.passDirection,
       this.canDiscard,
+      isBlindPassAllowed
     );
   }
 
@@ -2715,7 +2769,7 @@ export class PhaserScene extends Phaser.Scene {
     const isTablet =
       this.layout.metrics.isTablet;
 
-    const count = Math.max(1, this.discardedTileIds.length);
+    const count = Math.max(1, this.discardSlotOrder.length);
 
     const paddingX = isPhonePortrait ? 5 : isPhoneLandscape ? 6 : isTablet ? 10 : 12;
     const paddingY = isPhonePortrait ? 5 : isPhoneLandscape ? 6 : isTablet ? 10 : 12;
@@ -2992,7 +3046,9 @@ export class PhaserScene extends Phaser.Scene {
         (image as any).enableFilters();
         if ((image as any).filters && (image as any).filters.external) {
           // x, y, decay, power, color, samples, intensity
-          (image as any).filters.external.addShadow(0.4, 0.6, 0.0, 1, 0x000000, 6, 0.8);
+          // samples=2 because i=0 is at (0,0) [hidden]. i=1 is the offset shadow.
+          // x is negative to shift right, y is negative to shift down.
+          (image as any).filters.external.addShadow(-0.3, -0.4, 0.05, 1, 0x000000, 2, 0.65);
         }
       }
     }
@@ -4193,7 +4249,7 @@ export class PhaserScene extends Phaser.Scene {
   private pickTileForSeat(seat: TableSeat): void {
     if (this.tablePhase !== GamePhaseEnum.PLAYING) return;
     if (this.isPickAnimating) return;
-    if (this.wallTileCount <= 0) return;
+    if (this.wallTileCount < 0) return;
     if (!this.canPickFromWall()) return;
 
     this.isPickAnimating = true;

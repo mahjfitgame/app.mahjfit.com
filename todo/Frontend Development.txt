@@ -12,6 +12,64 @@ Converting static design data to real-time Gameplay data, completed the charlest
 [tech][Frontend][D1] Integreate discard and calim tile with bot auto turn
 
 
+
+============== TEST POINT ==================
+
+Here are my notes on the Charleston portion of the game: Let me know if you have questions. I am just following Real Mahj as closely as possible for all direction.
+During the Charleston, directions are covering the tiles
+Add Note over the joker * can not pass during Charleston (right now nothing happens when you click it- so it could be confusing for a player)
+during Charleston, the tiles I am getting passed should come into my rack at the same time the other tiles are moving to other players. Now they are coming in after the other tiles pass.
+Second Charleston Round: Message should say: Would you like to stop the Charleston?
+Options should be YES or NO
+
+Then a message: Are you sure? YES or NO
+Then an audio for “Charleston Stopped”.  (I know this needs to be WAV)
+
+============== POINT ==================
+
+Discard tile implementation
+Bot auto pick tile implementation
+Bot auto discard tile implementation
+Bot auto discard and pick tile animation implementation
+Claim tile implementation
+
+Thank you for focusing on blind pass.
+
+
+
+
+1]
+For second charleston when choose NO option play sound "stop-the-chaleston.wav".
+2]
+First make sure all font family we must use the FONT_FAMILY
+3]
+Settings and hamburger menu - diff font and size? Tighten up box( too much white space) 
+4]
+First Left: Players are able to pass 1, 2 or 3 tiles. If they choose less than 3 it is called a “blind pass”. This means they take they use the tile(s) being passed to them, and without looking at them, pass those tiles on.
+
+
+	For example.
+
+	I only want to pass 2 of my tiles. 
+  I pick 2 of my tiles, and then take one of the tiles being passed to me by the 	person on my right. so there needs to be a PASS button 	that allows for a selection of 0, 1, 2 or 3 tiles to be passed.
+
+
+
+
+Which passes allow blind passing? You mentioned "First Left". In standard American Mahjong, blind passing is typically allowed on the Last Pass of the First Charleston (First Left) and the Last Pass of the Second Charleston (Second Right). Should I enable blind passing for BOTH of these, or ONLY the "First Left"?
+Yes, We need BOTH
+
+Minimum tiles: You mentioned "allows for a selection of 0, 1, 2 or 3 tiles". Is passing exactly 0 tiles explicitly allowed, meaning they blind pass all 3 incoming tiles?
+Yes, right.
+
+
+How the flow is going, for "First Left"
+We get the 3 tiles in the passing area from the specific seat, now I select one tile for the left seat the PASS button enale to pass the tile.
+For the pass waiting area we have 
+Now on pass button click the 1 tile from the passing area should be animated and add to my rack and another two tiles animated and pass to the left side from my seat.
+
+
+
 ============== POINT ==================
 1]
 Set up rack tiles, getting from the response and change the type and logical flow to set up the initial seats rack tiles. 
@@ -98,6 +156,16 @@ Why righnow discaraded tiles are not showing to the discarded area, when I disca
 
 Also when it not my turn even though I am able to discard the tile this is the wring behavior. The pick and discard tile is only for the current turn id.
 
+
+
+Why wall seat rack hands are blank?
+When I get it blank, I don't know it blank from the initally or from the gameplay. So can we show something on the wall seat rack to indicating that it is blank.
+What I processed, after completed the all charleston round the host (real player) discard the one tile and the bot take auto pick and discard and when it turn again to the host real player for PICK new tile that tile the wall seat rack hands is blank.
+
+
+
+
+But I added the debug point and I checked the personal seats data getting from the cache state, the personal seats data for wall seat is present. But in the wall seat the rack hand is blank.
 ============== TODO ==================
 
 Remove static design related part, such as seat selection, phase chaneg and the test bottons which are reletead with the stitic design.
@@ -126,6 +194,14 @@ ReferenceError: Can't find variable: Atomics
 
 
 ============== REPLY ==================
+FOR CLIENT]
+
+Today, I worked on the discard tile and for bot turn I implement the auto pick and discard tile, and continue work on it, meanwhile I also working on the claim option.
+
+I will keep you posted on work progress.
+Thank you!
+
+
 
 FOR CLIENT]
 
@@ -177,6 +253,11 @@ I will keep you posted on work progress.
 Thank you!
 
 ============== PROMPT ===================
+
+---
+Discarded tile return west assest for all turn.
+
+-----
 Regarding, After time out or take claim window decision for boat is this publish the play and public final state via websocket?
 You said that yes we get the after request process and when run shceule call back after time out it publush the data, but I only get the data at once adter discard tile, I didn't get the after claim and resolve claim after some time on the server.
 -------

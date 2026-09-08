@@ -1885,6 +1885,7 @@ export class PhaserLayoutUi {
     isPersonalTurn: boolean,
     passDirection: PassDirection,
     canDiscard: boolean,
+    isBlindPassAllowed: boolean = false,
   ): void {
     this.instructionPhase = phase;
     this.charlestonStage = charlestonStage;
@@ -1900,13 +1901,14 @@ export class PhaserLayoutUi {
     }
 
     if (charlestonStage === GameCharlestoneStageEnum.SECOND_DECISION) {
-      this.instructionMessage = "Second Charleston\nRound?";
+      this.instructionMessage = "Would you like to \nstop the Charleston?";
     } else {
       const directionTitle =
         passDirection === GamePhaseFirstRoundDirectionEnum.RIGHT ? "Right" :
           passDirection === GamePhaseFirstRoundDirectionEnum.LEFT ? "Left" :
             "Across";
-      this.instructionMessage = `${directionTitle}|Select 3 tiles to pass`;
+      const tileCountText = isBlindPassAllowed ? "0-3" : "3";
+      this.instructionMessage = `${directionTitle}|Select ${tileCountText} tiles to pass`;
     }
 
     this.publishInstructionPanel();
@@ -2061,7 +2063,7 @@ export class PhaserLayoutUi {
       const startX = (cardWidth - maxTotalWidth) / 2;
 
       buttonConfig = {
-        label: "START",
+        label: "YES",
         enabled: true,
         action: "second-pass",
         x: Math.round(startX),
@@ -2074,7 +2076,7 @@ export class PhaserLayoutUi {
         shadowBlur: Math.max(6, Math.round(buttonHeight * 0.22)),
       };
       secondaryButtonConfig = {
-        label: "STOP",
+        label: "NO",
         enabled: true,
         action: "second-stop",
         x: Math.round(startX + halfWidth + gap),

@@ -113,8 +113,10 @@ export class PhaserComponent implements AfterViewInit {
   private joinTablePopupTimer?: number;
   private mahjongWinPopupTimer?: number;
 
-  private lastWallCount = -1;
-  private lastDiscardCount = -1;
+  private lastWallCount: number = -1;
+  private lastDiscardCount: number = -1;
+  private knownDiscardTileIds = new Set<number>();
+  private lastKnownTurnSeatPos: TableSeat | undefined = undefined;
 
   public readonly GameDeadHandReasonEnum = GameDeadHandReasonEnum;
 
@@ -315,6 +317,14 @@ export class PhaserComponent implements AfterViewInit {
     });
 
 
+    // Track active turn for fallback in discards
+    effect(() => {
+      const activeSeat = this.gameState.active_table_position();
+      if (activeSeat) {
+        this.lastKnownTurnSeatPos = activeSeat;
+      }
+    });
+
     // Wall Count
     effect(() => {
       const count = this.gameState.play_wall_count();
@@ -337,21 +347,51 @@ export class PhaserComponent implements AfterViewInit {
       const discards = this.gameState.play_discards_tiles();
       const count = discards.length;
       if (!this.phaser || !this.sceneReady()) {
-        this.lastDiscardCount = count;
         return;
       }
 
-      if (this.lastDiscardCount !== -1 && count > this.lastDiscardCount) {
-        const newTiles = discards.slice(this.lastDiscardCount);
-        for (const tile of newTiles) {
-          if (tile.gseat_id) {
-            const seatPosFn = this.gameState.seat_position_by_gseat_id();
-            const seatPos = seatPosFn(tile.gseat_id);
+      if (this.lastDiscardCount === -1) {
+        this.phaser.events.emit("discards:set", discards);
+        this.lastDiscardCount = count;
+        for (const tile of discards) {
+          if (tile.tile_id != null) {
+            this.knownDiscardTileIds.add(tile.tile_id);
+          }
+        }
+        return;
+      }
+
+      if (count > this.lastDiscardCount) {
+        if (count - this.lastDiscardCount > 1) {
+          // Bulk load (e.g. from initial API fetch) - render them statically
+          this.phaser.events.emit("discards:set", discards);
+          for (const tile of discards) {
+            if (tile.tile_id != null) {
+              this.knownDiscardTileIds.add(tile.tile_id);
+            }
+          }
+        } else {
+          // Normal single discard - animate it
+          const newTiles = discards.filter(t => t.tile_id != null && !this.knownDiscardTileIds.has(t.tile_id));
+          for (const tile of newTiles) {
+            this.knownDiscardTileIds.add(tile.tile_id as number);
+            let seatPos: TableSeat | undefined | null = undefined;
+            if (tile.gseat_id) {
+              const seatPosFn = this.gameState.seat_position_by_gseat_id();
+              seatPos = seatPosFn(tile.gseat_id);
+            }
+
+            // Fallback to the last known turn if the tile's gseat_id belongs to the discard area or is missing
+            if (!seatPos && this.lastKnownTurnSeatPos) {
+              seatPos = this.lastKnownTurnSeatPos;
+            }
+
             if (seatPos && seatPos !== "bottom") {
               this.phaser.events.emit("opponent:discard", { seat: seatPos, tile });
             }
           }
         }
+        this.lastDiscardCount = count;
       }
       this.lastDiscardCount = count;
     });

@@ -252,6 +252,34 @@ export class GameState extends SignalStateService implements FoundationModuleSta
 
     // ████ play_discards_tiles SIGNAL ███████████████████████████████████████████
     public readonly play_discards_tiles = computed<GameTileEntityGSDto[]>(() => {
+        const seatsObj = this.play_seats();
+        const allTiles = this.game_all_tiles();
+        if (seatsObj) {
+            const discardSeat = Object.values(seatsObj).find((s: any) => s.gseattype_id === 6);
+            if (discardSeat && discardSeat.racks) {
+                const rackId = GameRackIDEnumAddon.RACK_FIRST;
+                const rack = discardSeat.racks[rackId] || discardSeat.racks[1];
+                if (rack) {
+                    let rackTiles: any[] = [];
+                    if (rack.hand && rack.hand_order && Array.isArray(rack.hand_order) && rack.hand_order.length > 0) {
+                        rackTiles = rack.hand_order
+                            .map((tileId: number) => rack.hand[tileId])
+                            .filter((t: any) => !!t);
+                    } else if (rack.hand) {
+                        rackTiles = Object.values(rack.hand).sort((a: any, b: any) => {
+                            const timeA = a.updated ? new Date(a.updated).getTime() : 0;
+                            const timeB = b.updated ? new Date(b.updated).getTime() : 0;
+                            return timeA - timeB;
+                        });
+                    }
+
+                    return rackTiles.map((t: any) => {
+                        const fullDef = allTiles[t.tile_id] || {};
+                        return { ...fullDef, ...t };
+                    });
+                }
+            }
+        }
         return this.play()?.discards_tiles || [];
     });
 

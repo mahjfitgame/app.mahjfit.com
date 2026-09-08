@@ -282,6 +282,7 @@ export interface TileRuntime {
  */
 export interface PassFlowCallbacks {
   readonly isPassPhaseAllowed: () => boolean;
+  readonly isBlindPassAllowed: () => boolean;
   readonly getTablePhase: () => GamePhaseEnum;
   readonly onPassWaitingStateChanged: (payload: {
     readonly tileIds: readonly number[];
