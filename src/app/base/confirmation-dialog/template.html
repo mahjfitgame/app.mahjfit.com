@@ -1,0 +1,43 @@
+<mat-toolbar class="tw:bg-transparent! tw:p-0!">
+    <h2 mat-dialog-title
+        class="tw:flex! tw:items-center tw:gap-2 tw:text-lg! tw:before:hidden!"
+    >
+        @if(data.icon) {
+            <mat-icon class="material-symbols-rounded">
+                {{ data.icon }}
+            </mat-icon>
+        }
+
+        <span>
+            {{ data.titleKey | transloco: data.params }}
+        </span>
+    </h2>
+</mat-toolbar>
+
+<mat-dialog-content>
+    <p class="tw:text-sm!">
+        {{ data.messageKey | transloco: data.params }}
+    </p>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end" class="tw:gap-2">
+    <button
+        mat-button
+        type="button"
+        (click)="close(false)"
+    >
+        {{
+            (data.cancelLabelKey ?? 'GL.COMMON.CANCEL')
+                | transloco: data.params
+        }}
+    </button>
+
+    <button
+        mat-flat-button
+        type="button"
+        [class]="data.danger ? 'tw:bg-error! tw:text-on-error!' : ''"
+        (click)="close(true)"
+    >
+        {{ data.confirmLabelKey | transloco: data.params }}
+    </button>
+</mat-dialog-actions>

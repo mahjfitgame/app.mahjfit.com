@@ -1,0 +1,54 @@
+<mat-drawer
+    #viewEndDrawer
+    position="end"
+    mode="over"
+    role="region"
+    class="tw:fixed! tw:z-20! tw:border-l! tw:border-gray-200! tw:dark:border-gray-200/10!"
+    [opened]="service.state.view.viewEndDrawerIsOpen()"
+    (closedStart)="service.state.view.runViewEndDrawerOnCloseCallback()"
+    (openedChange)="service.state.view.setViewEndDrawerIsOpen($event)"
+>
+    <header class="tw:sticky tw:top-0 tw:backdrop-blur-md tw:z-10">
+        <div class="bfw-safe-area-pt bfw-safe-area-pe tw:relative">
+            <mat-toolbar class="tw:flex tw:items-center tw:justify-between tw:bg-transparent! tw:p-3!">
+                <div class="tw:flex tw:min-w-0 tw:items-center">
+                    <span class="tw:flex tw:h-12 tw:w-12 tw:shrink-0 tw:items-center tw:justify-center tw:rounded-lg">
+                        <mat-icon class="material-symbols-rounded tw:h-6! tw:w-6! tw:text-2xl! tw:leading-none!">{{ service.view.getViewIcon() }}</mat-icon>
+                    </span>
+                    <div class="tw:min-w-0">
+                        <h2 class="tw:m-0 tw:text-xl! tw:leading-none tw:font-bold tw:truncate">
+                            <span>{{ service.view.getViewTitle() | transloco }}</span>
+                        </h2>
+                    </div>
+                </div>
+                <div class="tw:flex tw:items-center tw:shrink-0">
+                    @if (service.state.action.hasPrint()) {
+                        <button
+                            matIconButton
+                            type="button"
+                            (click)="service.view.printRecord()"
+                            [attr.aria-label]="'GL.ACTION.PRINT' | transloco"
+                        >
+                            <mat-icon class="material-symbols-rounded">print</mat-icon>
+                        </button>
+                    }
+                    <button
+                        matIconButton
+                        type="button"
+                        (click)="service.view.toggleViewEndDrawer()"
+                        [attr.aria-label]="
+                            (viewEndDrawer.opened ? 'GL.COMMON.CLOSE' : 'GL.COMMON.OPEN') | transloco
+                        "
+                    >
+                        <mat-icon class="material-symbols-rounded">close</mat-icon>
+                    </button>
+                </div>
+            </mat-toolbar>
+        </div>
+    </header>
+    <main class="bfw-safe-area-pe">
+        <div class="tw:flex tw:min-w-0 tw:flex-col tw:gap-4 tw:p-3">
+            <ng-container *ngComponentOutlet="service.view.getViewRecordComponent(); injector: service.getComponentInjector()"></ng-container>
+        </div>
+    </main>
+</mat-drawer>

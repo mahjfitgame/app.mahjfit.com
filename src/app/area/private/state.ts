@@ -1,5 +1,5 @@
 // file: src/app/area/private/state.ts
-import { effect, inject, Service, signal } from "@angular/core";
+import { afterNextRender, effect, inject, Injector, Service, signal } from "@angular/core";
 import { ConfService } from "@libs/conf/service";
 import { LogService } from "@libs/log/service";
 import { SignalStateService } from "@libs/signal-state/service";
@@ -22,6 +22,8 @@ export class PrivateAreaLayoutState extends SignalStateService implements Founda
     public readonly gpbs = inject(GlobalProgressBarService);
     public readonly ctxp = inject(ContextProfileService);
     public readonly api = inject(BfwApiService);
+
+    private readonly endSideBarInjector = inject(Injector);
 
     // ████ CLASS PROPERTIES ████████████████████████████████████████████
 
@@ -50,6 +52,12 @@ export class PrivateAreaLayoutState extends SignalStateService implements Founda
     private readonly _slotStartSideBarExtension = signal<Portal<any> | null>(null);
     public readonly slotStartSideBarExtension = this._slotStartSideBarExtension.asReadonly();
 
+    /**
+     * The active header extension is the most recently registered portal.
+     * Keeping the earlier portals lets an action page temporarily replace the
+     * listing controls and restore them when it is destroyed.
+     */
+    private readonly slotMainHeaderToolbarExtensionStore: Portal<unknown>[] = [];
     private readonly _slotMainHeaderToolbarExtension = signal<Portal<any> | null>(null);
     public readonly slotMainHeaderToolbarExtension = this._slotMainHeaderToolbarExtension.asReadonly();
 
@@ -135,6 +143,14 @@ export class PrivateAreaLayoutState extends SignalStateService implements Founda
         }
     }
     public setEndSideBarOpenTabIndex(index: number): void {
+        if (this.endSideBarOpenTabIndex() === index) {
+            // mat-tab-group's _tabs.changes handler can silently keep a stale tab
+            // active when the target index is unchanged; force a real render in
+            // between so it actually re-selects instead of coalescing the writes.
+            this._endSideBarOpenTabIndex.set(index-1);
+            afterNextRender(() => this._endSideBarOpenTabIndex.set(index), { injector: this.endSideBarInjector });
+            return;
+        }
         this._endSideBarOpenTabIndex.set(index);
     }
     public setEndSideBarTabIndexByLabel(indexByLabel: Record<string, number> | null): void {
@@ -144,6 +160,7 @@ export class PrivateAreaLayoutState extends SignalStateService implements Founda
         this._slotStartSideBarExtension.set(extension);
     }
     public setSlotMainHeaderToolbarExtension(extension: Portal<any> | null): void {
+        this.slotMainHeaderToolbarExtensionStore.length = 0;
         this._slotMainHeaderToolbarExtension.set(extension);
     }
     public setSlotMainFooterToolbarExtension(extension: Portal<any> | null): void {
@@ -193,6 +210,7 @@ export class PrivateAreaLayoutState extends SignalStateService implements Founda
                 this._slotStartSideBarExtension.set(portal);
                 break;
             case PrivateAreaLayoutSlotEnum.SLOT_MAIN_HEADER_TOOLBAR_EXTENSION:
+                this.slotMainHeaderToolbarExtensionStore.push(portal);
                 this._slotMainHeaderToolbarExtension.set(portal);
                 break;
             case PrivateAreaLayoutSlotEnum.SLOT_MAIN_FOOTER_TOOLBAR_EXTENSION:
@@ -235,9 +253,14 @@ export class PrivateAreaLayoutState extends SignalStateService implements Founda
                 }
                 break;
             case PrivateAreaLayoutSlotEnum.SLOT_MAIN_HEADER_TOOLBAR_EXTENSION:
-                if (this.slotMainHeaderToolbarExtension() === portal) {
-                    this._slotMainHeaderToolbarExtension.set(null);
+                const portalIndex = this.slotMainHeaderToolbarExtensionStore.indexOf(portal);
+                if (portalIndex === -1) {
+                    return;
                 }
+                this.slotMainHeaderToolbarExtensionStore.splice(portalIndex, 1);
+                this._slotMainHeaderToolbarExtension.set(
+                    this.slotMainHeaderToolbarExtensionStore.at(-1) ?? null,
+                );
                 break;
             case PrivateAreaLayoutSlotEnum.SLOT_MAIN_FOOTER_TOOLBAR_EXTENSION:
                 if (this.slotMainFooterToolbarExtension() === portal) {

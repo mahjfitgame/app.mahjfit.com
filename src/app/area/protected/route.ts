@@ -2,7 +2,7 @@
 
 import { FoundationAreaEnum } from '@libs/foundation/enum';
 import { FoundationModuleRouteDefinitionType, FoundationModuleRouteNavType } from '@libs/foundation/module/type';
-import { FoundationModulePath } from '@libs/foundation/module/path';
+import { FoundationModuleRoute } from '@libs/foundation/module/route';
 import { FoundationNavPositionEnum } from '@libs/foundation/nav/enum';
 import { SLUG_PROTECTED_AREA } from '@area/protected/slug';
 import { AreaGuard } from '@area/guard';
@@ -26,15 +26,15 @@ import { AreaGuard } from '@area/guard';
  * and canMatch runs BEFORE loadComponent so a signed out visitor never
  * downloads the chunk (docs/route-phase-4.md §2)
  */
-export class ProtectedAreaRoute {
+export class ProtectedAreaRoute extends FoundationModuleRoute {
     // CLASS PROPERTIES ▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬
     /** = mod_regisyry_index. ⚠ a db value, renaming it is a migration */
-    public static readonly registryKey = 'AREA_PROTECTED';
-    public static readonly area = FoundationAreaEnum.PROTECTED;
+    public static override readonly registryKey = 'AREA_PROTECTED';
+    public static override readonly area = FoundationAreaEnum.PROTECTED;
 
     // DEFINITION ▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬
     /** CODE OWNED: the layout and the guard. never a user's business */
-    public static definition(): FoundationModuleRouteDefinitionType {
+    public static override definition(): FoundationModuleRouteDefinitionType {
         return {
             registryKey: this.registryKey,
             component: () => import('@area/protected/component').then((c) => c.ProtectedAreaLayoutComponent),
@@ -42,6 +42,7 @@ export class ProtectedAreaRoute {
             canActivate: [],
             canActivateChild: [],
             canDeactivate: [],
+            resolve: this.resolve(),
             breadcrumbAlias: 'account',
             actions: [],
         };
@@ -58,7 +59,7 @@ export class ProtectedAreaRoute {
      *
      * until then /account renders this shell with an empty <router-outlet>
      */
-    public static nav(): FoundationModuleRouteNavType {
+    public static override nav(): FoundationModuleRouteNavType {
         return {
             registry_key: this.registryKey,
             area_key: this.area,
@@ -67,6 +68,7 @@ export class ProtectedAreaRoute {
             label: 'GL.AREA.PROTECTED.TITLE',
             icon: 'account_circle',
             sort_order: 0,
+            actions: [],
             /** ⚠ TRANSPARENT, not absent: children rise a level, they do not vanish */
             hidden: true,
             // default_child_key: 'PROTECTED_DASHBOARD',
@@ -75,10 +77,9 @@ export class ProtectedAreaRoute {
     }
 
     // PATHS ▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬
-    public static absolutePathArr(): string[] {
-        return FoundationModulePath.arrOf(this.registryKey);
-    }
-    public static absolutePath(): string {
-        return FoundationModulePath.of(this.registryKey);
-    }
+    /**
+     * ⚠ absolutePath() / absolutePathArr() are INHERITED from FoundationModuleRoute —
+     * they read this.registryKey off this class, so the two identical copies that
+     * used to sit here are gone.
+     */
 }

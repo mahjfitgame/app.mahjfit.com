@@ -8,6 +8,7 @@ import { SqliteDriverType, SqliteTransactionType } from './type';
 import { SqliteMigrationRunner } from './migration/runner';
 import { LogService } from '@libs/log/service';
 import { ConfService } from '@libs/conf/service';
+import { LOCAL_DB_DISABLED_ACCESS_MESSAGE } from './const';
 
 @Service()
 export class SqliteService {
@@ -18,9 +19,7 @@ export class SqliteService {
 
   private initialized = false;
   private initPromise: Promise<void> | null = null;
-
-  private driver: SqliteDriverType =
-    this.driverFactory.create();
+  private driver: SqliteDriverType = this.driverFactory.create();
 
   /**
    * Drizzle instance used by repositories.
@@ -41,6 +40,10 @@ export class SqliteService {
   );
 
   public async init(): Promise<void> {
+    if (!this.conf.enableLocalDb) {
+      return this.driver.init();
+    }
+
     if (this.initialized) {
       return;
     }
@@ -68,7 +71,7 @@ export class SqliteService {
         throw error;
       }
 
-      console.warn(
+      this.log.warn(
         '[SQLITE] OPFS is unavailable. Falling back to Capacitor SQLite IndexedDB driver.',
         error
       );
@@ -96,6 +99,10 @@ export class SqliteService {
    * Repositories should use db, not this.
    */
   public getDriver(): SqliteDriverType {
+    if (!this.conf.enableLocalDb) {
+      this.log.info(LOCAL_DB_DISABLED_ACCESS_MESSAGE);
+    }
+
     return this.driver;
   }
 

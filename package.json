@@ -52,11 +52,6 @@
       "glob": "^13.0.6"
     },
     "uuid": "^11.1.0",
-    "@danielmoncada/angular-datetime-picker": {
-      "@angular/cdk": "$@angular/cdk",
-      "@angular/common": "$@angular/common",
-      "@angular/core": "$@angular/core"
-    },
     "ngx-toastr": {
       "@angular/common": "$@angular/common",
       "@angular/core": "$@angular/core"
@@ -67,14 +62,14 @@
     }
   },
   "dependencies": {
-    "@angular/cdk": "^22.0.1",
-    "@angular/common": "^22.0.0",
-    "@angular/compiler": "^22.0.0",
-    "@angular/core": "^22.0.0",
-    "@angular/forms": "^22.0.0",
-    "@angular/material": "^22.0.0",
-    "@angular/platform-browser": "^22.0.0",
-    "@angular/router": "^22.0.0",
+    "@angular/cdk": "^22.1.1",
+    "@angular/common": "^22.1.1",
+    "@angular/compiler": "^22.1.1",
+    "@angular/core": "^22.1.1",
+    "@angular/forms": "^22.1.1",
+    "@angular/material": "^22.1.1",
+    "@angular/platform-browser": "^22.1.1",
+    "@angular/router": "^22.1.1",
     "@bfw/api-sdk": "file:bfw-api-sdk-1.0.0.tgz",
     "@capacitor-community/sqlite": "^8.1.0",
     "@capacitor/android": "^8.3.4",
@@ -88,11 +83,13 @@
     "@capacitor/push-notifications": "^8.1.1",
     "@capacitor/screen-orientation": "^8.0.1",
     "@capacitor/splash-screen": "^8.0.1",
-    "@danielmoncada/angular-datetime-picker": "^21.0.0",
+    "@danielmoncada/angular-datetime-picker": "^22.0.0",
+    "@fontsource/poppins": "^5.2.7",
     "@jsverse/transloco": "^8.3.0",
     "@tanstack/angular-db": "^0.1.68",
     "@tanstack/query-core": "^5.101.0",
     "@tanstack/query-db-collection": "^1.0.40",
+    "@uppy/angular": "^2.0.0",
     "comlink": "^4.4.2",
     "drizzle-orm": "^0.45.2",
     "firebase": "^12.15.0",
@@ -101,6 +98,7 @@
     "lodash": "^4.18.1",
     "material-icons": "^1.13.14",
     "ngx-logger": "^5.0.12",
+    "ngx-print": "^22.1.1",
     "ngx-toastr": "^20.0.5",
     "phaser": "^4.2.0",
     "rxjs": "~7.8.2",
@@ -114,9 +112,9 @@
     "xng-breadcrumb": "^15.0.0"
   },
   "devDependencies": {
-    "@angular/build": "^22.0.0",
-    "@angular/cli": "^22.0.0",
-    "@angular/compiler-cli": "^22.0.0",
+    "@angular/build": "^22.1.1",
+    "@angular/cli": "^22.1.1",
+    "@angular/compiler-cli": "^22.1.1",
     "@capacitor/assets": "^3.0.5",
     "@capacitor/cli": "^8.3.4",
     "@tailwindcss/postcss": "^4.1.12",

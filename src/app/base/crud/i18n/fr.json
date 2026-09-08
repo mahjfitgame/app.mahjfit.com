@@ -49,21 +49,23 @@
                     "OPTION_RANGE": "Sélection de champ invalide."
                 }
             },
-            "SORT_FIELDS_AND_DIRECTION": {
-                "LABEL": "Champs et sens de tri",
-                "PLACEHOLDER": "Sélectionnez les champs et le sens du tri",
-                "HINT": "Triez par champ et par sens pour affiner vos données.",
+            "SORT_FIELDS": {
+                "LABEL": "Champ de tri",
+                "PLACEHOLDER": "Sélectionnez un champ de tri",
+                "HINT": "Sélectionnez le champ utilisé pour ordonner vos données.",
                 "VALIDATION": {
                     "OPTION_RANGE": "Champ de tri invalide."
                 }
             },
-            "RBIN": {
-                "LABEL": "Corbeille",
-                "PLACEHOLDER": "Afficher les enregistrements de la corbeille",
-                "HINT": "Cliquez pour voir les enregistrements de la corbeille."
+            "SORT_DIRECTION": {
+                "LABEL": "Sens de tri",
+                "HINT": "Choisissez un ordre croissant ou décroissant.",
+                "VALIDATION": {
+                    "OPTION_RANGE": "Sens de tri invalide."
+                }
             }
         },
-        "SEARCH_FILTER": {
+        "LISTING_SEARCH": {
             "OPEN_LABEL": "Ouvrir le filtre de recherche",
             "TAB_NAME": "Filtre"
         }

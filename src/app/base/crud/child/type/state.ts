@@ -1,9 +1,22 @@
-// file: src/app/base/crud/sub/state.ts
+// file: src/app/base/crud/child/type/state.ts
 
-import { CrudChildListingStateType } from "./listing.state";
-import { CrudChildMutationStateType } from "./mutation.state";
-import { CrudChildSearchFilterStateType } from "./search.filter.state";
+import { CrudStateListingFieldObjType, CrudStateListOperationFieldObjType, CrudStateMutationFieldObjType, CrudStateSearchFilterFieldObjType, CrudStateViewFieldObjType, CrudStateViewOptionFieldObjType } from "../../type";
 
-export interface CrudChildStateType extends CrudChildListingStateType, CrudChildSearchFilterStateType, CrudChildMutationStateType {
+/**
+ * Complete contract for a CRUD child state: shared runtime state plus the
+ * field definitions supplied by that child. Field definitions are optional so
+ * focused modules (for example, mutation-only flows) can implement the same
+ * contract without placeholder configuration.
+ */
+export interface CrudChildStateType {
+    // CRUD OBJECTS ▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬
+    SEARCH_FILTER_FIELD_OBJ?: CrudStateSearchFilterFieldObjType;
 
+    LISTING_FIELD_OBJ?: CrudStateListingFieldObjType;
+    LIST_OPERATION_FIELD_OBJ?: CrudStateListOperationFieldObjType;
+    VIEW_OPTION_FIELD_OBJ?: CrudStateViewOptionFieldObjType;
+
+    MUTATION_FIELD_OBJ?: CrudStateMutationFieldObjType;
+
+    VIEW_FIELD_OBJ?: CrudStateViewFieldObjType;
 }

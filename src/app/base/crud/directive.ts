@@ -1,7 +1,7 @@
-// file: src/app/area/private/directive.ts
+// file: src/app/base/crud/directive.ts
 import { AfterViewInit, Directive, inject, input, OnDestroy } from "@angular/core";
 import { CdkPortal } from "@angular/cdk/portal";
-import { CrudState  } from "@base/crud/state";
+import { CrudState  } from "src/app/base/crud/state/entry";
 
 @Directive({
   selector: 'ng-template[crudFieldLayout][cdkPortal]',

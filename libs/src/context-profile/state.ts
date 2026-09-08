@@ -13,6 +13,8 @@ import { SignatureService } from "@libs/signature/service";
 import { GlobalProgressBarService } from "src/app/base/global-progress-bar/service";
 import { CONTEXT_PROFILE_STATE_STORE_KEY } from "./const";
 import { BfwApiSdkError } from "@bfw/api-sdk/core";
+import { SLUG_AUTH_AREA } from "src/app/area/auth/slug";
+import { SLUG_OPEN_AREA } from "src/app/area/open/slug";
 
 @Service()
 export class ContextProfileState extends SignalStateService {
@@ -233,30 +235,36 @@ export class ContextProfileState extends SignalStateService {
     // ▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬
     public readonly localContextAuthenticated = computed<boolean>(() => {
         return this.isLocalContextAuthenticated();
-    })
+    });
 
     // ▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬
+    /** session = stateful */
     public readonly sessionToken = computed<string | null>(() => {
         return this.getSessionToken();
     });
 
     // ▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬
+    /** session = stateful */
     private readonly sessionPayload = computed<ContextProfileSessionPayload | null>(() => {
         return this.decodeSessionToken(this.sessionToken());
     });
 
     // ▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬
+    /** session = stateful */
     private readonly sessionExpiry = computed<number>(() => {
         return this.getSessionExpiry();
     });
 
     // ▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬
+    /** session = stateful */
     private readonly sessionKeepLogged = computed<boolean>(() => {
         return this.getSessionKeepLogged();
-    })
+    });
 
     // ▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬
     /**
+     * session = stateful
+     * 
      * Presence, not validity.
      *
      * A tampered or expired token answers true here, which is the only question
@@ -336,21 +344,19 @@ export class ContextProfileState extends SignalStateService {
     
     // ████ LISTENERS ███████████████████████████████████████████████████
     public override onActivate(): void {
-        // later on update bfw api headers as signal state change
+        // setHostToken/setCtxs/setCsrfToken/setSessionToken push their own header the
+        // moment they are called, so this effect is not needed for that path. It exists
+        // for the changes those setters never see: hydration on boot and a cross-tab
+        // update from another tab, both of which write straight into the signal.
         const registerEffect = effect(() => {
             if (!this.ready()) {
                 return;
             }
 
-            this.setBfwApiHeaderCsrfToken();
-            this.setBfwApiHeaderCtxs();
-            this.setBfwApiHeaderStateHostAuthorization();
-            this.setBfwApiHeaderStatefulAuthorization();
+            this.configureBfwApiHeaders();
         });
 
         this.registerDeactivationCleanup(() => registerEffect.destroy());
-
-        // the context authenticated resource resyncs itself, its params track ready() and authenticated()
     }
     public override onDeactivate(): void {
         
@@ -360,6 +366,11 @@ export class ContextProfileState extends SignalStateService {
     
     // SIGNAL SETTERS ▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬
     public setRedirectAfterAuth(url: string | null): void {
+        // need to check if url is again with auth/ then we need to make it to home
+        // so check of url has SLUG_AUTH_AREA
+        if(url?.includes(SLUG_AUTH_AREA)) {
+            url = null;
+        }
         this._redirectAfterAuth.set(url);
     }
     public setHandshaked(value: boolean): void {
@@ -373,16 +384,31 @@ export class ContextProfileState extends SignalStateService {
     }
     public setCsrfToken(value: string | null): void {
         this._csrfToken.set(value);
+
+        // set BfwApiSdk header
+        this.setBfwApiHeaderCsrfToken();
     }
     public clearCsrfToken(): void {
-        this._csrfToken.set(null);
+        this.setCsrfToken(null);
     }
     public setHostToken(value: string | null): void {
         this._hostToken.set(value);
+
+        // set BfwApiSdk header
+        this.setBfwApiHeaderHostAuthorization();
+    }
+    public clearHostToken(): void {
+        this.setHostToken(null);
     }
     public setCtxs(ctxs: string | null): void {
         // this is session keyid
         this._ctxs.set(ctxs);
+
+        // set BfwApiSdk header
+        this.setBfwApiHeaderCtxs();
+    }
+    public clearCtxs(): void {
+        this.setCtxs(null);
     }
     private setStatefulTokenCk(token: string | null): void {
         this._statefulToken_ck.set(token);
@@ -415,6 +441,7 @@ export class ContextProfileState extends SignalStateService {
         this.setStatefulInfo(null);
     }
     // SESSION METHODS ▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬
+    /** session = stateful */
     public clearSession(): void {
         // main session token
         this.clearSessionToken();
@@ -422,6 +449,7 @@ export class ContextProfileState extends SignalStateService {
         // other required info to clear
         this.clearStatefulInfo();
     }
+    /** session = stateful */
     public setSessionToken(token: string | null): void {
         // Angular memoizes this decoded payload until the token changes again.
         const payload = this.decodeSessionToken(token);
@@ -447,17 +475,16 @@ export class ContextProfileState extends SignalStateService {
         this.setStatefulTokenSs(null);
         this.setStatefulTokenLdb(null);
         */
+
+        // set BfwApiSdk header
+        this.setBfwApiHeaderStatefulAuthorization();
     }
+    /** session = stateful */
     private clearSessionToken(): void {
         // sessionPayload, sessionExpiry, and authenticated reset from this source signal.
-        this.setStatefulTokenCk(null);
-        /*
-        this.setStatefulTokenLs(null);
-        this.setStatefulTokenCk(null);
-        this.setStatefulTokenSs(null);
-        this.setStatefulTokenLdb(null);
-        */
+        this.setSessionToken(null);
     }
+    /** session = stateful */
     private decodeSessionToken(token: string | null): ContextProfileSessionPayload | null {
         if (!token) {
             return null;
@@ -469,7 +496,10 @@ export class ContextProfileState extends SignalStateService {
             return null;
         }
     }
+    /** session = stateful */
     private getSessionToken(): string | null {
+        // session means stateful
+
         return this.statefulToken_ck();
         /*
         const sft_ss = this.statefulToken_ss();
@@ -493,6 +523,7 @@ export class ContextProfileState extends SignalStateService {
         return null;
         */
     }
+    /** session = stateful */
     private getSessionExpiry(): number {
         const exp = this.sessionPayload()?.exp;
 
@@ -500,6 +531,7 @@ export class ContextProfileState extends SignalStateService {
             ? exp * 1000
             : 0;
     }
+    /** session = stateful */
     private getSessionKeepLogged(): boolean {
         return this.sessionPayload()?.kl ?? false;
     }
@@ -616,6 +648,7 @@ export class ContextProfileState extends SignalStateService {
 
     // ████ SIGNAL DATA VALIDATORS ██████████████████████████████████████
     
+    /** session = stateful */
     public validateSessionToken(value: unknown): value is string | null {
         return typeof value === 'string' || value === null;
     }
@@ -656,66 +689,66 @@ export class ContextProfileState extends SignalStateService {
 
     // ████ REGISTRATION AND CALLBACKS ██████████████████████████████████
 
-    // SET BFW API SDK CONFIGURATION ▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬
+    /**
+     * A reload builds a brand new BfwApiSdk instance with empty in-memory headers,
+     * while these signals still carry whatever was persisted from before the reload.
+     * Call this once, right after whenReady(), to push the (re)hydrated values into
+     * the sdk before any request leaves - otherwise that request looks like a brand
+     * new client and the server won't recognize the returning session.
+     */
     public configureBfwApiHeaders(): void {
-        // used when we need to force update otherwise signal effect will take care of dynamic update
-        this.api.sdk.setHeaderCsrfToken(this.csrfToken());
-
-        this.api.sdk.setHeaderCtxs(this.ctxs());
-        
-        this.api.sdk.graphql.jwtHostAuthorization.setToken(this.hostToken() ?? '');
-        this.api.sdk.rest.jwtHostAuthorization.setToken(this.hostToken() ?? '');
-
-        this.api.sdk.graphql.jwtStatefulAuthorization.setToken(this.sessionToken() ?? '');
-        this.api.sdk.rest.jwtStatefulAuthorization.setToken(this.sessionToken() ?? '');
+        this.setBfwApiHeaderHostAuthorization();
+        this.setBfwApiHeaderCtxs();
+        this.setBfwApiHeaderCsrfToken();
+        this.setBfwApiHeaderStatefulAuthorization();
     }
-    public setBfwApiHeaderCsrfToken(): void {
-        const token = this.csrfToken();
-        if(typeof token === 'string' && token !== '') {
-            this.log.info('[CTXP] Setting csrf token in BfwApiService');
-            
-            this.api.sdk.setHeaderCsrfToken(this.csrfToken());
-        } else {
-            this.log.info('[CTXP] Clearing csrf token from BfwApiService');
-            
-            this.api.sdk.setHeaderCsrfToken(null);
-        }
-    }
-    public setBfwApiHeaderCtxs(): void {
-        const token = this.ctxs();
-        if(typeof token === 'string' && token !== '') {
-            this.log.info('[CTXP] Setting ctxs in BfwApiService');
-            
-            this.api.sdk.setHeaderCtxs(this.ctxs());
-        } else {
-            this.log.info('[CTXP] Clearing ctxs from BfwApiService');
-            
-            this.api.sdk.setHeaderCtxs(null);
-        }
-    }
-    public setBfwApiHeaderStateHostAuthorization(): void {
+    public setBfwApiHeaderHostAuthorization(): void {
         const token = this.hostToken();
         if(typeof token === 'string' && token !== '') {
-            this.log.info('[CTXP] Setting host token in BfwApiService');
+            //this.log.info('[CTXP] Setting host token in BfwApiService');
             
             this.api.sdk.graphql.jwtHostAuthorization.setToken(token);
             this.api.sdk.rest.jwtHostAuthorization.setToken(token);
         } else {
-            this.log.info('[CTXP] Clearing host token from BfwApiService');
+            //this.log.info('[CTXP] Clearing host token from BfwApiService');
             
             this.api.sdk.graphql.jwtHostAuthorization.clear();
             this.api.sdk.rest.jwtHostAuthorization.clear();
         }
     }
+    public setBfwApiHeaderCtxs(): void {
+        const token = this.ctxs();
+        if(typeof token === 'string' && token !== '') {
+            //this.log.info('[CTXP] Setting ctxs in BfwApiService');
+            
+            this.api.sdk.setHeaderCtxs(this.ctxs());
+        } else {
+            //this.log.info('[CTXP] Clearing ctxs from BfwApiService');
+            
+            this.api.sdk.setHeaderCtxs(null);
+        }
+    }
+    public setBfwApiHeaderCsrfToken(): void {
+        const token = this.csrfToken();
+        if(typeof token === 'string' && token !== '') {
+            //this.log.info('[CTXP] Setting csrf token in BfwApiService');
+            
+            this.api.sdk.setHeaderCsrfToken(this.csrfToken());
+        } else {
+            //this.log.info('[CTXP] Clearing csrf token from BfwApiService');
+            
+            this.api.sdk.setHeaderCsrfToken(null);
+        }
+    }
     public setBfwApiHeaderStatefulAuthorization(): void {
         const token = this.sessionToken();
         if(typeof token === 'string' && token !== '') {
-            this.log.info('[CTXP] Setting stateful token in BfwApiService');
+            //this.log.info('[CTXP] Setting stateful token in BfwApiService');
             
             this.api.sdk.graphql.jwtStatefulAuthorization.setToken(token);
             this.api.sdk.rest.jwtStatefulAuthorization.setToken(token);
         } else {
-            this.log.info('[CTXP] Clearing stateful token from BfwApiService');
+            //this.log.info('[CTXP] Clearing stateful token from BfwApiService');
             
             this.api.sdk.graphql.jwtStatefulAuthorization.clear();
             this.api.sdk.rest.jwtStatefulAuthorization.clear();

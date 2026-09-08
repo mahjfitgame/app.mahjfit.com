@@ -1,7 +1,5 @@
 // file: libs/src/foundation/action/enum.ts
 
-import { FoundationFieldDefaultNameEnum } from "../field/enum";
-
 /**
  * @FoundationActionEnum
  * = te_authorisation_module_action.url_slug
@@ -10,64 +8,42 @@ import { FoundationFieldDefaultNameEnum } from "../field/enum";
  * an api may narrow this list for a user but can never add to it
  */
 export enum FoundationActionEnum {
-    // CARRIED OVER FROM CrudActionEnum ▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬
+    // MODULE ACTION ▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬
     CREATE            = 'create',
+    IMPORT            = 'import',
+    EXPORT            = 'export',
+    INSIGHT           = 'insight',
+
+    // RECORD ACTION ▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬
+    RECORD_POSITION   = 'record-position',
     UPDATE            = 'update',
+    QUICK_UPDATE      = 'quick-update',
+    VIEW              = 'view',
+    PRINT             = 'print',
+    SHARE             = 'share',
+    DUPLICATE         = 'duplicate',
+    ACTIVE            = 'active',
+    INACTIVE          = 'inactive',
     SOFT_DELETE       = 'soft-delete',
     DELETE            = 'delete',
     RESTORE           = 'restore',
     MARK_AS_MAIN      = 'mark-as-main',
-    RECORD_POSITION   = 'record-position',
     UPLOAD            = 'upload',
     UPLOAD_DELETE     = 'upload-delete',
     FILE_RELOCATION   = 'file-relocation',
-    IMPORT            = 'import',
-    EXPORT            = 'export',
-
-    // REALIGNED TO THE VOCABULARY ▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬
-    ACTIVE_INACTIVE   = 'active-inactive',   // was INACTIVE = 'inactive'
-    INSIGHT           = 'insight',           // was INSIGHTS = 'insights'
+    SOFT_REMOVE       = 'soft-remove',
+    REMOVE            = 'remove',
+    RECOVER           = 'recover',
+    SUB_MODULE        = 'sub-module',  
     // REPORT = 'report' — DROPPED, not in the vocabulary
 
-    // NEW ▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬
-    RECOVER           = 'recover',
-    ADVANCE_SEARCH    = 'advance-search',
+    // LISTING ▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬
     LISTING           = 'listing',
-    AUTO_SUGGEST      = 'auto-suggest',
-    VIEW              = 'view',
-    QUICK_SEARCH      = 'quick-search',
-    BULK_ACTION       = 'bulk-action',
     COLUMN_POSITION   = 'column-position',
+    QUICK_SEARCH      = 'quick-search',
     DISPLAY_FIELDS    = 'display-fields',
-    SORTING           = 'sorting',
-    RECYCLE_BIN       = 'recycle-bin',
-    QUICK_UPDATE      = 'quick-update',
-    PRINT             = 'print',
-    SHARE             = 'share',
-    DUPLICATE         = 'duplicate',
+    SORT_FIELDS       = 'sort-fields',
     ALPHA_SORT        = 'alpha-sort',
-}
-
-
-// ACTION ROUTE SLUGS ▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬
-
-
-// derived from the vocabulary so the two can never drift
-
-export enum FoundationActionSlugEnum {
-    // static segment only
-    CREATE          = FoundationActionEnum.CREATE,
-    UPLOAD          = FoundationActionEnum.UPLOAD,
-    IMPORT          = FoundationActionEnum.IMPORT,
-    EXPORT          = FoundationActionEnum.EXPORT,
-    INSIGHT         = FoundationActionEnum.INSIGHT,
-
-    // record scoped
-    UPDATE          = `${FoundationActionEnum.UPDATE}/:${FoundationFieldDefaultNameEnum.KEYID}`,
-    VIEW            = `${FoundationActionEnum.VIEW}/:${FoundationFieldDefaultNameEnum.KEYID}`,
-    UPLOAD_DELETE   = `${FoundationActionEnum.UPLOAD_DELETE}/:${FoundationFieldDefaultNameEnum.KEYID}`,
-    FILE_RELOCATION = `${FoundationActionEnum.FILE_RELOCATION}/:${FoundationFieldDefaultNameEnum.KEYID}`,
-    PRINT           = `${FoundationActionEnum.PRINT}/:${FoundationFieldDefaultNameEnum.KEYID}`,
-    SHARE           = `${FoundationActionEnum.SHARE}/:${FoundationFieldDefaultNameEnum.KEYID}`,
-    DUPLICATE       = `${FoundationActionEnum.DUPLICATE}/:${FoundationFieldDefaultNameEnum.KEYID}`,
+    ADVANCE_SEARCH    = 'advance-search',
+    BULK_ACTION       = 'bulk-action',
 }

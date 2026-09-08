@@ -1,23 +1,31 @@
 <!-- file: src/app/base/crud/default/dialog/template.html -->
- <div class="tw:flex tw:flex-col tw:overflow-scroll tw:max-h-[90vh] tw:z-20">
-    <mat-toolbar class="tw:flex tw:sticky tw:top-0 tw:z-20 tw:w-full tw:bg-transparent! tw:backdrop-blur-md tw:p-3!">
+ @let fullscreen =
+    service.state.mutation.mutationActionUiSize() ===
+    service.UiSizeEnum.FULL;
+
+<div
+    class="tw:flex tw:flex-col tw:overflow-y-auto tw:z-20"
+    [class]="fullscreen ? 'tw:h-full' : 'tw:max-h-[90dvh]'"
+>
+    <!--<mat-toolbar class="tw:flex tw:sticky tw:top-0 tw:z-20 tw:w-full tw:bg-transparent! tw:backdrop-blur-md tw:p-3!">-->
+        <mat-toolbar class="tw:sticky tw:top-0 tw:z-20 tw:w-full tw:bg-transparent! tw:backdrop-blur-md tw:p-3! tw:shrink-0">
         <div class="tw:flex tw:w-full tw:py-3 tw:items-center tw:justify-between">
             <h2 class="tw:text-xl! tw:font-semibold tw:m-0 tw:flex tw:items-center tw:gap-2">
-                <mat-icon class="material-symbols-rounded">{{ service.getMutationIcon() }}</mat-icon>
-                {{ service.getMutationTitle() | transloco }}
+                <mat-icon class="material-symbols-rounded">{{ service.mutation.getMutationIcon() }}</mat-icon>
+                {{ service.mutation.getMutationTitle() | transloco }}
             </h2>
-            <button mat-icon-button (click)="service.closeMutationAction()" [attr.aria-label]="'GL.COMMON.CLOSE' | transloco">
+            <button mat-icon-button (click)="service.mutation.closeMutationAction()" [attr.aria-label]="'GL.COMMON.CLOSE' | transloco">
                 <mat-icon class="material-symbols-rounded">close</mat-icon>
             </button>
         </div>
     </mat-toolbar>
     <div class="tw:flex tw:flex-col tw:min-w-0 tw:gap-4 tw:p-3">
-        <ng-container *ngComponentOutlet="service.getMutationFormComponent(); injector: service.getComponentInjector()"></ng-container>    
+        <ng-container *ngComponentOutlet="service.mutation.getMutationFormComponent(); injector: service.getComponentInjector()"></ng-container>    
     </div>
-    <footer class="tw:sticky tw:bottom-0 tw:z-20 tw:w-full tw:backdrop-blur-md tw:mbs-auto">
+    <footer class="tw:sticky tw:bottom-0 tw:z-20 tw:w-full tw:backdrop-blur-md tw:mbs-auto tw:shrink-0">
         <div class="tw:flex tw:gap-2 tw:p-3!">
-            <button mat-button type="reset" form="crudMutationForm" class="tw:flex-1">{{ 'GL.COMMON.RESET' | transloco }}</button>
-            <button mat-flat-button type="submit" form="crudMutationForm" color="primary" class="tw:flex-1">{{ 'GL.COMMON.SAVE' | transloco }}</button>
+            <button mat-button type="button" class="tw:flex-1" [disabled]="service.state.mutation.mutationFormProcessing() || service.state.mutation.mutationForm().submitting()" (click)="service.state.mutation.resetMutationForm()">{{ 'GL.COMMON.RESET' | transloco }}</button>
+            <button mat-flat-button type="submit" form="crudMutationForm" color="primary" class="tw:flex-1" [disabled]="service.state.mutation.mutationFormProcessing() || service.state.mutation.mutationForm().invalid() || service.state.mutation.mutationForm().pending() || service.state.mutation.mutationForm().submitting()">{{ 'GL.COMMON.SAVE' | transloco }}</button>
         </div>
     </footer>
 </div>

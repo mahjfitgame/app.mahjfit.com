@@ -2,7 +2,7 @@
 
 import { FoundationAreaEnum } from '@libs/foundation/enum';
 import { FoundationModuleRouteDefinitionType, FoundationModuleRouteNavType } from '@libs/foundation/module/type';
-import { FoundationModulePath } from '@libs/foundation/module/path';
+import { FoundationModuleRoute } from '@libs/foundation/module/route';
 import { FoundationNavPositionEnum } from '@libs/foundation/nav/enum';
 import { SLUG_GEO } from '@module/shared/geo/slug';
 import { PrivateAreaRoute } from '@area/private/route';
@@ -13,10 +13,10 @@ import { PrivateAreaRoute } from '@area/private/route';
  *
  * ⚠ compare OnboardingRoute, the other kind: that one owns no url at all
  */
-export class GeoRoute {
+export class GeoRoute extends FoundationModuleRoute {
     // CLASS PROPERTIES ▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬
-    public static readonly registryKey = 'GEO';
-    public static readonly area = FoundationAreaEnum.PRIVATE;
+    public static override readonly registryKey = 'GEO';
+    public static override readonly area = FoundationAreaEnum.PRIVATE;
 
     // DEFINITION ▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬
     /**
@@ -27,20 +27,21 @@ export class GeoRoute {
      * `routeInterceptor: () => null` this route used to carry. without it the
      * geo crumb links to /private/geo, which matches nothing and lands on /404
      */
-    public static definition(): FoundationModuleRouteDefinitionType {
+    public static override definition(): FoundationModuleRouteDefinitionType {
         return {
             registryKey: this.registryKey,
             canMatch: [],
             canActivate: [],
             canActivateChild: [],
             canDeactivate: [],
+            resolve: this.resolve(),
             breadcrumbAlias: 'geo',
             actions: [],
         };
     }
 
     // NAV ▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬
-    public static nav(): FoundationModuleRouteNavType {
+    public static override nav(): FoundationModuleRouteNavType {
         return {
             registry_key: this.registryKey,
             area_key: this.area,
@@ -49,15 +50,15 @@ export class GeoRoute {
             label: 'GL.MODULE.GEO.TITLE',
             icon: 'planet',
             sort_order: 30,
+            actions: [],
             nav_position: [FoundationNavPositionEnum.START],
         };
     }
 
     // PATHS ▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬
-    public static absolutePathArr(): string[] {
-        return FoundationModulePath.arrOf(this.registryKey);
-    }
-    public static absolutePath(): string {
-        return FoundationModulePath.of(this.registryKey);
-    }
+    /**
+     * ⚠ absolutePath() / absolutePathArr() are INHERITED from FoundationModuleRoute —
+     * they read this.registryKey off this class, so the two identical copies that
+     * used to sit here are gone.
+     */
 }

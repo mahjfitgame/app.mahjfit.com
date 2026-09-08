@@ -1,0 +1,59 @@
+<!-- file: src/app/base/form-fields/password/template.html -->
+@let revealed = service.state.revealed();
+
+<mat-form-field appearance="outline" subscriptSizing="dynamic" class="tw:w-full">
+    <mat-label>{{ label() }}</mat-label>
+
+    @if (iconPrepend()) {
+        <mat-icon matPrefix class="material-symbols-rounded">{{ iconPrepend() }}</mat-icon>
+    }
+
+    <input
+        matInput
+        [type]="revealed ? 'text' : 'password'"
+        autocomplete="off"
+        [errorStateMatcher]="errorMatcher"
+        [ngModel]="service.state.renderValue()"
+        [ngModelOptions]="{ standalone: true }"
+        [attr.name]="name()"
+        [attr.id]="inputId() || name()"
+        [attr.placeholder]="placeholder()"
+        [attr.minlength]="minLength()"
+        [attr.maxlength]="maxLength()"
+        [required]="required()"
+        [disabled]="disabled()"
+        (input)="service.onInput($any($event.target).value)">
+
+    <div matSuffix class="tw:flex tw:items-center tw:gap-1">
+        @if (service.state.hasValue()) {
+            <button mat-icon-button type="button"
+                [attr.aria-label]="(revealed ? 'GL.FIELD.PASSWORD.HIDE' : 'GL.FIELD.PASSWORD.SHOW') | transloco"
+                (click)="service.onToggleReveal($event)">
+                <mat-icon class="material-symbols-rounded">{{ revealed ? 'visibility_off' : 'visibility' }}</mat-icon>
+            </button>
+
+            @if (clearable() && !disabled()) {
+                <button mat-icon-button type="button"
+                    [attr.aria-label]="'GL.FIELD.COMMON.CLEAR' | transloco"
+                    (click)="service.onClear($event)">
+                    <mat-icon class="material-symbols-rounded">close</mat-icon>
+                </button>
+            }
+        }
+        @if (iconAppend()) {
+            <mat-icon class="material-symbols-rounded tw:mx-3">{{ iconAppend() }}</mat-icon>
+        }
+    </div>
+
+    @if (error()) {
+        <mat-error class="tw:flex! tw:items-center tw:gap-1">
+            <mat-icon class="material-symbols-rounded tw:text-xs! tw:h-4! tw:w-4! tw:shrink-0">error</mat-icon>
+            <span>{{ error() }}</span>
+        </mat-error>
+    } @else if (hint()) {
+        <mat-hint class="tw:flex tw:items-start tw:gap-1">
+            <mat-icon class="material-symbols-rounded tw:text-xs! tw:h-4! tw:w-4! tw:shrink-0">info</mat-icon>
+            <span>{{ hint() }}</span>
+        </mat-hint>
+    }
+</mat-form-field>

@@ -1,0 +1,1 @@
+// file: libs/src/authorization/type.ts

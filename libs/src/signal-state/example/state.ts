@@ -11,7 +11,7 @@ import {
   inject,
   resource,
   signal,
-
+  
 } from '@angular/core';
 import { PreferencesLocalStorageService } from '../../preferences-local-storage/service';
 import { AppConfigRepository } from '../../sqlite/module/app-config/repository';
@@ -23,6 +23,7 @@ import { RecordSortDirectionEnum, RecordSortNullPositionEnum, YesNoEnum } from '
 import { PlatformAdapter } from '@libs/platform/adapter';
 import { PLATFORM_ADAPTER } from '@libs/platform/provider';
 import { SIGNAL_STATE_EXAMPLE_STATE_STORE_KEY } from './const';
+import { YesNoEnumAddon } from '@bfw/api-sdk/graphql/libs';
 
 type ThemeMode = 'light' | 'dark' | 'system';
 @Service({ autoProvided: false })
@@ -33,7 +34,7 @@ export class StateExample extends SignalStateService {
   private readonly ls = inject(PreferencesLocalStorageService);
   private readonly browserTabsSync = inject(BrowserTabsSyncService);
   private readonly adapter: PlatformAdapter = inject(PLATFORM_ADAPTER);
-
+  
   public readonly api = inject(BfwApiService);
   private readonly appConfigRepository = inject(AppConfigRepository);
 
@@ -97,7 +98,7 @@ export class StateExample extends SignalStateService {
     'countryName',
     null,
     {
-
+      
       validate: (value): value is string | null => value === null || typeof value === 'string',
       source: {
         getValue: async <T>(_key: string): Promise<T | null> => {
@@ -116,123 +117,123 @@ export class StateExample extends SignalStateService {
   public readonly countryName: Signal<string | null> = this.countryNameStore.asReadonly();
   public readonly geoCountryResource: ResourceRef<CountryFindOutputDto | undefined> = resource({
     params: () => {
-      const id = this.geoCountryId();
-      return typeof id === 'number' ? { id } : undefined;
-    },
-    loader: async ({ params, abortSignal }): Promise<CountryFindOutputDto> => {
-
-      const resp: CountryFindOutputDto = await this.loadGeoCountry(params.id, abortSignal);
-
-      // const response = await fetch(`/api/countries/${params.id}`, {
-      //   signal: abortSignal,
-      // });
-
-      if (!resp.rows) {
-        throw new Error('Country load failed');
-      }
-
-      return resp;
-    },
-  });
-
-  /**
-   * USER: Persisted state
-   * input: user input
-   * storage: server side  api 
-   * 
-   * @userIdStore: WritableSignal
-   * @userId: ReadonlySignal
-   * @unsubscribeUserCreate: unknown
-   * @setUserId: set method
-   * @userCreatePub: listen to web socket publisher
-   * @publishUserCreate: subscriber to web socket subscribe service
-   * @subscribeUserCreate: listen to web socket subscriber
-   * @cleanupUserCreatePub: cleanup web socket subscriber
-   */
-  private readonly userIdStore: WritableSignal<number> = signal<number>(0);
-  public readonly userId: Signal<number> = this.userIdStore.asReadonly();
-  private unsubscribeUserCreate: unknown = null;
-
-  /**
-   * https://angular.dev/guide/signals/debounced
-   * 
-   * SEARCH: Persisted state
-   * input: user input
-   * storage: server side api 
-   * 
-   * @searchStore: WritableSignal
-   * @search: ReadonlySignal
-   * @searchDebounce: unknown
-   * @searchResource: Resource retrival from server using api
-   * 
-   * @setSearch: set method
-   */
-  private readonly searchStore: WritableSignal<string> = signal<string>('');
-  public readonly search: Signal<string> = this.searchStore.asReadonly();
-
-  // availabe in angular 22 and e have 21 version
-  // private searchDebounce = debounce(this.searchStore, 300);
-
-  // public readonly searchResource = resource({
-  //   request: () => ({ query: this.searchDebounce.value() }),
-  //   loader: ({ request, abortSignal }) => {
-  //     if (!request.query.trim()) return Promise.resolve([]);
-
-  //     // api call will be placed here
-  //   }
-  // });
-
-  /**
-   * UI: Runtime state for group
-   * 
-   *  
-   */
-  private readonly uiStore: WritableSignal<any> = signal<any>({
-    theme: 'light',
-    bidi: 'ltr',
-    notification: true
-  });
-  // create readonly signal for each field in group
-  public readonly theme = computed(() => this.uiStore().theme);
-  public readonly bidi = computed(() => this.uiStore().bidi);
-  public readonly notification = computed(() => this.uiStore().notification);
-
-  /**
-   * DID: Persisted state
-   * input: user input
-   * storage: local database using default AppStateRepository
-   */
-  private readonly _did = this.localDbPersistSignal<string | null>(
-    'did',
-    null,
-    {
-      validate: (value): value is string | null => value === null || typeof value === 'string',
-    }
-  );
-  public readonly did = this._did.asReadonly();
-
-  /**
-   * DID_CUSTOM: Persisted state
-   * input: user input
-   * storage: custom local database source using AppConfigRepository
-   */
-  private readonly _didCustom = this.localDbPersistSignal<string | null>(
-    'didCustom',
-    null,
-    {
-      validate: (value): value is string | null => value === null || typeof value === 'string',
-      source: {
-        getValue: <T>(key: string) => this.appConfigRepository.getValue(key) as Promise<T | null>,
-        setValue: <T>(key: string, value: T) => this.appConfigRepository.setValue(key, value),
+        const id = this.geoCountryId();
+        return typeof id === 'number' ? { id } : undefined;
+      },
+      loader: async ({ params, abortSignal }): Promise<CountryFindOutputDto> => {
+        
+        const resp: CountryFindOutputDto = await this.loadGeoCountry(params.id, abortSignal);
+        
+        // const response = await fetch(`/api/countries/${params.id}`, {
+        //   signal: abortSignal,
+        // });
+    
+        if (!resp.rows) {
+          throw new Error('Country load failed');
+        }
+    
+        return resp;
       },
     });
-  public readonly didCustom = this._didCustom.asReadonly();
+
+    /**
+     * USER: Persisted state
+     * input: user input
+     * storage: server side  api 
+     * 
+     * @userIdStore: WritableSignal
+     * @userId: ReadonlySignal
+     * @unsubscribeUserCreate: unknown
+     * @setUserId: set method
+     * @userCreatePub: listen to web socket publisher
+     * @publishUserCreate: subscriber to web socket subscribe service
+     * @subscribeUserCreate: listen to web socket subscriber
+     * @cleanupUserCreatePub: cleanup web socket subscriber
+     */
+    private readonly userIdStore : WritableSignal<number> = signal<number>(0);
+    public readonly userId: Signal<number> = this.userIdStore.asReadonly();
+    private unsubscribeUserCreate: unknown = null;
+
+    /**
+     * https://angular.dev/guide/signals/debounced
+     * 
+     * SEARCH: Persisted state
+     * input: user input
+     * storage: server side api 
+     * 
+     * @searchStore: WritableSignal
+     * @search: ReadonlySignal
+     * @searchDebounce: unknown
+     * @searchResource: Resource retrival from server using api
+     * 
+     * @setSearch: set method
+     */
+    private readonly searchStore: WritableSignal<string> = signal<string>('');
+    public readonly search: Signal<string> = this.searchStore.asReadonly();
+    
+    // availabe in angular 22 and e have 21 version
+    // private searchDebounce = debounce(this.searchStore, 300);
+
+    // public readonly searchResource = resource({
+    //   request: () => ({ query: this.searchDebounce.value() }),
+    //   loader: ({ request, abortSignal }) => {
+    //     if (!request.query.trim()) return Promise.resolve([]);
+        
+    //     // api call will be placed here
+    //   }
+    // });
+
+    /**
+     * UI: Runtime state for group
+     * 
+     *  
+     */
+    private readonly uiStore: WritableSignal<any> = signal<any>({
+      theme: 'light',
+      bidi: 'ltr',
+      notification: true
+    });
+    // create readonly signal for each field in group
+    public readonly theme = computed(() => this.uiStore().theme);
+    public readonly bidi = computed(() => this.uiStore().bidi);
+    public readonly notification = computed(() => this.uiStore().notification);
+
+    /**
+     * DID: Persisted state
+     * input: user input
+     * storage: local database using default AppStateRepository
+     */
+    private readonly _did = this.localDbPersistSignal<string | null>(
+      'did', 
+      null, 
+      {
+        validate: (value): value is string | null => value === null || typeof value === 'string',
+      }
+    );
+    public readonly did = this._did.asReadonly();
+
+    /**
+     * DID_CUSTOM: Persisted state
+     * input: user input
+     * storage: custom local database source using AppConfigRepository
+     */
+    private readonly _didCustom = this.localDbPersistSignal<string | null>(
+      'didCustom', 
+      null, 
+      {
+        validate: (value): value is string | null => value === null || typeof value === 'string',
+        source: {
+          getValue: <T>(key: string) => this.appConfigRepository.getValue(key) as Promise<T | null>,
+          setValue: <T>(key: string, value: T) => this.appConfigRepository.setValue(key, value),
+        },
+    });
+    public readonly didCustom = this._didCustom.asReadonly();
 
   constructor() {
     super();
     // activate relevent web socket service to use in this state
     this.api.sdk.graphql.ws.initialize(UserWsToken);
-
+    
     /**
      * If we have @Injectable({ providedIn: 'root' })
      * means and you are using service and state coponenet wise
@@ -248,7 +249,7 @@ export class StateExample extends SignalStateService {
     void this.loadThemeMode();
 
     this.listenWindowResize();
-
+    
     // use any one of the following
     //this.listenThemeModeLocalStorage();
     this.listenThemeModeBroadcast();
@@ -257,7 +258,7 @@ export class StateExample extends SignalStateService {
     this.subscribeUserCreate();
     this.initializeSignalState();
   }
-
+  
   public setDid(value: string | null): void {
     this._did.set(value);
   }
@@ -299,7 +300,7 @@ export class StateExample extends SignalStateService {
     }
   }
 
-  private registerAsyncCleanup(cleanup: () => Promise<void>, name: string): void {
+   private registerAsyncCleanup(cleanup: () => Promise<void>, name: string): void {
     this.registerDeactivationCleanup(() => {
       void cleanup().catch((error) => {
         console.warn(`[ExampleState] ${name} cleanup failed`, error);
@@ -320,7 +321,7 @@ export class StateExample extends SignalStateService {
     // Only update the signal if you use effectThemeMode()
     // Persistence and tab sync should be handled by effectThemeMode().
     void await this.ls.set<ThemeMode>('theme-mode', mode);
-
+    
     this.themeModeStore.set(mode);
 
     // notify other opened tabs, use if you want listenThemeModeBroadcast() to use
@@ -345,7 +346,7 @@ export class StateExample extends SignalStateService {
       if (message.key !== 'theme-mode') {
         return;
       }
-
+      
       this.themeModeSyncingFromOtherTab = true;
       void this.loadThemeMode();
     });
@@ -358,7 +359,7 @@ export class StateExample extends SignalStateService {
     // this is neeed if we use listenThemeModeBroadcast() and want to keep setThemeMode() clear
     effect(() => {
       const mode = this.themeModeStore();
-
+      
       if (!mode) {
         return;
       }
@@ -393,95 +394,96 @@ export class StateExample extends SignalStateService {
     this.countryNameStore.set(name);
   }
   public async loadGeoCountry(skip: number, abortSignal?: AbortSignal): Promise<CountryFindOutputDto> {
-    // set the targeted module for api call
-    this.api.sdk.graphql.initialize(Country);
+      // set the targeted module for api call
+      this.api.sdk.graphql.initialize(Country);
 
-    const fetchData = async (skip: number) => {
-      // create a reusable find call
-      const selection: CountryFindOutputSelectionSchema = {
-        total: true,
-        take: true,
-        remain: true,
-        pages: true,
-        pagination: {
-          first: {
-            count: true,
-            page: true,
-            skip: true
-          },
-          previous: {
-            count: true,
-            page: true,
-            skip: true
-          },
-          current: {
-            count: true,
-            page: true,
-            skip: true
-          },
-          next: {
-            count: true,
-            page: true,
-            skip: true
-          },
-          last: {
-            count: true,
-            page: true,
-            skip: true
-          }
-        },
-        rows: {
-          id: true,
-          name: true,
-          capital: true,
-          currency: true,
-          currency_name: true,
-          currency_symbol: true,
-          emoji: true,
-          iso_ii: true,
-          iso_iii: true,
-          numeric_code: true,
-          created: true,
-          updated: true,
-          deleted: true,
-        }
+      const fetchData = async (skip: number) => {
+          // create a reusable find call
+          const selection: CountryFindOutputSelectionSchema = {
+              total: true,
+              take: true,
+              remain: true,
+              pages: true,
+              pagination: {
+                  first:{
+                      count: true,
+                      page: true,
+                      skip: true
+                  },
+                  previous: {
+                      count: true,
+                      page: true,
+                      skip: true
+                  },
+                  current: {
+                      count: true,
+                      page: true,
+                      skip: true
+                  },
+                  next: {
+                      count: true,
+                      page: true,
+                      skip: true
+                  },
+                  last: {
+                      count: true,
+                      page: true,
+                      skip: true
+                  }
+              },
+              rows: {
+                  id: true,
+                  name: true,
+                  capital: true,
+                  currency: true,
+                  currency_name: true,
+                  currency_symbol: true,
+                  emoji: true,
+                  iso_ii: true,
+                  iso_iii: true,
+                  numeric_code: true,
+                  created: true,
+                  updated: true,
+                  deleted: true,
+                  
+              }
+          };
+
+          const filter: CountryFindInputDto = {
+              take: 1,
+              skip: skip,
+              order: {
+                  name: {
+                    direction: RecordSortDirectionEnum.ASC,
+                    nulls: RecordSortNullPositionEnum.LAST
+                  }
+              },
+              withDeleted: false,
+              where: [
+                  {
+
+                  }
+              ]
+          };
+
+          const http = await this.api.sdk.graphql.country.find({
+              selection: selection,
+              filter: filter,
+              signal: abortSignal,
+          });
+          return http.data;
       };
+      
+      let data: CountryFindOutputDto = await fetchData(skip);
 
-      const filter: CountryFindInputDto = {
-        take: 1,
-        skip: skip,
-        order: {
-          name: {
-            direction: RecordSortDirectionEnum.ASC,
-            nulls: RecordSortNullPositionEnum.LAST
-          }
-        },
-        withDeleted: false,
-        where: [
-          {
-
-          }
-        ]
-      };
-
-      const http = await this.api.sdk.graphql.country.find({
-        selection: selection,
-        filter: filter,
-        signal: abortSignal,
-      });
-      return http.data;
-    };
-
-    let data: CountryFindOutputDto = await fetchData(skip);
-
-    return data;
+      return data;
   }
 
   // USER
   public setUserId(id: number): void {
-    if (isNaN(Number(id)))
+    if(isNaN(Number(id)))
       return
-
+    
     this.userIdStore.set(id);
   }
   public async publishUserCreate(): Promise<void> {
@@ -489,12 +491,12 @@ export class StateExample extends SignalStateService {
     console.log("PUBLISHING:" + uniqueValue);
 
     await this.api.sdk.graphql.ws.user?.publishCreate({
-      input: {
-        username: uniqueValue,
-        primary_email: `${uniqueValue}@example.com`,
-        has_two_factor_auth: YesNoEnum.NO,
+        input: {
+          username: uniqueValue,
+          primary_email: `${uniqueValue}@example.com`,
+          has_two_factor_auth: YesNoEnumAddon.NO as any,
+        }
       }
-    }
     );
   }
 
@@ -503,12 +505,12 @@ export class StateExample extends SignalStateService {
       this.unsubscribeUserCreate = await this.api.sdk.graphql.ws.user?.subscribeCreate({
         response: (data: UserCreateOutputDto) => {
           // This updates UI whenever server sends data.
-          this.setUserId(data.id)
+          this.setUserId(data.id)  
         },
       });
 
 
-
+      
       const remove = async () => this.cleanupUserCreatePub();
       this.registerAsyncCleanup(remove, 'window resize listener');
 
@@ -544,38 +546,38 @@ export class StateExample extends SignalStateService {
 
   // UI
   public setTheme(theme: any): void {
-    // Update only theme and keep other fields unchanged.
-    this.uiStore.update((current) => ({
-      ...current,
-      theme,
-    }));
+      // Update only theme and keep other fields unchanged.
+      this.uiStore.update((current) => ({
+          ...current,
+          theme,
+      }));
   }
   public setBidi(bidi: any): void {
     // Update only layout direction.
     this.uiStore.update((current) => ({
-      ...current,
-      bidi,
+        ...current,
+        bidi,
     }));
   }
-
+  
   public setNotification(notification: any): void {
     // Update only notification setting and keep other fields unchanged.
     this.uiStore.update((current) => ({
-      ...current,
-      notification,
+        ...current,
+        notification,
     }));
   }
 
   public uiReset(): void {
-    // Restore defau`lt user state.
-    this.uiStore.set({
-      theme: 'light',
-      bidi: 'ltr',
-      notification: true,
-    });
+      // Restore defau`lt user state.
+      this.uiStore.set({
+          theme: 'light',
+          bidi: 'ltr',
+          notification: true,
+      });
   }
 
-
+  
 
 }
 /*
@@ -594,7 +596,7 @@ computed()
 linkedSignal()
 effect() 
 afterRenderEffect()
- isSignal()
+ isSignal()
 isWritableSignal()
 
 -- up to this all celar andI know how to use it and how it can implemented with various use cases.

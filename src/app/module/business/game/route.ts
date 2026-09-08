@@ -14,12 +14,14 @@ import { OpenAreaRoute } from 'src/app/area/open/route';
 import { FoundationNavPositionEnum } from '@libs/foundation/nav/enum';
 import { FoundationModulePath } from '@libs/foundation/module/path';
 import { AreaGuard } from 'src/app/area/guard';
+import { FoundationModuleRoute } from '@libs/foundation/module/route';
 
 @Service({ autoProvided: false })
-export class GameRoute {
+export class GameRoute extends FoundationModuleRoute {
     // CLASS PROPERTIES ▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬
-    public static readonly registryKey = 'GAME';
-    public static readonly area = FoundationAreaEnum.OPEN;
+    /** = mod_regisyry_index. ⚠ a db value, renaming it is a migration */
+    public static override readonly registryKey = 'GAME';
+    public static override readonly area = FoundationAreaEnum.OPEN;
 
     // DEPENDENCIES ▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬
     public readonly url = inject(UrlService);
@@ -34,7 +36,7 @@ export class GameRoute {
      * ⚠ this list also drives the absolutePath*() helpers below — declare an
      * action here or its route was never generated
      */
-    public static definition(): FoundationModuleRouteDefinitionType {
+    public static override definition(): FoundationModuleRouteDefinitionType {
         return {
             registryKey: this.registryKey,
             component: () => import('./component').then((c) => c.GameComponent),
@@ -42,6 +44,7 @@ export class GameRoute {
             canActivate: [],
             canActivateChild: [],
             canDeactivate: [],
+            resolve: this.resolve(),
             breadcrumbAlias: 'game',
             actions: [
                 FoundationActionEnum.CREATE,           // -> country/create
@@ -50,7 +53,7 @@ export class GameRoute {
     }
 
     // NAV ▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬
-    public static nav(): FoundationModuleRouteNavType {
+    public static override nav(): FoundationModuleRouteNavType {
         return {
             registry_key: this.registryKey,
             area_key: this.area,
@@ -59,35 +62,33 @@ export class GameRoute {
             label: 'GL.MODULE.GAME',
             icon: 'globe',
             sort_order: 10,
+            actions: [],
             nav_position: [FoundationNavPositionEnum.START],
         };
     }
 
     // PATHS ▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬
-    public static absolutePathArr(gkeyid: string = ''): string[] {
-        return FoundationModulePath.arrOf(this.registryKey, {
-            [`:${SLUG_GAME_PARAM_GKEYID}`]: gkeyid,
-        });
-    }
-    public static absolutePath(gkeyid: string = ''): string {
-        console.log('PATH gkeyid', gkeyid);
-        const ret = FoundationModulePath.of(this.registryKey, {
-            [`:${SLUG_GAME_PARAM_GKEYID}`]: gkeyid,
-        });
-        console.log('PATH', ret);
-        return ret;
-    }
+    /**
+     * ⚠ absolutePath() / absolutePathArr() are INHERITED from FoundationModuleRoute —
+     * they read this.registryKey off this class, so the two identical copies that
+     * used to sit here are gone.
+     */
+
+    // NAVIGATION ▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬
+
+    // PARAM GETTERS ▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬
 
 }
 
 @Service({ autoProvided: false })
-export class GameInstanceRoute {
+export class GameInstanceRoute extends FoundationModuleRoute {
     // CLASS PROPERTIES ▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬
-    public static readonly registryKey = 'GAME_INSTANCE';
-    public static readonly area = FoundationAreaEnum.OPEN;
+    /** = mod_regisyry_index. ⚠ a db value, renaming it is a migration */
+    public static override readonly registryKey = 'GAME_INSTANCE';
+    public static override readonly area = FoundationAreaEnum.OPEN;
 
     // DEFINITION ▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬
-    public static definition(): FoundationModuleRouteDefinitionType {
+    public static override definition(): FoundationModuleRouteDefinitionType {
         return {
             registryKey: this.registryKey,
             component: () => import('./component').then((c) => c.GameComponent),
@@ -97,7 +98,7 @@ export class GameInstanceRoute {
     }
 
     // NAV ▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬
-    public static nav(): FoundationModuleRouteNavType {
+    public static override nav(): FoundationModuleRouteNavType {
         return {
             registry_key: this.registryKey,
             area_key: this.area,
@@ -107,22 +108,21 @@ export class GameInstanceRoute {
             label: 'GL.MODULE.GAME',
             icon: 'globe',
             sort_order: 10,
+            actions: [],
             nav_position: [FoundationNavPositionEnum.START],
         };
     }
 
 
     // PATHS ▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬
-    public static absolutePathArr(gkeyid: string = ''): string[] {
-        return FoundationModulePath.arrOf(this.registryKey, {
-            [`:${SLUG_GAME_PARAM_GKEYID}`]: gkeyid,
+    public static override absolutePathArr(gkeyid = ''): string[] {
+        return this.absolutePathArrWithParams({ 
+            [`:${SLUG_GAME_PARAM_GKEYID}`]: gkeyid 
         });
     }
-
-    // PATHS ▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬
-    public static absolutePath(gkeyid: string = ''): string {
-        return FoundationModulePath.of(this.registryKey, {
-            [`:${SLUG_GAME_PARAM_GKEYID}`]: gkeyid,
+    public static override absolutePath(gkeyid = ''): string {
+        return this.absolutePathWithParams({ 
+            [`:${SLUG_GAME_PARAM_GKEYID}`]: gkeyid 
         });
     }
 }

@@ -1,4 +1,5 @@
 <!-- file: src/app/base/crud/default/listing/selected-record-action/template.html -->
+@if (service.state.action.hasRecordSelectionAction()) {
 @let bulkActionLabel = 'GL.COMMON.SELECTED_RECORD_ACTION' | transloco;
 <button
     mat-icon-button
@@ -10,17 +11,70 @@
 >
     <mat-icon class="material-symbols-rounded">select_all</mat-icon>
 </button>
-<mat-menu #BfwSelectedRecordActionsMenu="matMenu" yPosition="above" xPosition="after">
-    <button mat-menu-item>
-        <mat-icon class="material-symbols-rounded">edit_circle_outline</mat-icon>
-        <span>{{ 'GL.ACTION.UPDATE' | transloco }}</span>
-    </button>
-    <button mat-menu-item>
-        <mat-icon class="material-symbols-rounded">archive</mat-icon>
-        <span>{{ 'GL.ACTION.IMPORT' | transloco }}</span>
-    </button>
-    <button mat-menu-item>
-        <mat-icon class="material-symbols-rounded">unarchive</mat-icon>
-        <span>{{ 'GL.ACTION.EXPORT' | transloco }}</span>
-    </button>
+<mat-menu #BfwSelectedRecordActionsMenu="matMenu" 
+    yPosition="above" 
+    xPosition="after" 
+    class="tw:lg:[&_.mat-mdc-menu-item]:min-h-8! tw:lg:[&_.mat-mdc-menu-item]:px-3!"
+>
+    <ng-template matMenuContent>
+        @let secondaryKey = service.state.secondaryKey();
+        @if(secondaryKey) {
+            <!-- ████ ACTIVE, INACTIVE -->
+            @let activeField = service.state.activeField();
+            @if(activeField && service.state.action.hasActive()) {
+                <button
+                    mat-menu-item
+                    (click)="service.action.runActive(service.listing.getSelectedRecordKeyValues())"
+                >
+                    <mat-icon class="material-symbols-rounded tw:lg:text-lg! tw:lg:h-6! tw:lg:w-6! tw:lg:flex! tw:lg:items-center! tw:lg:justify-center!">check_circle_unread</mat-icon>
+                    <span>{{ 'GL.ACTION.ACTIVE' | transloco }}</span>
+                </button>
+            }
+            @if(activeField && service.state.action.hasInactive()) {
+                <button
+                    mat-menu-item
+                    (click)="service.action.runInactive(service.listing.getSelectedRecordKeyValues())"
+                >
+                    <mat-icon class="material-symbols-rounded tw:lg:text-lg! tw:lg:h-6! tw:lg:w-6! tw:lg:flex! tw:lg:items-center! tw:lg:justify-center!">do_not_disturb_on</mat-icon>
+                    <span>{{ 'GL.ACTION.INACTIVE' | transloco }}</span>
+                </button>
+            }
+
+            <!-- ████ SOFT DELETE, RESTORE, DELETE -->
+            @let deletedField = service.state.deletedField();
+            @if(deletedField){
+                <mat-divider></mat-divider>
+            }
+            @if(deletedField && service.state.action.hasRestore()) {
+                <button
+                    mat-menu-item
+                    (click)="service.action.runRestore(service.listing.getSelectedRecordKeyValues())"
+                >
+                    <mat-icon class="material-symbols-rounded tw:lg:text-lg! tw:lg:h-6! tw:lg:w-6! tw:lg:flex! tw:lg:items-center! tw:lg:justify-center!">restore_from_trash</mat-icon>
+                    <span>{{ 'GL.ACTION.RESTORE' | transloco }}</span>
+                </button>
+            }
+            @if(deletedField && service.state.action.hasSoftDelete()) {
+                <button
+                    mat-menu-item
+                    class="tw:text-yellow-600!"
+                    (click)="service.action.runSoftDelete(service.listing.getSelectedRecordKeyValues())"
+                >
+                    <mat-icon class="material-symbols-rounded tw:text-yellow-600! tw:lg:text-lg! tw:lg:h-6! tw:lg:w-6! tw:lg:flex! tw:lg:items-center! tw:lg:justify-center!">delete</mat-icon>
+                    <span>{{ 'GL.ACTION.SOFT_DELETE' | transloco }}</span>
+                </button>
+            }
+            @if(deletedField && service.state.action.hasDelete()) {
+                <button
+                    mat-menu-item
+                    class="tw:text-red-700!"
+                    (click)="service.action.runDelete(service.listing.getSelectedRecordKeyValues())"
+                >
+                    <mat-icon class="material-symbols-rounded tw:text-red-700! tw:lg:text-lg! tw:lg:h-6! tw:lg:w-6! tw:lg:flex! tw:lg:items-center! tw:lg:justify-center!">delete_forever</mat-icon>
+                    <span>{{ 'GL.ACTION.DELETE' | transloco }}</span>
+                </button>
+            }
+        }
+    </ng-template>
 </mat-menu>
+}

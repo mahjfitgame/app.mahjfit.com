@@ -1,0 +1,40 @@
+<ng-template
+    cdkPortal
+    [privateAreaLayout]="service.PrivateAreaLayoutSlotEnum.SLOT_MAIN_HEADER_TOOLBAR_EXTENSION"
+>
+    <div class="tw:flex tw:min-w-0 tw:items-center tw:gap-2">
+        <h1 class="tw:truncate tw:text-base tw:font-semibold">
+            {{ service.view.getViewTitle() | transloco }}
+        </h1>
+
+        <mat-divider [vertical]="true" class="tw:mx-1 tw:h-6!"></mat-divider>
+
+        <div class="tw:flex tw:items-center">
+        @if (service.state.action.hasPrint()) {
+            <button
+                mat-icon-button
+                type="button"
+                class="tw:flex! tw:items-center! tw:justify-center!"
+                (click)="service.view.printRecord()"
+                [attr.aria-label]="'GL.ACTION.PRINT' | transloco"
+            >
+                <mat-icon class="material-symbols-rounded">print</mat-icon>
+            </button>
+        }
+        <button mat-icon-button type="button" class="tw:flex! tw:items-center! tw:justify-center!" (click)="service.view.closeViewAction()" [attr.aria-label]="'GL.COMMON.BACK' | transloco">
+            <mat-icon class="material-symbols-rounded">close</mat-icon>
+        </button>
+        </div>
+    </div>
+</ng-template>
+
+<section class="tw:flex tw:min-h-full tw:flex-col">
+    <main class="tw:min-h-0 tw:flex-1 tw:p-4">
+        <ng-container 
+            *ngComponentOutlet="
+                service.view.getViewRecordComponent(); 
+                injector: service.getComponentInjector()
+            ">
+        </ng-container>
+    </main>
+</section>

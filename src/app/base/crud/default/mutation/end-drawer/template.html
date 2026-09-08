@@ -6,26 +6,26 @@
     mode="over"
     role="region" 
     class="tw:fixed! tw:z-20! tw:border-l! tw:border-gray-200! tw:dark:border-gray-200/10!"
-    [opened]="service.state.mutationEndDrawerIsOpen()"
-    (closedStart)="service.state.runMutationEndDrawerOnCloseCallBack()"
-    (openedChange)="service.state.setMutationEndDrawerIsOpen($event)"
+    [opened]="service.state.mutation.mutationEndDrawerIsOpen()"
+    (closedStart)="service.state.mutation.runMutationEndDrawerOnCloseCallBack()"
+    (openedChange)="service.state.mutation.setMutationEndDrawerIsOpen($event)"
 >
     <header class="tw:sticky tw:top-0 tw:backdrop-blur-md tw:z-10">
         <div class="bfw-safe-area-pt bfw-safe-area-pe tw:relative">
             <mat-toolbar class="tw:flex tw:items-center tw:justify-between tw:bg-transparent! tw:p-3!">
                 <div class="tw:flex tw:min-w-0 tw:items-center">
                     <span class="tw:flex tw:h-12 tw:w-12 tw:shrink-0 tw:items-center tw:justify-center tw:rounded-lg">
-                        <mat-icon class="material-symbols-rounded tw:h-6! tw:w-6! tw:text-2xl! tw:leading-none!">{{ service.getMutationIcon() }}</mat-icon>
+                        <mat-icon class="material-symbols-rounded tw:h-6! tw:w-6! tw:text-2xl! tw:leading-none!">{{ service.mutation.getMutationIcon() }}</mat-icon>
                     </span>
                     <div class="tw:min-w-0">
                         <h2 class="tw:m-0 tw:text-xl! tw:leading-none tw:font-bold tw:truncate">
-                            <span>{{ service.getMutationTitle() | transloco }}</span>
+                            <span>{{ service.mutation.getMutationTitle() | transloco }}</span>
                         </h2>
                     </div>
                 </div>
                 <button
                     matIconButton
-                    (click)="service.toggleMutationEndDrawer()"
+                    (click)="service.mutation.toggleMutationEndDrawer()"
                     class="tw:shrink-0"
                     [attr.aria-label]="
                         (BfwCrudDefaultMutationEndDrawer.opened ? 'GL.COMMON.CLOSE' : 'GL.COMMON.OPEN') | transloco
@@ -38,15 +38,15 @@
     </header>
     <section class="tw:bfw-safe-area-pe">
         <div class="tw:flex tw:p-3!">
-            <ng-container *ngComponentOutlet="service.getMutationFormComponent(); injector: service.getComponentInjector()"></ng-container>
+            <ng-container *ngComponentOutlet="service.mutation.getMutationFormComponent(); injector: service.getComponentInjector()"></ng-container>
         </div>
     </section>
     <footer class="tw:sticky tw:bottom-0 tw:z-10 tw:w-full tw:backdrop-blur-md tw:mbs-auto">
         <div class="tw:flex tw:gap-2 tw:p-3!">
-            <button mat-button  type="reset" form="crudMutationForm" class="tw:flex-1">
+            <button mat-button type="button" class="tw:flex-1" [disabled]="service.state.mutation.mutationFormProcessing() || service.state.mutation.mutationForm().submitting()" (click)="service.state.mutation.resetMutationForm()">
                 {{ 'GL.COMMON.RESET' | transloco }}
             </button>
-            <button mat-flat-button type="submit" form="crudMutationForm" color="primary" class="tw:flex-1">
+            <button mat-flat-button type="submit" form="crudMutationForm" color="primary" class="tw:flex-1" [disabled]="service.state.mutation.mutationFormProcessing() || service.state.mutation.mutationForm().invalid() || service.state.mutation.mutationForm().pending() || service.state.mutation.mutationForm().submitting()">
                 {{ 'GL.COMMON.SAVE' | transloco }}
             </button>
         </div>    

@@ -8,6 +8,7 @@ export const defaultEnvironment: any = {
 
   // General
   DEBUG: false,
+  ENABLE_LOCAL_DB: false,
   TZ: 'US/Eastern',
   PROJECT_NAME: 'bfw.nestjs.microservice.api/web',
   GRAPHQL_ROOT_SLUG: 'graphql',

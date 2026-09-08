@@ -15,7 +15,6 @@ import { SigninRoute } from "@module/shared/preboarding/signin/route";
 import { FoundationNavigationActionType } from "@libs/foundation/type";
 import { HOME_I18N_KEY } from "./const";
 import { HomeState } from "./state";
-import { GeoCountryRoute } from "../../shared/geo/country/route";
 import { GameRoute } from "../game/route";
 
 @Service({ autoProvided: false })
@@ -99,6 +98,11 @@ export class HomeService implements FoundationModuleServiceType {
      * A read failure must not break the landing page, so it is logged and left at its default.
      */
     public async loadDbVersion(): Promise<void> {
+        if (!this.conf.enableLocalDb) {
+            this.state.setDbVersion('Disabled');
+            return;
+        }
+
         try {
             const version = await this.appConfigRepository.getCurrentSqliteDbVersion();
             this.state.setDbVersion(version);

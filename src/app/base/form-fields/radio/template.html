@@ -1,0 +1,114 @@
+<!-- file: src/app/base/form-fields/radio/template.html -->
+@let tpl = template();
+@let rowClass = 'tw:w-full tw:min-w-0 tw:overflow-hidden';
+
+<div class="tw:w-full tw:min-w-0">
+    <div class="tw:mb-2 tw:flex tw:items-center tw:gap-1 tw:h-8!">
+        @if (iconPrepend()) {
+            <mat-icon class="material-symbols-rounded tw:font-bold tw:text-2xl! tw:leading-none! tw:h-6! tw:w-6! tw:shrink-0">
+                {{ iconPrepend() }}
+            </mat-icon>
+        }
+
+        @if (label()) {
+            <mat-label class="tw:truncate tw:text-sm">
+                {{ label() }}@if (required()) {<span class="tw:text-error">&nbsp;*</span>}
+            </mat-label>
+        }
+
+        @if (iconAppend()) {
+            <mat-icon class="material-symbols-rounded tw:font-bold tw:text-2xl! tw:leading-none! tw:h-6! tw:w-6! tw:shrink-0">
+                {{ iconAppend() }}
+            </mat-icon>
+        }
+
+        @if (clearable() && !disabled() && service.state.hasValue()) {
+            <button mat-icon-button type="button"
+                class="tw:ml-auto tw:inline-flex! tw:items-center! tw:justify-center! tw:h-8! tw:w-8! tw:p-0!"
+                [attr.aria-label]="'GL.FIELD.COMMON.CLEAR' | transloco"
+                (click)="service.onClear($event)">
+                <mat-icon class="material-symbols-rounded tw:text-2xl! tw:leading-none! tw:h-6! tw:w-6!">close</mat-icon>
+            </button>
+        }
+    </div>
+
+    <mat-radio-group
+        class="tw:grid tw:gap-x-6 tw:gap-y-2 tw:w-full tw:min-w-0"
+        [style.grid-template-columns]="'repeat(' + columns() + ', minmax(0, 1fr))'"
+        [id]="inputId() || name()"
+        [name]="name()"
+        [required]="required()"
+        [disabled]="disabled()"
+        [value]="service.state.renderValue()"
+        (change)="service.onChange($event.value)">
+
+        @if (service.state.defaultOption(); as opt) {
+            <mat-radio-button [class]="rowClass" [value]="opt.key">
+                <span class="tw:block tw:w-full tw:min-w-0 tw:truncate tw:text-sm"
+                    [title]="opt.value | transloco">
+                    {{ opt.value | transloco }}
+                </span>
+            </mat-radio-button>
+        }
+
+        @if (service.state.isGrouped()) {
+            @for (grp of service.state.groupEntry(); track grp.key) {
+                <!-- the heading spans the grid, so its rows start on a fresh line -->
+                <div
+                    class="tw:col-span-full tw:mt-2 tw:flex tw:items-center tw:gap-1 tw:min-w-0 tw:text-xs tw:font-medium">
+                    @if (tpl?.group; as drawGroup) {
+                        <span [innerHTML]="drawGroup(grp.item, grp.key)"></span>
+                    } @else {
+                        @if (grp.item.icon) {
+                            <mat-icon class="material-symbols-rounded tw:text-sm! tw:h-4! tw:w-4! tw:shrink-0">
+                                {{ grp.item.icon }}
+                            </mat-icon>
+                        }
+                        <span class="tw:truncate">{{ grp.item.label | transloco }}</span>
+                    }
+                </div>
+
+                @for (opt of grp.option; track opt.key) {
+                    <mat-radio-button [class]="rowClass" [value]="opt.key">
+                        @if (tpl?.option; as drawOption) {
+                            <span class="tw:block tw:w-full tw:min-w-0"
+                                [innerHTML]="drawOption(opt.item, opt.key)"></span>
+                        } @else {
+                            <span class="tw:block tw:w-full tw:min-w-0 tw:truncate tw:text-sm"
+                                [title]="opt.label | transloco">
+                                {{ opt.label | transloco }}
+                            </span>
+                        }
+                    </mat-radio-button>
+                }
+            }
+        } @else {
+            @for (opt of service.state.entry(); track opt.key) {
+                <mat-radio-button [class]="rowClass" [value]="opt.key">
+                    @if (tpl?.option; as drawOption) {
+                        <span class="tw:block tw:w-full tw:min-w-0"
+                            [innerHTML]="drawOption(opt.item, opt.key)"></span>
+                    } @else {
+                        <span class="tw:block tw:w-full tw:min-w-0 tw:truncate tw:text-sm"
+                            [title]="opt.label | transloco">
+                            {{ opt.label | transloco }}
+                        </span>
+                    }
+                </mat-radio-button>
+            }
+        }
+    </mat-radio-group>
+
+    <!-- error/hint footer: hand-drawn, because there is no <mat-form-field> to project into -->
+    @if (error()) {
+        <div class="tw:mt-1 tw:flex tw:items-center tw:gap-1 tw:text-xs tw:text-error">
+            <mat-icon class="material-symbols-rounded tw:text-xs! tw:h-4! tw:w-4! tw:shrink-0">error</mat-icon>
+            <span>{{ error() }}</span>
+        </div>
+    } @else if (hint()) {
+        <div class="tw:mt-1 tw:flex tw:items-start tw:gap-1 tw:text-xs">
+            <mat-icon class="material-symbols-rounded tw:text-xs! tw:h-4! tw:w-4! tw:shrink-0">info</mat-icon>
+            <span>{{ hint() }}</span>
+        </div>
+    }
+</div>

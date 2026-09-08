@@ -11,11 +11,12 @@ import { ContextProfileService } from "@libs/context-profile/service";
 import { BfwApiService } from "@libs/third-party-apis/bfw-api/service";
 import { FoundationModuleStateType } from "@libs/foundation/module/type";
 import { ForgotPasswordMutationFieldObjType, ForgotPasswordMutationFormErrorType, ForgotPasswordMutationFormModelType } from "src/app/module/shared/preboarding/forgot-password/type";
-import { CrudChildMutationStateType } from "src/app/base/crud/child/type/mutation.state";
 import { PREBOARDING_FORGOTPASSWORD_STATE_STORE_KEY } from "./const";
+import { CrudMutationStateType } from "src/app/base/crud/type";
+import { CrudChildStateType } from "src/app/base/crud/child/type/state";
 
 @Service({ autoProvided: false })
-export class ForgotPasswordState extends SignalStateService implements FoundationModuleStateType, CrudChildMutationStateType {
+export class ForgotPasswordState extends SignalStateService implements FoundationModuleStateType, CrudChildStateType, CrudMutationStateType {
     
     // ████ DEPENDENCIES ████████████████████████████████████████████████
 
@@ -210,6 +211,9 @@ export class ForgotPasswordState extends SignalStateService implements Foundatio
     }
     public setMutationFormProcessing(processing: boolean): void {
         this._mutationFormProcessing.set(processing);
+    }
+    public setMutationFormValues(input?: ForgotPasswordMutationFormModelType): void {
+        // not in use but required to satisfy the interface   
     }
     public resetMutationForm(): void {
         // reset the form when needed

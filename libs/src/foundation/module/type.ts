@@ -1,6 +1,16 @@
 // file: libs/src/foundation/module/type.ts
 import { Signal, Type } from "@angular/core";
-import { CanActivateChildFn, CanActivateFn, CanDeactivateFn, CanMatchFn, Data } from "@angular/router";
+import {
+    ActivatedRouteSnapshot,
+    CanActivateChildFn,
+    CanActivateFn,
+    CanDeactivateFn,
+    CanMatchFn,
+    Data,
+    ResolveData,
+    Route,
+    RouterStateSnapshot,
+} from "@angular/router";
 import { FoundationAreaEnum } from "../enum";
 import { FoundationActionEnum } from "../action/enum";
 import { FoundationNavPositionEnum } from "../nav/enum";
@@ -76,6 +86,16 @@ export interface FoundationModuleRouteType {
     /** resolved from FoundationModulePath after the build */
     absolutePath(): string;
     absolutePathArr(): string[];
+
+    /** shared implementation used by a child route's explicit named action paths */
+    absolutePathAction(
+        action: FoundationActionEnum,
+        params?: Record<string, string | number>,
+    ): string;
+    absolutePathActionArr(
+        action: FoundationActionEnum,
+        params?: Record<string, string | number>,
+    ): string[];
 }
 
 // ████ ROUTE NAV TYPE ██████████████████████████████████████████████
@@ -163,10 +183,10 @@ export interface FoundationModuleRouteNavType {
 
     /**
      * = te_user_authorisation_policy ⋈ te_authorisation_module_action
-     * what this USER may do, a filter over definition().actions and never a
-     * source. absent (no api yet) = everything the definition declares
+     * what this USER may do. Required and always intersected with
+     * definition().actions; an empty array denies every action.
      */
-    actions?: FoundationActionEnum[];
+    actions: FoundationActionEnum[];
 
     // PRESENTATION ▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬
     // no column yet, add one if it ever matters
@@ -207,6 +227,23 @@ export interface FoundationModuleRouteDefinitionType {
     canActivateChild?: CanActivateChildFn[];
     canDeactivate?: CanDeactivateFn<unknown>[];
 
+    /**
+     * what this module cannot compose the page without — see
+     * FoundationModuleRouteResolveType below
+     *
+     * ⚠ navigation WAITS on it, so it is not the place for a lookup bag. that is
+     * a resource() in state.ts, which lets the page paint and fills in after
+     *
+     * ⚠ never hand written. always `resolve: this.resolve()` so the payload keeps
+     * landing under FoundationModuleRoute.resolvedKey and read() can find it
+     *
+     * ⚠ a PASS THROUGH GROUP (url_slug '' + no component) cannot carry one: the
+     * builder splices its children into the parent and the group's own route is
+     * never emitted, so the resolver would never run. FoundationAreaBuilder
+     * dev-errors on it
+     */
+    resolve?: FoundationModuleRouteResolveType;
+
     /** breadcrumb alias, kept out of the row because xng-breadcrumb is a code concern */
     breadcrumbAlias?: string;
 
@@ -218,7 +255,77 @@ export interface FoundationModuleRouteDefinitionType {
      * see FoundationAreaBuilder.effectiveActions()
      */
     actions: FoundationActionEnum[];
+
+    // ANGULAR PASS THROUGH ▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬
+    // typed straight off Route[...] rather than copied, so this stays exact
+    // even if angular's own Route shape changes
+    //
+    // ⚠ `path`, `pathMatch`, `children` and `data` are NOT here, on purpose:
+    // FoundationAreaBuilder derives path/children from the nav row tree and
+    // data.title/data.breadcrumb from row.label — a module fighting the
+    // builder for those breaks url generation or the breadcrumb silently.
+    //
+    // ⚠ `redirectTo` is ALSO deliberately not here. angular rejects a route
+    // that carries both redirectTo and canMatch/canActivate (NG04014,
+    // "redirects happen before guards are executed") — and the builder
+    // ALWAYS attaches canMatch/canActivate (defaulted to `[]`, still truthy)
+    // to every route it emits, so a definition-level redirectTo would throw
+    // at bootstrap 100% of the time, not just sometimes. a module-level
+    // redirect already has a real mechanism: nav().default_child_key. use
+    // that instead
+    //
+    // everything else Route allows is free for a module to set
+
+    /** = Route.title. this app resolves the tab title via data.title + WebPageTitleStrategy, not this — set it only for angular internals that read Route.title directly */
+    title?: Route['title'];
+    /** = Route.matcher. mutually exclusive with path at the angular level, and path is builder owned — use only on a module the builder never gives a url_slug */
+    matcher?: Route['matcher'];
+    /** = Route.outlet */
+    outlet?: Route['outlet'];
+    /** = Route.loadChildren, for a leaf mounting an externally owned sub router instead of nav-row children */
+    loadChildren?: Route['loadChildren'];
+    /** = Route.runGuardsAndResolvers */
+    runGuardsAndResolvers?: Route['runGuardsAndResolvers'];
+    /** = Route.providers, route scoped DI */
+    providers?: Route['providers'];
 }
+
+// ████ ROUTE RESOLVE TYPES █████████████████████████████████████████
+// What definition().resolve carries, and what fills it. The implementation is
+// FoundationModuleRoute (module/route.ts) — these are only its shapes, kept here
+// so every type a *Route class touches lives in one file.
+
+/**
+ * @FoundationModuleRouteResolveType
+ * key => ResolveFn, exactly angular's ResolveData
+ *
+ * ⚠ aliased rather than used raw so definition() reads like the rest of the
+ * contract, and so there is ONE name to narrow if the shape ever needs to forbid
+ * angular's deprecated class-resolver form
+ *
+ * ⚠ in practice this holds exactly ONE key, FoundationModuleRoute.resolvedKey.
+ * a module resolves ONE object and names its shape once in its own type.ts,
+ * which is what keeps read() a single typed accessor instead of a lookup per
+ * field
+ */
+export type FoundationModuleRouteResolveType = ResolveData;
+
+/**
+ * @FoundationModuleRouteLoaderType
+ * a module's resolve payload loader, what required() and optional() wrap
+ *
+ * ⚠ runs in the ROUTE injector, NOT the routed component's. anything in that
+ * component's `providers` — every *_PROVIDER, so every module State and Service
+ * — is out of scope here. load through root services (BfwApiService,
+ * ContextProfileService) and read the answer back with routeResolvedSignal()
+ *
+ * ⚠ async is fine, the router awaits it. but a promise gets NO cancellation:
+ * navigating away abandons the navigation and leaves the request running
+ */
+export type FoundationModuleRouteLoaderType<T> = (
+    route: ActivatedRouteSnapshot,
+    state: RouterStateSnapshot,
+) => Promise<T> | T;
 
 // ████ ROUTE DATA TYPES ████████████████████████████████████████████
 // The shape a route's `data` is expected to carry. `Data` in @angular/router is

@@ -1,12 +1,13 @@
 // file: src/app/base/crud/default/listing/selected-record-action/component.ts
 import { Component, inject } from '@angular/core';
-import { CrudService } from '@base/crud/service';
+import { CrudService } from 'src/app/base/crud/service/entry';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatIconModule } from '@angular/material/icon';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatButtonModule } from '@angular/material/button';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { TranslocoModule } from '@jsverse/transloco';
+import { MatDividerModule } from '@angular/material/divider';
 
 @Component({
   selector: 'app-crud-default-listing-selected-record-action',
@@ -20,6 +21,7 @@ import { TranslocoModule } from '@jsverse/transloco';
     MatMenuModule,
     MatButtonModule,
     MatTooltipModule,
+    MatDividerModule,
   ],
   providers: [],
 })

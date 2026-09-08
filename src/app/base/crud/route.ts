@@ -54,7 +54,7 @@ export class CrudRoute {
 
     /**
      * LIVE. Parses a ':keyid' segment, the param every record-scoped slug in
-     * FoundationActionSlugEnum declares. Same comma-separated multi-record
+     * FOUNDATION_ACTION_ROUTE_CONFIG declares. Same comma-separated multi-record
      * shape as the primary parse.
      */
     public toCrudActionRecordSecondaryKey(key: string | null): CrudActionRecordSecondaryKeyValueType {
@@ -110,6 +110,8 @@ export class CrudRoute {
     public readIsMutationActionRoute(): boolean {
         const action = this.readCrudActionFromRoute();
 
-        return action === FoundationActionEnum.CREATE || action === FoundationActionEnum.UPDATE;
+        return action === FoundationActionEnum.CREATE
+            || action === FoundationActionEnum.UPDATE
+            || action === FoundationActionEnum.DUPLICATE;
     }
 }

@@ -1,0 +1,18 @@
+@if (service.view.isViewActionActive()) {
+    @if (service.state.view.viewActionUiLayout() === service.CrudActionUiLayoutEnum.END_SIDE_BAR) {
+        <app-crud-default-view-end-side-bar />
+    }
+    @else if (service.state.view.viewActionUiLayout() === service.CrudActionUiLayoutEnum.END_DRAWER) {
+        <app-crud-default-view-end-drawer />
+    }
+    @else if (service.state.view.viewActionUiLayout() === service.CrudActionUiLayoutEnum.PAGE) {
+        <ng-container
+            *ngComponentOutlet="service.view.getViewPageComponent(); injector: service.getComponentInjector()"
+        ></ng-container>
+    }
+}
+@else if (service.view.isPrintActionActive()) {
+    <ng-container
+        *ngComponentOutlet="service.view.getViewPageComponent(); injector: service.getComponentInjector()"
+    ></ng-container>
+}

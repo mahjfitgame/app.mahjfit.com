@@ -34,6 +34,9 @@ export class ConfService {
         // enable disable debug with whatever logic is required
         return this._conf.DEBUG;
     }
+    public get enableLocalDb(): boolean {
+        return this._conf.ENABLE_LOCAL_DB;
+    }
     public get tz(): string {
         return this._conf.TZ;
     }

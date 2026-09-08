@@ -49,21 +49,23 @@
                     "OPTION_RANGE": "Selección de campo no válida."
                 }
             },
-            "SORT_FIELDS_AND_DIRECTION": {
-                "LABEL": "Campos y dirección de ordenación",
-                "PLACEHOLDER": "Selecciona los campos y la dirección para ordenar",
-                "HINT": "Ordena por campo y dirección para refinar tus datos.",
+            "SORT_FIELDS": {
+                "LABEL": "Campo de ordenación",
+                "PLACEHOLDER": "Selecciona un campo para ordenar",
+                "HINT": "Selecciona el campo usado para ordenar tus datos.",
                 "VALIDATION": {
                     "OPTION_RANGE": "Campo de ordenación no válido."
                 }
             },
-            "RBIN": {
-                "LABEL": "Papelera de reciclaje",
-                "PLACEHOLDER": "Mostrar registros de la papelera de reciclaje",
-                "HINT": "Haz clic para ver los registros de la papelera de reciclaje."
+            "SORT_DIRECTION": {
+                "LABEL": "Dirección de ordenación",
+                "HINT": "Elige orden ascendente o descendente.",
+                "VALIDATION": {
+                    "OPTION_RANGE": "Dirección de ordenación no válida."
+                }
             }
         },
-        "SEARCH_FILTER": {
+        "LISTING_SEARCH": {
             "OPEN_LABEL": "Abrir filtro de búsqueda",
             "TAB_NAME": "Filtro"
         }

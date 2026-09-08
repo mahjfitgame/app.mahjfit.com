@@ -188,10 +188,10 @@
                 }
               } @placeholder {
                 <div class="tw:inline-flex tw:items-center tw:gap-3 tw:min-w-0 tw:animate-pulse">
-                  <span class="tw:h-10 tw:w-10 tw:shrink-0 tw:rounded-lg tw:bg-gray-200"></span>
+                  <span class="tw:h-10 tw:w-10 tw:shrink-0 tw:rounded-lg tw:bg-primary/15"></span>
                   <span class="tw:flex tw:min-w-0 tw:flex-col tw:gap-2">
-                    <span class="tw:h-4 tw:w-32 tw:rounded tw:bg-gray-200"></span>
-                    <span class="tw:h-3 tw:w-48 tw:rounded tw:bg-gray-100"></span>
+                    <span class="tw:h-4 tw:w-32 tw:rounded tw:bg-primary/15"></span>
+                    <span class="tw:h-3 tw:w-48 tw:rounded tw:bg-primary/15"></span>
                   </span>
                 </div>
               }
@@ -282,119 +282,119 @@
       </footer>
     </mat-sidenav-content>
 
-        <!-- ██ [3] ██ END SIDEBAR ████████ -->
-        <mat-sidenav 
-            #BfwEndSideBar 
-            fixedInViewport 
-            position="end" 
-            mode="over" 
-            role="region" 
-            class="bfw-sidenav-end tw:border-l! tw:border-gray-200! tw:dark:border-gray-200/10!"
-            [opened]="service.state.endSideBarIsOpen()"
-            (opened)="switchToActiveBfwEndSideBarTab()"
-            (closedStart)="service.state.runEndSideBarOnCloseCallback()"
-            (openedChange)="service.state.setEndSideBarIsOpen($event)"
-        >
-            <!-- ██ [3H] ██ -->
-            <header class="bfw-sidenav-end-header tw:sticky tw:top-0 tw:z-30">
-                <div class="bfw-safe-area-pt bfw-safe-area-pe tw:relative">
-                    <mat-toolbar class="tw:flex tw:items-center tw:justify-between tw:bg-transparent!">
-                        <div class="tw:flex tw:min-w-0 tw:items-center">
-                            <span class="tw:flex tw:h-14 tw:w-14 tw:shrink-0 tw:items-center tw:justify-center tw:rounded-lg tw:text-primary">
-                                <mat-icon class="material-symbols-rounded tw:h-9! tw:w-9! tw:text-4xl! tw:leading-none!">side_navigation</mat-icon>
-                            </span>
-                            <div class="tw:min-w-0">
-                                <h2 class="tw:m-0 tw:text-xl! tw:leading-none tw:font-bold tw:truncate">
-                                    {{ 'GL.COMMON.CONTROL_CENTRE' | transloco }}
-                                </h2>
-                            </div>
+    <!-- ██ [3] ██ END SIDEBAR ████████ -->
+    <mat-sidenav 
+        #BfwEndSideBar 
+        fixedInViewport 
+        position="end" 
+        mode="over" 
+        role="region" 
+        class="bfw-sidenav-end tw:border-l! tw:border-gray-200! tw:dark:border-gray-200/10!"
+        [opened]="service.state.endSideBarIsOpen()"
+        (opened)="switchToActiveBfwEndSideBarTab()"
+        (closedStart)="service.state.runEndSideBarOnCloseCallback()"
+        (openedChange)="service.state.setEndSideBarIsOpen($event)"
+    >
+        <!-- ██ [3H] ██ -->
+        <header class="bfw-sidenav-end-header tw:sticky tw:top-0 tw:z-30">
+            <div class="bfw-safe-area-pt bfw-safe-area-pe tw:relative">
+                <mat-toolbar class="tw:flex tw:items-center tw:justify-between tw:bg-transparent!">
+                    <div class="tw:flex tw:min-w-0 tw:items-center">
+                        <span class="tw:flex tw:h-14 tw:w-14 tw:shrink-0 tw:items-center tw:justify-center tw:rounded-lg tw:text-primary">
+                            <mat-icon class="material-symbols-rounded tw:h-9! tw:w-9! tw:text-4xl! tw:leading-none!">side_navigation</mat-icon>
+                        </span>
+                        <div class="tw:min-w-0">
+                            <h2 class="tw:m-0 tw:text-xl! tw:leading-none tw:font-bold tw:truncate">
+                                {{ 'GL.COMMON.CONTROL_CENTRE' | transloco }}
+                            </h2>
                         </div>
-                        <button
-                            matIconButton
-                            (click)="service.toggleEndSideBar()"
-                            class="tw:shrink-0"
-                            [attr.aria-label]="
-                                (service.state.endSideBarIsOpen() ? 'GL.COMMON.CLOSE' : 'GL.COMMON.OPEN') | transloco
-                            "
-                        >
-                            <!-- replaced (click)="BfwEndSideBar.toggle()" with toggleEndSideBar() -->
-                            <!-- replaced [attr.aria-label]="BfwEndSideBar.opened" with service.state.endSideBarIsOpen() -->
-                            <mat-icon class="material-symbols-rounded">close</mat-icon>
-                        </button>
-                    </mat-toolbar>
-                </div>
-            </header>
-            <!-- ██ [3B] ██ -->
-            <section>
-                <mat-tab-group
-                    #BfwEndSideBarTabGroup 
-                    class="bfw-end-sidebar-tab-group"
-                    animationDuration="250ms"
-                    [dynamicHeight]="false"
-                    [selectedIndex]="service.state.endSideBarOpenTabIndex()"
-                    (selectedIndexChange)="service.state.setEndSideBarOpenTabIndex($event)"
-                >
-                    @let tabLabels = service.state.slotEndSideBarTabLabel() ?? [];
-                    @let tabBodies = service.state.slotEndSideBarTabBody() ?? [];
-                    @for (bodyPortal of tabBodies; track $index; let i = $index) {
-                        <mat-tab>
-                            <!--
-                            # IMPORTANT
-                            in tab html need to adjust classe [bfw-safe-area-pb]
-                            for mohbile device safe area, this can be as per required content element
-                            placement of classes are based on structure of html
-                            -->
-              <ng-template mat-tab-label>
-                @if (tabLabels[i]) {
-                  <ng-template [cdkPortalOutlet]="tabLabels[i]"></ng-template>
-                } @else {
-                  <span>{{ 'GL.COMMON.TAB' | transloco: { number: i + 1 } }}</span>
-                }
-              </ng-template>
-              <ng-template matTabContent>
-                <ng-template [cdkPortalOutlet]="bodyPortal"></ng-template>
-              </ng-template>
-            </mat-tab>
-          }
-          <mat-tab>
-            <ng-template mat-tab-label>
-              <span
-                matBadge="3"
-                matBadgeColor="warn"
-                matBadgeSize="medium"
-                matBadgePosition="above after"
-                [matBadgeOverlap]="true"
-                class="tw:pe-4"
-                >{{ 'GL.COMMON.NOTIFICATION' | transloco }}
-              </span>
-            </ng-template>
-            <!-- tab content -->
-            <ng-template matTabContent>
-              <div>Notification content</div>
-            </ng-template>
-          </mat-tab>
-        </mat-tab-group>
-      </section>
-      <!-- ██ [3F] ██ -->
-      <footer
-        class="bfw-sidenav-end-footer tw:sticky tw:bottom-0 tw:z-10 tw:w-full tw:backdrop-blur-md tw:mbs-auto"
-      >
-        <!--
-                # IMPORTANT
-                need to handle sasfe area class [bfw-safe-area-pb bfw-safe-area-pe] inside content
-                otherwise it will not mess in mobile view
-                this is because each tab can have its own footer and and adding this class will create double glass effect
-                so make sure you add class as below in footer custom template
-                <div class="bfw-safe-area-pb bfw-safe-area-pe">cusom content</div>
-                
-                This footer is just to have some common content required to show just in case
-                otherwise there is no use of this footer
-                -->
-        <ng-template
-          [cdkPortalOutlet]="service.state.slotEndSideBarFooter() ?? DEF_SLOT_END_SIDE_BAR_FOOTER"
+                    </div>
+                    <button
+                        matIconButton
+                        (click)="service.toggleEndSideBar()"
+                        class="tw:shrink-0"
+                        [attr.aria-label]="
+                            (service.state.endSideBarIsOpen() ? 'GL.COMMON.CLOSE' : 'GL.COMMON.OPEN') | transloco
+                        "
+                    >
+                        <!-- replaced (click)="BfwEndSideBar.toggle()" with toggleEndSideBar() -->
+                        <!-- replaced [attr.aria-label]="BfwEndSideBar.opened" with service.state.endSideBarIsOpen() -->
+                        <mat-icon class="material-symbols-rounded">close</mat-icon>
+                    </button>
+                </mat-toolbar>
+            </div>
+        </header>
+        <!-- ██ [3B] ██ -->
+        <section>
+            <mat-tab-group
+                #BfwEndSideBarTabGroup 
+                class="bfw-end-sidebar-tab-group"
+                animationDuration="200ms"
+                [dynamicHeight]="false"
+                [selectedIndex]="service.state.endSideBarOpenTabIndex()"
+                (selectedIndexChange)="service.state.setEndSideBarOpenTabIndex($event)"
+            >
+              @let tabLabels = service.state.slotEndSideBarTabLabel() ?? [];
+              @let tabBodies = service.state.slotEndSideBarTabBody() ?? [];
+              @for (bodyPortal of tabBodies; track $index; let i = $index) {
+                  <mat-tab>
+                      <!--
+                      # IMPORTANT
+                      in tab html need to adjust classe [bfw-safe-area-pb]
+                      for mohbile device safe area, this can be as per required content element
+                      placement of classes are based on structure of html
+                      -->
+                    <ng-template mat-tab-label>
+                      @if (tabLabels[i]) {
+                        <ng-template [cdkPortalOutlet]="tabLabels[i]"></ng-template>
+                      } @else {
+                        <span>{{ 'GL.COMMON.TAB' | transloco: { number: i + 1 } }}</span>
+                      }
+                    </ng-template>
+                    <ng-template matTabContent>
+                      <ng-template [cdkPortalOutlet]="bodyPortal"></ng-template>
+                    </ng-template>
+                </mat-tab>
+              }
+              <mat-tab>
+                <ng-template mat-tab-label>
+                  <span
+                    matBadge="3"
+                    matBadgeColor="warn"
+                    matBadgeSize="medium"
+                    matBadgePosition="above after"
+                    [matBadgeOverlap]="true"
+                    class="tw:pe-4"
+                    >{{ 'GL.COMMON.NOTIFICATION' | transloco }}
+                  </span>
+                </ng-template>
+                <!-- tab content -->
+                <ng-template matTabContent>
+                  <div>Notification content</div>
+                </ng-template>
+              </mat-tab>
+            </mat-tab-group>
+        </section>
+        <!-- ██ [3F] ██ -->
+        <footer
+          class="bfw-sidenav-end-footer tw:sticky tw:bottom-0 tw:z-10 tw:w-full tw:backdrop-blur-md tw:mbs-auto"
         >
-        </ng-template>
-      </footer>
+          <!--
+                  # IMPORTANT
+                  need to handle sasfe area class [bfw-safe-area-pb bfw-safe-area-pe] inside content
+                  otherwise it will not mess in mobile view
+                  this is because each tab can have its own footer and and adding this class will create double glass effect
+                  so make sure you add class as below in footer custom template
+                  <div class="bfw-safe-area-pb bfw-safe-area-pe">cusom content</div>
+                  
+                  This footer is just to have some common content required to show just in case
+                  otherwise there is no use of this footer
+                  -->
+          <ng-template
+            [cdkPortalOutlet]="service.state.slotEndSideBarFooter() ?? DEF_SLOT_END_SIDE_BAR_FOOTER"
+          >
+          </ng-template>
+        </footer>
     </mat-sidenav>
   </mat-sidenav-container>
 </div>

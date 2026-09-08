@@ -27,6 +27,7 @@ import { ContextProfileStatefulInfo } from "@libs/context-profile/type";
 export class SigninService implements FoundationModuleServiceType {
     public readonly SignupRoute = SignupRoute;
     public readonly ForgotPasswordRoute = ForgotPasswordRoute;
+    public finishRedirectUrl: string = DashboardRoute.absolutePath();
 
     public readonly AuthAreaLayoutStateRuntimeEnum = AuthAreaLayoutStateRuntimeEnum;
     public readonly SigninStepEnum = SigninStepEnum;
@@ -45,12 +46,12 @@ export class SigninService implements FoundationModuleServiceType {
     public readonly notifyBanner = inject(NotifyBannerService);
     public readonly sign = inject(SignatureService);
     public readonly utility = inject(UtilityService);
-
+    
     public readonly api = inject(BfwApiService);
 
     public readonly state = inject(SigninState);
 
-    constructor() {
+    constructor(){
         // █████ FoundationModuleServiceType
         // load this module's translations first, before any label can render.
         // constructor, not component ngOnInit - see I18nService.useModule() for why
@@ -71,10 +72,10 @@ export class SigninService implements FoundationModuleServiceType {
         this.i18n.useModule(PREBOARDING_SIGNIN_I18N_KEY);
     }
     public setModuleInfo(): void {
-
+        
     }
     public alterBreadcrumb(): void {
-
+        
     }
     public fieldErrorMessage(fieldState: { errors?: () => Array<{ message?: string }> }): string | null {
         const message = fieldState.errors?.()?.[0]?.message;
@@ -96,18 +97,18 @@ export class SigninService implements FoundationModuleServiceType {
     }
     public isCurrentStepValid(): boolean {
         switch (this.state.step()) {
-            case SigninStepEnum.USERNAME:
+            case SigninStepEnum.USERNAME: 
                 return !this.state.mutationForm.un_pe_pm().invalid();
-                break;
-            case SigninStepEnum.PASSWORD:
+            break;
+            case SigninStepEnum.PASSWORD: 
                 return !this.state.mutationForm.identify().invalid();
-                break;
-            case SigninStepEnum.MFAO:
+            break;
+            case SigninStepEnum.MFAO: 
                 return !this.state.mutationForm.mfa_option().invalid();
-                break;
-            case SigninStepEnum.VERIFY:
+            break;
+            case SigninStepEnum.VERIFY: 
                 return !this.state.mutationForm.mfa_vi().invalid();
-                break;
+            break;
         }
         return false;
     }
@@ -115,18 +116,18 @@ export class SigninService implements FoundationModuleServiceType {
         switch (this.state.step()) {
             case SigninStepEnum.USERNAME:
                 this.state.mutationForm.un_pe_pm().markAsTouched();
-                break;
+            break;
             case SigninStepEnum.PASSWORD:
                 this.state.mutationForm.identify().markAsTouched();
-                break;
+            break;
             case SigninStepEnum.MFAO:
                 this.state.mutationForm.mfa_option().markAsTouched();
-                break;
+            break;
             case SigninStepEnum.VERIFY:
                 this.state.mutationForm.mfa_vi().markAsTouched();
-                break;
+            break;
             default:
-                break;
+            break;
         }
     }
     public toogleResendOtpButton() {
@@ -135,7 +136,7 @@ export class SigninService implements FoundationModuleServiceType {
     public goBack(): void {
         const previousStep = this.state.getPreviousStep(this.state.step());
 
-        if (previousStep) {
+        if(previousStep){
             this.state.setStep(previousStep);
         }
     }
@@ -162,7 +163,7 @@ export class SigninService implements FoundationModuleServiceType {
         this.gpbs.stream = 10;
 
         // this is important, if user is already signed in then do not allow to sign in again in same device
-        if (this.ctxp.state.authenticated()) {
+        if(this.ctxp.state.authenticated()) {
             this.state.updateMutationFormError({
                 un_pe_pm: 'PREBOARDING_SIGNIN.VALIDATION.ALREADY_SIGNED_IN'
             });
@@ -170,30 +171,30 @@ export class SigninService implements FoundationModuleServiceType {
         }
         this.gpbs.stream = 20;
 
-        if (precheck) {
+        if(precheck) {
             try {
                 let http: BfwApiSdkResponse<AppStepSigninUserOutputDto> | null = null;
                 // TODO: wire actual signin flow; for now advance step-by-step.
                 switch (this.state.step()) {
                     case SigninStepEnum.USERNAME:
                         http = await this.stepUsername();
-                        break;
+                    break;
                     case SigninStepEnum.PASSWORD:
                         http = await this.stepPassword();
-                        break;
+                    break;
                     case SigninStepEnum.MFAO:
                         http = await this.stepMfaOption();
-                        break;
+                    break;
                     case SigninStepEnum.VERIFY:
                         http = await this.stepVerify();
-                        break;
+                    break;
                     default:
-                        break;
+                    break;
                 }
                 this.gpbs.stream = 30;
 
                 // perform common api
-                if (http) {
+                if(http) {
                     const resp = http.data;
 
                     // state: save the response, use if required, added provision and might be use ful in debugging
@@ -213,25 +214,25 @@ export class SigninService implements FoundationModuleServiceType {
                         this.session.state.setDkeyid(resp.dkeyid as string);    
                     }*/
                     // state: update host authorisation token as it might get changed during process due to any availabe previous session
-                    if (resp.htoken) {
+                    if(resp.htoken){
                         this.ctxp.state.setHostToken(resp.htoken as string);
                     }
                     this.gpbs.stream = 70;
 
                     // state: keep available_mfao for next step
-                    if (resp.available_mfao) {
+                    if(resp.available_mfao){
                         this.state.setAvailableMfao(resp.available_mfao);
                     }
 
                     // state: keep selected_mfao for next step
-                    if (resp.selected_mfao) {
+                    if(resp.selected_mfao){
                         this.state.setSelected_mfao(resp.selected_mfao);
                         this.state.computedMutationFieldObjMfaVi();
 
 
                         // If its security question to answer then or 2FA app then do not show resend otp button
-                        if (
-                            resp.selected_mfao === UserMultiFactorAuthenticationTypeEnum.MULTIFAT_2FAAPP ||
+                        if(
+                            resp.selected_mfao === UserMultiFactorAuthenticationTypeEnum.MULTIFAT_2FAAPP || 
                             resp.selected_mfao === UserMultiFactorAuthenticationTypeEnum.MULTIFAT_SECURITY_QUE
                         ) {
                             this.state.setDisableResendOtp(true);
@@ -243,16 +244,16 @@ export class SigninService implements FoundationModuleServiceType {
                     this.gpbs.stream = 80;
 
                     // state: check ref id and value
-                    if (resp.ref_id) {
+                    if(resp.ref_id) {
                         this.state.setRefId(resp.ref_id);
                     }
-                    if (resp.ref_value) {
+                    if(resp.ref_value) {
                         this.state.setRefValue(resp.ref_value);
                     }
 
                     // state: go to next step
                     this.state.setStep(resp.next_step as SigninStepEnum);
-
+                    
                     this.gpbs.stream = 90;
 
                     /**
@@ -260,7 +261,7 @@ export class SigninService implements FoundationModuleServiceType {
                      * All process done and now next step is finish so, check authenticated info and process
                      * DO NOT USE SIGNAL [this.state.step()] as it might have security issue
                      */
-                    if (resp.next_step === SigninStepEnum.FINISH) {
+                    if(resp.next_step === SigninStepEnum.FINISH) {
                         void await this.stepFinish(resp);
 
                         // as success need to reset the form
@@ -268,14 +269,14 @@ export class SigninService implements FoundationModuleServiceType {
                     }
                 }
             } catch (e: any | BfwApiSdkError) {
-
-            }
+                
+            } 
         }
-
+        
         this.gpbs.stream = 100;
         this.gpbs.stop();
         this.state.setMutationFormProcessing(this.gpbs.processing);
-
+        
         this.autofocusField();
     }
     /**
@@ -308,17 +309,12 @@ export class SigninService implements FoundationModuleServiceType {
                     suspended: true,
                     active: true,
                     deleted: true,
-                    // file_profile_banner_url: {
-                    //     direct: true,
-                    //     secure: true,
-                    //     thumb: true
-                    // },
                     file_profile_photo_url: {
                         direct: true,
                         secure: true,
                         thumb: true
                     }
-                },
+                }, 
                 uauthorisation: {
                     keyid: true,
                     active: true,
@@ -388,9 +384,9 @@ export class SigninService implements FoundationModuleServiceType {
                 }
             });
             return http;
-        } catch (e: any | BfwApiSdkError) {
+        } catch(e: any | BfwApiSdkError) {
             const em: string = e.errors()[0] ?? e.message;
-            if (em.includes('not found')) {
+            if(em.includes('not found')) {
                 this.state.pushInvalidUser(un_pe_pm);
             } else {
                 this.state.updateMutationFormError({
@@ -403,7 +399,7 @@ export class SigninService implements FoundationModuleServiceType {
     public async stepPassword(): Promise<BfwApiSdkResponse<AppStepSigninUserOutputDto>> {
         const identify: string = this.state.mutationForm.identify().value();
 
-        try {
+        try{
             const http = await this.api.sdk.graphql.userAuthentication.stepSigninPassword({
                 selection: this.getStepSigninSelection(),
                 input: {
@@ -414,9 +410,9 @@ export class SigninService implements FoundationModuleServiceType {
                 }
             });
             return http;
-        } catch (e: any | BfwApiSdkError) {
+        } catch(e: any | BfwApiSdkError) {
             const em: string = e.errors()[0] ?? e.message;
-            if (em.includes('invalid')) {
+            if(em.includes('invalid')) {
                 this.state.pushInvalidIdentify(identify);
             } else {
                 this.state.updateMutationFormError({
@@ -428,7 +424,7 @@ export class SigninService implements FoundationModuleServiceType {
     }
     public async stepMfaOption(): Promise<BfwApiSdkResponse<AppStepSigninUserOutputDto>> {
         const mfao: UserMultiFactorAuthenticationTypeEnumAddon | null = this.state.mutationForm.mfa_option().value();
-        try {
+        try{
             const http = await this.api.sdk.graphql.userAuthentication.stepSigninMultiFAOption({
                 selection: this.getStepSigninSelection(),
                 input: {
@@ -438,7 +434,7 @@ export class SigninService implements FoundationModuleServiceType {
                 }
             });
             return http;
-        } catch (e: any | BfwApiSdkError) {
+        } catch(e: any | BfwApiSdkError) {
             const em: string = e.errors()[0] ?? e.message;
             this.state.updateMutationFormError({
                 mfa_option: em
@@ -448,7 +444,7 @@ export class SigninService implements FoundationModuleServiceType {
     }
     public async stepVerify(): Promise<BfwApiSdkResponse<AppStepSigninUserOutputDto>> {
         const vi: string = this.state.mutationForm.mfa_vi().value();
-        try {
+        try{
             const http = await this.api.sdk.graphql.userAuthentication.stepSigninVerify({
                 selection: this.getStepSigninSelection(),
                 input: {
@@ -460,7 +456,7 @@ export class SigninService implements FoundationModuleServiceType {
             });
 
             return http;
-        } catch (e: any | BfwApiSdkError) {
+        } catch(e: any | BfwApiSdkError) {
             const em: string = e.errors()[0] ?? e.message;
             this.state.updateMutationFormError({
                 mfa_vi: em
@@ -471,7 +467,7 @@ export class SigninService implements FoundationModuleServiceType {
     public async resendOtp(): Promise<void> {
         this.gpbs.start();
 
-        try {
+        try{
             const http = await this.api.sdk.graphql.userAuthentication.stepSigninSubProcess({
                 selection: this.getStepSigninSelection(),
                 input: {
@@ -481,19 +477,19 @@ export class SigninService implements FoundationModuleServiceType {
                 }
             });
             this.gpbs.stream = 50;
-
-            if (http.data) {
+            
+            if(http.data) {
                 const resp = http.data;
-
+                
                 // update the stamp
                 this.state.setStamp(resp.stamp as string);
                 this.gpbs.stream = 60;
 
                 // state: check ref id and value
-                if (resp.ref_id) {
+                if(resp.ref_id) {
                     this.state.setRefId(resp.ref_id);
                 }
-                if (resp.ref_value) {
+                if(resp.ref_value) {
                     this.state.setRefValue(resp.ref_value);
                 }
                 this.gpbs.stream = 60;
@@ -509,7 +505,7 @@ export class SigninService implements FoundationModuleServiceType {
                 // as failed we need to enable resend otp button to try again
                 this.state.setDisableResendOtp(false);
             }
-        } catch (e: any | BfwApiSdkError) {
+        } catch(e: any | BfwApiSdkError) {
             const em: string = e.errors()[0] ?? e.message;
             this.state.updateMutationFormError({
                 mfa_vi: em
@@ -521,29 +517,29 @@ export class SigninService implements FoundationModuleServiceType {
         }
     }
     public async stepFinish(resp: AppStepSigninUserOutputDto): Promise<void> {
-        const session = resp.authenticated?.session;
-        const user = resp.authenticated?.user;
-        const uauthorisation = resp.authenticated?.uauthorisation;
-        const authorisation = resp.authenticated?.authorisation;
-        const udevice = resp.authenticated?.udevice;
+        const session = resp.authenticated?.session; 
+        const user = resp.authenticated?.user; 
+        const uauthorisation = resp.authenticated?.uauthorisation;  
+        const authorisation = resp.authenticated?.authorisation;  
+        const udevice = resp.authenticated?.udevice;  
         const device = resp.authenticated?.device;
 
-        if (
-            user?.suspended === null &&
-            user?.active === null &&
-            user?.deleted === null &&
-            uauthorisation?.active === null &&
+        if(
+            user?.suspended === null && 
+            user?.active === null && 
+            user?.deleted === null && 
+            uauthorisation?.active === null && 
             uauthorisation?.deleted === null &&
-            udevice?.active === null &&
-            udevice?.deleted === null &&
-            authorisation?.active === null &&
-            authorisation?.deleted === null &&
-            device?.active === null &&
+            udevice?.active === null && 
+            udevice?.deleted === null && 
+            authorisation?.active === null && 
+            authorisation?.deleted === null && 
+            device?.active === null && 
             device?.deleted === null &&
             session?.active === null &&
             session?.deleted === null
         ) {
-            if (session.logged_in) {
+            if(session.logged_in) {
                 // set the stateful jwt in persistent storage
                 this.ctxp.state.setSessionToken(session?.jwt ?? null);
 
@@ -560,11 +556,6 @@ export class SigninService implements FoundationModuleServiceType {
                         primary_mobile_cc: user?.primary_mobile_cc ?? null,
                         whatsapp: user?.whatsapp ?? null,
                         whatsapp_cc: user?.whatsapp_cc ?? null,
-                        // file_profile_banner_url: {
-                        //     direct: user?.file_profile_banner_url?.direct ?? null,
-                        //     secure: user?.file_profile_banner_url?.secure ?? null,
-                        //     thumb: user?.file_profile_banner_url?.thumb ?? null
-                        // },
                         file_profile_photo_url: {
                             direct: user?.file_profile_photo_url?.direct ?? null,
                             secure: user?.file_profile_photo_url?.secure ?? null,
@@ -589,20 +580,26 @@ export class SigninService implements FoundationModuleServiceType {
                     }
                 };
                 this.ctxp.state.setStatefulInfo(sfinfo);
+                
+                // if user is authenticated, redirect to last page
+                // do not use this.ctxp.state.authenticated() in if
+                // because sometimes it still contains the previous false result and do not redirect
+                if(session?.logged_in && session?.jwt) {
+                    this.finishRedirectUrl =
+                        this.ctxp.state.redirectAfterAuth() ??
+                        DashboardRoute.absolutePath();
 
-                // wait a while so user can see the success message
-                setTimeout(async () => {
-                    // if user is authenticated, redirect to last page
-                    if (this.ctxp.state.authenticated()) {
-                        // Use the protected deep link or last page remembered during sign out.
-                        const redirectUrl =
-                            this.ctxp.state.useRedirectAfterAuth() ?? '/';
+                    // wait a while so user can see the success message
+                    setTimeout(async () => {
+                            const navigated = await this.route.router.navigateByUrl(this.finishRedirectUrl, {
+                                replaceUrl: true,
+                            });
 
-                        const redirect = await this.route.router.navigateByUrl(redirectUrl, {
-                            replaceUrl: true,
-                        });
-                    }
-                }, 1.5 * 1000);
+                            if (navigated) {
+                                this.ctxp.state.setRedirectAfterAuth(null);
+                            }
+                    }, 1.5 * 1000);
+                }
             } else {
                 // this is for security reason
                 this.ctxp.state.clearSession();

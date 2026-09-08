@@ -11,11 +11,12 @@ import { GlobalProgressBarService } from "@base/global-progress-bar/service";
 import { ContextProfileService } from "@libs/context-profile/service";
 import { BfwApiService } from "@libs/third-party-apis/bfw-api/service";
 import { FoundationModuleStateType } from "@libs/foundation/module/type";
-import { CrudChildMutationStateType } from "src/app/base/crud/child/type/mutation.state";
 import { PREBOARDING_SIGNIN_STATE_STORE_KEY } from "./const";
+import { CrudChildStateType } from "src/app/base/crud/child/type/state";
+import { CrudMutationStateType } from "src/app/base/crud/type";
 
 @Service({ autoProvided: false })
-export class SigninState extends SignalStateService implements FoundationModuleStateType, CrudChildMutationStateType {
+export class SigninState extends SignalStateService implements FoundationModuleStateType, CrudChildStateType, CrudMutationStateType {
 
     // ████ DEPENDENCIES ████████████████████████████████████████████████
 
@@ -181,7 +182,7 @@ export class SigninState extends SignalStateService implements FoundationModuleS
         minLength(sp.identify, fo.identify?.validation?.min_length?.value, { message: fo.identify?.validation?.min_length?.message });
         validate(sp.identify, (ctx) => {
             const mfError = this.mutationFormError().identify;
-            const invalidIdentifyValue = this.invalidUser();
+            const invalidIdentifyValue = this.invalidIdentify();
             
             if(invalidIdentifyValue && invalidIdentifyValue.includes(ctx.value())) {
                 return { kind: 'not_found', message: 'PREBOARDING_SIGNIN.VALIDATION.INVALID_IDENTIFY' };
@@ -353,6 +354,9 @@ export class SigninState extends SignalStateService implements FoundationModuleS
     }
     public setMutationFormProcessing(processing: boolean): void {
         this._mutationFormProcessing.set(processing);
+    }
+    public setMutationFormValues(input?: SigninMutationFormModelType): void {
+        // not in use but required to satisfy the interface   
     }
     public resetMutationForm(): void {
         // reset the form when needed

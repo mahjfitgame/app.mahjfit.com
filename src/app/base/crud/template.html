@@ -1,6 +1,6 @@
 <!-- file: src/app/base/crud/template.html -->
 <!-- module listing component, initial render -->
-@if (service.shouldShowCrudListingLayout()) {
+@if (service.state.action.hasListing() && service.action.shouldShowListingDom()) {
     <div class="tw:flex tw:flex-col tw:gap-4 tw:mx-2!">
         <app-crud-default-listing></app-crud-default-listing>
         <app-crud-default-pagination></app-crud-default-pagination>
@@ -12,9 +12,16 @@
 
     <!-- Main header toolbar extension -->
     <ng-template cdkPortal [privateAreaLayout]="service.PrivateAreaLayoutSlotEnum.SLOT_MAIN_HEADER_TOOLBAR_EXTENSION">
-        <app-crud-default-quick-search></app-crud-default-quick-search>
+        @if (service.state.action.hasQuickSearch()) {
+            <app-crud-default-quick-search></app-crud-default-quick-search>
+        }
         <app-crud-default-module-action></app-crud-default-module-action>
-        <app-crud-default-search-filter></app-crud-default-search-filter>
+        @if (
+            service.state.action.hasAdvanceSearch()
+            || service.state.action.hasViewOption()
+        ) {
+            <app-crud-default-listing-search></app-crud-default-listing-search>
+        }
     </ng-template>
 
     <!-- Main footer toolbar extension -->
@@ -34,7 +41,46 @@
             TAB BODY
         </div>
     </ng-template> -->
+} @else if (!service.state.action.hasListing()) {
+    <section
+        role="alert"
+        aria-labelledby="crud-unauthorized-title"
+        class="tw:flex tw:min-h-[55dvh] tw:items-center tw:justify-center tw:px-4 tw:py-10"
+    >
+        <div class="tw:relative tw:w-full tw:max-w-lg tw:overflow-hidden tw:rounded-3xl tw:border tw:border-outline/20 tw:bg-surface-container/60 tw:px-6 tw:py-10 tw:text-center tw:shadow-lg tw:backdrop-blur-sm sm:tw:px-10">
+            <div
+                aria-hidden="true"
+                class="tw:absolute tw:-top-20 tw:-right-20 tw:h-52 tw:w-52 tw:rounded-full tw:bg-primary/15 tw:blur-3xl"
+            ></div>
+
+            <div class="tw:relative">
+                <div class="tw:mx-auto tw:grid tw:h-20 tw:w-20 tw:place-items-center tw:rounded-full tw:border tw:border-primary/20 tw:bg-primary-container tw:text-on-primary-container tw:shadow-sm">
+                    <mat-icon
+                        aria-hidden="true"
+                        class="material-symbols-rounded tw:h-10! tw:w-10! tw:text-[2.5rem]!"
+                    >lock_person</mat-icon>
+                </div>
+
+                <div class="tw:mt-6 tw:inline-flex tw:rounded-full tw:bg-primary/15 tw:px-3 tw:py-1 tw:text-xs tw:font-bold tw:tracking-[0.2em] tw:text-primary">
+                    403
+                </div>
+
+                <h2 id="crud-unauthorized-title" class="tw:mt-4 tw:text-2xl tw:font-bold tw:tracking-tight tw:text-on-surface sm:tw:text-3xl">
+                    {{ 'GL.MODULE.HTTP_STATUS.UNAUTHORIZED' | transloco }}
+                </h2>
+
+                <p class="tw:mx-auto tw:mt-3 tw:max-w-sm tw:text-sm tw:leading-6 tw:text-on-surface/70 sm:tw:text-base">
+                    {{ 'GL.MODULE.HTTP_STATUS.UNAUTHORIZED_HINT' | transloco }}
+                </p>
+
+                <div aria-hidden="true" class="tw:mx-auto tw:mt-7 tw:h-1 tw:w-14 tw:rounded-full tw:bg-primary/70"></div>
+            </div>
+        </div>
+    </section>
 }
 
 <!-- module mutation action (create and update) form component -->
 <app-crud-default-mutation></app-crud-default-mutation>
+
+<!-- module read-only record action component -->
+<app-crud-default-view></app-crud-default-view>

@@ -1,0 +1,36 @@
+<!-- View owns a separate portal so future record tools cannot affect Mutation. -->
+<ng-template
+    cdkPortal
+    [privateAreaLayout]="service.PrivateAreaLayoutSlotEnum.SLOT_END_SIDE_BAR_TAB_LABEL"
+    [privateAreaLayoutIndex]="1"
+    [privateAreaLayoutLabel]="service.CrudEndSideBarTabEnum.VIEW"
+>
+    <span>{{ service.view.getViewTitle() | transloco }}</span>
+</ng-template>
+
+<ng-template
+    cdkPortal
+    [privateAreaLayout]="service.PrivateAreaLayoutSlotEnum.SLOT_END_SIDE_BAR_TAB_BODY"
+    [privateAreaLayoutIndex]="1"
+    [privateAreaLayoutLabel]="service.CrudEndSideBarTabEnum.VIEW"
+>
+    <div class="bfw-safe-area-pe">
+        <div class="tw:flex tw:min-w-0 tw:flex-col tw:gap-4 tw:p-3">
+            <ng-container *ngComponentOutlet="service.view.getViewRecordComponent(); injector: service.getComponentInjector()"></ng-container>
+        </div>
+    </div>
+    @if (service.state.action.hasPrint()) {
+        <footer class="bfw-safe-area-pb bfw-safe-area-pe tw:sticky tw:bottom-0 tw:z-20 tw:w-full tw:backdrop-blur-md tw:mbs-auto">
+            <div class="tw:flex tw:justify-end tw:gap-2 tw:p-3!">
+                <button
+                    mat-icon-button
+                    type="button"
+                    (click)="service.view.printRecord()"
+                    [attr.aria-label]="'GL.ACTION.PRINT' | transloco"
+                >
+                    <mat-icon class="material-symbols-rounded">print</mat-icon>
+                </button>
+            </div>
+        </footer>
+    }
+</ng-template>

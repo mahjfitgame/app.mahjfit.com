@@ -1,0 +1,118 @@
+@let tpl = template();
+@let controlId = inputId() || name();
+@let toggleClass = 'tw:min-w-0 tw:flex-auto';
+
+<div class="tw:w-full tw:min-w-0">
+    <div class="tw:mb-2 tw:flex tw:items-center tw:gap-1"
+        [id]="controlId + '-label'">
+        @if (iconPrepend()) {
+            <mat-icon class="material-symbols-rounded tw:font-bold tw:text-2xl! tw:leading-none! tw:h-6! tw:w-6! tw:shrink-0">
+                {{ iconPrepend() }}
+            </mat-icon>
+        }
+
+        @if (label()) {
+            <mat-label class="tw:truncate tw:text-sm">
+                {{ label() }}@if (required()) {<span class="tw:text-error">&nbsp;*</span>}
+            </mat-label>
+        }
+
+        @if (iconAppend()) {
+            <mat-icon class="material-symbols-rounded tw:font-bold tw:text-2xl! tw:leading-none! tw:h-6! tw:w-6! tw:shrink-0">
+                {{ iconAppend() }}
+            </mat-icon>
+        }
+
+        @if (clearable() && !disabled() && service.state.hasValue()) {
+            <button mat-icon-button type="button"
+                class="tw:ml-auto tw:inline-flex! tw:items-center! tw:justify-center! tw:h-8! tw:w-8! tw:p-0!"
+                [attr.aria-label]="'GL.FIELD.COMMON.CLEAR' | transloco"
+                (click)="service.onClear($event)">
+                <mat-icon class="material-symbols-rounded tw:text-2xl! tw:leading-none! tw:h-6! tw:w-6!">close</mat-icon>
+            </button>
+        }
+    </div>
+
+    <mat-button-toggle-group
+        class="tw:flex! tw:flex-wrap! tw:w-full"
+        [attr.id]="controlId"
+        [attr.aria-labelledby]="label() ? controlId + '-label' : null"
+        [attr.aria-required]="required()"
+        [name]="name()"
+        [multiple]="multiselect()"
+        [hideSingleSelectionIndicator]="true"
+        [disabled]="disabled()"
+        [value]="service.state.renderValue()"
+        (change)="service.onSelectionChange($event.value)">
+
+        @if (service.state.showAllRow()) {
+            <mat-button-toggle [class]="toggleClass" [value]="service.state.allValue">
+                {{
+                    (service.state.isAllSelected()
+                        ? 'GL.FIELD.COMMON.DESELECT'
+                        : 'GL.FIELD.COMMON.ALL') | transloco
+                }}
+                ({{ service.state.selectedKey().length }}/{{ service.state.allKey().length }})
+            </mat-button-toggle>
+        }
+
+        @if (service.state.defaultOption(); as opt) {
+            <mat-button-toggle [class]="toggleClass" [value]="opt.key">
+                {{ opt.value | transloco }}
+            </mat-button-toggle>
+        }
+
+        @if (service.state.isGrouped()) {
+            @for (grp of service.state.groupEntry(); track grp.key) {
+                <div class="tw:basis-full tw:flex tw:items-center tw:gap-1 tw:text-xs tw:font-medium">
+                    @if (tpl?.group; as drawGroup) {
+                        <span [innerHTML]="drawGroup(grp.item, grp.key)"></span>
+                    } @else {
+                        @if (grp.item.icon) {
+                            <mat-icon class="material-symbols-rounded tw:text-sm! tw:h-4! tw:w-4! tw:shrink-0">
+                                {{ grp.item.icon }}
+                            </mat-icon>
+                        }
+                        <span>{{ grp.item.label | transloco }}</span>
+                    }
+                </div>
+
+                @for (opt of grp.option; track opt.key) {
+                    <mat-button-toggle [class]="toggleClass"
+                        [value]="opt.key"
+                        [disabled]="service.state.disabledKey().has(opt.key)">
+                        @if (tpl?.option; as drawOption) {
+                            <span [innerHTML]="drawOption(opt.item, opt.key)"></span>
+                        } @else {
+                            {{ opt.label | transloco }}
+                        }
+                    </mat-button-toggle>
+                }
+            }
+        } @else {
+            @for (opt of service.state.entry(); track opt.key) {
+                <mat-button-toggle [class]="toggleClass"
+                    [value]="opt.key"
+                    [disabled]="service.state.disabledKey().has(opt.key)">
+                    @if (tpl?.option; as drawOption) {
+                        <span [innerHTML]="drawOption(opt.item, opt.key)"></span>
+                    } @else {
+                        {{ opt.label | transloco }}
+                    }
+                </mat-button-toggle>
+            }
+        }
+    </mat-button-toggle-group>
+
+    @if (error()) {
+        <div class="tw:mt-1 tw:flex tw:items-center tw:gap-1 tw:text-xs tw:text-error">
+            <mat-icon class="material-symbols-rounded tw:text-xs! tw:h-4! tw:w-4! tw:shrink-0">error</mat-icon>
+            <span>{{ error() }}</span>
+        </div>
+    } @else if (hint()) {
+        <div class="tw:mt-1 tw:flex tw:items-start tw:gap-1 tw:text-xs">
+            <mat-icon class="material-symbols-rounded tw:text-xs! tw:h-4! tw:w-4! tw:shrink-0">info</mat-icon>
+            <span>{{ hint() }}</span>
+        </div>
+    }
+</div>

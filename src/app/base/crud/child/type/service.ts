@@ -1,22 +1,42 @@
-// file: src/app/base/crud/sub/service.ts
+// file: src/app/base/crud/child/type/service.ts
 import { PrivateAreaLayoutSlotEnum } from "@area/private/enum";
-import { CrudService } from "@base/crud/service";
+import { CrudService } from "src/app/base/crud/service/entry";
 import { ConfService } from "@libs/conf/service";
 import { LogService } from "@libs/log/service";
-import { CrudFindInputType } from "@base/crud/type";
+import {
+    CrudFindInputType,
+    CrudListingViewOptionResultType,
+    CrudListOperationInputType,
+    CrudMutationInputType,
+    CrudMutationResultType,
+    CrudRecordKeyInputType,
+    CrudRecordType,
+    CrudStateRecordFieldObjType,
+    CrudSearchFilterInputType,
+    CrudViewOptionInputType,
+} from "@base/crud/type";
+import { CrudDataLoadTypeEnum } from "@base/crud/enum";
+import { BfwApiSdkResponse } from "@bfw/api-sdk/core";
+import { I18nService } from "src/app/base/internationalization/service";
 
 export interface CrudChildServiceType {
-    crud: CrudService;
+    PrivateAreaLayoutSlotEnum: typeof PrivateAreaLayoutSlotEnum;
 
     conf: ConfService;
     log: LogService;
+    i18n: I18nService;
 
-    PrivateAreaLayoutSlotEnum: typeof PrivateAreaLayoutSlotEnum;
+    crud: CrudService;
+
+    // ████ CONFIGURATION METHODS IN CHILD CONSTRUCTOR █████████████
+    /** Call to this method in the constructor at first */
+    crudInit(): void;
 
     /**
-     * Call to this method in the constructor at first
+     * Set the child module's static route class in CRUD root state. Must run
+     * before URL initialization, action checks, or CRUD action URL generation.
      */
-    crudInit(): void;
+    setModuleRoute(): void;
 
     /**
      * Call to this method in the constructor
@@ -36,57 +56,21 @@ export interface CrudChildServiceType {
      */
     enableUrlSync(flag: boolean): void;
 
-    /**
-     * Call to this method in the constructor
-     */
+    // standard fields of module
     setPrimaryKey(): void;
-
-    /**
-     * Call to this method in the constructor, right after setPrimaryKey().
-     *
-     * The secondary key is what CRUD addresses records by — action urls, the
-     * lsr selection param, the edit link. It must arrive with every find()
-     * row, same as the primary key, or those all resolve to null.
-     */
     setSecondaryKey(): void;
-
-    /**
-     * Call to this method in the constructor
-     */
     setUniqueKey(): void;
-
-    /**
-     * Call to these methods in the constructor, right after setUniqueKey().
-     *
-     * Each one names a well-known column for CRUD (url slug, main flag, manual
-     * sort position, active stamp, soft delete stamp). Defaults live in
-     * FoundationFieldDefaultNameEnum; a module whose column is spelled
-     * differently passes its own name, and one that has no such column passes
-     * null.
-     */
     setUrlSlugField(): void;
-
     setIsMainField(): void;
-
     setRecordPositionField(): void;
-
     setActiveField(): void;
-
     setDeletedField(): void;
 
-    /**
-     * Call to this method in the constructor
-     */
-    setFieldObj(): void;
+    /** Configure whether a successful record action reloads the listing. */
+    setReloadListingAfterRecordAction(): void;
 
-    /**
-     * Call to this method in constructor()
-     * Must be after initisation of setFieldObj() as it requires field object to process
-     * this is required to generate search form in ui and also handle its submit
-     * call after initCrudStateFromUrl()
-     */
-    setSearchFormLayout(): void;
-    
+    /** Set the child module's field object to perform actions. */
+    setFieldObj(): void;
 
     /**
      * Call to this method in the constructor
@@ -97,6 +81,12 @@ export interface CrudChildServiceType {
      * genereally this is not required but override is possible as needed in this method
      */
     setMutationActionUiLayout(): void;
+
+    /**
+     * Set the mutation wrapper size independently from its layout type.
+     * Defaults to UiSizeEnum.SM when the child does not override it.
+     */
+    setMutationActionUiSize(): void;
 
     /**
      * Call to this method in the constructor
@@ -112,49 +102,69 @@ export interface CrudChildServiceType {
      */
     setMutationPageCustomComponent(): void;
 
-    /**
-     * Call to this method in the constructor
-     */
+    /** Configure module's independent read-only View layout. */
+    setViewActionUiLayout(): void;
+
+    /** Configure the View wrapper size independently from Mutation. */
+    setViewActionUiSize(): void;
+
+    /** Optionally replace the default read-only record component. */
+    setViewRecordCustomComponent(): void;
+
+    /** Optionally replace the default full-page View component. */
+    setViewPageCustomComponent(): void;
+
+    /** Call to this method in the constructor */
     setListingSelectedRowsInitialSource(): void;
 
-    /**
-     * Call to this method in the constructor
-     */
+    // Register this module's standard api operation methods for abstract CRUD service.
+    registerFindByPrimaryKey(): void;
+    registerFindBySecondaryKey(): void;
     registerFind(): void;
+    registerCreate(): void;
+    registerUpdate(): void;
+    registerActive(): void;
+    registerInactive(): void;
+    registerSoftDelete(): void;
+    registerRestore(): void;
+    registerDelete(): void;
 
-    /**
-     * Call to this method in the constructor
-     */
+    /** Sync CRUD state from URL matrix params */
     initCrudStateFromUrl(): void;
 
     /**
-     * Call to this method in the constructor
+     * Call to this method in constructor()
+     * Must be after initisation of setFieldObj() as it requires field object to process
+     * this is required to generate search form in ui and also handle its submit
+     * call after initCrudStateFromUrl()
      */
-    initialLoad(): Promise<boolean>;
+    listingSearchFormLayout(): void;
 
-    /**
-     * DEPENDENT CALLS AFTER DATA LOAD
-     * All of those call which are dependent on data must be placed inside load() call chain
-     * as data required await and constructor do not support await
-     * due to await issue we have to call those methods inside load()
-     */
+    /** On module init, load the initial listing data */
+    initialListingLoad(): Promise<boolean>;
 
-    /** 
-     * Call to this method in the load()
-     * This must be called inside load() as it's dependent on data
-     */
-    syncCrudStateFromUrlState(): void;
+    // ████ INTERAL METHODS ███████████████████
+    findByPrimaryKey(input: CrudRecordKeyInputType, fieldObj: CrudStateRecordFieldObjType): Promise<CrudRecordType[]>;
+    findBySecondaryKey(input: CrudRecordKeyInputType, fieldObj: CrudStateRecordFieldObjType): Promise<CrudRecordType[]>;
+    
+    find(input: CrudFindInputType, type?: CrudDataLoadTypeEnum): Promise<boolean>;
+    loadListingData(
+        searchFilterInput: CrudSearchFilterInputType,
+        viewOptionInput: CrudViewOptionInputType,
+        listOperationInput: CrudListOperationInputType,
+        skip: number,
+    ): Promise<BfwApiSdkResponse<any>>;
+    getListingSearchFilter(input: CrudSearchFilterInputType): object[];
+    getListingViewOption(input: CrudViewOptionInputType): CrudListingViewOptionResultType;
+    
 
-    /**
-     * Call to this method in the load()
-     * This call must remain at last in load() call chain
-     * This gives time to finish sync from url matrix params on initial load
-     * This must be called inside load() as it's dependent on data
-     */
-    syncUrlStateFromCrudState(): void;
+    create(input: CrudMutationInputType): Promise<CrudMutationResultType>;
+    update(keyid: string | number,  input: CrudMutationInputType): Promise<CrudMutationResultType>;
 
-    /**
-     * This method will be used to register the find
-     */
-    find(input: CrudFindInputType): Promise<boolean>;
+    active(keyid: CrudRecordKeyInputType): Promise<CrudMutationResultType>;
+    inactive(keyid: CrudRecordKeyInputType): Promise<CrudMutationResultType>;
+
+    softDelete(keyid: CrudRecordKeyInputType): Promise<CrudMutationResultType>;
+    restore(keyid: CrudRecordKeyInputType): Promise<CrudMutationResultType>;
+    delete(keyid: CrudRecordKeyInputType): Promise<CrudMutationResultType>;
 }

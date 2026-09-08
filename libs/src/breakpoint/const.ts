@@ -1,4 +1,6 @@
 // file: libs/src/breakpoint/const.ts
+import { UiSizeEnum } from './enum';
+
 export const BREAKPOINT_XS = 'xs' as const;
 export const BREAKPOINT_SM = 'sm' as const;
 export const BREAKPOINT_MD = 'md' as const;
@@ -26,3 +28,13 @@ export const BREAKPOINTS = {
   xl: '(min-width: 1680px) and (max-width: 2239.98px)',
   xxl: '(min-width: 2240px)',
 } as const;
+
+export const UI_WIDTH: Record<UiSizeEnum, string> = {
+  [UiSizeEnum.XS]: '28rem',
+  [UiSizeEnum.SM]: '35rem',
+  [UiSizeEnum.MD]: '48rem',
+  [UiSizeEnum.LG]: '64rem',
+  [UiSizeEnum.XL]: '80rem',
+  [UiSizeEnum.XXL]: '90vw',
+  [UiSizeEnum.FULL]: '100vw',
+};

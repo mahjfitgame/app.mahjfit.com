@@ -53,6 +53,21 @@ export class FoundationAreaBuilder {
                 continue;
             }
 
+            /**
+             * VALIDATION — the identity guarantee. registryKey is INHERITED from
+             * FoundationModuleRoute now, so a module that never declares its own
+             * still satisfies FoundationModuleRouteType and the missing key is no
+             * longer a compile error. this is where that error moved to.
+             *
+             * ⚠ dev only, and definition() is called an extra time per row to get
+             * it. that is an object literal and a lazy import closure, not a load
+             */
+            if (isDevMode() && modules[row.registry_key].definition().registryKey !== row.registry_key) {
+                console.error(
+                    `[area] row "${row.registry_key}" and its definition() disagree on registryKey`,
+                );
+            }
+
             const siblings = byParent.get(row.parent_key);
 
             siblings ? siblings.push(row) : byParent.set(row.parent_key, [row]);
@@ -150,6 +165,19 @@ export class FoundationAreaBuilder {
             const definition = module.definition();
             const path = row.url_slug ? `${parentPath}/${row.url_slug}` : parentPath;
 
+            /**
+             * ⚠ paths is a Map, so a duplicate key OVERWRITES: the loser's
+             * absolutePath() then answers the winner's url and navigation lands on
+             * the wrong page, silently. the other half of the inherited-registryKey
+             * guard above — that one catches "never declared", this one catches
+             * "two the same"
+             */
+            if (isDevMode() && paths.has(row.registry_key)) {
+                console.error(
+                    `[area] duplicate registryKey "${row.registry_key}" — absolutePath() will be wrong`,
+                );
+            }
+
             paths.set(row.registry_key, path || '/');
 
             const childRoutes: Routes = [];
@@ -189,9 +217,36 @@ export class FoundationAreaBuilder {
              * the next sibling. splicing sidesteps the question entirely
              */
             if (row.url_slug === '' && !definition.component) {
+                /**
+                 * ⚠ its own route is never emitted, so a resolver declared here
+                 * would never run and read() would answer null forever. the
+                 * children are spliced into the PARENT, whose resolver they DO
+                 * inherit — move it there, or give this row a url_slug
+                 */
+                if (isDevMode() && Object.keys(definition.resolve ?? {}).length) {
+                    console.error(
+                        `[area] "${row.registry_key}" is a pass-through group; its resolve() cannot run`,
+                    );
+                }
+
                 routesOut.push(...childRoutes);
             } else {
+                /**
+                 * ⚠ everything ELSE Route allows (title, matcher, outlet,
+                 * loadChildren, runGuardsAndResolvers, providers) rides through
+                 * in `passThrough` untouched. pulled out by name rather than
+                 * spreading `definition` wholesale so the builder-owned fields
+                 * below (path/pathMatch/component→loadComponent/guards/resolve/
+                 * data/children) always win, never a module's
+                 */
+                const {
+                    registryKey: _registryKey, component, breadcrumbAlias, actions: _actions,
+                    canMatch, canActivate, canActivateChild, canDeactivate, resolve, loadChildren,
+                    ...passThrough
+                } = definition;
+
                 routesOut.push({
+                    ...passThrough,
                     path: row.url_slug,
                     /**
                      * an empty slug must be exact or it prefix matches every url
@@ -199,16 +254,24 @@ export class FoundationAreaBuilder {
                      * children never matches, and the open area's slug is ''
                      */
                     ...(row.url_slug === '' && childRoutes.length === 0 ? { pathMatch: 'full' as const } : {}),
-                    ...(definition.component ? { loadComponent: definition.component } : {}),
-                    canMatch: definition.canMatch ?? [],
-                    canActivate: definition.canActivate ?? [],
-                    canActivateChild: definition.canActivateChild ?? [],
-                    canDeactivate: definition.canDeactivate ?? [],
+                    ...(component ? { loadComponent: component } : {}),
+                    canMatch: canMatch ?? [],
+                    canActivate: canActivate ?? [],
+                    canActivateChild: canActivateChild ?? [],
+                    canDeactivate: canDeactivate ?? [],
+                    /**
+                     * ⚠ navigation WAITS on this. the payload lands in this
+                     * route's snapshot.data under FoundationModuleRoute.resolvedKey,
+                     * and angular's default paramsInheritanceStrategy of 'always'
+                     * carries it down to the action children too — read it back
+                     * with FoundationModuleRoute.read()
+                     */
+                    resolve: resolve ?? {},
                     data: {
                         title: row.label,
                         breadcrumb: {
                             label: row.label,
-                            alias: definition.breadcrumbAlias,
+                            alias: breadcrumbAlias,
                             /**
                              * ⚠ a GROUP's crumb must not be a link. geo used to
                              * say `disable: true` by hand. derive it, or the geo
@@ -216,11 +279,18 @@ export class FoundationAreaBuilder {
                              * componentless route with no default child, fails,
                              * and falls through to '**' -> /404
                              */
-                            disable: !definition.component,
+                            disable: !component,
                             info: { icon: row.icon },
                         },
                     } satisfies FoundationModuleRouteDataType,
-                    children: childRoutes,
+                    /**
+                     * ⚠ angular throws at runtime if both are present, even an
+                     * empty `children: []` — arrays are always truthy. loadChildren
+                     * takes over the whole sub-router, so it wins outright; a module
+                     * using it gets none of the nav-row children (default child
+                     * redirect, action routes, nested modules)
+                     */
+                    ...(loadChildren ? { loadChildren } : { children: childRoutes }),
                 });
             }
 
@@ -253,14 +323,11 @@ export class FoundationAreaBuilder {
     // ACTIONS ▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬
     /**
      * Rule 6. definition = what EXISTS, row = what is ALLOWED, intersection wins
-     * no row actions (no api yet) = everything the definition declares
      */
     public static effectiveActions(
         definition: FoundationModuleRouteDefinitionType,
         row: FoundationModuleRouteNavType,
     ): FoundationActionEnum[] {
-        return row.actions
-            ? definition.actions.filter((action) => row.actions!.includes(action))
-            : definition.actions;
+        return definition.actions.filter((action) => row.actions.includes(action));
     }
 }

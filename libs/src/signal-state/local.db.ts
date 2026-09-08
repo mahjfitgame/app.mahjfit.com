@@ -1,5 +1,6 @@
 // file: libs/src/signal-state/local.db.ts
 import { Service, inject } from '@angular/core';
+import { ConfService } from '@libs/conf/service';
 import { AppStateRepository } from '@libs/sqlite/module/app-state/repository';
 import { SignalStateUtility } from './utility';
 import {
@@ -11,6 +12,8 @@ import {
 
 @Service()
 export class SignalStateLocalDb {
+  private readonly conf = inject(ConfService);
+
   /**
    * Keeps the appStateRepository dependency or state holder used by this class.
    * It is readonly so the service wiring stays stable for the instance lifetime.
@@ -41,6 +44,10 @@ export class SignalStateLocalDb {
     source?: SignalStateLocalDbSourceType,
     plainValue = false,
   ): Promise<void> {
+    if (!this.conf.enableLocalDb) {
+      return;
+    }
+
     const normalizedKey = this.utility.normalizeStorageKey(key);
 
     await this.sourceFor(source).setValue(
@@ -58,6 +65,10 @@ export class SignalStateLocalDb {
     expectedVersion = 1,
     source?: SignalStateLocalDbSourceType,
   ): Promise<SignalStateLocalDbValueType<T> | null> {
+    if (!this.conf.enableLocalDb) {
+      return null;
+    }
+
     const normalizedKey = this.utility.maybeNormalizeStorageKey(key);
     if (!normalizedKey) {
       return null;
@@ -84,6 +95,10 @@ export class SignalStateLocalDb {
    * The method keeps callers on a single safe path for this behavior.
    */
   public async remove(key: string, source?: SignalStateLocalDbSourceType): Promise<void> {
+    if (!this.conf.enableLocalDb) {
+      return;
+    }
+
     const normalizedKey = this.utility.maybeNormalizeStorageKey(key);
     if (!normalizedKey) {
       return;

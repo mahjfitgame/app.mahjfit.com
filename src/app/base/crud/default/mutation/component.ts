@@ -1,6 +1,6 @@
 // file: src/app/base/crud/default/mutation-form/form.component.ts
 import { Component, inject } from '@angular/core';
-import { CrudService } from '@base/crud/service';
+import { CrudService } from 'src/app/base/crud/service/entry';
 import { CrudDefaultMutationEndSideBarComponent } from '@base/crud/default/mutation/end-side-bar/component';
 import { NgComponentOutlet } from '@angular/common';
 import { CrudDefaultMutationEndDrawerComponent } from '@base/crud/default/mutation/end-drawer/component';

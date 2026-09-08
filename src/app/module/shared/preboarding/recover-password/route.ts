@@ -5,6 +5,7 @@ import { Router } from '@angular/router';
 import { FoundationAreaEnum } from '@libs/foundation/enum';
 import { FoundationModuleRouteDefinitionType, FoundationModuleRouteNavType } from '@libs/foundation/module/type';
 import { FoundationModulePath } from '@libs/foundation/module/path';
+import { FoundationModuleRoute } from '@libs/foundation/module/route';
 import { FoundationNavPositionEnum } from '@libs/foundation/nav/enum';
 import { UrlService } from '@libs/url/service';
 import { AreaGuard } from '@area/guard';
@@ -16,17 +17,17 @@ import {
 } from '@module/shared/preboarding/recover-password/slug';
 
 @Service({ autoProvided: false })
-export class RecoverPasswordRoute {
+export class RecoverPasswordRoute extends FoundationModuleRoute {
     // CLASS PROPERTIES ▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬
-    public static readonly registryKey = 'PREBOARDING_RECOVER_PASSWORD';
-    public static readonly area = FoundationAreaEnum.AUTH;
+    public static override readonly registryKey = 'PREBOARDING_RECOVER_PASSWORD';
+    public static override readonly area = FoundationAreaEnum.AUTH;
 
     // DEPENDENCIES ▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬
     public readonly url = inject(UrlService);
     public readonly router = inject(Router);
 
     // DEFINITION ▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬
-    public static definition(): FoundationModuleRouteDefinitionType {
+    public static override definition(): FoundationModuleRouteDefinitionType {
         return {
             registryKey: this.registryKey,
             component: () => import('./component').then((c) => c.RecoverPasswordComponent),
@@ -37,6 +38,7 @@ export class RecoverPasswordRoute {
             canActivate: [],
             canActivateChild: [],
             canDeactivate: [],
+            resolve: this.resolve(),
             breadcrumbAlias: 'recoverPassword',
             actions: [],
         };
@@ -51,7 +53,7 @@ export class RecoverPasswordRoute {
      * route, and the bare path now falls through to AreaRoute's '**' which
      * lands on the same /404, one redirect hop later
      */
-    public static nav(): FoundationModuleRouteNavType {
+    public static override nav(): FoundationModuleRouteNavType {
         return {
             registry_key: this.registryKey,
             area_key: this.area,
@@ -60,6 +62,7 @@ export class RecoverPasswordRoute {
             label: 'GL.MODULE.PREBOARDING.RECOVER_PASSWORD',
             icon: 'key',
             sort_order: 40,
+            actions: [],
             hidden: true,
             nav_position: [FoundationNavPositionEnum.START],
         };
@@ -78,14 +81,14 @@ export class RecoverPasswordRoute {
      * absolutePath(): string, and the registry map is where that static shape
      * is type checked — a required argument fails to compile there
      */
-    public static absolutePathArr(token = ''): string[] {
-        return FoundationModulePath.arrOf(this.registryKey, {
-            [`:${SLUG_FOUNDATION_PARAM_PUBLICID}`]: token,
+    public static override absolutePathArr(token = ''): string[] {
+        return this.absolutePathArrWithParams({ 
+            [`:${SLUG_FOUNDATION_PARAM_PUBLICID}`]: token 
         });
     }
-    public static absolutePath(token = ''): string {
-        return FoundationModulePath.of(this.registryKey, {
-            [`:${SLUG_FOUNDATION_PARAM_PUBLICID}`]: token,
+    public static override absolutePath(token = ''): string {
+        return this.absolutePathWithParams({ 
+            [`:${SLUG_FOUNDATION_PARAM_PUBLICID}`]: token 
         });
     }
 

@@ -1,0 +1,282 @@
+<!-- file: src/app/base/form-fields/autosuggest/template.html -->
+@let suggestion = service.state.result;
+
+<mat-form-field appearance="outline" subscriptSizing="dynamic"
+    class="tw:w-full
+        tw:[&_.mat-mdc-form-field-icon-prefix]:self-start!
+        tw:[&_.mat-mdc-form-field-icon-prefix]:flex
+        tw:[&_.mat-mdc-form-field-icon-prefix]:items-center
+        tw:[&_.mat-mdc-form-field-icon-prefix]:min-h-(--mat-form-field-container-height)
+        tw:[&_.mat-mdc-form-field-icon-suffix]:self-start!
+        tw:[&_.mat-mdc-form-field-icon-suffix]:flex
+        tw:[&_.mat-mdc-form-field-icon-suffix]:items-center
+        tw:[&_.mat-mdc-form-field-icon-suffix]:min-h-(--mat-form-field-container-height)">
+
+    <mat-label>{{ label() }}</mat-label>
+
+    @if (iconPrepend()) {
+        <mat-icon matPrefix class="material-symbols-rounded">{{ iconPrepend() }}</mat-icon>
+    }
+
+    @if (multiselect()) {
+        <!-- ███ MULTISELECT: chip grid + input ███ -->
+        <mat-chip-grid #chipGrid
+            [errorStateMatcher]="errorMatcher"
+            [required]="required()"
+            [disabled]="service.state.isDisabled()">
+            <input #AppFormFieldAutosuggestInput
+                autocomplete="off"
+                spellcheck="false"
+                [attr.name]="name() + '[]'"
+                [id]="inputId() || name()"
+                [placeholder]="
+                    service.state.isFull()
+                        ? ('GL.FIELD.COMMON.MAX_SELECTED' | transloco: { max: maxSelection() })
+                        : placeholder()
+                "
+                [disabled]="service.state.isDisabled() || service.state.isFull()"
+                [matAutocomplete]="AppFormFieldAutosuggest"
+                [matChipInputFor]="chipGrid"
+                (input)="service.onQuery($any($event.target).value)"
+                (blur)="AppFormFieldAutosuggest.isOpen || service.state.clearInput()" />
+
+            @for (chip of service.state.selectedChips(); track chip.key) {
+                <mat-chip-row (removed)="service.onChipRemove(chip.key)">
+                    {{ chip.label }}
+                    <button matChipRemove [disabled]="service.state.isDisabled()">
+                        <mat-icon class="material-symbols-rounded">cancel</mat-icon>
+                    </button>
+                    @if (chip.custom) {
+                        <button matChipTrailingIcon mat-icon-button type="button"
+                            [disabled]="service.state.isDisabled()"
+                            class="tw:size-7! tw:box-border! tw:p-1!"
+                            [class]="
+                                service.state.isFailed(chip.key)
+                                    ? 'tw:text-red-700!'
+                                    : 'tw:hover:text-green-600!'
+                            "
+                            [matTooltip]="'GL.FIELD.COMMON.QUICK_CLOUD_SAVE' | transloco"
+                            (click)="service.onCustomSelection(chip.key, chip, $event)">
+                            <mat-icon class="material-symbols-rounded tw:size-4.5! tw:text-[18px]!">cloud_upload</mat-icon>
+                        </button>
+                    }
+                </mat-chip-row>
+            }
+        </mat-chip-grid>
+    } @else {
+        <!-- ███ SINGLE SELECT: original input ███ -->
+        <input #AppFormFieldAutosuggestInput matInput
+            autocomplete="off"
+            spellcheck="false"
+            [errorStateMatcher]="errorMatcher"
+            [attr.name]="name()"
+            [id]="inputId() || name()"
+            [attr.placeholder]="placeholder()"
+            [required]="required()"
+            [disabled]="service.state.isDisabled()"
+            [matAutocomplete]="AppFormFieldAutosuggest"
+            [(ngModel)]="value"
+            [ngModelOptions]="{ standalone: true }"
+            (input)="service.onQuery($any($event.target).value)" />
+    }
+
+    <div matSuffix class="tw:flex tw:items-center tw:gap-1">
+        @if (suggestion.isLoading()) {
+            <mat-spinner diameter="18" class="tw:mx-2"></mat-spinner>
+        }
+
+        @if (service.state.customSelected(); as custom) {
+            <button mat-icon-button type="button"
+                [disabled]="service.state.isDisabled()"
+                [class]="
+                    service.state.isFailed(custom.key)
+                        ? 'tw:text-red-700!'
+                        : 'tw:hover:text-green-600!'
+                "
+                [matTooltip]="'GL.FIELD.COMMON.QUICK_CLOUD_SAVE' | transloco"
+                (click)="service.onCustomSelection(custom.key, custom, $event)">
+                <mat-icon class="material-symbols-rounded">cloud_upload</mat-icon>
+            </button>
+        }
+
+        @if (multiselect() ? service.state.selectedKeys().length : value()) {
+            <button mat-icon-button type="button"
+                [disabled]="service.state.isDisabled()"
+                [attr.aria-label]="'GL.FIELD.COMMON.CLEAR' | transloco"
+                (click)="service.onClear(); $event.stopPropagation()">
+                <mat-icon class="material-symbols-rounded">close</mat-icon>
+            </button>
+        }
+
+        @if (iconAppend()) {
+            <mat-icon class="material-symbols-rounded tw:mx-3">{{ iconAppend() }}</mat-icon>
+        }
+    </div>
+    <mat-autocomplete #AppFormFieldAutosuggest="matAutocomplete"
+        [displayWith]="service.state.displayWith()"
+        [requireSelection]="requireSelection()"
+        [autoActiveFirstOption]="customValue()"
+        (optionSelected)="service.onOptionSelected($event)"
+        (closed)="service.onPanelClosed()">
+
+        @if (service.state.customSavePending(); as pending) {
+            <mat-option disabled class="tw:hidden!"></mat-option>
+
+            <!-- a small form, not a list of rows: clicks in here must never reach the panel -->
+            <div class="tw:flex tw:flex-col tw:gap-2 tw:px-2"
+                (click)="$event.stopPropagation()">
+
+                <!--
+                    one header row: what is being filed on the left, the two actions on
+                    the right - and it STAYS there while the groups scroll under it.
+
+                    sticky against the panel, which is the only scroller (top-0 pins it to
+                    the panel's padding box, so the rows pass behind it with nothing
+                    showing above). The frosted look is the same recipe as the layout
+                    headers: blur what is behind, tint it with the panel's own surface,
+                    and mark the edge with a border rather than the mat-divider that used
+                    to sit below - a divider in normal flow scrolls away with the rows.
+                -->
+                <div class="tw:sticky tw:top-0 tw:z-10 tw:py-2
+                    tw:bg-surface-container/60 tw:backdrop-blur-sm
+                    tw:border-b tw:border-outline/20
+                    tw:flex tw:items-center tw:justify-between tw:gap-3">
+                    <!-- min-w-0 + truncate: a long typed value shortens instead of pushing the buttons out -->
+                    <div class="tw:min-w-0">
+                        <h4 class="tw:m-0 tw:text-sm tw:text-primary">
+                            {{ 'GL.FIELD.COMMON.SELECT_GROUP' | transloco }}
+                        </h4>
+                        <p class="tw:m-0 tw:text-xs tw:opacity-60 tw:truncate">{{ pending.key }}</p>
+                    </div>
+
+                    <div class="tw:flex tw:shrink-0 tw:gap-2">
+                        <button mat-button type="button"
+                            (click)="service.onCustomSaveCancel($event)">
+                            {{ 'GL.COMMON.CANCEL' | transloco }}
+                        </button>
+                        <button mat-flat-button type="button" color="primary"
+                            [disabled]="service.state.isDisabled() || !service.state.customSaveGroupKey()"
+                            (click)="service.onCustomSaveConfirm($event)">
+                            {{ 'GL.COMMON.SAVE' | transloco }}
+                        </button>
+                    </div>
+                </div>
+
+                <!-- no max-height / overflow here on purpose: the panel is the only scroller -->
+                <mat-radio-group class="tw:flex tw:flex-col tw:gap-1"
+                    [value]="service.state.customSaveGroupKey()"
+                    (change)="service.state.customSaveGroupKey.set($event.value)">
+
+                    <!--
+                        customSaveGroup() and NOT groupEntry(): the picker offers every
+                        group this field has seen, not the ones the current query happens
+                        to be showing - see the computed for what that cost.
+                    -->
+                    @for (grp of service.state.customSaveGroup(); track grp.key) {
+                        <mat-radio-button [value]="grp.key"
+                            class="tw:w-full tw:rounded-xl
+                                tw:[&_.mdc-form-field]:w-full
+                                tw:[&_.mdc-label]:w-full"
+                            [class]="
+                                service.state.customSaveGroupKey() === grp.key
+                                    ? 'tw:bg-secondary-container'
+                                    : 'tw:hover:bg-on-surface/8'
+                            ">
+                            <span [innerHTML]="template().group!(grp.item, grp.key)"></span>
+                        </mat-radio-button>
+                    } @empty {
+                        <p class="tw:m-0 tw:text-sm tw:text-center tw:opacity-60">
+                            {{ 'GL.FIELD.AUTOSUGGEST.SEARCH_BASED_GROUP' | transloco }}
+                        </p>
+                    }
+                </mat-radio-group>
+            </div>
+        } @else {
+            @if (service.state.defaultOption(); as opt) {
+                <mat-option [value]="opt.key">{{ opt.value | transloco }}</mat-option>
+                <mat-divider></mat-divider>
+            }
+            @if (service.state.isGrouped()) {
+                @for (grp of service.state.groupEntry(); track grp.key) {
+                    <mat-optgroup label="">
+                        <span [innerHTML]="template().group!(grp.item, grp.key)"></span>
+                        <ng-container>
+                            @for (opt of grp.option; track opt.key) {
+                                <mat-option [value]="opt.key">
+                                    <!-- projected INTO mat-option: [innerHTML] on the option destroys its own DOM -->
+                                    <span [innerHTML]="template().option(opt.item, opt.key)"></span>
+
+                                    @if (opt.item?.custom && opt.key != value()) {
+                                        <button mat-icon-button type="button" tabindex="-1"
+                                            [disabled]="service.state.isDisabled()"
+                                            class="tw:absolute! tw:inset-e-1 tw:top-1/2 tw:-translate-y-1/2
+                                                tw:opacity-60 tw:hover:opacity-100 tw:transition-colors"
+                                            [class]="
+                                                service.state.isFailed(opt.key)
+                                                    ? 'tw:text-red-700!'
+                                                    : 'tw:hover:text-green-600!'
+                                            "
+                                            [matTooltip]="'GL.FIELD.COMMON.QUICK_CLOUD_SAVE' | transloco"
+                                            (click)="service.onCustomSelection(opt.key, opt.item, $event)">
+                                            <mat-icon class="material-symbols-rounded">cloud_upload</mat-icon>
+                                        </button>
+                                    }
+                                </mat-option>
+                            }
+                        </ng-container>
+                    </mat-optgroup>
+                }
+            } @else {
+                @for (opt of service.state.optionEntry(); track opt.key) {
+                    <mat-option [value]="opt.key">
+                        <span [innerHTML]="template().option(opt.item, opt.key)"></span>
+
+                        @if (opt.item?.custom && opt.key != value()) {
+                            <button mat-icon-button type="button" tabindex="-1"
+                                [disabled]="service.state.isDisabled()"
+                                class="tw:absolute! tw:inset-e-1 tw:top-1/2 tw:-translate-y-1/2
+                                    tw:opacity-60 tw:hover:opacity-100 tw:transition-colors"
+                                [class]="
+                                    service.state.isFailed(opt.key)
+                                        ? 'tw:text-red-700!'
+                                        : 'tw:hover:text-green-600!'
+                                "
+                                [matTooltip]="'GL.FIELD.COMMON.QUICK_CLOUD_SAVE' | transloco"
+                                (click)="service.onCustomSelection(opt.key, opt.item, $event)">
+                                <mat-icon class="material-symbols-rounded">cloud_upload</mat-icon>
+                            </button>
+                        }
+                    </mat-option>
+                }
+            }
+            @if (service.state.customOption(); as custom) {
+                <mat-option [value]="custom">
+                    <mat-icon class="material-symbols-rounded">add</mat-icon>
+                    {{ 'GL.FIELD.COMMON.USE_CUSTOM' | transloco: { value: custom } }}
+                </mat-option>
+            }
+            @if (suggestion.isLoading()) {
+                <mat-option disabled>{{ 'GL.COMMON.LOADING' | transloco }}</mat-option>
+            } @else if (suggestion.error()) {
+                <mat-option (click)="suggestion.reload(); $event.stopPropagation()">
+                    {{ 'GL.COMMON.DATA_LOADING_FAILED' | transloco }} —
+                    {{ 'GL.COMMON.TRY_AGAIN' | transloco }}
+                </mat-option>
+            } @else if (service.state.showNoMatch()) {
+                <mat-option disabled>{{ 'GL.COMMON.NO_MATCH' | transloco }}</mat-option>
+            }
+        }
+    </mat-autocomplete>
+
+    @if (error()) {
+        <mat-error class="tw:flex! tw:items-center tw:gap-1">
+            <mat-icon class="material-symbols-rounded tw:text-xs! tw:h-4! tw:w-4! tw:shrink-0">error</mat-icon>
+            <span>{{ error() }}</span>
+        </mat-error>
+    } @else if (hint()) {
+        <mat-hint class="tw:flex tw:items-start tw:gap-1">
+            <mat-icon class="material-symbols-rounded tw:text-xs! tw:h-4! tw:w-4! tw:shrink-0">info</mat-icon>
+            <span>{{ hint() }}</span>
+        </mat-hint>
+    }
+</mat-form-field>

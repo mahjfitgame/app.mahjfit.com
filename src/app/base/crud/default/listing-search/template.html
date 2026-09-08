@@ -1,0 +1,50 @@
+<!-- file: src/app/base/crud/default/listing-search/template.html -->
+<button
+    matIconButton
+    type="button"
+    [aria-label]="'CRUD.LISTING_SEARCH.OPEN_LABEL' | transloco"
+    matTooltip=""
+    matTooltipPosition="above"
+    class="tw:rounded-full! tw:text-primary!"
+    (click)="service.listing.openListingSearchForm()"
+>
+    <mat-icon class="material-symbols-rounded">filter_alt</mat-icon>
+</button>
+
+<!-- End sidebar Tab Extension for Search Filter -->
+<ng-template cdkPortal [privateAreaLayout]="service.PrivateAreaLayoutSlotEnum.SLOT_END_SIDE_BAR_TAB_LABEL" [privateAreaLayoutIndex]="0" [privateAreaLayoutLabel]="service.CrudEndSideBarTabEnum.FILTER">
+    <span>{{ 'CRUD.LISTING_SEARCH.TAB_NAME' | transloco }}</span>
+</ng-template>
+<ng-template cdkPortal [privateAreaLayout]="service.PrivateAreaLayoutSlotEnum.SLOT_END_SIDE_BAR_TAB_BODY" [privateAreaLayoutIndex]="0" [privateAreaLayoutLabel]="service.CrudEndSideBarTabEnum.FILTER">
+    <div class="bfw-safe-area-pe">
+        <div class="tw:flex tw:flex-col tw:min-w-0 tw:gap-4 tw:p-3">
+            <form id="crudListingSearchForm" (submit)="$event.preventDefault(); service.listing.submitListingSearchForm()" novalidate>
+                <app-crud-default-form-field 
+                    [formFieldObj]="service.state.listing.listingSearchFormLayout()"
+                    [formState]="service.state.listing.listingSearchForm"
+                    [slotPrefix]="service.CrudFieldSlotPortalKeyPrefixEnum.FILTER"
+                >
+                </app-crud-default-form-field>
+            </form>
+        </div>
+    </div>
+    <footer class="bfw-safe-area-pb bfw-safe-area-pe tw:sticky tw:bottom-0 tw:z-20 tw:w-full tw:backdrop-blur-md tw:mbs-auto">
+        <div class="tw:flex tw:gap-2 tw:p-3!">
+            <button
+                mat-button
+                type="button"
+                class="tw:flex-1"
+                [disabled]="service.state.listing.listingSearchFormProcessing() || service.state.listing.listingSearchForm().submitting()"
+                (click)="service.state.listing.resetListingSearchForm()"
+            >{{ 'GL.COMMON.RESET' | transloco }}</button>
+            <button
+                mat-flat-button
+                type="submit"
+                form="crudListingSearchForm"
+                color="primary"
+                class="tw:flex-1"
+                [disabled]="service.state.listing.listingSearchFormProcessing() || service.state.listing.listingSearchForm().invalid() || service.state.listing.listingSearchForm().pending() || service.state.listing.listingSearchForm().submitting()"
+            >{{ 'GL.COMMON.APPLY' | transloco }}</button>
+        </div>
+    </footer>
+</ng-template>

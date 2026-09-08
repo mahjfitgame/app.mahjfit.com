@@ -122,8 +122,33 @@ export class DateTimeService {
             const raw = value.trim();
             if (!raw) return null;
 
+            // Native Date.parse does not understand a time without a date. TIME fields
+            // store exactly that shape, so anchor it to today before handing it to Owl.
+            const time = raw.match(/^(\d{1,2}):(\d{2})(?::(\d{2}))?\s*(am|pm)?$/i);
+
+            if (time) {
+                let hour = Number(time[1]);
+                const minute = Number(time[2]);
+                const second = Number(time[3] ?? 0);
+                const meridiem = time[4]?.toLowerCase();
+
+                if (minute > 59 || second > 59 || (meridiem ? hour < 1 || hour > 12 : hour > 23)) {
+                    return null;
+                }
+
+                if (meridiem) {
+                    hour %= 12;
+                    if (meridiem === 'pm') hour += 12;
+                }
+
+                const date = new Date();
+                date.setHours(hour, minute, second, 0);
+
+                return date;
+            }
+
             // Try standard native parsing first (works great for ISO)
-            let timestamp = Date.parse(raw);
+            const timestamp = Date.parse(raw);
             if (!isNaN(timestamp)) {
                 return new Date(timestamp);
             }

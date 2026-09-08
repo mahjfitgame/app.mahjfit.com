@@ -5,24 +5,24 @@ import { NavigationError, RedirectCommand, Router } from '@angular/router';
 import { LogService } from '@libs/log/service';
 import { FoundationAreaEnum } from '@libs/foundation/enum';
 import { FoundationModuleRouteDefinitionType, FoundationModuleRouteNavType } from '@libs/foundation/module/type';
-import { FoundationModulePath } from '@libs/foundation/module/path';
+import { FoundationModuleRoute } from '@libs/foundation/module/route';
 import { FoundationNavPositionEnum } from '@libs/foundation/nav/enum';
 import { UrlService } from '@libs/url/service';
 import { SLUG_HTTP_STATUS_SERVICE_UNAVAILABLE } from '@module/shared/http-status/service-unavailable/slug';
 import { OpenAreaRoute } from '@area/open/route';
 
 @Service({ autoProvided: false })
-export class HttpStatusServiceUnavailableRoute {
+export class HttpStatusServiceUnavailableRoute extends FoundationModuleRoute {
     // CLASS PROPERTIES ▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬
-    public static readonly registryKey = 'HTTP_503';
-    public static readonly area = FoundationAreaEnum.OPEN;
+    public static override readonly registryKey = 'HTTP_503';
+    public static override readonly area = FoundationAreaEnum.OPEN;
 
     // DEPENDENCIES ▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬
     public readonly url = inject(UrlService);
     public readonly router = inject(Router);
 
     // DEFINITION ▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬
-    public static definition(): FoundationModuleRouteDefinitionType {
+    public static override definition(): FoundationModuleRouteDefinitionType {
         return {
             registryKey: this.registryKey,
             component: () => import('./component').then((c) => c.HttpStatusServiceUnavailableComponent),
@@ -30,13 +30,14 @@ export class HttpStatusServiceUnavailableRoute {
             canActivate: [],
             canActivateChild: [],
             canDeactivate: [],
+            resolve: this.resolve(),
             breadcrumbAlias: 'httpStatusServiceUnavailable',
             actions: [],
         };
     }
 
     // NAV ▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬
-    public static nav(): FoundationModuleRouteNavType {
+    public static override nav(): FoundationModuleRouteNavType {
         return {
             registry_key: this.registryKey,
             area_key: this.area,
@@ -45,18 +46,18 @@ export class HttpStatusServiceUnavailableRoute {
             label: 'GL.MODULE.HTTP_STATUS.SERVICE_UNAVAILABLE',
             icon: 'cloud_off',
             sort_order: 10,
+            actions: [],
             hidden: true,
             nav_position: [FoundationNavPositionEnum.START],
         };
     }
 
     // PATHS ▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬
-    public static absolutePathArr(): string[] {
-        return FoundationModulePath.arrOf(this.registryKey);
-    }
-    public static absolutePath(): string {
-        return FoundationModulePath.of(this.registryKey);
-    }
+    /**
+     * ⚠ absolutePath() / absolutePathArr() are INHERITED from FoundationModuleRoute —
+     * they read this.registryKey off this class, so the two identical copies that
+     * used to sit here are gone.
+     */
 
     // NAVIGATION ▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬
     /**
