@@ -1,5 +1,6 @@
 // file: src/app/module/business/game/game-shell/component.ts
 import { AfterViewInit, Component, effect, inject, input, OnInit, signal, computed } from "@angular/core";
+import { JsonPipe } from "@angular/common";
 import { Router } from "@angular/router";
 
 
@@ -18,7 +19,7 @@ import { PhaserComponent } from "./phaser/component";
   standalone: true,
   templateUrl: './template.html',
   styleUrl: './style.scss',
-  imports: [PhaserComponent],
+  imports: [PhaserComponent, JsonPipe],
   providers: [
     GAME_PROVIDER
   ]
@@ -33,6 +34,12 @@ export class GameComponent implements OnInit, AfterViewInit {
   readonly selectedTileIds = signal<readonly number[]>([]);
   readonly boardVisible = signal(true);
   readonly passDirection = signal<PassDirection>(GamePhaseFirstRoundDirectionEnum.RIGHT);
+
+  readonly isDebugVisible = signal(false);
+
+  toggleDebug() {
+    this.isDebugVisible.set(!this.isDebugVisible());
+  }
 
   constructor() {
     effect(() => {

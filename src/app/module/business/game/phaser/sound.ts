@@ -20,6 +20,7 @@ export class PhaserSound {
     "tile-return": { key: "sfx-tile-return", urls: ["assets/sounds/tile-drop.mp3"], volume: 0.45, poolSize: 2, throttleMs: 45 },
     "tile-drop": { key: "sfx-tile-drop", urls: ["assets/sounds/tile-drop.mp3"], volume: 0.5, poolSize: 2, throttleMs: 45 },
     pass: { key: "sfx-pass", urls: ["assets/sounds/pass.mp3"], volume: 0.65, poolSize: 1, throttleMs: 150 },
+    "pick-tile": { key: "sfx-pick-tile", urls: ["assets/sounds/pick-tile.mp3"], volume: 0.5, poolSize: 2, throttleMs: 45 },
   };
   private readonly sfxPools = new Map<TableSfxId, Phaser.Sound.BaseSound[]>();
   private readonly sfxPoolCursor = new Map<TableSfxId, number>();

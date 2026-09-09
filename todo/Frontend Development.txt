@@ -13,6 +13,10 @@ Converting static design data to real-time Gameplay data, completed the charlest
 
 
 
+What are the other option to manage the flow PICK > DISCARD > CLAIM > DISCARD > NEXT TURN SEAT rether then schedule?
+
+
+
 ============== TEST POINT ==================
 
 Here are my notes on the Charleston portion of the game: Let me know if you have questions. I am just following Real Mahj as closely as possible for all direction.
@@ -68,7 +72,7 @@ We get the 3 tiles in the passing area from the specific seat, now I select one 
 For the pass waiting area we have 
 Now on pass button click the 1 tile from the passing area should be animated and add to my rack and another two tiles animated and pass to the left side from my seat.
 
-
+The turn is not bottom seat, and current seat then why the diuble click discard the tile from the rack.
 
 ============== POINT ==================
 1]
@@ -194,6 +198,45 @@ ReferenceError: Can't find variable: Atomics
 
 
 ============== REPLY ==================
+Circling back to the launch timeline, we agree with; login, signup, home page, leaderboard, and game play.
+ 
+Question on functions for MVP launch;
+Will friend mode be available or only bot play?
+REPLY]
+
+What else do you need from us for the leaderboard configuration?
+REPLY]
+
+Will the difficulty levels be available (slow, medium, fast)?
+REPLY]
+ 
+Additional features we want as a fast-follow;
+ 
+Ability to upload card photo
+Workout challenge configuration (unless this is included in leaderboard work)
+Fit meter (see mock up of home page attached - the workout challenge and meter modal will be a ‘coming soon’ display for MVP launch
+2-player siamese play
+Premium tier subscription fee
+Ads display for free tier
+ 
+ 
+Reminder, the point system is documented in the Tech Discussion;
+REPLY]
+How to earn points (daily streaks, games played, games won, challenges completed)
+REPLY]
+Users total points are displayed on the leaderboard
+REPLY]
+Reaching point milestones moves user to next level on the meter
+REPLY]
+-------
+FOR CLIENT]
+Today, I continue worked on the discard tile and then worked on your given point first and start work on charlestone round upgrade process, and continue working on this. Once I finish this I will again start work on the discard tile.
+
+I will keep you posted on work progress.
+Thank you!
+
+
+-------
 FOR CLIENT]
 
 Today, I worked on the discard tile and for bot turn I implement the auto pick and discard tile, and continue work on it, meanwhile I also working on the claim option.

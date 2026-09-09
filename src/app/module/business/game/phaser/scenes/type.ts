@@ -130,7 +130,8 @@ export type TableSfxId =
   | "tile-pass-waiting"
   | "tile-return"
   | "tile-drop"
-  | "pass";
+  | "pass"
+  | "pick-tile";
 
 export type TableSfxConfig = {
   key: string;

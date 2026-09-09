@@ -196,7 +196,7 @@ export class GameState extends SignalStateService implements FoundationModuleSta
     // delete this below comment once you done
     // this is not edfined at this moment you need to add in _play
     // before it was in _game but as its changing now its in _play
-    private readonly _play_current_turn_u_id = computed<number>(() => {
+    private readonly play_current_turn_u_id = computed<number>(() => {
         return this.play().current_turn_u_id;
     });
 
@@ -573,28 +573,28 @@ export class GameState extends SignalStateService implements FoundationModuleSta
 
     // ████ personal_seat_racks SIGNAL ███████████████████████████████████████████
     // first: is_mahjong
-    private _personal_seat_rack_first_is_mahjong = computed<boolean>(() => {
+    private personal_seat_rack_first_is_mahjong = computed<boolean>(() => {
         return this.personal_seat()?.racks?.[GameRackIDEnumAddon.RACK_FIRST]?.is_mahjong ?? false;
     });
 
 
 
     // first: is_locked
-    private _personal_seat_rack_first_is_locked = computed<boolean>(() => {
+    private personal_seat_rack_first_is_locked = computed<boolean>(() => {
         return this.personal_seat()?.racks?.[GameRackIDEnumAddon.RACK_FIRST]?.is_locked ?? false;
     });
 
 
 
     // first: is_dead
-    private _personal_seat_rack_first_is_dead = computed<boolean>(() => {
+    private personal_seat_rack_first_is_dead = computed<boolean>(() => {
         return this.personal_seat()?.racks?.[GameRackIDEnumAddon.RACK_FIRST]?.is_dead ?? false;
     });
 
 
 
     // first: dead_info
-    private _personal_seat_rack_first_dead_info = computed<GameRackDeadInfoGSOutputDto | undefined | null>(() => {
+    private personal_seat_rack_first_dead_info = computed<GameRackDeadInfoGSOutputDto | undefined | null>(() => {
         return this.personal_seat()?.racks?.[GameRackIDEnumAddon.RACK_FIRST]?.dead_info || null;
     });
 
@@ -628,28 +628,28 @@ export class GameState extends SignalStateService implements FoundationModuleSta
     // ▬ ▬ ▬ ▬ ▬ ▬ ▬ ▬ ▬ ▬ ▬ ▬ ▬ ▬ ▬ ▬ ▬ ▬ ▬ ▬ ▬ ▬ ▬ ▬ ▬ ▬ ▬ ▬ ▬
     // ████ second Rack SIGNAL ███████████████████████████████████████████
     // second: second_is_mahjong
-    private _personal_seat_rack_second_is_mahjong = computed<boolean>(() => {
+    private personal_seat_rack_second_is_mahjong = computed<boolean>(() => {
         return this.personal_seat()?.racks?.[GameRackIDEnumAddon.RACK_SECOND]?.is_mahjong ?? false;
     });
 
 
 
     // second: is_locked
-    private _personal_seat_rack_second_is_locked = computed<boolean>(() => {
+    private personal_seat_rack_second_is_locked = computed<boolean>(() => {
         return this.personal_seat()?.racks?.[GameRackIDEnumAddon.RACK_SECOND]?.is_locked ?? false;
     });
 
 
 
     // second: is_dead
-    private _personal_seat_rack_second_is_dead = computed<boolean>(() => {
+    private personal_seat_rack_second_is_dead = computed<boolean>(() => {
         return this.personal_seat()?.racks?.[GameRackIDEnumAddon.RACK_SECOND]?.is_dead ?? false;
     });
 
 
 
     // second: dead_info
-    private _personal_seat_rack_second_dead_info = computed<GameRackDeadInfoGSOutputDto | undefined | null>(() => {
+    private personal_seat_rack_second_dead_info = computed<GameRackDeadInfoGSOutputDto | undefined | null>(() => {
         return this.personal_seat()?.racks?.[GameRackIDEnumAddon.RACK_SECOND]?.dead_info || null;
     });
 
@@ -710,10 +710,75 @@ export class GameState extends SignalStateService implements FoundationModuleSta
 
 
     // ████ STATE DEBUGGER ██████████████████████████████████████████████
-    /* public readonly debugState = computed(() => ({
+    public readonly debugState = computed(() => ({
 
-    })); */
+        game_id: this.game_id(),
+        game_keyid: this.game_keyid(),
+        game_mode: this.game_mode(),
+        game_botlvl_id: this.game_botlvl_id(),
+        play_current_turn_rack_id: this.play_current_turn_rack_id(),
+        play_current_turn_seat_id: this.play_current_turn_seat_id(),
+        play_current_turn_u_id: this.play_current_turn_u_id(),
+        play_phase: this.play_phase(),
+        play_turn_stage: this.play_turn_stage(),
+        canDiscard: this.canDiscard(),
+        canPickTile: this.canPickTile(),
+        play_round_count: this.play_round_count(),
+        play_action_error: this.play_action_error(),
+        play_wall_count: this.play_wall_count(),
+        play_discards_tiles: this.play_discards_tiles(),
+        play_pass_count: this.play_pass_count(),
+        play_pass_direction: this.play_pass_direction(),
+        play_pass_round: this.play_pass_round(),
+        play_pass_stage: this.play_pass_stage(),
+        charlestonState: this.charlestonState(),
+        play_claim_from_seat: this.play_claim_from_seat(),
+        play_claim_tile: this.play_claim_tile(),
+        active_claim: this.active_claim(),
+        active_table_position: this.active_table_position(),
+        seat_position_by_gseat_id: this.seat_position_by_gseat_id(),
+        all_seat_exposures: this.all_seat_exposures(),
+        all_seat_dead_states: this.all_seat_dead_states(),
+        play_seats: this.play_seats(),
+        ordered_seats: this.ordered_seats(),
+        personal_seat_index: this.personal_seat_index(),
+        seat_mapping: this.seat_mapping(),
+        personal_pass: this.personal_pass(),
+        personal_pass_submissions: this.personal_pass_submissions(),
+        personal_pass_second_votes: this.personal_pass_second_votes(),
+        personal_claim: this.personal_claim(),
+        personal_claim_target_seat: this.personal_claim_target_seat(),
+        personal_claim_submission: this.personal_claim_submission(),
+        personal_seat_id: this.personal_seat_id(),
+        personal_seat: this.personal_seat(),
+        personal_seat_u_id: this.personal_seat_u_id(),
+        personal_seat_rack_first_is_mahjong: this.personal_seat_rack_first_is_mahjong(),
+        personal_seat_rack_first_is_locked: this.personal_seat_rack_first_is_locked(),
+        personal_seat_rack_first_is_dead: this.personal_seat_rack_first_is_dead(),
+        personal_seat_rack_first_dead_info: this.personal_seat_rack_first_dead_info(),
+        personal_seat_rack_first_hand: this.personal_seat_rack_first_hand(),
+        personal_seat_rack_first_hand_order: this.personal_seat_rack_first_hand_order(),
+        personal_seat_rack_first_exposures_meld: this.personal_seat_rack_first_exposures_meld(),
+        personal_seat_rack_second_is_mahjong: this.personal_seat_rack_second_is_mahjong(),
+        personal_seat_rack_second_is_locked: this.personal_seat_rack_second_is_locked(),
+        personal_seat_rack_second_is_dead: this.personal_seat_rack_second_is_dead(),
+        personal_seat_rack_second_dead_info: this.personal_seat_rack_second_dead_info(),
+        personal_seat_rack_second_hand: this.personal_seat_rack_second_hand(),
+        personal_seat_rack_second_hand_order: this.personal_seat_rack_second_hand_order(),
+        personal_seat_rack_second_exposures_meld: this.personal_seat_rack_second_exposures_meld(),
+        _game: this._game(),
+        _play: this._play(),
+        _personal: this._personal(),
+        tileStyle: this.tileStyle(),
+        defaultTileStyleKeyid: this.defaultTileStyleKeyid(),
+        game_all_tiles: this.game_all_tiles(),
+        game_bot_profile: this.game_bot_profile(),
+
+        //userTileStyleKeyid: this.userTileStyleKeyid(),
+        //userTileStyle: this.userTileStyle(),
+    }));
     private commonSelectionFields = {};
+
     constructor() {
         super();
 
@@ -1305,5 +1370,7 @@ export class GameState extends SignalStateService implements FoundationModuleSta
         // TODO: Wait for API SDK support for DECLAIRDEAD or use a generic action
         // await this.api.sdk.graphql.ws.gameEngine?.publishAction...
     }
+
+
 
 }

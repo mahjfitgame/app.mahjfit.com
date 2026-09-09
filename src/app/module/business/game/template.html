@@ -1,10 +1,17 @@
 @if (boardVisible()) {
 <app-phaser />
-<!-- <app-phaser [rack]="rack()" [passDirection]="passDirection()" [tablePhase]="tablePhase()"
-    [tileCallOffer]="tileCallOffer()" [demoDiscard]="demoDiscard()" [mahjongWin]="mahjongWin()"
-    [playerAway]="playerAway()" [joinTableRequest]="joinTableRequest()"
-    (tileCallDecision)="handleTileCallDecision($event)" (playerRemovalRequested)="handlePlayerRemoval($event)"
-    (deadHandClaimed)="handleDeadHandClaim($event)" (temporaryDiscardCompleted)="endDiscardTest()"
-    (joinTableRequestDecision)="handleJoinRequestDecision($event)" (restartGame)="restartGame()" (quitGame)="quitGame()"
-    (selectionChanged)="selectedTileIds.set($event)" (passCompleted)="handlePassCompleted($event)" /> -->
+}
+
+<div class="debug-toggle" (click)="toggleDebug()">
+  @if (isDebugVisible()) {
+    ▶
+  } @else {
+    ◀
+  }
+</div>
+
+@if (isDebugVisible()) {
+  <div class="debug-panel">
+    <pre>{{ service.state.debugState() | json }}</pre>
+  </div>
 }

@@ -1886,6 +1886,7 @@ export class PhaserLayoutUi {
     passDirection: PassDirection,
     canDiscard: boolean,
     isBlindPassAllowed: boolean = false,
+    isOptionalPassAllowed: boolean = false,
   ): void {
     this.instructionPhase = phase;
     this.charlestonStage = charlestonStage;
@@ -1907,7 +1908,7 @@ export class PhaserLayoutUi {
         passDirection === GamePhaseFirstRoundDirectionEnum.RIGHT ? "Right" :
           passDirection === GamePhaseFirstRoundDirectionEnum.LEFT ? "Left" :
             "Across";
-      const tileCountText = isBlindPassAllowed ? "0-3" : "3";
+      const tileCountText = (isBlindPassAllowed || isOptionalPassAllowed) ? "0-3" : "3";
       this.instructionMessage = `${directionTitle}|Select ${tileCountText} tiles to pass`;
     }
 
@@ -2065,7 +2066,7 @@ export class PhaserLayoutUi {
       buttonConfig = {
         label: "YES",
         enabled: true,
-        action: "second-pass",
+        action: "stop",
         x: Math.round(startX),
         y: buttonTop,
         width: Math.round(halfWidth),
@@ -2078,7 +2079,7 @@ export class PhaserLayoutUi {
       secondaryButtonConfig = {
         label: "NO",
         enabled: true,
-        action: "second-stop",
+        action: "pass",
         x: Math.round(startX + halfWidth + gap),
         y: buttonTop,
         width: Math.round(halfWidth),

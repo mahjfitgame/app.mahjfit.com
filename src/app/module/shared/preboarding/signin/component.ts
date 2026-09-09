@@ -29,26 +29,26 @@ import { SIGNIN_PROVIDER } from "./provider";
     //JsonPipe,
     KeyValuePipe,
     RouterModule,
-    
+
     //CdkPortal,
     //AuthAreaLayoutDirective,
 
-    MatCardModule, 
-    MatInputModule, 
-    MatCheckboxModule, 
-    MatGridListModule, 
-    MatButtonModule, 
-    MatIconModule, 
-    MatFormFieldModule, 
+    MatCardModule,
+    MatInputModule,
+    MatCheckboxModule,
+    MatGridListModule,
+    MatButtonModule,
+    MatIconModule,
+    MatFormFieldModule,
     MatRippleModule,
     MatRadioModule,
-    
+
     FormField,
-    
+
     TranslocoModule,
 
     NotifyBannerComponent,
-    
+
   ],
   providers: [
     CRUD_PROVIDER,
@@ -57,12 +57,12 @@ import { SIGNIN_PROVIDER } from "./provider";
   ],
 })
 export class SigninComponent implements OnInit, AfterViewInit, AfterViewChecked, OnDestroy {
-    protected readonly service = inject(SigninService);
-    
-    constructor() {}
+  protected readonly service = inject(SigninService);
 
-    public async ngOnInit(): Promise<void> {}
-    public async ngAfterViewInit(): Promise<void> {}
-    public async ngAfterViewChecked(): Promise<void> {}
-    public async ngOnDestroy(): Promise<void> {}
+  constructor() { }
+
+  public async ngOnInit(): Promise<void> { }
+  public async ngAfterViewInit(): Promise<void> { }
+  public async ngAfterViewChecked(): Promise<void> { }
+  public async ngOnDestroy(): Promise<void> { }
 }

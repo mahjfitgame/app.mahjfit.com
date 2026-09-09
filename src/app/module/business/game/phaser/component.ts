@@ -381,7 +381,26 @@ export class PhaserComponent implements AfterViewInit {
               seatPos = seatPosFn(tile.gseat_id);
             }
 
-            // Fallback to the last known turn if the tile's gseat_id belongs to the discard area or is missing
+            // Try to infer seat from claim state first
+            if (!seatPos) {
+              const claimFromSeatId = this.gameState.play_claim_from_seat();
+              if (claimFromSeatId) {
+                const seatPosFn = this.gameState.seat_position_by_gseat_id();
+                seatPos = seatPosFn(claimFromSeatId);
+              }
+            }
+
+            // Fallback based on the NEW active turn. The discarder is always the player just before the new active turn.
+            if (!seatPos) {
+              const currentActiveSeat = this.gameState.active_table_position();
+              if (currentActiveSeat) {
+                 const order: TableSeat[] = ["bottom", "right", "top", "left"];
+                 const currentIndex = order.indexOf(currentActiveSeat);
+                 seatPos = order[(currentIndex + 3) % 4];
+              }
+            }
+
+            // Absolute fallback to last known turn if previous fallbacks fail
             if (!seatPos && this.lastKnownTurnSeatPos) {
               seatPos = this.lastKnownTurnSeatPos;
             }
@@ -543,6 +562,7 @@ export class PhaserComponent implements AfterViewInit {
             this.setMobileHeaderCollapsed(collapsed),
           onLocalPlayerDiscard: (tileId) => {
             this.gameState.publishDiscardTile(tileId);
+            this.knownDiscardTileIds.add(tileId);
           },
           onLocalPlayerPick: () => {
             this.gameState.publishPickTile();
@@ -870,9 +890,10 @@ export class PhaserComponent implements AfterViewInit {
     const state = this.instructionPanelState();
     if (!state) return;
 
-    if (action === "second-pass") {
+    if (action === "pass") {
       this.gameState.publishCharlestoneSecondRoundVote(true);
-    } else if (action === "second-stop") {
+    } else if (action === "stop") {
+
       this.gameState.publishCharlestoneSecondRoundVote(false);
     } else {
       if (!state.button.enabled) return;

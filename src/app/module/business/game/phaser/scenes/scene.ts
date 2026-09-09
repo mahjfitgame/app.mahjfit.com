@@ -246,6 +246,9 @@ export class PhaserScene extends Phaser.Scene {
           if (this.charlestonState.stage === GameCharlestoneStageEnum.SECOND && this.passDirection === GamePhaseSecondRoundDirectionEnum.RIGHT) return true;
           return false;
         },
+        isOptionalPassAllowed: () => {
+          return this.charlestonState?.stage === GameCharlestoneStageEnum.COURTESY;
+        },
         getTablePhase: () => this.tablePhase,
         onPassWaitingStateChanged: (payload) => this.callbacks.onPassWaitingStateChanged?.(payload),
         validateSubmission: () => this.passFlowManager.canSubmitPassWaitingTiles(),
@@ -2696,13 +2699,15 @@ export class PhaserScene extends Phaser.Scene {
 
   private updateInstructionText(): void {
     const isBlindPassAllowed = this.passFlowManager?.isBlindPassAllowed ? this.passFlowManager.isBlindPassAllowed() : false;
+    const isOptionalPassAllowed = this.passFlowManager?.isOptionalPassAllowed ? this.passFlowManager.isOptionalPassAllowed() : false;
     this.uiLayoutManager.updateInstruction(
       this.tablePhase,
       this.charlestonState?.stage,
       this.stateManager.isPersonalTurn,
       this.passDirection,
       this.canDiscard,
-      isBlindPassAllowed
+      isBlindPassAllowed,
+      isOptionalPassAllowed
     );
   }
 
@@ -2989,6 +2994,7 @@ export class PhaserScene extends Phaser.Scene {
     runtime.isDragging = false;
     this.selectedIds.delete(runtime.vm.tile_id!);
     runtime.image.clearTint();
+    this.removeTileTextureFilter(runtime.image);
     runtime.image.disableInteractive();
     const grid = this.discardGrid();
     const slot = this.discardSlotFor(
@@ -3050,6 +3056,31 @@ export class PhaserScene extends Phaser.Scene {
           // x is negative to shift right, y is negative to shift down.
           (image as any).filters.external.addShadow(-0.3, -0.4, 0.05, 1, 0x000000, 2, 0.65);
         }
+      }
+    }
+  }
+
+  private removeTileTextureFilter(image: Phaser.GameObjects.Image): void {
+    if (image.getData("hasShadow")) {
+      image.setData("hasShadow", false);
+      
+      // Try multiple ways to remove the shadow depending on the plugin/implementation
+      if (typeof (image as any).disableFilters === 'function') {
+        (image as any).disableFilters();
+      }
+      if ((image as any).filters && (image as any).filters.external) {
+        if (typeof (image as any).filters.external.clear === 'function') {
+          (image as any).filters.external.clear();
+        }
+        if (typeof (image as any).filters.external.removeShadow === 'function') {
+          (image as any).filters.external.removeShadow();
+        }
+      }
+      if (typeof (image as any).clearPostPipeline === 'function') {
+        (image as any).clearPostPipeline();
+      }
+      if (typeof (image as any).resetPipeline === 'function') {
+        (image as any).resetPipeline();
       }
     }
   }
@@ -3717,7 +3748,7 @@ export class PhaserScene extends Phaser.Scene {
     onFinished: () => void,
   ): void {
     const destination = this.currentPassDestination;
-    const endTargets = this.seatRackTargets(destination, ids.length);
+    const endTargets = this.seatRackTargets(destination, 3).slice(0, ids.length);
     const endAngle = this.passTileAngle(destination);
     this.animationManager.animatePassWaitingTilesIntoSeatRack(
       ids.map((id) => ({ id, image: this.tileMap.get(id)?.image })),
@@ -3909,10 +3940,21 @@ export class PhaserScene extends Phaser.Scene {
 
     const byDestination = new Map<TableSeat, BotPassVisualTile[]>();
 
+    const isCourtesy = this.charlestonState?.stage === GameCharlestoneStageEnum.COURTESY;
+    let bottomTilesToRedirect = isCourtesy ? 0 : 3 - this.passWaitingTileIds.length;
+    bottomTilesToRedirect = Math.max(0, Math.min(3, bottomTilesToRedirect));
+
     tiles.forEach((tile) => {
-      const group = byDestination.get(tile.to) ?? [];
+      let finalTo = tile.to;
+      
+      if (finalTo === "bottom" && bottomTilesToRedirect > 0) {
+        finalTo = this.currentPassDestination;
+        bottomTilesToRedirect--;
+      }
+
+      const group = byDestination.get(finalTo) ?? [];
       group.push(tile);
-      byDestination.set(tile.to, group);
+      byDestination.set(finalTo, group);
     });
 
     let groupsFinished = 0;
@@ -3928,7 +3970,10 @@ export class PhaserScene extends Phaser.Scene {
     };
 
     byDestination.forEach((group, seat) => {
-      const targets = this.seatRackTargets(seat, group.length);
+      let targets = this.seatRackTargets(seat, group.length);
+      if (seat === this.currentPassDestination && group.length === 3 - this.passWaitingTileIds.length) {
+         targets = this.seatRackTargets(seat, 3).slice(this.passWaitingTileIds.length);
+      }
       const endAngle = this.passTileAngle(seat);
 
       let completedTiles = 0;
@@ -4277,6 +4322,7 @@ export class PhaserScene extends Phaser.Scene {
     targetPoint: Point | undefined,
     onComplete: () => void,
   ): void {
+    this.playSfx("pick-tile");
     const source = this.wallTileSourcePoint();
     const target = targetPoint ?? this.pickTargetPointForSeat(seat);
     const size = this.pickAnimationTileSize(seat);

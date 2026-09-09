@@ -27,7 +27,7 @@ export class SigninState extends SignalStateService implements FoundationModuleS
     public readonly api = inject(BfwApiService);
 
     // ████ CLASS PROPERTIES ████████████████████████████████████████████
-    
+
     // required for persisted state
     public override readonly storeKey = PREBOARDING_SIGNIN_STATE_STORE_KEY;
 
@@ -42,8 +42,8 @@ export class SigninState extends SignalStateService implements FoundationModuleS
             url_matrix_param: 'uem',
             value: null,
             validation: {
-                required: { 
-                    message: 'GL.VALIDATION.REQUIRED', 
+                required: {
+                    message: 'GL.VALIDATION.REQUIRED',
                     value: true,
                 },
                 min_length: {
@@ -60,8 +60,8 @@ export class SigninState extends SignalStateService implements FoundationModuleS
             url_matrix_param: 'i',
             value: null,
             validation: {
-                required: { 
-                    message: 'GL.VALIDATION.REQUIRED', 
+                required: {
+                    message: 'GL.VALIDATION.REQUIRED',
                     value: true,
                 },
                 min_length: {
@@ -87,8 +87,8 @@ export class SigninState extends SignalStateService implements FoundationModuleS
             url_matrix_param: 'mo',
             value: null,
             validation: {
-                required: { 
-                    message: 'GL.VALIDATION.REQUIRED', 
+                required: {
+                    message: 'GL.VALIDATION.REQUIRED',
                     value: true,
                 }
             }
@@ -101,8 +101,8 @@ export class SigninState extends SignalStateService implements FoundationModuleS
             url_matrix_param: 'vi',
             value: null,
             validation: {
-                required: { 
-                    message: 'GL.VALIDATION.REQUIRED', 
+                required: {
+                    message: 'GL.VALIDATION.REQUIRED',
                     value: true,
                 },
                 min_length: {
@@ -114,7 +114,7 @@ export class SigninState extends SignalStateService implements FoundationModuleS
     };
 
     // ████ SIGNAL FORM PROPERTIES ██████████████████████████████████████
-    
+
     public readonly _mutationFieldObj = signal<SigninMutationFieldObjType>(this.MUTATION_FIELD_OBJ);
     public readonly mutationFieldObj = this._mutationFieldObj.asReadonly();
 
@@ -166,27 +166,27 @@ export class SigninState extends SignalStateService implements FoundationModuleS
             const mfError = this.mutationFormError().un_pe_pm;
             const invalidUserValue = this.invalidUser();
 
-            if(this.ctxp.state.authenticated()) {
+            if (this.ctxp.state.authenticated()) {
                 // this is important, if user is already signed in then do not allow to sign in again in same device
                 return { kind: 'authenticated', message: 'PREBOARDING_SIGNIN.VALIDATION.ALREADY_SIGNED_IN' };
-            } else if(invalidUserValue && invalidUserValue.includes(ctx.value())) {
+            } else if (invalidUserValue && invalidUserValue.includes(ctx.value())) {
                 return { kind: 'not_found', message: 'PREBOARDING_SIGNIN.VALIDATION.INVALID_USER' };
-            } else if(mfError) {
+            } else if (mfError) {
                 return { kind: 'mf_error', message: mfError };
             }
             return null;
         });
-        
+
         // ─── FIELD: identify ──────────────────────────────────────────────────
         required(sp.identify, { message: fo.identify?.validation?.required?.message });
         minLength(sp.identify, fo.identify?.validation?.min_length?.value, { message: fo.identify?.validation?.min_length?.message });
         validate(sp.identify, (ctx) => {
             const mfError = this.mutationFormError().identify;
             const invalidIdentifyValue = this.invalidIdentify();
-            
-            if(invalidIdentifyValue && invalidIdentifyValue.includes(ctx.value())) {
+
+            if (invalidIdentifyValue && invalidIdentifyValue.includes(ctx.value())) {
                 return { kind: 'not_found', message: 'PREBOARDING_SIGNIN.VALIDATION.INVALID_IDENTIFY' };
-            } else if(mfError) {
+            } else if (mfError) {
                 return { kind: 'mf_error', message: mfError };
             }
             return null;
@@ -209,7 +209,7 @@ export class SigninState extends SignalStateService implements FoundationModuleS
     });
 
     // ████ SIGNAL PROPERTIES ███████████████████████████████████████████
-    
+
     private readonly _step = signal<SigninStepEnum>(SigninStepEnum.USERNAME);
     public readonly step = this._step.asReadonly();
 
@@ -282,7 +282,7 @@ export class SigninState extends SignalStateService implements FoundationModuleS
     }
 
     // ████ LISTENERS ███████████████████████████████████████████████████
-    
+
     public override onActivate(): void {
         const registerEffect = effect(() => {
             if (!this.ready()) {
@@ -295,25 +295,25 @@ export class SigninState extends SignalStateService implements FoundationModuleS
         this.registerDeactivationCleanup(() => registerEffect.destroy());
     }
     public override onDeactivate(): void {
-        
+
     }
 
     // ████ SIGNAL FORM METHODS ██████████████████████████████████████████████
-    
+
     public setMutationFieldObj(mutationFieldObj: SigninMutationFieldObjType): void {
         this._mutationFieldObj.set(mutationFieldObj);
     }
     public computedMutationFieldObjMfaVi(): void {
         const fieldObject = this.mutationFieldObj();
 
-        if(this.selected_mfao() === UserMultiFactorAuthenticationTypeEnum.MULTIFAT_SECURITY_QUE) {
+        if (this.selected_mfao() === UserMultiFactorAuthenticationTypeEnum.MULTIFAT_SECURITY_QUE) {
             fieldObject.mfa_vi.label = 'PREBOARDING_SIGNIN.FIELD_LABEL.SQ_ANSWER';
             fieldObject.mfa_vi.placeholder = 'PREBOARDING_SIGNIN.FIELD_PLACEHOLDER.SQ_ANSWER';
         } else {
             fieldObject.mfa_vi.label = 'PREBOARDING_SIGNIN.FIELD_LABEL.OTP';
             fieldObject.mfa_vi.placeholder = 'PREBOARDING_SIGNIN.FIELD_PLACEHOLDER.OTP';
         }
-        
+
         this.setMutationFieldObj(fieldObject);
     }
     public setMutationFormError(error: SigninMutationFormErrorType): void {
@@ -390,30 +390,30 @@ export class SigninState extends SignalStateService implements FoundationModuleS
             case SigninStepEnum.USERNAME:
                 this.setHeading('PREBOARDING_SIGNIN.STEP.USERNAME.HEADING');
                 this.setSubHeading('PREBOARDING_SIGNIN.STEP.USERNAME.SUBHEADING');
-            break;
+                break;
             case SigninStepEnum.PASSWORD:
                 this.setHeading('PREBOARDING_SIGNIN.STEP.PASSWORD.HEADING');
                 this.setSubHeading('PREBOARDING_SIGNIN.STEP.PASSWORD.SUBHEADING');
-            break;
+                break;
             case SigninStepEnum.MFAO:
                 this.setHeading('PREBOARDING_SIGNIN.STEP.MFA_OPTION.HEADING');
                 this.setSubHeading('PREBOARDING_SIGNIN.STEP.MFA_OPTION.SUBHEADING');
-            break;
+                break;
             case SigninStepEnum.VERIFY:
-                if(this.selected_mfao() === UserMultiFactorAuthenticationTypeEnum.MULTIFAT_SECURITY_QUE) {
+                if (this.selected_mfao() === UserMultiFactorAuthenticationTypeEnum.MULTIFAT_SECURITY_QUE) {
                     this.setHeading('PREBOARDING_SIGNIN.STEP.VERIFY_SQ_ANSWER.HEADING');
                     this.setSubHeading('PREBOARDING_SIGNIN.STEP.VERIFY_SQ_ANSWER.SUBHEADING');
                 } else {
                     this.setHeading('PREBOARDING_SIGNIN.STEP.VERIFY_OTP.HEADING');
                     this.setSubHeading('PREBOARDING_SIGNIN.STEP.VERIFY_OTP.SUBHEADING');
                 }
-            break;
+                break;
             case SigninStepEnum.FINISH:
                 this.setHeading('PREBOARDING_SIGNIN.STEP.FINISH.HEADING');
                 this.setSubHeading('PREBOARDING_SIGNIN.STEP.FINISH.SUBHEADING');
-            break;
+                break;
             default:
-            break;
+                break;
         }
     }
     public setSubHeading(subHeading: string | null): void {
@@ -451,12 +451,12 @@ export class SigninState extends SignalStateService implements FoundationModuleS
     }
     public pushInvalidUser(invalidUser: string): void {
         this._invalidUser.update(all => [
-            ...(all ?? []), 
+            ...(all ?? []),
             invalidUser
         ]);
     }
     public removeInvalidUser(invalidUser: string): void {
-        this._invalidUser.update(all => 
+        this._invalidUser.update(all =>
             // if currentAlerts is null/undefined, fallback to an empty array, then filter
             (all ?? []).filter(iu => iu !== invalidUser)
         );
@@ -469,12 +469,12 @@ export class SigninState extends SignalStateService implements FoundationModuleS
     }
     public pushInvalidIdentify(invalidIdentify: string): void {
         this._invalidIdentify.update(all => [
-            ...(all ?? []), 
+            ...(all ?? []),
             invalidIdentify
         ]);
     }
     public removeInvalidIdentify(invalidIdentify: string): void {
-        this._invalidIdentify.update(all => 
+        this._invalidIdentify.update(all =>
             // if currentAlerts is null/undefined, fallback to an empty array, then filter
             (all ?? []).filter(ii => ii !== invalidIdentify)
         );
@@ -499,14 +499,14 @@ export class SigninState extends SignalStateService implements FoundationModuleS
     }
     public computedDisableResendOtp(): boolean {
         // if its pocessing then do not allow to send otp
-        if(this.gpbs.processing)
+        if (this.gpbs.processing)
             return true;
 
         return this._disable_resend_otp();
     }
     public delayEnableResendOtp(minute: number = 0.25): void {
         this._disable_resend_otp.set(true);
-        
+
         setTimeout(() => {
             this._disable_resend_otp.set(false);
         }, minute * 60 * 1000);
@@ -514,13 +514,13 @@ export class SigninState extends SignalStateService implements FoundationModuleS
 
     // ████ SIGNAL DATA VALIDATORS ██████████████████████████████████████
     // n/a
-    
+
     // ████ REGISTRATION AND CALLBACKS ██████████████████████████████████
     // n/a
-    
+
     // ████ API CALLS ███████████████████████████████████████████████████
     // n/a
-    
+
     // ████ WEB SOCKET CALLS ████████████████████████████████████████████
     // n/a
 } 

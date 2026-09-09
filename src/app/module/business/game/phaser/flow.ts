@@ -65,9 +65,13 @@ export class PhaserFlow {
     return this.callbacks.isBlindPassAllowed();
   }
 
+  isOptionalPassAllowed(): boolean {
+    return this.callbacks.isOptionalPassAllowed();
+  }
+
   canSubmitPassWaitingTiles(): boolean {
     if (!this.isPassingPhase()) return false;
-    if (this.isBlindPassAllowed()) {
+    if (this.isBlindPassAllowed() || this.isOptionalPassAllowed()) {
       return this.passWaitingTileCount >= 0 && this.passWaitingTileCount <= 3;
     }
     return this.passWaitingTileCount === 3;
