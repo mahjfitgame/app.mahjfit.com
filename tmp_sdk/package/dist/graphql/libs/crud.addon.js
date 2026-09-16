@@ -1,0 +1,1 @@
+var r=(p=>(p[p.YES=1]="YES",p[p.NO=0]="NO",p))(r||{});export{r as YesNoEnumAddon};

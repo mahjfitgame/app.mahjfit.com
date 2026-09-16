@@ -1,0 +1,22 @@
+declare const EntitySuffix = "Entity";
+declare const CreateArtefact = "Create";
+declare const UpsertArtefact = "Upsert";
+declare const UpdateArtefact = "Update";
+declare const MarkAsMainArtefact = "MarkAsMain";
+declare const SoftRemoveArtefact = "SoftRemove";
+declare const RemoveArtefact = "Remove";
+declare const SoftDeleteArtefact = "SoftDelete";
+declare const DeleteArtefact = "Delete";
+declare const RecoverArtefact = "Recover";
+declare const RestoreArtefact = "Restore";
+declare const FindArtefact = "Find";
+declare const FindOneByIdArtefact = "FindOneById";
+declare const UploadArtefact = "Upload";
+declare const UploadDeleteArtefact = "UploadDelete";
+declare const FileRelocationArtefact = "FileRelocation";
+declare const RecordPositionArtefact = "RecordPosition";
+declare const AutoSuggestArtefact = "AutoSuggest";
+declare const ImportArtefact = "Import";
+declare const ExportArtefact = "Export";
+
+export { AutoSuggestArtefact, CreateArtefact, DeleteArtefact, EntitySuffix, ExportArtefact, FileRelocationArtefact, FindArtefact, FindOneByIdArtefact, ImportArtefact, MarkAsMainArtefact, RecordPositionArtefact, RecoverArtefact, RemoveArtefact, RestoreArtefact, SoftDeleteArtefact, SoftRemoveArtefact, UpdateArtefact, UploadArtefact, UploadDeleteArtefact, UpsertArtefact };

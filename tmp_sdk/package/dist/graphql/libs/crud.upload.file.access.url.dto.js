@@ -1,0 +1,1 @@
+var g=Object.defineProperty;var n=(s,f)=>g(s,"name",{value:f,configurable:true});var u=class u{};n(u,"UploadFileAccessUrlDto");var r=u,b=class b{constructor(){this.direct=false;this.secure=false;this.thumb=false;}};n(b,"UploadFileAccessUrlSelectionSchema");var t=b;export{r as UploadFileAccessUrlDto,t as UploadFileAccessUrlSelectionSchema};

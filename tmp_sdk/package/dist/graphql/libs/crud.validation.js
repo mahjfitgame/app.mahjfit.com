@@ -1,0 +1,1 @@
+var t=Object.defineProperty;var r=(n,o)=>t(n,"name",{value:o,configurable:true});function i(n){return typeof n=="object"&&n!==null&&!Array.isArray(n)}r(i,"isRecord");export{i as isRecord};

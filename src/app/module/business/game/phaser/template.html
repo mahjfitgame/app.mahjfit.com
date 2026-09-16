@@ -31,7 +31,7 @@
 }
 }
 
-@if (instructionPanelState(); as state) {
+@if (instructionPanelOverlay(); as state) {
 @if (state.visible) {
 <div class="instruction-panel" aria-hidden="false" [style.display]="'block'" [style.left.px]="state.x"
   [style.top.px]="state.y" [style.width.px]="state.width" [style.height.px]="state.height"
@@ -60,6 +60,49 @@
     [style.opacity]="state.secondaryButton.enabled ? '1' : '0.65'" [style.boxShadow]="getInstructionButtonShadow(state.secondaryButton)"
     [attr.aria-disabled]="!state.secondaryButton.enabled" (click)="onInstructionPanelClick(state.secondaryButton.action)">{{ state.secondaryButton.label }}</button>
   }
+</div>
+}
+}
+
+@if (claimPanelOverlay(); as state) {
+@if (state.visible) {
+<div class="instruction-panel" aria-hidden="false" [style.display]="'block'" [style.left.px]="state.x"
+  [style.top.px]="state.y" [style.width.px]="state.width" [style.height.px]="state.height"
+  [style.borderWidth.px]="state.borderWidth" [style.borderRadius.px]="state.radius"
+  [style.boxShadow]="'0 ' + state.shadowY + 'px ' + state.shadowBlur + 'px rgb(7 20 47 / 30%)'">
+  
+  @if (state.tileDataUrl) {
+    <img [src]="state.tileDataUrl" alt="Claim Tile" style="position: absolute;"
+      [style.left.px]="state.tileX - state.x" [style.top.px]="state.tileY - state.y"
+      [style.width.px]="state.tileWidth" [style.height.px]="state.tileHeight">
+  }
+
+  <button type="button" class="instruction-panel__button" [style.left.px]="state.callButton.x - state.borderWidth"
+    [style.top.px]="state.callButton.y - state.borderWidth" [style.width.px]="state.callButton.width"
+    [style.height.px]="state.callButton.height" [style.borderRadius.px]="state.callButton.radius"
+    [style.fontSize.px]="state.callButton.fontSize"
+    [style.background]="state.callButton.background || getInstructionButtonBackground(state.callButton.enabled)"
+    [style.color]="state.callButton.color"
+    [style.opacity]="state.callButton.enabled ? '1' : '0.65'" [style.boxShadow]="getInstructionButtonShadow(state.callButton)"
+    [attr.aria-disabled]="!state.callButton.enabled" (click)="onClaimPanelClick('call')">{{ state.callButton.label }}</button>
+
+  <button type="button" class="instruction-panel__button" [style.left.px]="state.skipButton.x - state.borderWidth"
+    [style.top.px]="state.skipButton.y - state.borderWidth" [style.width.px]="state.skipButton.width"
+    [style.height.px]="state.skipButton.height" [style.borderRadius.px]="state.skipButton.radius"
+    [style.fontSize.px]="state.skipButton.fontSize"
+    [style.background]="state.skipButton.background || getInstructionButtonBackground(state.skipButton.enabled)"
+    [style.color]="state.skipButton.color"
+    [style.opacity]="state.skipButton.enabled ? '1' : '0.65'" [style.boxShadow]="getInstructionButtonShadow(state.skipButton)"
+    [attr.aria-disabled]="!state.skipButton.enabled" (click)="onClaimPanelClick('skip')">{{ state.skipButton.label }}</button>
+
+  <button type="button" class="instruction-panel__button" [style.left.px]="state.mahjongButton.x - state.borderWidth"
+    [style.top.px]="state.mahjongButton.y - state.borderWidth" [style.width.px]="state.mahjongButton.width"
+    [style.height.px]="state.mahjongButton.height" [style.borderRadius.px]="state.mahjongButton.radius"
+    [style.fontSize.px]="state.mahjongButton.fontSize"
+    [style.background]="state.mahjongButton.background || getInstructionButtonBackground(state.mahjongButton.enabled)"
+    [style.color]="state.mahjongButton.color"
+    [style.opacity]="state.mahjongButton.enabled ? '1' : '0.65'" [style.boxShadow]="getInstructionButtonShadow(state.mahjongButton)"
+    [attr.aria-disabled]="!state.mahjongButton.enabled" (click)="onClaimPanelClick('mahjong')">{{ state.mahjongButton.label }}</button>
 </div>
 }
 }

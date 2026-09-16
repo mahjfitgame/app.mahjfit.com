@@ -1,0 +1,1 @@
+var f=Object.defineProperty;var s=(b,c)=>f(b,"name",{value:c,configurable:true});var a=class a{constructor(){this.withDeleted=false;}};s(a,"WithDeletedInputDto");var l=a;export{l as WithDeletedInputDto};

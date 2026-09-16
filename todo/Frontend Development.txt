@@ -11,11 +11,334 @@ Converting static design data to real-time Gameplay data, completed the charlest
 [tech][Frontend Development][D1] Converting static design data to real-time Gameplay data - Discard tile and Claim window, cross check with backend bot auto decision
 [tech][Frontend][D1] Integreate discard and calim tile with bot auto turn
 
+Simultaneously working on integrate discard and claim tile with bot auto turn, upgrade the charleson round and implemented the bliend pass and optional across allow to pass tile(1 or 2 or 3). 
+============== POINT ==================
+1]
+Design the claim window popup, 
+Change backend api logic with respect to the claim.
+Upgrade the backend api logic for the exposure panel, now for the exposure panel player have to move tiles from rack to the exposure and create a group.
+Now based on that moved tile we have to chcek if player want to make PUNG, KONG QUINT etc... or not 
+
+2]
+Who win the claim window move tite discard area tile to winning seat, set animation for move discard tile to specific seat. 
+For all seats display the exposure tiles.
+Perform testing of claim window, this take time as we have to wait till the claim window open and complete the 
 
 
+
+
+[
+    {
+        "kind": 17,
+        "tile": {
+            "tile_id": 126,
+            "gseat_id": 2253,
+            "in_rack_one": "2026-09-14T12:40:25.020Z",
+            "in_exposer_one": null,
+            "sort_exposer_one": null,
+            "sort_rack_one": null,
+            "in_exposer_two": null,
+            "in_rack_two": null,
+            "sort_exposer_two": null,
+            "sort_rack_two": null,
+            "active": null,
+            "updated": "2026-09-14T12:40:24.994Z",
+            "id": 56986,
+            "keyid": "01a09fee-d6dc-7fa3-8739-5677ae741e37",
+            "created": "2026-09-14T12:40:24.994Z",
+            "deleted": null
+        },
+        "from_seat": 2249,
+        "to_seat": 2253,
+        "tiles": [
+            {
+                "tile_id": 126,
+                "gseat_id": 2253,
+                "in_rack_one": "2026-09-14T12:40:25.020Z",
+                "in_exposer_one": null,
+                "sort_exposer_one": null,
+                "sort_rack_one": null,
+                "in_exposer_two": null,
+                "in_rack_two": null,
+                "sort_exposer_two": null,
+                "sort_rack_two": null,
+                "active": null,
+                "updated": "2026-09-14T12:40:24.994Z",
+                "id": 56986,
+                "keyid": "01a09fee-d6dc-7fa3-8739-5677ae741e37",
+                "created": "2026-09-14T12:40:24.994Z",
+                "deleted": null
+            },
+            {
+                "tile_id": 123,
+                "gseat_id": 2253,
+                "in_rack_one": "2026-09-14T12:40:25.020Z",
+                "in_exposer_one": null,
+                "sort_exposer_one": null,
+                "sort_rack_one": null,
+                "in_exposer_two": null,
+                "in_rack_two": null,
+                "sort_exposer_two": null,
+                "sort_rack_two": null,
+                "active": null,
+                "updated": "2026-09-14T12:40:24.994Z",
+                "id": 56958,
+                "keyid": "01a09fee-d6dc-71dc-a896-c3ab8ff138b6",
+                "created": "2026-09-14T12:40:24.994Z",
+                "deleted": null
+            },
+            {
+                "tile_id": 125,
+                "gseat_id": 2253,
+                "in_rack_one": "2026-09-14T12:40:25.020Z",
+                "in_exposer_one": null,
+                "sort_exposer_one": null,
+                "sort_rack_one": null,
+                "in_exposer_two": null,
+                "in_rack_two": null,
+                "sort_exposer_two": null,
+                "sort_rack_two": null,
+                "active": null,
+                "updated": "2026-09-14T12:40:24.994Z",
+                "id": 56997,
+                "keyid": "01a09fee-d6dd-757e-adfe-3fb752a26558",
+                "created": "2026-09-14T12:40:24.994Z",
+                "deleted": null
+            }
+        ]
+    }
+]
+
+
+
+============== TODO ==================
+1]
+When reload page the discarded tiles are not showing to the discard area, it should be sho all discarded tile to the discarded area,
+Right now it show only the newly discarded tiles
+2]
+Charlestone round while animating the tile, player can not move the tile for the next round becuase if user select tile for the next roung pass area then tile is move to the previous seat pass waiting area and to preventing this we have to wait for the complete the round and after getting proper response from the API. 
+3]
+For the bot player we need to move the tile to the exposure when bot seat or other seat make the PUNG, KONG QUIT.
+4]
+The right , left exposure have the same space as from the top space. 
+
+
+5]
+Now we have one more phase which is EXPOSURE_CREATE now we need to update the claim logic, 
+
+
+
+
+So basically how flow is going on 
+For bot, 
+Server will decide to make the PUNG, KONG QUINT etc... we got the update when some realplayer make call for CALL or SKIP and when claim window resolve. 
+
+For real player,
+First request is wether they want to call that tile or skip that tile
+If skip then we ingonre that player from call 
+If call and after resolve it that player is eligible for that then assign that tile to the player rack. 
+Now after that player have to move tiles from rack to the exposure and create a group.
+Now based on that moved tile we have to chcek if player want to make PUNG, KONG QUINT etc... or not 
+
+
+Here we have one more event for the ws to make the PUNG, KONG, QUINT
+User will move the rack tile to the exposure meild and if they 2 or more tile as per the tile in exposure we will decide wether it is PUNG, KONG, QUINT in this also consider the claim tile so 1 claim tile and move to tile to the rack then make the api call of publishMoveTilesToExposurePanel
+
+OR if move more then that tile
+
+Or we can do one thing that we will make call whenever the user make the tile to the epposure meald and server verify the valid group whenever discard the tile and then it did't allow to exchange the tile between the exposure and rack. 
+The only JOKER will be swap or exchange.
+
+
+DONE - 6]
+as we changed the logic we have total two new property as target_seat and submission. Now as per that I think we have to change the logic for the claim and claim resolver.
+Now we have already claim.intent but this we don't know how to manage it before that we pass the action (kind) which is make PUNG, KONG etc...
+But with frontend we changed that flow as player can call or skip the discard tile, so here we just get the action and based on that we will move tile to the specific seat rack but now we give that control to user that player can claim and manually move the tile to the exposure to make PUNG, KONG, QUINT etc...
+Now based on that we have to change the logic so before changing we have to do proper analysis with the existing logic. OR have to add more action as well I think, or need some solution which can make this easly , also need to manage the bot auto resove claim window.
+
+Now as we manage this requesit with WS as well as the normal graphql api call. 
+
+But make sure this will not break the existing any other functionality,
+
+
+So basically how flow is going on 
+For bot, 
+Server will decide to make the PUNG, KONG QUINT etc...
+
+For real player,
+First request is wether they want to call that tile ot skip that tile
+If skip then we ingonre that player from call 
+If call and after resolve it that player is eligible for that then assign that tile to the player rack. 
+Now after that player have to move tiles from rack to the exposure and create a group.
+Now based on that moved tile we have to chcek if player want to make PUNG, KONG QUINT etc... or not 
+
+If this all proces done then we have to move forward to discard tile or setup next turn.
+
+
+
+
+The both point is not a bug, because so I revert the changes for the submitClaim call conditionally because if we true by default then it every time true even player choose PASS, the PASS means player don't want the tile and we set the submission false so that seat don't want to claim the tile. 
+Regarding Bug 2 to I accepted the changes, but it is not the issue because I got the all 3 tiles in the last play response, so I think the issue is something different.
+Find out it as I expalin in my last question.
+
+
+
+
+See, first understand what I need and then cross check the corrent flow and logic
+
+Bottom seat call and win 
+1]
+When bottom seat claim and if win then the discard are tile should be animated to the bottom seat exposure panel.
+2]
+Do not show the pick popup as the turn stage is NEED_EXPOSURE.
+3]
+Once claimed tile is comes to the exposure, enable to move another tile to make group and once the exposure tiles group becom >=3 then allow to discard the tile.
+
+
+
+
+
+On reload, the discard area is cleared even the discard seat have tiles,
+
+On reload, When the turn. stage is NEED_EXPOSURE and reload the claim tile should be show in the specific seat exposure panel, I checked with the bottom seat but on reload it stuck as there is no PICK and DISCARD action as first need to complete the exposure. 
+See the log what I get when CALL and claim win for the bottom seat. The claim tile I get int the specific seat exposures_meld but it not display in the exposure panel.
+So just for your information if player have already PUNG, KONG etc group we got that in the array of play > seats > SEAT_ID > exposures_meld
+
+play > seats:  
+2291 : 
+active : null
+created: "2026-09-15T06:32:58.366Z"
+deleted: null
+game_id: 540
+gseattype_id: 1
+id: 2291
+keyid: "01a0a3c4-cb06-7745-bb58-ef03a5720c48"
+racks: 1: 
+exposures_meld: 
+Array(1)
+0: 
+{kind: 1}
+
+
+In short, the claim tile should be shown in the exposure panel of specific seat. So they know they have to add more tile o complet the exposure and discard the tile.
+---
 What are the other option to manage the flow PICK > DISCARD > CLAIM > DISCARD > NEXT TURN SEAT rether then schedule?
 
 
+same as the  https://realmahjongg.com/ 
+how the flow goes
+When discard tile
+Claim window open
+All player submitted the response then claim window resolved
+Winner player get the tile and animated from the discard area to the winner seat exposure.
+Now, winning seat move other tiles to exposure and make pung, kong, quint etc... group then discard the tile. 
+but that discarded_tile not pass to request createExposure which make the exposure group
+and next turn schedule.
+
+for discard tile we have separate request and it work fine, but I want the flow for after claim and make group and discard tile to finilised the exposure group. How to handle the make PUNG, KONG gropup and discard tile request.
+
+
+
+All seat exposure should be display to all players, so if any seat have exposure then display the exposure tiles.
+
+============== REPLY ==================
+FOR CLIENT]
+Today, I continue working on the Discard, Claim, and Pick Tile functionality and I have finished the exposure group to make PUNG, KONG, QUINT and also integrate the tile animation and placement to the specific seat. The testing is remaining. 
+
+I will keep you posted on the work progress.
+Thank you!
+
+
+
+FOR CLIENT]
+Today, I continue working on the Discard, Claim, and Pick Tile functionality and added the popup design for the call tile with the CALL, SKIP button and currently implementing the action base functionality with animation for tile movement, which include claim animation, and move tile to exposure panel.
+I will keep you posted on the work progress.
+
+Thank you!
+
+
+
+FOR CLIENT]
+Today, I continue working on the Discard, Claim, and Pick Tile functionality and done some progress with that, bot auto decision process. I will continue work on this as still required to complete some use cases.
+
+I will keep you posted on the work progress.
+
+Thank you!
+
+============== MEETING ==================
+Progress meeting: 9 SEP 2026 5 PM PDT
+Raj was late due to electricity issue in area and because of that internet was also disconnected.
+Meeting did not held as per schedule.
+
+Today's updates are all technical work related progress.
+
+1]
+Performed Charleston all round developer side logic flow checking and some part of development of blind pass.
+
+2]
+Onoing current task is
+Cross verify the logic for the bot auto pick and discard tile and claim tile.
+Schedule claim resolver for the real player seat so claim auto resolved after some timeout if no response from player (10 seconds max can be configurable).
+What if clam is belongs to boat, then how next turn will be scheduled for bot.
+
+3]
+Discard tile implementation
+Bot auto pick tile implementation
+Bot auto discard tile implementation
+Set Discard and pick tile animation 
+
+4]
+Working on complex part of game - claim and tile movement implementation
+This involve multiple tasks to perform simultaneously.
+This is where we will continue during this week. 
+
+5]
+Also working on charleston round to implement the 
+Blind Pass for the First Left and the Last Right round of Charleston. 
+Blind pass will have difference in regular charleston process such as in animation and tile movement.
+Such as animation as per the selected pass tile, the blind pass will move only the remains tiles to rack and other tile to the pass seat. Will also finish it during this week.
+
+6]
+Started to implement optional Across feature, which allows players to pass 0, 1, 2, or 3 tiles.
+
+7]
+There is no new update on demo for now. During this week we will update demo with all work progress.
+
+8]
+During this week I will also analyse how many features we will include in MVP as you requested and send you the list.
+
+# WHERE WE ARE IN MILESTONE?
+1) 
+Set up frontend with angular, capacitor, API sdk and utility. [approx. 10-12 days]
+This part might get complete in 2 phases 5+7. [3 days used 4 days remain and will be use in future upgrades]
+2) 
+Convert Figma layout to HTML design [minimum 10 days - depends on layout and as needed throughout development] [estimated 10 days took 15 days]
+completed task with 4 player game board area. Remain HTML pages and 2 player game board is pending as design is not provided at that time.
+3)
+Setup static app and web demo for prototype [6-7 days] [used approx. 3 days, 3 to 4 days are still availabe will be used during future relase]
+4) 
+Develop user FREE signup/signin/forgot password for game play [3-4 days]
+(We have membership related things also that will be get done later on)
+This is pending. 
+5) 
+Start game [4-5 days] 
+80% completed [Used 3 days 2 days are still available] UI related partis pending functional part done.
+6) 
+Setup game play area [minimum 5-7 days] [took additional 4 days compared to estimated]
+This has been completed and demo also provided. 
+7)
+Integrate Charleston [approx. 2-3 days] [took additional 3 days compared to estimated]
+Completed the Completed and took 3 days more. Bliend pass will get done in this week. It will take 1 more day to finish it and 1 day to check entire process with real flow.
+8) 
+Integrate Discard, Claim and Pick [minimum 10 days]
+3 days of work done during previous week and work is keep going.
+This is the main part of the game.
+9) 
+Player personalisation, connection/disconnection related functionality [minimum 7 days]
+Upcoming.
+10) 
+(added later point) Development apart from Game Play area such as third party service integration (this point will be executed as per requirement and need)
+As needed.
 
 ============== TEST POINT ==================
 
@@ -31,16 +354,32 @@ Then an audio for “Charleston Stopped”.  (I know this needs to be WAV)
 
 ============== POINT ==================
 
+1]
+Game play Charleston all round testing
+
+2]
 Discard tile implementation
 Bot auto pick tile implementation
 Bot auto discard tile implementation
-Bot auto discard and pick tile animation implementation
+Set Discard and pick tile animation 
 Claim tile implementation
 
-Thank you for focusing on blind pass.
+Basically, I worked on multiple tasks simultaneously.
 
 
+3]
+Cross veryfy the logic for the bot auto pick and discard tile and claim tile.
+Schedule claim resoved for the real player seat so claim auto resolved after some timeout if no response from player.
 
+4]
+Upgrade charleston round and implement the 
+Blind Pass for the First Left and the Last Right round of charelston. 
+Set animation that as per the selected pass tile, the bliend pass will move only the remains tiles to rack and other tile to the pass seat.
+Also implemeted Optional Across feature, which allows players to pass 0, 1, 2, or 3 tiles.
+
+
+============== REPLY ==================
+Circling back to the launch timeline, we agree with; login, signup, home page, leaderboard, and game play.
 
 1]
 For second charleston when choose NO option play sound "stop-the-chaleston.wav".
@@ -142,9 +481,6 @@ Change the text of the instruction popup.
 Select 3 tiles to pass is the subtext not the title/header so replace this with the subtitle and current subtitle is the main title but we change the text as for first round first pass Right, for across title should be Across, and for left title sould be Left, so basically title should be Right/Across/Left any one.
 3]
 In mobile device, in instruction popup the pass tile couunt is 0/3 is touched with the bottom border there should  be small gap between the popup border and count.
-
-
-
 4]
 Want to show animation when any seat perform the pick and discard tile and that we know from the API response, and we can implemet animation with the API response when the action will be performed by any seat (real player or bot).
 When bot pick the tile and discard tile we have to show the animation of pick and discard tile and also remove the tile from the wall.
@@ -196,6 +532,57 @@ The source list for Content Security Policy directive 'script-src' contains an i
 ReferenceError: Can't find variable: Atomics 
 
 
+============== LOGICAL FLOW AND DISCUSIION AND DECIDED FLOW FOR THE DISCARD< CLAIM TILE ==================
+
+next turnn
+or
+clame{
+ target_sheet: [434,2]
+ submission: {
+  434: true
+ }
+}
+
+Player Discard 
+processDiscard() --> when request arrive all players are waiting
+|
+(other player will have waiting status..)
+Waiting...
+the player who discard will also have waiting status when request sent to server
+|
+request received om server in discard method
+(still all players will have waiting status..)
+|
+in discard method this process will run
+1. adjust tile rack for wall and player who discarded the tile
+2. take the discarded tile and check againes all player tile rack and see if is there any match found for clame
+3. if match found make entry in target_sheet
+4. loop through all the target_sheet and find if there is any bot, in loop we will take decision for bot and and will also update submission key
+|
+server process finished 
+5. send response to all players
+still all player has waiting... statue
+|
+client received the response 
+check if private or play has target_sheet.length > 0 and it contain self sheat id + submission do not contain self id
+if sheat id found in   in submission not found then show clame window 
+if sheat id found in target_sheetand but submission also has self sheat id means anwer is already submitted so just show waiting
+|
+if the user who submitted vot for clam and its last the server will get all vot and will finish the clame process
+
+-----
+We will have clame submit event in ws which collect came vot from player
+like clameVot()
+|
+in thi smethod it will check target_sheet.length and submission.lenght
+|  
+match if target_sheet.length = submission.lenght (if match then process the claim action for valid player)
+if count does not match then just keep updating the state and keep sending the response via ws
+
+
+
+
+
 
 ============== REPLY ==================
 Circling back to the launch timeline, we agree with; login, signup, home page, leaderboard, and game play.
@@ -228,6 +615,17 @@ Users total points are displayed on the leaderboard
 REPLY]
 Reaching point milestones moves user to next level on the meter
 REPLY]
+-------
+
+FOR CLIENT]
+Today, I completed the implementation of the Blind Pass in the Charleston round. I also completed the Optional Across feature, which allows players to pass 0, 1, 2, or 3 tiles.
+
+I have now started working on the Discard, Claim, and Pick Tile functionality, along with the bot’s auto-pick and auto-discard functionality.
+
+I will keep you posted on the work progress.
+
+Thank you!
+
 -------
 FOR CLIENT]
 Today, I continue worked on the discard tile and then worked on your given point first and start work on charlestone round upgrade process, and continue working on this. Once I finish this I will again start work on the discard tile.

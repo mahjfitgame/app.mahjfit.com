@@ -104,6 +104,7 @@ export interface TableSceneCallbacks {
   readonly onQuitGame: () => void;
   /** Discard a tile from the local player's rack. */
   readonly onLocalPlayerDiscard: (tileId: number) => void;
+  readonly onLocalPlayerExposureCreate?: (tileIds: number[]) => Promise<void>;
   readonly onLocalPlayerPick: () => void;
   /** Updates the crisp HTML wall-count label when its value or layout changes. */
   readonly onWallCountOverlay: (state: WallCountOverlayState) => void;
@@ -116,8 +117,8 @@ export interface TableSceneCallbacks {
   readonly onMobileDrawerOverlay: (state: MobileDrawerOverlayState) => void;
   /** Positions the native mobile header toggle arrow. */
   readonly onMobileHeaderToggleOverlay?: (state: MobileHeaderToggleOverlayState) => void;
-  /** Renders the crisp native "YOUR TURN" card, its copy, and its button. */
   readonly onInstructionPanelOverlay: (state: InstructionPanelOverlayState) => void;
+  readonly onClaimPanelOverlay: (state: ClaimPanelOverlayState) => void;
   /** Lets native overlays yield so a Phaser popup can sit above them. */
   readonly onTableOverlayBlocked: (level: TableOverlayBlockLevel) => void;
   /** Draws the native Dead Hand seat picker over the opponent exposures. */
@@ -217,6 +218,7 @@ export interface UiLayoutCallbacks {
   readonly onMobileHeaderToggleOverlay?: (state: MobileHeaderToggleOverlayState) => void;
   /** Positions and fills the native instruction card over the table centre. */
   readonly onInstructionPanelOverlay?: (state: InstructionPanelOverlayState) => void;
+  readonly onClaimPanelOverlay?: (state: ClaimPanelOverlayState) => void;
   readonly logoTextureKey?: string;
 }
 
@@ -281,6 +283,8 @@ export interface InstructionPanelButtonState {
   readonly fontSize: number;
   readonly shadowY: number;
   readonly shadowBlur: number;
+  readonly background?: string;
+  readonly color?: string;
 }
 
 /**
@@ -314,6 +318,29 @@ export interface InstructionPanelOverlayState {
   readonly titleGap: number;
   readonly button: InstructionPanelButtonState;
   readonly secondaryButton?: InstructionPanelButtonState;
+}
+
+export interface ClaimPanelOverlayState {
+  readonly visible: boolean;
+  readonly x: number;
+  readonly y: number;
+  readonly width: number;
+  readonly height: number;
+  readonly radius: number;
+  readonly borderWidth: number;
+  readonly shadowY: number;
+  readonly shadowBlur: number;
+  
+  // Coordinates for the Tile image
+  readonly tileX: number;
+  readonly tileY: number;
+  readonly tileWidth: number;
+  readonly tileHeight: number;
+  readonly tileDataUrl?: string;
+
+  readonly callButton: InstructionPanelButtonState;
+  readonly skipButton: InstructionPanelButtonState;
+  readonly mahjongButton: InstructionPanelButtonState;
 }
 
 /** One selectable opponent hand in the Dead Hand seat step. */

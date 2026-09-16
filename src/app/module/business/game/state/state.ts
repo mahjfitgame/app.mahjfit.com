@@ -1,7 +1,7 @@
 // file: src/app/module/business/game/state.ts
 
 import { computed, effect, inject, Service, signal } from "@angular/core";
-import { BotLevelModeEnum, Game, GameAllowJoinEnum, GameBoatProfileEntityGSDto, GameCharlestoneStageEnum, GameCharlestoneStageEnumAddon, GameCreateInputDto, GameCreateOutputDto, GameEngine, GameEngineWs, GameEngineWsToken, GameModeEnum, GamePersonalClaimOutputGSDto, GamePersonalPassOutputGSDto, GamePersonalSeatEntityGSDto, GamePhaseEnum, GamePhaseFirstRoundDirectionEnum, GamePhaseFirstRoundDirectionEnumAddon, GamePhaseSecondRoundDirectionEnum, GamePlayAction, GamePlayActionEnum, GamePlayActionEnumAddon, GameRackDeadInfoGSOutputDto, GameRackExposuresMeldEntityGSDto, GameRackIDEnum, GameRackIDEnumAddon, GameService, GameStateGameOutputDto, GameStateOutputDto, GameStatePersonalOutputDto, GameStatePlayOutputDto, GameStatePublicStartInputDto, GameTileEntityGSDto, GameTurnStageEnum, TileEntity, TileEntityGSDto, TileStyleFindInputWhereDto, TileStyleFindOutputDto } from "@bfw/api-sdk/graphql/endpoints/business";
+import { BotLevelModeEnum, Game, GameAllowJoinEnum, GameBoatProfileEntityGSDto, GameCharlestoneStageEnum, GameCharlestoneStageEnumAddon, GameCreateInputDto, GameCreateOutputDto, GameEngine, GameEngineWs, GameEngineWsToken, GameModeEnum, GamePersonalClaimOutputGSDto, GamePersonalPassOutputGSDto, GamePersonalSeatEntityGSDto, GamePhaseEnum, GamePhaseFirstRoundDirectionEnum, GamePhaseFirstRoundDirectionEnumAddon, GamePhaseSecondRoundDirectionEnum, GamePlayAction, GamePlayActionEnum, GamePlayActionEnumAddon, GamePlayClaimGSOutputDto, GameRackDeadInfoGSOutputDto, GameRackExposuresMeldEntityGSDto, GameRackIDEnum, GameRackIDEnumAddon, GameService, GameStateGameOutputDto, GameStateOutputDto, GameStatePersonalOutputDto, GameStatePlayOutputDto, GameStatePublicStartInputDto, GameTileEntityGSDto, GameTurnStageEnum, TileEntity, TileEntityGSDto, TileStyleFindInputWhereDto, TileStyleFindOutputDto } from "@bfw/api-sdk/graphql/endpoints/business";
 import { ConfService } from "@libs/conf/service";
 import { LogService } from "@libs/log/service";
 import { SignalStateService } from "@libs/signal-state/service";
@@ -192,6 +192,21 @@ export class GameState extends SignalStateService implements FoundationModuleSta
         return this.play().current_turn_seat_id;
     });
 
+    // ████ _play_current_turn_seat_id SIGNAL ███████████████████████████████████████████
+    public readonly play_claim = computed<GamePlayClaimGSOutputDto>(() => {
+        return this.play().claim as GamePlayClaimGSOutputDto;
+    });
+
+    // ████ _play_current_turn_seat_id SIGNAL ███████████████████████████████████████████
+    public readonly play_claim_target_seat = computed<number[]>(() => {
+        return this.play_claim()?.target_seat || [];
+    });
+
+    // ████ _play_current_turn_seat_id SIGNAL ███████████████████████████████████████████
+    public readonly play_claim_submissions = computed<Record<number, boolean>>(() => {
+        return this.play_claim()?.submissions || {};
+    });
+
     // ████ _play_current_turn_u_id SIGNAL ███████████████████████████████████████████
     // delete this below comment once you done
     // this is not edfined at this moment you need to add in _play
@@ -221,6 +236,7 @@ export class GameState extends SignalStateService implements FoundationModuleSta
         if (typeof stage === 'number') {
             if (stage === 1) return GameTurnStageEnum.NEED_PICK;
             if (stage === 2) return GameTurnStageEnum.NEED_DISCARD;
+            if (stage === 3) return GameTurnStageEnum.NEED_EXPOSURE;
         }
         return stage;
     });
@@ -228,8 +244,10 @@ export class GameState extends SignalStateService implements FoundationModuleSta
     // ████ canDiscard SIGNAL ███████████████████████████████████████████
     public readonly canDiscard = computed(() => {
         const isMyTurn = this.play_current_turn_seat_id() === this.personal_seat_id();
-        const needsDiscard = this.play_turn_stage() === GameTurnStageEnum.NEED_DISCARD;
-        const isPlayingPhase = this.play_phase() === GamePhaseEnum.PLAYING;
+        const stage = this.play_turn_stage();
+        //const needsDiscard = stage === GameTurnStageEnum.NEED_DISCARD || stage === 2 || stage === 'NEED_DISCARD' || stage === GameTurnStageEnum.NEED_EXPOSURE || stage === 3 || stage === 'NEED_EXPOSURE';
+        const needsDiscard = stage === GameTurnStageEnum.NEED_DISCARD || stage === GameTurnStageEnum.NEED_EXPOSURE;
+        const isPlayingPhase = this.play_phase() === GamePhaseEnum.PLAYING || this.play_phase() === ("EXPOSURE_CREATE" as any);
 
         return isMyTurn && needsDiscard && isPlayingPhase;
     });
@@ -237,7 +255,8 @@ export class GameState extends SignalStateService implements FoundationModuleSta
     // ████ canPickTile SIGNAL ███████████████████████████████████████████
     public readonly canPickTile = computed(() => {
         const isMyTurn = this.play_current_turn_seat_id() === this.personal_seat_id();
-        const needsPick = this.play_turn_stage() === GameTurnStageEnum.NEED_PICK;
+        const stage = this.play_turn_stage();
+        const needsPick = stage === GameTurnStageEnum.NEED_PICK;
         const isPlayingPhase = this.play_phase() === GamePhaseEnum.PLAYING;
 
         return isMyTurn && needsPick && isPlayingPhase;
@@ -569,6 +588,12 @@ export class GameState extends SignalStateService implements FoundationModuleSta
     public readonly personal_seat_u_id = computed<number>(() => {
         // this is new planning so need to add these keys in object
         return this.personal_seat()?.u_id ?? 0;
+    });
+
+    // ████ personal_seat_rack_first_rack_id SIGNAL ███████████████████████████████
+    public readonly personal_seat_rack_first_rack_id = computed<GameRackIDEnum>(() => {
+        return GameRackIDEnumAddon[GameRackIDEnum.RACK_FIRST as keyof typeof GameRackIDEnumAddon] as unknown as GameRackIDEnum;
+        //return this.personal_seat()?.racks?.[GameRackIDEnumAddon.RACK_FIRST]?.rack_id ?? GameRackIDEnumAddon.RACK_FIRST;
     });
 
     // ████ personal_seat_racks SIGNAL ███████████████████████████████████████████
@@ -1332,7 +1357,7 @@ export class GameState extends SignalStateService implements FoundationModuleSta
     }
 
     // ████ WEB SOCKET CALL PUBLISH CLAIM ████████████████████████████████████████████
-    public async publishClaimAction(action: GamePlayActionEnum, tile_id: number): Promise<void> {
+    public async publishClaimAction(action: GamePlayActionEnumAddon, tile_id: number): Promise<void> {
         const game_keyid = this.game_keyid();
         if (!game_keyid) {
             this.log.error('GAME_KEYID IS NULL');
@@ -1342,12 +1367,37 @@ export class GameState extends SignalStateService implements FoundationModuleSta
         await this.api.sdk.graphql.ws.gameEngine?.publishActionClaimTile({
             input: {
                 keyid: game_keyid,
-                gpaction_id: action,
+                gpaction_id: action as unknown as GamePlayActionEnum,
                 game_id: this.game_id(),
                 u_id: this.personal_seat_u_id(),
-                seat_id: this.play_current_turn_seat_id(),
-                rack_id: this.personal().rack_id,
+                seat_id: this.personal_seat_id(),
+                rack_id: this.personal_seat_rack_first_rack_id(),
                 tile_id: tile_id
+            },
+            selections: this.commonSelectionFields,
+        });
+    }
+
+    // ████ WEB SOCKET MOVE TILES TO EXPOSURE PANEL BY USER ACTION ████████████████████████████████████████████
+    public async publishMoveTilesToExposurePanel(tile_ids: number[], targetRackId: number,): Promise<void> {
+        const game_keyid = this.game_keyid();
+        if (!game_keyid) {
+            this.log.error('GAME_KEYID IS NULL');
+            return;
+        }
+
+
+        //let action = (tile_ids.length == GamePlayActionEnumAddon.PUNG) ? GamePlayActionEnum.PUNG : (tile_ids.length == GamePlayActionEnumAddon.KONG) ? GamePlayActionEnum.KONG : (tile_ids.length == GamePlayActionEnumAddon.QUINT) ? GamePlayActionEnum.QUINT : GamePlayActionEnum.SEXTET;
+        let action = (tile_ids.length == 3) ? GamePlayActionEnumAddon.PUNG : (tile_ids.length == 4) ? GamePlayActionEnumAddon.KONG : (tile_ids.length == 5) ? GamePlayActionEnumAddon.QUINT : GamePlayActionEnumAddon.SEXTET;
+
+        await this.api.sdk.graphql.ws.gameEngine?.publishActionCreateExposure({
+            input: {
+                keyid: game_keyid,
+                gpaction_id: action as unknown as GamePlayActionEnum,
+                u_id: this.personal_seat_u_id(),
+                seat_id: this.personal_seat_id(),
+                rack_id: this.personal_seat_rack_first_rack_id(),
+                tile_ids: tile_ids,
             },
             selections: this.commonSelectionFields,
         });

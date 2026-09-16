@@ -20,8 +20,9 @@ import Phaser from "phaser";
 import { Capacitor } from "@capacitor/core";
 
 import { PhaserScene } from "./scenes/scene";
-import { GameDeadHandReasonEnum, GamePhaseFirstRoundDirectionEnum, GameTileEntity, GameTileEntityGSDto, TileCategoryEnum, GamePlayActionEnum, TileCategoryEnumAddon, GamePhaseEnum, GameRackIDEnumAddon } from "@bfw/api-sdk/graphql/endpoints/business";
+import { GameDeadHandReasonEnum, GamePhaseFirstRoundDirectionEnum, GameTileEntity, GameTileEntityGSDto, TileCategoryEnum, GamePlayActionEnum, TileCategoryEnumAddon, GamePhaseEnum, GameRackIDEnumAddon, GamePlayActionEnumAddon, GameTurnStageEnum } from "@bfw/api-sdk/graphql/endpoints/business";
 import {
+  ClaimPanelOverlayState,
   DeadHandClaim,
   DeadHandReason,
   DeadHandSeatSelectionState,
@@ -66,6 +67,8 @@ import { NotifyService } from "src/app/base/notify/service";
   ]
 })
 export class PhaserComponent implements AfterViewInit {
+  private pendingDiscardTileId: number | null = null;
+
   @ViewChild("host", { static: true })
   private readonly hostRef!: ElementRef<HTMLDivElement>;
 
@@ -123,7 +126,8 @@ export class PhaserComponent implements AfterViewInit {
   readonly wallCountState = signal<WallCountOverlayState | null>(null);
   readonly pointsState = signal<PointsOverlayState | null>(null);
   readonly playerLabelStates = signal<readonly PlayerLabelOverlayState[]>([]);
-  readonly instructionPanelState = signal<InstructionPanelOverlayState | null>(null);
+  readonly instructionPanelOverlay = signal<InstructionPanelOverlayState | undefined>(undefined);
+  readonly claimPanelOverlay = signal<ClaimPanelOverlayState | undefined>(undefined);
   readonly mobileHeaderToggleOverlay = signal<MobileHeaderToggleOverlayState | null>(null);
 
   readonly mobileDrawerState = signal<MobileDrawerOverlayState | null>(null);
@@ -277,10 +281,10 @@ export class PhaserComponent implements AfterViewInit {
     // TODO: Persist the new order to the server when SDK supports ORDERINRACKONE WS call
   }
 
-  public onClaimOptionSelected(action: GamePlayActionEnum, tile_id: number): void {
-    this.gameState.publishClaimAction(action, tile_id);
-  }
-
+  /*   public onClaimOptionSelected(action: GamePlayActionEnum, tile_id: number): void {
+      this.gameState.publishClaimAction(action, tile_id);
+    }
+   */
   constructor() {
     effect(() => {
       const err = this.gameState.play_action_error();
@@ -304,9 +308,7 @@ export class PhaserComponent implements AfterViewInit {
 
     effect(() => {
       const allTiles = this.gameState.game_all_tiles();
-
       if (!this.phaser || !this.sceneReady()) return;
-
       this.phaser.events.emit("allTiles:set", allTiles);
     });
 
@@ -394,9 +396,9 @@ export class PhaserComponent implements AfterViewInit {
             if (!seatPos) {
               const currentActiveSeat = this.gameState.active_table_position();
               if (currentActiveSeat) {
-                 const order: TableSeat[] = ["bottom", "right", "top", "left"];
-                 const currentIndex = order.indexOf(currentActiveSeat);
-                 seatPos = order[(currentIndex + 3) % 4];
+                const order: TableSeat[] = ["bottom", "right", "top", "left"];
+                const currentIndex = order.indexOf(currentActiveSeat);
+                seatPos = order[(currentIndex + 3) % 4];
               }
             }
 
@@ -421,6 +423,18 @@ export class PhaserComponent implements AfterViewInit {
       this.phaser.events.emit("charleston:state", charlestonState);
     });
 
+    effect(() => {
+      const turnStage = this.gameState.play_turn_stage();
+      if (!this.phaser || !this.sceneReady()) return;
+      this.phaser.events.emit("table:turn_stage", turnStage);
+
+      if (turnStage === GameTurnStageEnum.NEED_DISCARD && this.pendingDiscardTileId !== null) {
+        console.log(`[Component] Automatically firing pending discard tile ${this.pendingDiscardTileId}...`);
+        this.gameState.publishDiscardTile(this.pendingDiscardTileId);
+        this.pendingDiscardTileId = null;
+      }
+    });
+
 
     effect(() => {
       const canPick = this.gameState.canPickTile();
@@ -435,11 +449,19 @@ export class PhaserComponent implements AfterViewInit {
     });
 
     effect(() => {
-      const claim = this.gameState.active_claim();
+      const isClaimPhase = this.gameState.play_phase() === GamePhaseEnum.CLAIM;
       if (!this.phaser || !this.sceneReady()) return;
 
-      if (claim) {
-        this.phaser.events.emit("ui:show-claim-window", claim);
+      const targets: number[] = this.gameState.play_claim_target_seat() || [];
+      const submitted: Record<number, boolean> = this.gameState.play_claim_submissions() || {};
+      const mySeatId = this.gameState.personal_seat_id();
+      const claimTile = this.gameState.play_claim_tile();
+
+      const isTargeted = mySeatId !== undefined && targets.includes(mySeatId);
+      const hasSubmitted = mySeatId !== undefined && submitted[mySeatId];
+
+      if (isClaimPhase && isTargeted && !hasSubmitted && claimTile) {
+        this.phaser.events.emit("ui:show-claim-window", { tile: claimTile });
       } else {
         this.phaser.events.emit("ui:hide-claim-window");
       }
@@ -561,8 +583,16 @@ export class PhaserComponent implements AfterViewInit {
           onMobileHeaderChanged: (collapsed) =>
             this.setMobileHeaderCollapsed(collapsed),
           onLocalPlayerDiscard: (tileId) => {
-            this.gameState.publishDiscardTile(tileId);
+            if (this.gameState.play_turn_stage() === GameTurnStageEnum.NEED_EXPOSURE) {
+              this.pendingDiscardTileId = tileId;
+              console.log(`[Component] Saved pending discard tile ${tileId} while waiting for exposure API...`);
+            } else {
+              this.gameState.publishDiscardTile(tileId);
+            }
             this.knownDiscardTileIds.add(tileId);
+          },
+          onLocalPlayerExposureCreate: async (tileIds) => {
+            await this.gameState.publishMoveTilesToExposurePanel(tileIds, 0); // targetRackId isn't actually used in publishMoveTilesToExposurePanel's GraphQL call inside state.ts
           },
           onLocalPlayerPick: () => {
             this.gameState.publishPickTile();
@@ -574,6 +604,7 @@ export class PhaserComponent implements AfterViewInit {
           onMobileDrawerOverlay: (state) => this.setMobileDrawerOverlay(state),
           onMobileHeaderToggleOverlay: (state) => this.setMobileHeaderToggleOverlay(state),
           onInstructionPanelOverlay: (state) => this.setInstructionPanelOverlay(state),
+          onClaimPanelOverlay: (state) => this.setClaimPanelOverlay(state),
           onTableOverlayBlocked: (level) => this.setTableOverlayBlocked(level),
           onDeadHandSeatSelection: (state) => this.setDeadHandSeatSelection(state),
           onHeaderLogoLayout: (state) => this.setHeaderLogoLayout(state),
@@ -883,11 +914,15 @@ export class PhaserComponent implements AfterViewInit {
   }
 
   private setInstructionPanelOverlay(state: InstructionPanelOverlayState): void {
-    this.instructionPanelState.set(state);
+    this.zone.run(() => this.instructionPanelOverlay.set(state));
+  }
+
+  setClaimPanelOverlay(state: ClaimPanelOverlayState): void {
+    this.zone.run(() => this.claimPanelOverlay.set(state));
   }
 
   public onInstructionPanelClick(action?: string): void {
-    const state = this.instructionPanelState();
+    const state = this.instructionPanelOverlay();
     if (!state) return;
 
     if (action === "pass") {
@@ -977,17 +1012,6 @@ export class PhaserComponent implements AfterViewInit {
     this.setJoinTablePopup(null);
   }
 
-  /**
-   * Native Dead Hand claim dialog. Phaser retains the exposure highlights and
-   * seat arrows; this overlay owns the readable reason-selection controls.
-   */
-  private setDeadHandPopup(targetSeat: Exclude<TableSeat, "bottom"> | null): void {
-    this.deadHandClaimTarget.set(targetSeat);
-    if (targetSeat) {
-      this.deadHandClaimReason.set(GameDeadHandReasonEnum.FALSE_MAHJONG);
-    }
-  }
-
   public onDeadHandReasonSelect(reason: DeadHandReason): void {
     this.deadHandClaimReason.set(reason);
   }
@@ -999,6 +1023,32 @@ export class PhaserComponent implements AfterViewInit {
 
   public onCancelDeadHandClaim(): void {
     this.setDeadHandPopup(null);
+  }
+
+  public onClaimPanelClick(action: string): void {
+    const claimTile = this.gameState.play_claim_tile();
+    if (!claimTile) return;
+
+    if (action === "call") {
+      void this.gameState.publishClaimAction(GamePlayActionEnumAddon.CALL, claimTile.tile_id as number);
+      this.phaser?.events.emit("ui:claim-submitted", { tile_id: claimTile.tile_id });
+    } else if (action === "skip") {
+      void this.gameState.publishClaimAction(GamePlayActionEnumAddon.PASS, claimTile.tile_id as number);
+    } else if (action === "mahjong") {
+      void this.gameState.publishClaimAction(GamePlayActionEnumAddon.MAHJONG, claimTile.tile_id as number);
+      this.phaser?.events.emit("ui:claim-submitted", { tile_id: claimTile.tile_id });
+    }
+  }
+
+  /**npm run
+   * Native Dead Hand claim dialog. Phaser retains the exposure highlights and
+   * seat arrows; this overlay owns the readable reason-selection controls.
+   */
+  private setDeadHandPopup(targetSeat: Exclude<TableSeat, "bottom"> | null): void {
+    this.deadHandClaimTarget.set(targetSeat);
+    if (targetSeat) {
+      this.deadHandClaimReason.set(GameDeadHandReasonEnum.FALSE_MAHJONG);
+    }
   }
 
   /**

@@ -1,0 +1,1 @@
+var l=Object.defineProperty;var e=(c,i)=>l(c,"name",{value:i,configurable:true});var b=class b{};e(b,"IdOrIdsInputDto");var r=b,m=class m{};e(m,"IdInputDto");var a=m;export{a as IdInputDto,r as IdOrIdsInputDto};
