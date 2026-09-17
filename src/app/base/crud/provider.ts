@@ -5,11 +5,11 @@ import { CrudValidation } from "@base/crud/validation";
 import { CrudUrl } from "@base/crud/url";
 import { CrudRoute } from "@base/crud/route";
 import { CrudService } from "src/app/base/crud/service/entry";
-import { CrudDefaultService } from "@base/crud/default/service";
+import { CrudComponentService } from "src/app/base/crud/component/service";
 import { CrudState } from "./state/entry";
 
 export const CRUD_HELPER_PROVIDER: Provider[] = [
-    CrudDefaultService,
+    CrudComponentService,
     CrudRoute,
     CrudState,
     CrudUtility,

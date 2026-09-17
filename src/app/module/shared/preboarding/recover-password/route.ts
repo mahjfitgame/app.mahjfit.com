@@ -95,7 +95,7 @@ export class RecoverPasswordRoute extends FoundationModuleRoute {
     // NAVIGATION ▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬
 
     // PARAM GETTERS ▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬
-    /** delegates to the app-wide standard param declared in UrlState */
+    /** delegates to the wide-component standard param declared in UrlState */
     public readonly paramPublicid = this.url.state.routeParamPublicid;
 
     // QUERY PARAM GETTERS ▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬

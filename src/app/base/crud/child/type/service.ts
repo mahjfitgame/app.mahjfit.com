@@ -10,6 +10,7 @@ import {
     CrudMutationInputType,
     CrudMutationResultType,
     CrudRecordKeyInputType,
+    CrudRecordKeyType,
     CrudRecordType,
     CrudStateRecordFieldObjType,
     CrudSearchFilterInputType,
@@ -62,6 +63,12 @@ export interface CrudChildServiceType {
     setUniqueKey(): void;
     setUrlSlugField(): void;
     setIsMainField(): void;
+    /**
+     * Names the column that scopes the marker column's uniqueness group — the
+     * entity's @MarkAsMainField({ ref_group_relation_field }). Call right after
+     * setIsMainField(); pass null when the marker is table-wide.
+     */
+    setIsMainFieldRefGroupRelationField(): void;
     setRecordPositionField(): void;
     setActiveField(): void;
     setDeletedField(): void;
@@ -125,6 +132,14 @@ export interface CrudChildServiceType {
     registerUpdate(): void;
     registerActive(): void;
     registerInactive(): void;
+    /**
+     * markAsMain is a per-entity opt-in in the api, not a universal operation:
+     * a module whose entity has no markAsMain method leaves this and
+     * markAsMain() below INERT (register nothing) and keeps MARK_AS_MAIN out of
+     * its route actions — the same way setIsMainField() is declared by children
+     * whose entity has no is_main column.
+     */
+    registerMarkAsMain(): void;
     registerSoftDelete(): void;
     registerRestore(): void;
     registerDelete(): void;
@@ -163,6 +178,18 @@ export interface CrudChildServiceType {
 
     active(keyid: CrudRecordKeyInputType): Promise<CrudMutationResultType>;
     inactive(keyid: CrudRecordKeyInputType): Promise<CrudMutationResultType>;
+
+    /**
+     * SINGLE record only — one row is main per group, so never an array.
+     * markAsMain is per-COLUMN in the api: markAsMainField says which marker
+     * column to set, refGroupRelationFieldValue carries the clicked row's group
+     * value (null when the marker declares no group relation field).
+     */
+    markAsMain(
+        keyid: CrudRecordKeyType,
+        markAsMainField: string,
+        refGroupRelationFieldValue: string | null,
+    ): Promise<CrudMutationResultType>;
 
     softDelete(keyid: CrudRecordKeyInputType): Promise<CrudMutationResultType>;
     restore(keyid: CrudRecordKeyInputType): Promise<CrudMutationResultType>;

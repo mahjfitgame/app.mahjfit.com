@@ -11,7 +11,7 @@ import { MatInputModule } from "@angular/material/input";
 import { MatButtonModule } from "@angular/material/button";
 import { MY_PROFILE_PROVIDER } from "./provider";
 @Component({
-  selector: 'app-my-profile',
+  selector: 'my-profile-component',
   standalone: true,
   templateUrl: 'template.html',
   styleUrl: 'style.scss',

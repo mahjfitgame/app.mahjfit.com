@@ -2,16 +2,14 @@
 import { afterNextRender, inject, Type } from "@angular/core";
 import { MatBottomSheet, MatBottomSheetRef } from "@angular/material/bottom-sheet";
 import { MatDialog, MatDialogRef } from '@angular/material/dialog';
-import { NgxPrintService, PrintOptions } from "ngx-print";
 import { FoundationActionEnum } from "@libs/foundation/action/enum";
 import { CrudActionUiLayoutEnum, CrudEndSideBarTabEnum, CrudFieldUiTypeEnum } from "@base/crud/enum";
-import { UiSizeEnum } from "@libs/breakpoint/enum";
-import { UI_WIDTH } from "@libs/breakpoint/const";
-import { CRUD_PRINT_SECTION_ID } from "@base/crud/const";
-import { CrudDefaultViewBottomSheetComponent } from "@base/crud/default/view/bottom-sheet/component";
-import { CrudDefaultViewDialogComponent } from "@base/crud/default/view/dialog/component";
-import { CrudDefaultViewPageComponent } from "@base/crud/default/view/page/component";
-import { CrudDefaultViewRecordComponent } from "@base/crud/default/view/record/component";
+import { BreakpointSizeEnum } from "@libs/breakpoint/enum";
+import { BREAKPOINT_WIDTH } from "@libs/breakpoint/const";
+import { CrudViewBottomSheetComponent } from "src/app/base/crud/component/view/bottom-sheet/component";
+import { CrudViewDialogComponent } from "src/app/base/crud/component/view/dialog/component";
+import { CrudViewPageComponent } from "src/app/base/crud/component/view/page/component";
+import { CrudViewRecordComponent } from "src/app/base/crud/component/view/record/component";
 import { BfwApiSdkError } from "@bfw/api-sdk/core";
 import { CrudFieldInfoType, CrudRecordType } from "@base/crud/type";
 import { CrudRootService } from "./root";
@@ -25,11 +23,19 @@ export class CrudViewService {
     // ████████████████████████████████████████████████████████████████████
     public readonly viewDialog = inject(MatDialog);
     public readonly viewBottomSheet = inject(MatBottomSheet);
-    public readonly print = inject(NgxPrintService);
 
     // View has independent overlays so its lifecycle never changes Mutation UI state.
-    private activeViewDialogRef: MatDialogRef<CrudDefaultViewDialogComponent> | null = null;
-    private activeViewBottomSheetRef: MatBottomSheetRef<CrudDefaultViewBottomSheetComponent> | null = null;
+    private activeViewDialogRef: MatDialogRef<CrudViewDialogComponent> | null = null;
+    private activeViewBottomSheetRef: MatBottomSheetRef<CrudViewBottomSheetComponent> | null = null;
+
+    /**
+     * Record wrapper of the View host currently on screen, handed over by that
+     * host (see `component/view/page/component.ts`). Only the /print/:keyid
+     * route needs it: that print is triggered by the router, not by a button,
+     * so there is no template to pass an element from. A plain field, not a
+     * signal — it is a DOM handle nothing renders off.
+     */
+    private autoPrintArea: HTMLElement | null = null;
 
     constructor(
         private readonly root: CrudRootService,
@@ -50,10 +56,10 @@ export class CrudViewService {
         return this.isPrintActionActive() ? 'GL.ACTION.PRINT' : 'GL.ACTION.VIEW';
     }
     public getViewRecordComponent(): Type<any> {
-        return this.root.state.view.viewRecordCustomComponent() ?? CrudDefaultViewRecordComponent;
+        return this.root.state.view.viewRecordCustomComponent() ?? CrudViewRecordComponent;
     }
     public getViewPageComponent(): Type<any> {
-        return this.root.state.view.viewPageCustomComponent() ?? CrudDefaultViewPageComponent;
+        return this.root.state.view.viewPageCustomComponent() ?? CrudViewPageComponent;
     }
     public toggleViewEndDrawer(): void {
         this.root.state.view.setViewEndDrawerIsOpen(!this.root.state.view.viewEndDrawerIsOpen());
@@ -126,18 +132,18 @@ export class CrudViewService {
             }
 
             const size = this.root.state.view.viewActionUiSize();
-            const fullscreen = size === UiSizeEnum.FULL;
+            const fullscreen = size === BreakpointSizeEnum.FULL;
 
             this.activeViewDialogRef = this.viewDialog.open(
-                CrudDefaultViewDialogComponent,
+                CrudViewDialogComponent,
                 {
                     panelClass: [
-                        'bfw-safe-area-p',
+                        ...(fullscreen ? [] : ['bfw-safe-area-p']),
                         ...(fullscreen ? ['tw:[--mat-dialog-container-shape:0px]'] : []),
                     ],
                     injector: this.root.getComponentInjector(),
                     disableClose: true,
-                    width: UI_WIDTH[size],
+                    width: BREAKPOINT_WIDTH[size],
                     maxWidth: fullscreen ? '100vw' : 'calc(100vw - 2rem)',
                     height: fullscreen ? '100dvh' : undefined,
                     maxHeight: fullscreen ? '100dvh' : undefined,
@@ -158,7 +164,7 @@ export class CrudViewService {
             }
 
             this.activeViewBottomSheetRef = this.viewBottomSheet.open(
-                CrudDefaultViewBottomSheetComponent,
+                CrudViewBottomSheetComponent,
                 {
                     injector: this.root.getComponentInjector(),
                     disableClose: true,
@@ -247,15 +253,33 @@ export class CrudViewService {
     public isPrintActionActive(): boolean {
         return this.root.state.crudAction() === FoundationActionEnum.PRINT;
     }
-    /** Used by the dedicated /print/:keyid route AND the inline Print button on View. */
-    public printRecord(): void {
-        this.print.print(new PrintOptions({
-            printSectionId: CRUD_PRINT_SECTION_ID,
-            //printTitle: this.i18n.translate(this.getViewTitle()),
-            useExistingCss: true,
-            printMethod: 'iframe',
-            printDelay: 200,
-        }));
+    public setAutoPrintArea(element: HTMLElement | null): void {
+        this.autoPrintArea = element;
+    }
+    /**
+     * Used by the dedicated /print/:keyid route AND the inline Print button on View.
+     *
+     * `target` is the element to print — every View host template passes its own
+     * record wrapper (`#printArea`), so a page showing two <crud-component> hosts, or a
+     * custom view with several printable areas, always prints the right one.
+     * PrintService also accepts an id or a CSS selector if a caller prefers that.
+     *
+     * Everything else (web iframe vs. native live document, RTL, theme, styles)
+     * is PrintService's job — see `libs/src/print/service.ts`.
+     */
+    public async printRecord(target: string | HTMLElement): Promise<void> {
+        const result = await this.root.print.element(target, {
+            title: this.root.i18n.translate(this.getViewTitle()),
+        });
+
+        // `busy` is a second click while the dialog is still open — nothing went
+        // wrong, so it stays silent.
+        if (!result.ok && !result.busy) {
+            // PrintService already logged the cause; this is the user-facing half.
+            this.root.notify.error(
+                result.error ?? this.root.i18n.translate('GL.MODULE.HTTP_STATUS.NOT_FOUND'),
+            );
+        }
     }
     public async initPrintActionFromUrl(
         keyid: string | number | null = this.action.getCrudActionRecordSecondaryKeyValue(),
@@ -296,11 +320,22 @@ export class CrudViewService {
 
             // Wait for the page host to actually render the loaded record before
             // printing — a setTimeout(0) macrotask is not guaranteed to run after
-            // Angular has flushed this DOM update, afterNextRender() is.
+            // Angular has flushed this DOM update, afterNextRender() is. The host
+            // registers its record wrapper in the same phase, hence the null check.
             afterNextRender(() => {
-                if (this.isPrintActionActive()) {
-                    this.printRecord();
+                if (!this.isPrintActionActive()) {
+                    return;
                 }
+
+                if (!this.autoPrintArea) {
+                    // The host renders before the record resolves, so this should be
+                    // set by now — logged rather than ignored, since the symptom is
+                    // simply nothing happening on the /print/:keyid route.
+                    this.root.log.error('[PRINT RECORD FAILED]', 'No View host registered a print area.');
+                    return;
+                }
+
+                void this.printRecord(this.autoPrintArea);
             }, { injector: this.root.getComponentInjector() });
         } catch (error: unknown) {
             this.root.log.error('[PRINT RECORD LOAD FAILED]', error);

@@ -23,7 +23,7 @@ import { PrivateNavService } from "@area/private/nav/service";
 import { PRIVATE_NAV_PROVIDER } from "./nav/provider";
 
 @Component({
-  selector: 'app-private-area-layout',
+  selector: 'private-area-layout-component',
   standalone: true,
   templateUrl: './template.html',
   styleUrl: './style.scss',
@@ -70,7 +70,7 @@ export class PrivateAreaLayoutComponent implements OnInit, OnDestroy, AfterViewI
      * the area's menus, all generated from PrivateAreaRegistry.build()
      *
      * ⚠ replaces the hand written navItems (~110 lines, ~30 dead links) and
-     * accountMenuItems. the sidebar renders through <app-private-nav />, the
+     * accountMenuItems. the sidebar renders through <private-nav-component />, the
      * avatar menu and footer bar read nav.state directly from this template
      */
     public readonly nav = inject(PrivateNavService);

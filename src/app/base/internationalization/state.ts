@@ -1,5 +1,6 @@
 // file: app/base/internationalization/state.ts
 import { Service, effect, inject } from '@angular/core';
+import { Directionality, Direction } from '@angular/cdk/bidi';
 import { ConfService } from '@libs/conf/service';
 import { LogService } from '@libs/log/service';
 import { SignalStateService } from '@libs/signal-state/service';
@@ -21,6 +22,7 @@ export class I18nState extends SignalStateService implements FoundationModuleSta
     public readonly gpbs = inject(GlobalProgressBarService);
     public readonly ctxp = inject(ContextProfileService);
     public readonly api = inject(BfwApiService);
+    public readonly directionality = inject(Directionality);
 
     // ████ CLASS PROPERTIES ████████████████████████████████████████████
 
@@ -80,6 +82,16 @@ export class I18nState extends SignalStateService implements FoundationModuleSta
             // set i18n in html dom
             document.documentElement.setAttribute(this.attrLang, lang);
             document.documentElement.setAttribute(this.attrBidi, bidi);
+
+            // Angular CDK's Directionality (used internally by MatDialog,
+            // MatBottomSheet, MatMenu, MatSelect, etc. to mirror/position
+            // overlays) only reads document.documentElement.dir once, in its
+            // own constructor - it never re-reads the DOM. Push the current
+            // value into it directly so every overlay opened after a language
+            // switch picks up the correct direction instead of a stale one.
+            const direction = bidi as Direction;
+            this.directionality.valueSignal.set(direction);
+            this.directionality.change.emit(direction);
 
             // set i18n in api request header
             this.setBfwApiHeaderI18n();

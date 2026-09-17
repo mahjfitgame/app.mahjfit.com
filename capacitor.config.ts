@@ -63,7 +63,6 @@ const config: CapacitorConfig = {
       style: "DEFAULT",
     },
     SplashScreen: {
-      launchShow: false,
       launchShowDuration: 0, // 0 to do not show and (n > 0) to show for a n amount of time
       launchAutoHide: true, // if want to control splash screen hide manually, set to false
       backgroundColor: '#ffffffff',
@@ -77,7 +76,7 @@ const config: CapacitorConfig = {
 
       iosSpinnerStyle: 'large',
     },
-    PushNotifications: {
+    PushNotifications:{
       "presentationOptions": ["badge", "sound", "alert", "banner", "list"]
     },
     CapacitorSQLite: {
@@ -86,13 +85,13 @@ const config: CapacitorConfig = {
       iosKeychainPrefix: 'bfw-sqlite-app',
       iosBiometric: {
         biometricAuth: false,
-        biometricTitle: "Biometric login for capacitor sqlite"
+        biometricTitle : "Biometric login for capacitor sqlite"
       },
       androidIsEncryption: true,
       androidBiometric: {
-        biometricAuth: false,
-        biometricTitle: "Biometric login for capacitor sqlite",
-        biometricSubTitle: "Log in using your biometric"
+        biometricAuth : false,
+        biometricTitle : "Biometric login for capacitor sqlite",
+        biometricSubTitle : "Log in using your biometric"
       },
       electronIsEncryption: true,
       electronWindowsLocation: "C:\\ProgramData\\CapacitorDatabases",

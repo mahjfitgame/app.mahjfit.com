@@ -12,7 +12,7 @@ import { HomeService } from './service';
 import { HOME_PROVIDER } from './provider';
 
 @Component({
-    selector: 'app-home',
+    selector: 'home-component',
     standalone: true,
     templateUrl: './template.html',
     styleUrl: './style.scss',

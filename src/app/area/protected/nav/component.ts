@@ -27,7 +27,7 @@ import { ProtectedNavService } from '@area/protected/nav/service';
  * before it
  */
 @Component({
-    selector: 'app-protected-nav',
+    selector: 'protected-nav-component',
     standalone: true,
     templateUrl: './template.html',
     styleUrl: './style.scss',

@@ -14,7 +14,7 @@ import {
 import type { FormFieldOptionLoaderType } from '@base/form-fields/type';
 
 @Component({
-    selector: 'app-form-field-checkbox',
+    selector: 'form-field-checkbox-component',
     standalone: true,
     templateUrl: './template.html',
     styleUrl: './style.scss',

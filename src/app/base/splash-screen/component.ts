@@ -3,7 +3,7 @@ import { ProgressBarComponent } from '@base/progress-bar/component';
 import { SplashScreenService } from '@base/splash-screen/service';
 
 @Component({
-  selector: 'app-splash-screen',
+  selector: 'splash-screen-component',
   standalone: true,
   imports: [ProgressBarComponent],
   providers: [],

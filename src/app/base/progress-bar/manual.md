@@ -1,11 +1,11 @@
 # ProgressBarComponent + ProgressBarService Manual
 
-This manual shows how to use `app-progress-bar` for **multiple independent processes on the same page** (for example 2-3 forms and one data listing API call).
+This manual shows how to use `progress-bar-component` for **multiple independent processes on the same page** (for example 2-3 forms and one data listing API call).
 
 ## Why this works for multiple processes
 
 `ProgressBarComponent` has its own `providers: [ProgressBarService]`.
-That means every `<app-progress-bar>` instance gets a **unique** `ProgressBarService` instance.
+That means every `<progress-bar-component>` instance gets a **unique** `ProgressBarService` instance.
 
 So if one page has 3 forms, each form can have its own progress bar:
 
@@ -40,7 +40,7 @@ Template inside progress bar uses:
 ```html
 <section>
   <h3>Profile Form</h3>
-  <app-progress-bar #profileBar></app-progress-bar>
+  <progress-bar-component #profileBar></progress-bar-component>
   <form (ngSubmit)="submitProfile()">
     <!-- profile fields -->
     <button type="submit">Save Profile</button>
@@ -49,7 +49,7 @@ Template inside progress bar uses:
 
 <section>
   <h3>Address Form</h3>
-  <app-progress-bar #addressBar></app-progress-bar>
+  <progress-bar-component #addressBar></progress-bar-component>
   <form (ngSubmit)="submitAddress()">
     <!-- address fields -->
     <button type="submit">Save Address</button>
@@ -58,7 +58,7 @@ Template inside progress bar uses:
 
 <section>
   <h3>Password Form</h3>
-  <app-progress-bar #passwordBar></app-progress-bar>
+  <progress-bar-component #passwordBar></progress-bar-component>
   <form (ngSubmit)="submitPassword()">
     <!-- password fields -->
     <button type="submit">Save Password</button>
@@ -67,7 +67,7 @@ Template inside progress bar uses:
 
 <section>
   <h3>Data Listing</h3>
-  <app-progress-bar #listBar></app-progress-bar>
+  <progress-bar-component #listBar></progress-bar-component>
   <button type="button" (click)="loadList()">Load List</button>
 </section>
 ```
@@ -81,7 +81,7 @@ import { ProgressBarComponent } from 'src/app/components/progress-bar/component'
 import { ApiService } from './api.service';
 
 @Component({
-  selector: 'app-multi-form-page',
+  selector: 'multi-form-page-component',
   standalone: true,
   imports: [ProgressBarComponent],
   templateUrl: './multi-form-page.component.html',
@@ -140,7 +140,7 @@ export class MultiFormPageComponent {
 
 ## Behavior summary
 
-- Each bar is isolated because each `<app-progress-bar>` has its own `ProgressBarService` instance.
+- Each bar is isolated because each `<progress-bar-component>` has its own `ProgressBarService` instance.
 - You can run all processes at once (profile + address + password + list) and all bars will update separately.
 - `stop()` returns elapsed time if you want to log duration:
 

@@ -51,7 +51,7 @@ interface DashboardColumnOption {
 }
 
 @Component({
-  selector: 'app-dashboard',
+  selector: 'dashboard-component',
   standalone: true,
   templateUrl: './template.html',
   styleUrl: './style.scss',

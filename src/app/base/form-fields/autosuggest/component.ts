@@ -24,7 +24,7 @@ import {
 } from '@base/form-fields/autosuggest/type';
 
 @Component({
-    selector: 'app-form-field-autosuggest',
+    selector: 'form-field-autosuggest-component',
     standalone: true,
     templateUrl: './template.html',
     styleUrl: './style.scss',

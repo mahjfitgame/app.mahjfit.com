@@ -15,6 +15,7 @@ export enum FoundationActionEnum {
     INSIGHT           = 'insight',
 
     // RECORD ACTION ▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬
+    SUB_MODULE        = 'sub-module',
     RECORD_POSITION   = 'record-position',
     UPDATE            = 'update',
     QUICK_UPDATE      = 'quick-update',
@@ -34,8 +35,7 @@ export enum FoundationActionEnum {
     SOFT_REMOVE       = 'soft-remove',
     REMOVE            = 'remove',
     RECOVER           = 'recover',
-    SUB_MODULE        = 'sub-module',  
-    // REPORT = 'report' — DROPPED, not in the vocabulary
+    //REPORT = 'report' — DROPPED, not in the vocabulary
 
     // LISTING ▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬
     LISTING           = 'listing',

@@ -4,7 +4,7 @@ import { ThemeService } from '@base/theme/service';
 import { FormsModule } from '@angular/forms';
 
 @Component({
-  selector: 'app-theme',
+  selector: 'theme-component',
   standalone: true,
   templateUrl: './template.html',
   styleUrl: './style.scss',

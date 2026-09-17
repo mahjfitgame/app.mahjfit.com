@@ -4,7 +4,7 @@ import { CrudValidation } from '@base/crud/validation';
 import { CrudState } from 'src/app/base/crud/state/entry';
 
 @Pipe({
-    name: 'fieldValueFormat',
+    name: 'CrudFieldValueFormatPipe',
     standalone: true,
     pure: true,
 })

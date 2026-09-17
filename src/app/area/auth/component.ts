@@ -12,7 +12,7 @@ import { AUTH_NAV_PROVIDER } from '@area/auth/nav/provider';
 import { TranslocoModule } from '@jsverse/transloco';
 
 @Component({
-  selector: 'app-auth-area-layout',
+  selector: 'auth-area-layout-component',
   standalone: true,
   templateUrl: './template.html',
   styleUrl: './style.scss',
@@ -43,7 +43,7 @@ export class AuthAreaLayoutComponent implements OnInit, OnDestroy {
   protected readonly service = inject(AuthAreaLayoutService);
 
   /**
-   * ⚠ no `nav` field any more. the footer bar renders through <app-auth-nav />,
+   * ⚠ no `nav` field any more. the footer bar renders through <auth-nav-component />,
    * which injects AuthNavService itself. nothing in this template reads the
    * menus directly, unlike the private area's avatar menu
    */

@@ -1,5 +1,5 @@
 // file: libs/src/breakpoint/enum.ts
-export enum UiSizeEnum {
+export enum BreakpointSizeEnum {
     XS = 'xs',
     SM = 'sm',
     MD = 'md',

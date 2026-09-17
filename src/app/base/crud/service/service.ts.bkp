@@ -227,9 +227,9 @@ export class CrudService {
     /**
      * Set the injector from component.
      *  
-     * CrudService is feature-scoped via providers (not app-root singleton).
+     * CrudService is feature-scoped via providers (not root-component singleton).
      * Logic is in service, but actual UI rendering context belongs to component tree/overlay host.
-     * So, insted of using app-root singleton from service, we need to use component injector.
+     * So, insted of using root-component singleton from service, we need to use component injector.
      * Here we can do same in service like
      * - private readonly injector = inject(Injector);
      * but component-driven injection is better, this keeps service less tightly coupled to DI container acquisition, while still allowing dynamic component resolution. 
@@ -1398,7 +1398,7 @@ export class CrudService {
         }
 
         /**
-         * Defer so <app-crud-default-mutation-component> can render first.
+         * Defer so <crud-mutation-component-component> can render first.
          * Required for END_SIDE_BAR portal registration.
          */
         setTimeout(() => {

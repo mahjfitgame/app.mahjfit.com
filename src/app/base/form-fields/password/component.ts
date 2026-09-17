@@ -11,7 +11,7 @@ import { FormFieldPasswordService } from '@base/form-fields/password/service';
 import { FormFieldPasswordState } from '@base/form-fields/password/state';
 
 @Component({
-    selector: 'app-form-field-password',
+    selector: 'form-field-password-component',
     standalone: true,
     templateUrl: './template.html',
     styleUrl: './style.scss',

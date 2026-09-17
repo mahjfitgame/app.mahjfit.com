@@ -1,0 +1,107 @@
+// file: src/app/base/image-slideshow/style.scss
+// find component scss in [src/theme/active/_component.scss]
+
+:host {
+    display: block;
+    flex: 1 1 auto;
+    min-height: 0;
+}
+
+swiper-container {
+    // drives the arrow's box AND swiper's own centring math
+    // (margin-top: calc(0px - size/2)), so overriding width/height in ::part()
+    // instead would knock the arrows off centre by the difference.
+    --swiper-navigation-size: 3rem;
+    --swiper-navigation-sides-offset: 1rem;
+
+    // plain dots, no numbers - the active one is the theme's primary so it
+    // reads against either palette without a hardcoded colour.
+    --swiper-pagination-color: var(--mat-sys-primary);
+    --swiper-pagination-bullet-inactive-color: var(--mat-sys-on-surface);
+    --swiper-pagination-bullet-inactive-opacity: 0.35;
+    --swiper-pagination-bullet-opacity: 1;
+    --swiper-pagination-bullet-width: 0.5rem;
+    --swiper-pagination-bullet-height: 0.5rem;
+    --swiper-pagination-bullet-border-radius: 9999px;
+    --swiper-pagination-bullet-horizontal-gap: 0.25rem;
+    --swiper-pagination-bottom: 0.75rem;
+}
+
+/*
+The THUMB strip's own arrows. Scoped by class, because the 3rem arrows above
+would cover most of a 64px-tall strip. Same border-box + padding trick.
+*/
+swiper-container.bfw-image-slideshow-thumbs {
+    --swiper-navigation-size: 1.75rem;
+    --swiper-navigation-sides-offset: 0.25rem;
+}
+
+/*
+The arrow CHIP rests at a hint of a shade and fills in to its full surface on
+hover - the picture is the subject, not the controls.
+
+⚠ the GLYPH keeps full opacity at both states. Fading that with the chip left
+nothing to aim at, which is a different problem from a chip that competes with
+the image.
+
+⚠ the blur stays at rest, and matters MORE now than it did at full opacity: it
+is what keeps the arrow legible where the image behind it happens to be busy.
+*/
+swiper-container::part(button-next),
+swiper-container::part(button-prev) {
+    // theme tokens, so the arrows invert with light/dark like every other
+    // surface in the app. color-mix keeps them translucent over the image.
+    color: var(--mat-sys-on-surface);
+    border-radius: 9999px;
+    background: color-mix(in srgb, var(--mat-sys-surface-container) 5%, transparent);
+    backdrop-filter: blur(4px);
+    transition: background 150ms ease, box-shadow 150ms ease;
+    box-sizing: border-box;
+    padding: 0.85rem;
+}
+
+/*
+⚠ :not() rather than nesting this in the rule above, which matches the thumbs
+strip too: that one resolves to a shade HIGHER, so inheriting this hover would
+make it change colour rather than just gain weight.
+*/
+swiper-container:not(.bfw-image-slideshow-thumbs)::part(button-next):hover,
+swiper-container:not(.bfw-image-slideshow-thumbs)::part(button-prev):hover {
+    background: color-mix(in srgb, var(--mat-sys-surface-container) 40%, transparent);
+}
+
+swiper-container.bfw-image-slideshow-thumbs::part(button-next),
+swiper-container.bfw-image-slideshow-thumbs::part(button-prev) {
+    padding: 0.5rem;
+    /*
+     * ⚠ this USED to be opaque with a shadow, so a thumb scrolling under the
+     * arrow stayed hidden. That is given up on purpose: at rest the strip now
+     * reads as the subject and a thumb does show through. The blur and the
+     * hover state below are what pay for it.
+     */
+    background: color-mix(in srgb, var(--mat-sys-surface-container-high) 15%, transparent);
+    box-shadow: none;
+}
+
+swiper-container.bfw-image-slideshow-thumbs::part(button-next):hover,
+swiper-container.bfw-image-slideshow-thumbs::part(button-prev):hover {
+    // the opaque chip the strip used to wear all the time
+    background: var(--mat-sys-surface-container-high);
+    box-shadow: 0 1px 4px rgb(0 0 0 / 0.35);
+}
+
+.bfw-image-slideshow-ring::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: 9999px;
+    background: conic-gradient(
+        currentColor calc(var(--bfw-slideshow-autoplay, 0) * 360deg),
+        transparent 0
+    );
+    mask: radial-gradient(
+        farthest-side,
+        transparent calc(100% - 2px),
+        #000 calc(100% - 2px)
+    );
+}

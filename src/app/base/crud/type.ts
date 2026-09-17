@@ -3,6 +3,7 @@ import { Signal, WritableSignal } from "@angular/core";
 import type { ScrollStrategy } from "@angular/cdk/overlay";
 import { CrudDataLoadTypeEnum, CrudFieldUiTypeEnum, CrudFieldValidationEnum, CrudListOperationFieldsEnum, CrudViewOptionFieldsEnum, CrudFieldNormalizeModeEnum } from "@base/crud/enum";
 import { Portal } from "@angular/cdk/portal";
+import { BreakpointSizeEnum } from "@libs/breakpoint/enum";
 import { FieldTree, SchemaPathTree } from "@angular/forms/signals";
 import {
     FormFieldAutosuggestCustomAddType,
@@ -152,7 +153,7 @@ export interface CrudFieldSwitchOptionType extends Record<string, string | numbe
  * about it.
  *
  * The row form is for AUTOSUGGEST, which names its values itself: answer with the item
- * and <app-form-field-autosuggest> also files it in its panel cache, so a value the
+ * and <form-field-autosuggest-component> also files it in its panel cache, so a value the
  * form opened on becomes a real suggestion again the moment it is deselected - with no
  * second request. Only that form can, because template.option() draws the row and a
  * bare label is not a row.
@@ -233,7 +234,7 @@ export interface CrudFieldOnChangeContextType {
  * AUTOSUGGEST the options ARE held by the field, in [option] - everything below is only
  * about selection behaviour.
  *
- * CRUD does not draw this control either: <app-form-field-select> does, and it is
+ * CRUD does not draw this control either: <form-field-select-component> does, and it is
  * standalone. Every key here is optional and every default matches the control's own,
  * so a field that declares no `select:` bag at all behaves exactly as it did before.
  */
@@ -285,7 +286,7 @@ export interface CrudFieldSelectType {
  * Used when [type = RADIO]. The options live in [option] as they always have; everything
  * below is only about how the group is laid out.
  *
- * CRUD does not draw this control either: <app-form-field-radio> does, and it is
+ * CRUD does not draw this control either: <form-field-radio-component> does, and it is
  * standalone. Every key here is optional and every default matches the control's own, so
  * a field declaring no `radio:` bag at all behaves exactly as it did before.
  */
@@ -315,7 +316,7 @@ export interface CrudFieldRadioType {
  * █ TEXTAREA ██████████████████████████████████████████████████████████
  * █████████████████████████████████████████████████████████████████████
  * Used when [type = TEXTAREA]. CRUD does not draw this control either:
- * <app-form-field-textarea> does, and it is standalone. Every key is optional and
+ * <form-field-textarea-component> does, and it is standalone. Every key is optional and
  * matches the control's own default, so a field declaring no `textarea:` bag behaves
  * exactly as CRUD's old inline block did - three rows, growing to eight.
  */
@@ -332,7 +333,7 @@ export interface CrudFieldTextareaType {
  * █ CHECKBOX ██████████████████████████████████████████████████████████
  * █████████████████████████████████████████████████████████████████████
  * Used when [type = CHECKBOX]. CRUD does not draw this control either:
- * <app-form-field-checkbox> does, and it is standalone. The options live in [option]
+ * <form-field-checkbox-component> does, and it is standalone. The options live in [option]
  * as they always have; everything below is only about the All row and the selection
  * cap - both new, the old inline block had neither.
  */
@@ -361,7 +362,7 @@ export interface CrudFieldCheckboxType {
  * Used only when [type = AUTOSUGGEST]. The options are NOT held by the field:
  * they are fetched while the user types.
  *
- * CRUD does not draw this control - <app-form-field-autosuggest> does, and it is
+ * CRUD does not draw this control - <form-field-autosuggest-component> does, and it is
  * standalone: usable with no CRUD anywhere. So the shapes below are ALIASES of its
  * own, not copies. One definition, and a loader written for a hand-built form drops
  * into a CRUD field object unchanged.
@@ -564,6 +565,82 @@ export interface CrudFieldFlagType {
     mode?: FormFieldFlagModeType;
 }
 
+/**
+ * Shape of the access-url object a FILE field's [fr_field] points at.
+ * Each member is the key INSIDE that object holding one url variant, and the
+ * only instance is CRUD_FIELD_FILE_SHAPE - what every @bfw/api-sdk
+ * UploadFileAccessUrlDto returns. An api that spells its variants differently
+ * is a framework edit (that const), not a per-field option.
+ */
+export interface CrudFieldFileShapeType {
+    /** Small, listing-sized image. The listing draws this one, always. */
+    thumb: string;
+
+    /** Full-size public url. */
+    direct: string;
+
+    /** Full-size signed / access-controlled url. */
+    secure: string;
+}
+
+/** FILE display metadata - how a file column resolves its url and what it draws. */
+export interface CrudFieldFileType {
+    /**
+     * is_image: boolean
+     * true  - the cell draws the THUMB variant as a round image, falling back
+     *         to the [monogram_field] initials when the row has no thumb.
+     * false - DEFAULT. The cell draws a download link on the DIRECT variant:
+     *         the file name from the field's own column value, middle
+     *         truncated, plus a download icon.
+     */
+    is_image?: boolean;
+
+    /**
+     * monogram_field: string
+     * Row field whose value seeds the initials drawn when the file has no
+     * thumb (e.g. 'username'). Dot paths are walked, same as fr_field.
+     * Unset = no fallback, the cell stays empty.
+     *
+     * ⚠ read only when [is_image] is true - a download cell has a file name to
+     * show and no use for initials.
+     */
+    monogram_field?: string;
+
+    /**
+     * slideshow: boolean
+     * OPT-IN, per field, and FALSE by default - same stance as [is_image]: a
+     * picture is a picture until a module says otherwise.
+     *
+     * true  - the image cell becomes a <button> that opens the fullscreen
+     *         image-slideshow over every VISIBLE row's image in this column,
+     *         starting on the row clicked. Visible means
+     *         listingDataSource().filteredData, so an active quick search
+     *         narrows the slideshow the same way it narrows the table.
+     * false - DEFAULT. The cell is a plain picture, exactly as before.
+     *
+     * ⚠ read only when [is_image] is true - a download cell already does the
+     * useful thing with a click.
+     *
+     * The slide draws the DIRECT variant with a THUMB fallback, the strip draws
+     * THUMB. Both live inside the object [fr_field] already points at, so this
+     * needs NO extra row selection.
+     * @see CrudListingService.openFileFieldSlideshow
+     */
+    slideshow?: boolean;
+
+    /**
+     * slideshow_size: UiSizeEnum
+     * The dialog size this column's slideshow OPENS at. Unset = UiSizeEnum.FULL.
+     *
+     * The viewer's own toolbar menu can still move to any other size afterwards
+     * - this only decides where it starts, so a module showing small avatars can
+     * open at MD instead of taking over the screen.
+     *
+     * ⚠ read only when [slideshow] is true.
+     */
+    slideshow_size?: BreakpointSizeEnum;
+}
+
 export interface CrudFieldRangeType {
     /**
      * from: string;
@@ -627,8 +704,37 @@ export interface CrudFieldInfoType {
     /**
      * label: string;
      * Field label to show in UI
+     *
+     * ALWAYS a real i18n key - this is the field's NAME, not just the text drawn
+     * next to its value. `formatListingFieldObj` feeds it to the Display Fields
+     * picker, the Sort Fields picker, the column header and the Column Position
+     * picker, none of which have anything else to print. A blank label leaves
+     * those toggles unnamed, which is why suppressing the DRAWN label is a
+     * separate switch - see `hide_label`.
      */
     label: string;
+
+    /**
+     * hide_label: boolean
+     * Draw the VALUE only - the framework skips the label text it would
+     * otherwise put around this field. `label` stays a real key and keeps
+     * naming the field everywhere it is an identifier (Display Fields / Sort
+     * Fields / Column Position pickers, column header).
+     *
+     * Honoured where the framework draws a label around a value:
+     * - listing sub - the "Label:" prefix in front of the value is dropped;
+     * - view record - an ordinary field drops its <h4> (an icon with no label
+     *   keeps it, icon-only), and a NONE field draws a <mat-divider> instead of
+     *   its heading.
+     *
+     * Use it where the column header, an icon, or the value itself already says
+     * what the field is - a listing `slot` sub that prints its own line is the
+     * usual case (ApiAuth.is_main: a star plus the FLAG's own "Since <date>").
+     *
+     * ⚠ NOT the same as a blank `flag.label.is_datetime`: that one level down is
+     * pure text with no picker reading it, so '' stays the spelling there.
+     */
+    hide_label?: boolean;
 
     /**
      * type: CrudFieldUiTypeEnum;
@@ -679,13 +785,20 @@ export interface CrudFieldInfoType {
 
     /**
      * fr_field: string
-     * if [type = select | checkbo | radio kind of], then this filed will be checked to see if it has data from foreign relation. Then this filed is required to show value of that select option. 
+     * if [type = select | checkbo | radio kind of], then this filed will be checked to see if it has data from foreign relation. Then this filed is required to show value of that select option.
      * pass the field relation name here such as [fr_user.id] or [fr_user.fr_device.id] etc
+     *
+     * if [type = FILE], it names the relation holding the upload ACCESS-URL
+     * OBJECT rather than a label - e.g. [file_profile_photo_url]. What that
+     * object looks like inside is CRUD_FIELD_FILE_SHAPE.
      */
     fr_field?: string;
 
     /** FLAG labels and editable-control options. */
     flag?: CrudFieldFlagType;
+
+    /** FILE url shape and monogram fallback, used by the image cell. */
+    file?: CrudFieldFileType;
 
     /**
      * range_field: CrudFieldRangeType
@@ -744,6 +857,19 @@ export interface CrudFormFieldInfoType extends CrudFieldInfoType {
      * If value is set to null then also URL based state sync will be ignored for this field.
      */
     url_matrix_param: string | null;
+
+    /**
+     * url_matrix_param_silent: boolean
+     * When true, a change to this field patches the browser URL directly
+     * (Location.replaceState) instead of going through router.navigate().
+     * Use it for fields whose URL sync is pure persistence (e.g. survive a
+     * reload) and must not behave like a real page transition — a normal
+     * matrix-param navigation re-runs route resolvers, shows the global
+     * progress bar, and resets scroll position, none of which make sense for
+     * a field like listing_selected_rows that does not change what is
+     * displayed. Ignored if url_matrix_param is not set.
+     */
+    url_matrix_param_silent?: boolean;
 
     /**
      * placeholder: string;
@@ -926,6 +1052,7 @@ export interface CrudModuleContextType {
     uniqueKey: CrudUniqueKeyType | null;
     urlSlugField: string | null;
     isMainField: string | null;
+    isMainFieldRefGroupRelationField: string | null;
     recordPositionField: string | null;
     activeField: string | null;
     deletedField: string | null;
@@ -937,6 +1064,14 @@ export interface CrudModuleContextType {
     getRecordSecondaryKeyValue: (
         row: any,
         rowSkField?: string,
+    ) => string | null;
+    getRecordFieldValue: (
+        row: any,
+        field?: string | null,
+    ) => string | null;
+    getIsMainFieldRefGroupRelationFieldValue: (
+        row: any,
+        rowRefField?: string,
     ) => string | null;
 }
 
@@ -968,9 +1103,10 @@ export interface CrudModuleActionRouteType extends FoundationModuleRouteType {
     absolutePathPrintArr(keyid: string | number): string[];
 }
 /** Record mutations that use the shared confirm/notify/listing-update flow. */
-export type CrudRecordActionType = 
+export type CrudRecordActionType =
     FoundationActionEnum.ACTIVE
     | FoundationActionEnum.INACTIVE
+    | FoundationActionEnum.MARK_AS_MAIN
     | FoundationActionEnum.SOFT_DELETE
     | FoundationActionEnum.RESTORE
     | FoundationActionEnum.DELETE;
@@ -1050,6 +1186,23 @@ export type CrudActiveHandlerType = (
 
 export type CrudInactiveHandlerType = (
     keyid: CrudRecordKeyInputType,
+) => Promise<CrudMutationResultType>;
+
+/**
+ * SINGLE record only — hence CrudRecordKeyType, not CrudRecordKeyInputType like
+ * every other record-action handler. The api marks exactly one row main per
+ * group, so there is no bulk form of this action and no
+ * GL.CRUD.SELECTED_RECORD_ACTION.MARK_AS_MAIN message set to reach.
+ *
+ * markAsMain is per-COLUMN in the api, so the handler is told WHICH marker
+ * column to set and the clicked row's value of the column that scopes that
+ * marker's uniqueness group — null when the marker declares no group, and then
+ * the api ignores it.
+ */
+export type CrudMarkAsMainHandlerType = (
+    keyid: CrudRecordKeyType,
+    markAsMainField: string,
+    refGroupRelationFieldValue: string | null,
 ) => Promise<CrudMutationResultType>;
 
 export type CrudSoftDeleteHandlerType = (

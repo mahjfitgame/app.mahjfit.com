@@ -11,7 +11,7 @@ import { FormFieldSwitchState } from '@base/form-fields/switch/state';
 import { FormFieldSwitchOptionType, FormFieldSwitchValueType } from '@base/form-fields/switch/type';
 
 @Component({
-  selector: 'app-form-field-switch',
+  selector: 'form-field-switch-component',
   standalone: true,
   templateUrl: './template.html',
   styleUrl: './style.scss',

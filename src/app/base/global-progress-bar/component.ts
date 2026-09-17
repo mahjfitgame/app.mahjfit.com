@@ -3,7 +3,7 @@ import { ProgressBarComponent } from '@base/progress-bar/component';
 import { GlobalProgressBarService } from '@base/global-progress-bar/service';
 
 @Component({
-  selector: 'app-global-progress-bar',
+  selector: 'global-progress-bar-component',
   standalone: true,
   imports: [ProgressBarComponent],
   providers: [],

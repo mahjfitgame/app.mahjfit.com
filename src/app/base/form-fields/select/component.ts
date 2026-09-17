@@ -20,7 +20,7 @@ import {
 import type { FormFieldOptionLoaderType } from '@base/form-fields/type';
 
 @Component({
-    selector: 'app-form-field-select',
+    selector: 'form-field-select-component',
     standalone: true,
     templateUrl: './template.html',
     styleUrl: './style.scss',

@@ -13,7 +13,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { Toast, ToastPackage, ToastrService } from 'ngx-toastr';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 @Component({
-  selector: 'app-notify',
+  selector: 'notify-component',
   standalone: true,
   imports: [MatIconModule, MatButtonModule, NgClass],
   templateUrl: './template.html',

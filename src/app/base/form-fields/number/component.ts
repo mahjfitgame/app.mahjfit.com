@@ -11,7 +11,7 @@ import { FormFieldNumberService } from '@base/form-fields/number/service';
 import { FormFieldNumberState } from '@base/form-fields/number/state';
 
 @Component({
-    selector: 'app-form-field-number',
+    selector: 'form-field-number-component',
     standalone: true,
     templateUrl: './template.html',
     styleUrl: './style.scss',

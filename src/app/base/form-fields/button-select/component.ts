@@ -14,7 +14,7 @@ import {
 import type { FormFieldOptionLoaderType } from '@base/form-fields/type';
 
 @Component({
-    selector: 'app-form-field-button-select',
+    selector: 'form-field-button-select-component',
     standalone: true,
     templateUrl: './template.html',
     styleUrl: './style.scss',

@@ -4,7 +4,7 @@ import { ProgressBarService } from '@base/progress-bar/service';
 import { ProgressBarState } from '@base/progress-bar/state';
 
 @Component({
-  selector: 'app-progress-bar',
+  selector: 'progress-bar-component',
   standalone: true,
   imports: [MatProgressBarModule],
   providers: [ProgressBarState, ProgressBarService],

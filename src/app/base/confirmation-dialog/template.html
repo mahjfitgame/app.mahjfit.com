@@ -1,21 +1,21 @@
-<mat-toolbar class="tw:bg-transparent! tw:p-0!">
+<mat-toolbar class="tw:bg-transparent! tw:p-0! tw:h-auto! tw:whitespace-normal!">
     <h2 mat-dialog-title
-        class="tw:flex! tw:items-center tw:gap-2 tw:text-lg! tw:before:hidden!"
+        class="tw:flex! tw:items-center tw:gap-2 tw:text-lg! tw:before:hidden! tw:min-w-0 tw:w-full tw:py-2!"
     >
         @if(data.icon) {
-            <mat-icon class="material-symbols-rounded">
+            <mat-icon class="material-symbols-rounded tw:shrink-0">
                 {{ data.icon }}
             </mat-icon>
         }
 
-        <span>
+        <span class="tw:min-w-0 tw:wrap-break-word">
             {{ data.titleKey | transloco: data.params }}
         </span>
     </h2>
 </mat-toolbar>
 
-<mat-dialog-content>
-    <p class="tw:text-sm!">
+<mat-dialog-content class="tw:overflow-x-hidden!">
+    <p class="tw:text-sm! tw:wrap-break-word">
         {{ data.messageKey | transloco: data.params }}
     </p>
 </mat-dialog-content>

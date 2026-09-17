@@ -15,7 +15,7 @@ import { RecoverPasswordService } from './service';
 import { RECOVER_PASSWORD_PROVIDER } from './provider';
 
 @Component({
-    selector: 'app-recover-password',
+    selector: 'recover-password-component',
     standalone: true,
     templateUrl: './template.html',
     styleUrl: './style.scss',

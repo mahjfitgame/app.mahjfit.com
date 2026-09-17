@@ -11,7 +11,7 @@ import { FormFieldTelService } from '@base/form-fields/tel/service';
 import { FormFieldTelState } from '@base/form-fields/tel/state';
 
 @Component({
-    selector: 'app-form-field-tel',
+    selector: 'form-field-tel-component',
     standalone: true,
     templateUrl: './template.html',
     styleUrl: './style.scss',

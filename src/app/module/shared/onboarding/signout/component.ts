@@ -20,7 +20,7 @@ import { MatDivider } from "@angular/material/divider";
 import { SIGNOUT_PROVIDER } from "./provider";
 
 @Component({
-  selector: 'app-signout',
+  selector: 'signout-component',
   standalone: true,
   templateUrl: 'template.html',
   styleUrl: 'style.scss',

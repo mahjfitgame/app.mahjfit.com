@@ -6,26 +6,14 @@
     display: grid;
     place-items: center;
   }
-
   .box {
     text-align: center;
   }
 
   .logo {
     margin-bottom: 12px;
-    display: flex;
-    justify-content: center;
-  }
-
-  .logo img {
-    max-width: 120px;
-    width: 100%;
-    height: auto;
-  }
-
-  @media (min-width: 768px) {
-    .logo img {
-      max-width: 160px;
+    img {
+      width: 100%;
     }
   }
 

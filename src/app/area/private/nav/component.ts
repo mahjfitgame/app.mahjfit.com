@@ -26,7 +26,7 @@ import { FoundationNavPositionEnum } from '@libs/foundation/nav/enum';
  * share one instance and one build
  */
 @Component({
-    selector: 'app-private-nav',
+    selector: 'private-nav-component',
     standalone: true,
     templateUrl: './template.html',
     styleUrl: './style.scss',

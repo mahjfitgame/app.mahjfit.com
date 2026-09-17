@@ -15,7 +15,7 @@ import {
 import type { FormFieldOptionLoaderType } from '@base/form-fields/type';
 
 @Component({
-    selector: 'app-form-field-radio',
+    selector: 'form-field-radio-component',
     standalone: true,
     templateUrl: './template.html',
     styleUrl: './style.scss',

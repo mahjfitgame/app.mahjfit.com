@@ -61,6 +61,9 @@
               ],
               "outputHashing": "all",
               "optimization": true,
+              "security": {
+                "autoCsp": true
+              },
               "namedChunks": false,
               "extractLicenses": true,
               "sourceMap": false,
@@ -128,7 +131,13 @@
           "defaultConfiguration": "production"
         },
         "test": {
-          "builder": "@angular/build:unit-test"
+          "builder": "@angular/build:unit-test",
+          "options": {
+            "include": [
+              "**/*.spec.ts",
+              "../libs/**/*.spec.ts"
+            ]
+          }
         }
       }
     }

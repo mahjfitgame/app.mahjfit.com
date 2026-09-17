@@ -17,7 +17,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { AppPaginationEvent } from '@base/pagination/type';
 
 @Component({
-  selector: 'app-pagination',
+  selector: 'pagination-component',
   standalone: true,
   templateUrl: './template.html',
   styleUrl: './style.scss',

@@ -27,7 +27,7 @@ function provideSplashScreenComponent(): void {
         return;
     }
 
-    const hostElement = document.createElement('app-splash-screen');
+    const hostElement = document.createElement('splash-screen-component');
     hostElement.setAttribute('data-bfw-provider-host', 'true');
     document.body.prepend(hostElement);
 

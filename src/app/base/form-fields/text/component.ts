@@ -11,7 +11,7 @@ import { FormFieldTextService } from '@base/form-fields/text/service';
 import { FormFieldTextState } from '@base/form-fields/text/state';
 
 @Component({
-    selector: 'app-form-field-text',
+    selector: 'form-field-text-component',
     standalone: true,
     templateUrl: './template.html',
     styleUrl: './style.scss',

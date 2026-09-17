@@ -1,0 +1,243 @@
+<!-- file: src/app/base/image-slideshow/template.html -->
+@let s = service.state;
+
+<!-- ⚠ the safe-area inset DROPS while zoomed, so the picture runs under the
+     notch and uses the literal whole screen - same intent as the toolbar and the
+     thumbs strip standing down. It returns on zoom-out, which is exactly when
+     the chrome that needs the inset comes back.
+
+     ⚠ unlike those two, this changes the container's WIDTH on a device with a
+     landscape notch, and swiper caches slide widths. Harmless in practice: the
+     cache is stale only for as long as the zoom lasts, and nobody swipes
+     between slides while zoomed in - by the time sliding resumes the padding
+     is back and the cached width is correct again. -->
+<div
+    class="tw:relative tw:flex tw:w-full tw:flex-col tw:overflow-hidden"
+    [class]="s.isDialog() ? 'tw:h-full' : 'tw:aspect-video'"
+    [class.bfw-safe-area-py]="s.isFullscreen() && !s.zoomed()"
+    [class.bfw-safe-area-px]="s.isFullscreen() && !s.zoomed()"
+>
+    <!-- ⚠ the positive branch first, so the 160-line body is the @if and the
+         one-line empty state is the @else - not the other way round -->
+    @if (s.hasItems()) {
+        <!-- ████ TOOLBAR ████ s.ready() gates it: every button here drives the
+             swiper instance, which does not exist until attach() has run.
+
+             ⚠ !zoomed() hands the whole pane to the picture while it is zoomed
+             in - the point of the viewer on a phone. Safe to UNMOUNT here,
+             unlike the thumbs strip below, because nothing in this block holds
+             a swiper instance; it is plain material markup.
+
+             ⚠ the zoom-out BUTTON leaves with it. Getting back out is double
+             tap or pinch, which const.ts already enables with
+             `zoom: { toggle: true }` - the standard gesture in any photo
+             viewer, and the reason that option is not worth turning off. -->
+        @if (s.showToolbar() && s.ready() && !s.zoomed()) {
+            <mat-toolbar
+                class="tw:sticky tw:top-0 tw:z-20 tw:flex tw:w-full tw:shrink-0 tw:items-center tw:gap-1
+                    tw:bg-transparent! tw:backdrop-blur-md"
+            >
+                <span class="tw:ps-2 tw:text-sm tw:tabular-nums">
+                    {{ 'GL.SLIDESHOW.COUNTER' | transloco: s.counterParams() }}
+                </span>
+
+                <span class="tw:grow"></span>
+
+                @let playing = s.autoplayOn();
+                @let playLabel = (playing ? 'GL.SLIDESHOW.PAUSE' : 'GL.SLIDESHOW.PLAY') | transloco;
+                <button
+                    mat-icon-button
+                    type="button"
+                    [attr.aria-label]="playLabel"
+                    [matTooltip]="playLabel"
+                    matTooltipPosition="below"
+                    (click)="service.toggleAutoplay()"
+                >
+                    <!-- ⚠ the ring is an absolute OVERLAY, never a wrapper around
+                        the icon. As a wrapper it was a 32px inline grid box where
+                        mat-icon-button expects a 24px icon, which pushed the glyph
+                        off the ripple circle's centre and dragged the rest of the
+                        row out of line with it. Out of flow, the icon is an
+                        ordinary child again and centres like every other button. -->
+                    <span
+                        #autoplayRing
+                        class="bfw-image-slideshow-ring tw:pointer-events-none tw:absolute tw:inset-1"
+                    ></span>
+                    <mat-icon class="material-symbols-rounded">
+                        {{ playing ? 'pause' : 'play_arrow' }}
+                    </mat-icon>
+                </button>
+
+                @let zoomLabel = (s.zoomed() ? 'GL.SLIDESHOW.ZOOM_OUT' : 'GL.SLIDESHOW.ZOOM_IN') | transloco;
+                <button
+                    mat-icon-button
+                    type="button"
+                    [attr.aria-label]="zoomLabel"
+                    [matTooltip]="zoomLabel"
+                    matTooltipPosition="below"
+                    (click)="service.toggleZoom()"
+                >
+                    <mat-icon class="material-symbols-rounded">
+                        {{ s.zoomed() ? 'zoom_out' : 'zoom_in' }}
+                    </mat-icon>
+                </button>
+
+                @let current = s.activeItem();
+                @if (s.showDownload() && current) {
+                    <a
+                        mat-icon-button
+                        [href]="current.src"
+                        [download]="current.name ?? ''"
+                        target="_blank"
+                        rel="noopener"
+                        [attr.aria-label]="'GL.COMMON.DOWNLOAD' | transloco"
+                        [matTooltip]="'GL.COMMON.DOWNLOAD' | transloco"
+                        matTooltipPosition="below"
+                    >
+                        <mat-icon class="material-symbols-rounded">download</mat-icon>
+                    </a>
+                }
+
+                @if (s.isDialog()) {
+                    <!-- ████ SIZE MENU - PARKED, NOT DEAD ████████████████████
+                         The seven-stop size switcher, replaced by the plain
+                         fullscreen toggle below because in practice a viewer
+                         wants "bigger" or "back", not a seven-way picker.
+
+                         Kept verbatim because everything behind it is still
+                         live: service.sizeOptions, service.applyDialogSize()
+                         and state.dialogSize() are all untouched, so restoring
+                         the menu is uncommenting this block and the
+                         MatMenuModule import in component.ts. Delete both
+                         together or neither.
+                    <button
+                        mat-icon-button
+                        type="button"
+                        [matMenuTriggerFor]="sizeMenu"
+                        [attr.aria-label]="'GL.SLIDESHOW.RESIZE' | transloco"
+                        [matTooltip]="'GL.SLIDESHOW.RESIZE' | transloco"
+                        matTooltipPosition="below"
+                    >
+                        <mat-icon class="material-symbols-rounded">
+                            {{ s.isFullscreen() ? 'fullscreen_exit' : 'fullscreen' }}
+                        </mat-icon>
+                    </button>
+
+                    <mat-menu #sizeMenu="matMenu">
+                        @for (option of service.sizeOptions; track option.size) {
+                            <button
+                                mat-menu-item
+                                type="button"
+                                (click)="service.applyDialogSize(option.size)"
+                            >
+                                <mat-icon class="material-symbols-rounded">
+                                    {{ option.size === s.dialogSize() ? 'check' : '' }}
+                                </mat-icon>
+                                <span>{{ option.label }}</span>
+                            </button>
+                        }
+                    </mat-menu>
+                    ████████████████████████████████████████████████████████ -->
+
+                    <!-- FULL <-> the size the consumer opened at, or LG when
+                         that WAS full - see ImageSlideshowState.restoreSize -->
+                    @let fullscreenLabel =
+                        (s.isFullscreen()
+                            ? 'GL.SLIDESHOW.FULLSCREEN_EXIT'
+                            : 'GL.SLIDESHOW.FULLSCREEN_ENTER') | transloco;
+                    <button
+                        mat-icon-button
+                        type="button"
+                        [attr.aria-label]="fullscreenLabel"
+                        [matTooltip]="fullscreenLabel"
+                        matTooltipPosition="below"
+                        (click)="service.toggleFullscreen()"
+                    >
+                        <mat-icon class="material-symbols-rounded">
+                            {{ s.isFullscreen() ? 'fullscreen_exit' : 'fullscreen' }}
+                        </mat-icon>
+                    </button>
+
+                    <button
+                        mat-icon-button
+                        type="button"
+                        [attr.aria-label]="'GL.COMMON.CLOSE' | transloco"
+                        [matTooltip]="'GL.COMMON.CLOSE' | transloco"
+                        matTooltipPosition="below"
+                        (click)="service.close()"
+                    >
+                        <mat-icon class="material-symbols-rounded">close</mat-icon>
+                    </button>
+                }
+            </mat-toolbar>
+        }
+
+        <!-- ████ MAIN ████ -->
+        <swiper-container
+            #mainSwiper
+            init="false"
+            [attr.dir]="service.dir()"
+            class="tw:block tw:min-h-0 tw:w-full tw:grow"
+        >
+            @for (item of s.items(); track $index) {
+                <swiper-slide class="tw:flex tw:items-center tw:justify-center">
+                    <div class="swiper-zoom-container tw:flex tw:h-full tw:w-full tw:items-center tw:justify-center">
+                        <img
+                            [src]="item.src"
+                            [alt]="item.alt ?? ''"
+                            loading="lazy"
+                            decoding="async"
+                            draggable="false"
+                            class="tw:max-h-full tw:max-w-full tw:object-contain tw:select-none"
+                        />
+                    </div>
+                </swiper-slide>
+            }
+        </swiper-container>
+
+        <!-- ████ THUMBS ████ decided ONCE, before first render - see state.showThumbs -->
+        @if (s.showThumbs()) {
+            <!-- ⚠ HIDDEN on zoom, never UNMOUNTED. This wrapper holds a live
+                 swiper instance and ImageSlideshowService.attach() early-returns
+                 once mainEl is set, so an @if here would destroy the strip on
+                 zoom-in and bring back a fresh init="false" element that nothing
+                 ever initialises - a permanently dead strip after the first
+                 zoom, plus the main swiper's thumbs.swiper still pointing at the
+                 destroyed one.
+
+                 ⚠ tw:hidden is safe to merge in because this div sets no other
+                 display utility. Angular MERGES a static class with a [class]
+                 binding rather than replacing it - same idiom as the root div. -->
+            <div
+                class="tw:w-full tw:shrink-0 tw:p-2"
+                [class]="s.zoomed() ? 'tw:hidden' : ''"
+            >
+                <swiper-container
+                    #thumbsSwiper
+                    init="false"
+                    [attr.dir]="service.dir()"
+                    [attr.aria-label]="'GL.SLIDESHOW.THUMBNAILS' | transloco"
+                    class="bfw-image-slideshow-thumbs tw:block tw:h-16 tw:w-full"
+                >
+                    @for (item of s.items(); track $index) {
+                        <swiper-slide
+                            class="tw:h-full tw:w-20 tw:cursor-pointer tw:rounded tw:opacity-45 tw:outline-2 tw:-outline-offset-2 tw:outline-transparent tw:transition
+                                tw:[&.swiper-slide-thumb-active]:opacity-100 tw:[&.swiper-slide-thumb-active]:outline-current"
+                        >
+                            <img
+                                [src]="item.thumb || item.src"
+                                [alt]="item.alt ?? ''"
+                                loading="lazy"
+                                decoding="async"
+                                draggable="false"
+                                class="tw:h-full tw:w-full tw:rounded tw:object-cover"
+                            />
+                        </swiper-slide>
+                    }
+                </swiper-container>
+            </div>
+        }
+    } @else {
+        <p class="tw:m-auto tw:text-sm tw:opacity-70">{{ 'GL.COMMON.NO_DATA' | transloco }}</p>
+    }
+</div>

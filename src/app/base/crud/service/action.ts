@@ -11,6 +11,7 @@ import {
     CrudFindHandlerType,
     CrudFindInputType,
     CrudInactiveHandlerType,
+    CrudMarkAsMainHandlerType,
     CrudMutationInputType,
     CrudMutationResultType,
     CrudRecordActionType,
@@ -26,9 +27,9 @@ import { CrudRootService } from "./root";
  * Crud-action lifecycle concern (mirrors CrudActionState in state/action.ts),
  * plus the layout decisions that only depend on state (not on the
  * mutation/view service instances), plus the row-level record-action
- * executors (active/inactive/soft-delete/restore/delete) — these need the
- * same ensureActionPermitted() gate as everything else here, so they moved
- * out of listing.ts to live next to it.
+ * executors (active/inactive/mark-as-main/soft-delete/restore/delete) — these
+ * need the same ensureActionPermitted() gate as everything else here, so they
+ * moved out of listing.ts to live next to it.
  */
 export class CrudActionService {
     // ████████████████████████████████████████████████████████████████████
@@ -39,6 +40,7 @@ export class CrudActionService {
     private updateHandler: CrudUpdateHandlerType | null = null;
     private activeHandler: CrudActiveHandlerType | null = null;
     private inactiveHandler: CrudInactiveHandlerType | null = null;
+    private markAsMainHandler: CrudMarkAsMainHandlerType | null = null;
     private softDeleteHandler: CrudSoftDeleteHandlerType | null = null;
     private restoreHandler: CrudRestoreHandlerType | null = null;
     private deleteHandler: CrudDeleteHandlerType | null = null;
@@ -251,6 +253,9 @@ export class CrudActionService {
     public registerInactive(handler: CrudInactiveHandlerType): void {
         this.inactiveHandler = handler;
     }
+    public registerMarkAsMain(handler: CrudMarkAsMainHandlerType): void {
+        this.markAsMainHandler = handler;
+    }
     public registerSoftDelete(handler: CrudSoftDeleteHandlerType): void {
         this.softDeleteHandler = handler;
     }
@@ -405,6 +410,52 @@ export class CrudActionService {
             this.inactiveHandler,
         );
     }
+    /**
+     * SINGLE record only — the api marks exactly one row main per group, so
+     * keyid is never an array here and the bulk (selected-records) menu does
+     * not offer this action.
+     *
+     * markAsMainField and refGroupRelationFieldValue come from the menu: the
+     * marker column the module declared with setIsMainField(), and THAT ROW's
+     * value of the column declared with setIsMainFieldRefGroupRelationField().
+     */
+    public async runMarkAsMain(
+        keyid: CrudRecordKeyType | null,
+        markAsMainField: string | null,
+        refGroupRelationFieldValue: string | null = null,
+    ): Promise<void> {
+        if (!this.ensureActionPermitted(this.root.state.action.hasMarkAsMain())) return;
+
+        // no declared marker column means there is nothing to mark
+        if (!markAsMainField) {
+            this.root.notify.error(
+                this.getRecordActionMessage(
+                    FoundationActionEnum.MARK_AS_MAIN,
+                    'FAILED',
+                    null,
+                ),
+            );
+            return;
+        }
+
+        const handler = this.markAsMainHandler;
+
+        await this.runRecordAction(
+            FoundationActionEnum.MARK_AS_MAIN,
+            keyid,
+            /**
+             * The two extra values ride in a closure so runRecordAction keeps
+             * its single handler(keyid) call for every record action.
+             */
+            handler
+                ? async (key: CrudRecordKeyType) => await handler(
+                    key,
+                    markAsMainField,
+                    refGroupRelationFieldValue,
+                )
+                : null,
+        );
+    }
     public async runSoftDelete(keyid: CrudRecordKeyInputType | null): Promise<void> {
         if (!this.ensureActionPermitted(this.root.state.action.hasSoftDelete())) return;
 
@@ -544,6 +595,18 @@ export class CrudActionService {
                     params: bulkCount === null ? undefined : { count: bulkCount },
                 };
 
+            /**
+             * Single-record only, so bulkCount is always null here and there is
+             * no GL.CRUD.SELECTED_RECORD_ACTION.MARK_AS_MAIN key set to pick.
+             */
+            case FoundationActionEnum.MARK_AS_MAIN:
+                return {
+                    icon: 'flag',
+                    titleKey: 'GL.CRUD.RECORD_ACTION.MARK_AS_MAIN.CONFIRM_TITLE',
+                    messageKey: 'GL.CRUD.RECORD_ACTION.MARK_AS_MAIN.CONFIRM_MESSAGE',
+                    confirmLabelKey: 'GL.ACTION.MARK_AS_MAIN',
+                };
+
             case FoundationActionEnum.SOFT_DELETE:
                 return {
                     icon: 'delete',
@@ -612,12 +675,14 @@ export class CrudActionService {
     }
     private getRecordActionMessageKey(
         action: CrudRecordActionType,
-    ): 'ACTIVE' | 'INACTIVE' | 'SOFT_DELETE' | 'RESTORE' | 'DELETE' {
+    ): 'ACTIVE' | 'INACTIVE' | 'MARK_AS_MAIN' | 'SOFT_DELETE' | 'RESTORE' | 'DELETE' {
         switch (action) {
             case FoundationActionEnum.ACTIVE:
                 return 'ACTIVE';
             case FoundationActionEnum.INACTIVE:
                 return 'INACTIVE';
+            case FoundationActionEnum.MARK_AS_MAIN:
+                return 'MARK_AS_MAIN';
             case FoundationActionEnum.SOFT_DELETE:
                 return 'SOFT_DELETE';
             case FoundationActionEnum.RESTORE:

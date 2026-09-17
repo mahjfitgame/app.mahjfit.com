@@ -9,7 +9,7 @@ import { HttpStatusServiceUnavailableService } from './service';
 import { HTTP_STATUS_SERVICE_UNAVAILABLE_PROVIDER } from './provider';
 
 @Component({
-    selector: 'app-service-unavailable',
+    selector: 'service-unavailable-component',
     standalone: true,
     templateUrl: './template.html',
     styleUrl: './style.scss',
