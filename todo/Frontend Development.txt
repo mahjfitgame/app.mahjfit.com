@@ -11,7 +11,136 @@ Converting static design data to real-time Gameplay data, completed the charlest
 [tech][Frontend Development][D1] Converting static design data to real-time Gameplay data - Discard tile and Claim window, cross check with backend bot auto decision
 [tech][Frontend][D1] Integreate discard and calim tile with bot auto turn
 
+[tech][Frontend][D1] Integreate discard and calim tile with bot auto turn - preparing exposure tiles and display
+
+
+[tech][Frontend][D1] Integreate discard and calim tile with bot auto turn - preparing exposure tiles and display
+
+
 Simultaneously working on integrate discard and claim tile with bot auto turn, upgrade the charleson round and implemented the bliend pass and optional across allow to pass tile(1 or 2 or 3). 
+
+============= POINTS ============= 
+
+============= TODO =============
+ 
+
+============= REPLY ============= 
+FOR CLIENT]
+I feel header height on home is big so it might required to adjust the size of the header. If required too much then I will get confirmation from you.
+
+
+Here is the website plan as per required pages that we are going to include.
+This is for our initial beta release for limited access testing. 
+We will be able to add more pages in futuere no problem.
+
+Please go trough below pages and its design and provide confirmation.
+PAGE LIST:
+Home page
+https://www.dropbox.com/home/Mahjfit/Shared%20Work%20In%20Progress/Shared%206-23-26?preview=mahjfit-desktop-1-startscreen.pdf&quickview=id%3AArVEgGajeRsAAAAAAAABlQ
+For home page, we might required some different content at this moment we only have pricing plan.
+At initially, we can do like free plan and premium is upcoming or we can decide some contant for home page. 
+
+Signin
+Signup
+Forgot password
+https://www.dropbox.com/home/Mahjfit/Shared%20Work%20In%20Progress/Shared%206-23-26?quickview=id%3AArVEgGajeRsAAAAAAAABmg
+This layout will be utiliaze with all above 3 pages.
+
+User logged in dashboard
+https://www.dropbox.com/scl/fi/3yq9wh632oa6hpfjj0ohy/home-desktop-1920x1080-v5.psd?rlkey=292ynsw7kbqyuxy5xm3b8bh33&st=m8gj0ts1&e=1&dl=0
+
+Start new game page or popup
+https://www.dropbox.com/home/Mahjfit/Shared%20Work%20In%20Progress/Share%208-26-26?preview=game-board-10.png
+
+
+Privacy policy
+Term of use
+Cookie policy
+We will just create a simple page using home page design with text contant and you guys have to decide all policies or let me know if you want me to create all those policies.
+
+Contact us
+We need page design for this.
+
+Game play area
+All set
+
+CONFUSION:
+Well I have analyed the design and we need to make the header and footer standard with responsive design layout trough out the website.
+Such as 
+Brand logo,
+Tagline,
+Menu.
+Signin/Signup links
+OR 
+If signed in - my account page link
+
+Now if you see below 2 pages then we need to decide the layout of header and footer because both shows different things.
+https://www.dropbox.com/home/Mahjfit/Shared%20Work%20In%20Progress/Shared%206-23-26?preview=mahjfit-desktop-1-startscreen.pdf&quickview=id%3AArVEgGajeRsAAAAAAAABlQ
+https://www.dropbox.com/scl/fi/3yq9wh632oa6hpfjj0ohy/home-desktop-1920x1080-v5.psd?rlkey=292ynsw7kbqyuxy5xm3b8bh33&st=m8gj0ts1&e=1&dl=0
+
+You can refere other website to understand this. 
+For example you can check Amazon or any other website.
+Imtiaz will understand this point very clearly.
+
+Once you guys give me the confirmation, I will go for my technical planing so we can start the development also once game play is done.
+
+Thank you!
+
+============= Progress meeting: 16 SEP 2026 5 PM PDT ============= 
+https://meet.google.com/cuk-vitx-ssa
+
+#]
+UPDATED DEMO server URL
+https://mahjfit-com.thatsend.dev/
+Username: test1ak56
+Password: test1@AK56
+
+1]
+Updated Charleston with blind pass, now its working.
+
+
+2]
+Updates clame window with tile image as requested.
+
+
+3]
+Worked on backend api logic for blind pass and new clame window.
+
+4]
+Worked on Pick-Discard part of game. 80% of pick-discard area has been developed.
+
+5]
+Implemented exposure panel
+Upgrade the backend api logic for the exposure panel, now for the exposure panel player have to move tiles from rack to the exposure and create a group.
+Exposure is implemented for all seats and display the tiles on screen.
+
+7]
+Updated logic for PUNG, KONG QUINT based on moved tile when clame. Now, player decide.
+
+8]
+Updated tile moving animation during clame process.
+
+9]
+Perform testing of claim window, this take time as we have to wait for the match tile and enable the claim window for the claim tile.
+
+10] 
+On going work points are like,
+Sort tiles are remains.
+Mahjong OR Wall game
+Joker swap for other seat and the current seat exposure
+small logic implementation
+
+
+FOR DEVELOPER]
+1. As tile quantity increse it adjust the size accordingly.
+2. It seems like exposure get full and game is still going on.
+3. There is a video for a bug we in Nirav mobile - check and fix.
+4. Need to create an image of rack position change upside down and send image for confirmation.
+5. We might have to change clame window call button color - need to check design guide
+6. If we can make the clame and other small popup transparent. 
+
+NEXT WEEK MEETING ON THURSDAY INSTED OF WEDNESDAY]
+
 ============== POINT ==================
 1]
 Design the claim window popup, 
@@ -22,11 +151,26 @@ Now based on that moved tile we have to chcek if player want to make PUNG, KONG 
 2]
 Who win the claim window move tite discard area tile to winning seat, set animation for move discard tile to specific seat. 
 For all seats display the exposure tiles.
-Perform testing of claim window, this take time as we have to wait till the claim window open and complete the 
+Perform testing of claim window, this take time as we have to wait for the match tile and enable the claim window for the claim tile.
 
 
 
+On going work,
+1]
+Sort tiles are remains.
+2]
+Mahjong OR Wall game
+3]
+Joker swap for other seat and the current seat exposure.
 
+There is other point as well, once I done the above point will finelised the other points. 
+
+
+Demo URL
+https://mahjfit-com.thatsend.dev/
+
+
+#]
 [
     {
         "kind": 17,
@@ -108,6 +252,61 @@ Perform testing of claim window, this take time as we have to wait till the clai
         ]
     }
 ]
+
+#]
+Texture "__MISSING" has no frame "wind_w@2x.png"
+scene.ts:2282 Texture "__MISSING" has no frame "wind_w@2x.png"
+
+scene.ts:2282 Texture "__MISSING" has no frame "joker_3@2x.png"
+3
+scene.ts:2282 Texture "__MISSING" has no frame "bam_1@2x.png"
+2
+scene.ts:2282 Texture "__MISSING" has no frame "dragon_white@2x.png"
+scene.ts:2282 Texture "__MISSING" has no frame "joker_4@2x.png"
+3
+scene.ts:2282 Texture "__MISSING" has no frame "bam_6@2x.png"
+3
+scene.ts:2282 Texture "__MISSING" has no frame "dot_1@2x.png"
+
+#]
+For the all seats exposure right, top and left when have exposure tiles and reload it shows the greenbox with the black background. Instead it should be blank same like bottom seat. 
+#]
+Need to make smooth and simple animation of tile movement for bottom seat PICK.
+#]
+Make sure every where for the other ENUM but make sure it will not break the corrent working things, as we don't know when it comes to string and when come integer so both value are accepted or we can first convert the string value with the INTEGER.
+#]
+Need smooth small animation for another opponent seat when make PUNG, KONG etc... when they claim the tile from the discard area and make the PUNG, KONG etc....
+So generally the animation is Discarded tile move to the specific seat exposure and this is already works now need animation for another 2,3,4 etc.. tile as per the group, rack to exposure.
+#]
+When make CALL request play sound "call.mp3"
+#]
+Remove the claim tile from the discard area when it assign to specific seat exposure.
+#]
+When claim window open and move tile from the rack to exposure that tile must have close icon to back that tile to the rack, but this only allow while the current claim tile option is enable once the exposure complete and discard the tile, don't remove the close button from the move tile and disble to back it to the rack.
+#]
+Sometime stuck at:
+
+TRACE [07:32:10.000] (LibLogger/7041): [NEXT_TURN_CHECK]
+    context: "SwaggerConfig"
+TRACE [07:32:10.000] (LibLogger/7041): [BOT_TURN_SCHEDULED]
+    context: "SwaggerConfig"
+TRACE [07:32:10.000] (LibLogger/7041): [BOT_TURN_FIRED]
+    context: "SwaggerConfig"
+ERROR [07:32:10.000] (LibLogger/7041): [BOT_TURN_FAILED]
+    context: "SwaggerConfig"
+
+#]
+The current turn seat is Bottom seat turn and on reload the turn stage is PICK and if I drag and drop tile to discard area it discad the tile, and added tile to the discard area, from the API it returns the error and but tile is moved to the discarded area and then after I again move all tile then that all tile move to the discarded area.
+It should not behave like that
+If tha phase is PLAYING = 3 and turn_stage is NEED_PICK = 1, then it not allow to move tile to the discard area. If drag and drop tile to the discard area it must be move to the rack agian not in the discard area. 
+
+DONE - #]
+For the apponent seat, need the discard tile animation.
+
+DONE - #]
+Make 2 exposure and reload the game and check there is two group in the exposure
+
+
 
 
 
@@ -241,7 +440,20 @@ for discard tile we have separate request and it work fine, but I want the flow 
 
 All seat exposure should be display to all players, so if any seat have exposure then display the exposure tiles.
 
+
+
+Once all the tiles are completed, the wall should appear, but it is currently not showing.
+Sometimes, the option to pick a tile does not appear, which prevents the game from progressing further.
+
 ============== REPLY ==================
+FOR CLIENT]
+Today, I continue working on the Discard, Claim, and Pick Tile functionality and play the game to check the implemntation fllow of the discard and claom tile. Also upgrade some animation flow which gives the smooth animation. 
+
+I will keep you posted on the work progress.
+Thank you!
+
+
+
 FOR CLIENT]
 Today, I continue working on the Discard, Claim, and Pick Tile functionality and I have finished the exposure group to make PUNG, KONG, QUINT and also integrate the tile animation and placement to the specific seat. The testing is remaining. 
 

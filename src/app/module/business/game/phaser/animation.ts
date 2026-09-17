@@ -139,45 +139,14 @@ export class PhaserAnimation {
     clone.setAlpha(1);
     clone.setDepth(190);
 
-    const progress = { value: 0 };
-
-    this.scene.tweens.add({
-      targets: progress,
-      value: 1,
-      duration,
-      ease: "Cubic.easeInOut",
-      onUpdate: () => {
-        if (isBottomSeat) {
-          const growProgress = Phaser.Math.Clamp(
-            (progress.value - growStart) / (1 - growStart),
-            0,
-            1,
-          );
-
-          const easedGrow = Phaser.Math.Easing.Sine.Out(growProgress);
-          clone.setScale(
-            Phaser.Math.Linear(startScale, finalScale, easedGrow),
-          );
-
-          return;
-        }
-
-        clone.setScale(
-          Phaser.Math.Linear(
-            startScale,
-            finalScale,
-            Phaser.Math.Easing.Sine.Out(progress.value),
-          ),
-        );
-      },
-    });
-
     this.scene.tweens.add({
       targets: clone,
       x: Math.round(target.x),
       y: Math.round(target.y),
-      angle,
-      duration,
+      angle: angle,
+      scaleX: finalScale,
+      scaleY: finalScale,
+      duration: duration,
       ease: "Cubic.easeInOut",
       onComplete: () => {
         clone.destroy();

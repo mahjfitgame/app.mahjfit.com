@@ -1109,6 +1109,17 @@ export class GameState extends SignalStateService implements FoundationModuleSta
 
                     console.log('[subscribePlay] data: ', data);
 
+                    if (data && data.seats) {
+                        const firstSeatKey = Object.keys(data.seats)[0];
+                        if (firstSeatKey && data.seats[firstSeatKey]) {
+                            const incomingGameId = data.seats[firstSeatKey].game_id;
+                            if (incomingGameId && incomingGameId !== this.game_id()) {
+                                console.warn(`[subscribePlay] Ignoring payload for game_id ${incomingGameId} (current is ${this.game_id()})`);
+                                return;
+                            }
+                        }
+                    }
+
                     this.setPlay(data)
                 },
             });
@@ -1150,6 +1161,18 @@ export class GameState extends SignalStateService implements FoundationModuleSta
                     const data = payload.data;
 
                     console.log('[subscribePersonal] data: ', data);
+
+                    if (data && data.seats) {
+                        const firstSeatKey = Object.keys(data.seats)[0];
+                        if (firstSeatKey && data.seats[firstSeatKey]) {
+                            const incomingGameId = data.seats[firstSeatKey].game_id;
+                            if (incomingGameId && incomingGameId !== this.game_id()) {
+                                console.warn(`[subscribePersonal] Ignoring payload for game_id ${incomingGameId} (current is ${this.game_id()})`);
+                                return;
+                            }
+                        }
+                    }
+
                     // This updates UI whenever server sends data.
                     this.setPersonal(data)
                 },

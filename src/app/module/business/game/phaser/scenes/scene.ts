@@ -1,7 +1,7 @@
 // src/app/game/scenes/table.scene.ts
 import Phaser from "phaser";
 import { ExposurePanelMode, PassAnimationItem, PassDirection, Point, Rect, SafeAreaInsets, TableLayout } from "../type";
-import { GameCharlestoneStageEnum, GamePhaseEnum, GameTileEntityGSDto, TileCategoryEnumAddon, GamePhaseFirstRoundDirectionEnum, GamePhaseSecondRoundDirectionEnum, GameTurnStageEnum, GameTurnStageEnuAddon } from "@bfw/api-sdk/graphql/endpoints/business";
+import { GameCharlestoneStageEnum, GamePhaseEnum, GameTileEntityGSDto, TileCategoryEnumAddon, GamePhaseFirstRoundDirectionEnum, GamePhaseSecondRoundDirectionEnum, GameTurnStageEnum, GameTurnStageEnuAddon, GamePlayActionEnumAddon } from "@bfw/api-sdk/graphql/endpoints/business";
 import { PhaserAnimation } from "../animation";
 import { PhaserFlow } from "../flow";
 import { PhaserSound } from "../sound";
@@ -115,6 +115,7 @@ export class PhaserScene extends Phaser.Scene {
   private readonly calledOpponentExposureTiles: Record<"top" | "left" | "right", Phaser.GameObjects.Image[]> = {
     top: [], left: [], right: []
   };
+  private readonly calledOpponentExposureTileIds = new Set<number>();
   private activeExposureBuildTileIds: number[] = [];
   private exposureBuildAsset?: string;
   private jokerSwapWindow?: Phaser.GameObjects.Container;
@@ -1103,6 +1104,32 @@ export class PhaserScene extends Phaser.Scene {
     if (index >= 0) this.discardSlotOrder.splice(index, 1);
   }
 
+  private removeTileFromDiscardArea(tileId: number): {x: number, y: number} | undefined {
+    const numericId = Number(tileId);
+    let discardPos: {x: number, y: number} | undefined;
+
+    // 1. Remove from opponent discard sprites
+    const opponentDiscardIndex = this.opponentDiscardTiles.findIndex((img) => Number(img.getData("discard-id")) === numericId);
+    if (opponentDiscardIndex >= 0) {
+      const img = this.opponentDiscardTiles[opponentDiscardIndex];
+      discardPos = { x: img.x, y: img.y };
+      img.destroy();
+      this.opponentDiscardTiles.splice(opponentDiscardIndex, 1);
+    }
+
+    // 2. Remove personal discard sprite if present
+    const runtime = this.tileMap.get(numericId);
+    if (runtime && runtime.zone === "discard") {
+      discardPos = { x: runtime.image.x, y: runtime.image.y };
+      runtime.image.destroy();
+      this.tileMap.delete(numericId);
+    }
+
+    // 3. Remove from personal discarded slot order
+    this.removeFromDiscardOrder(numericId);
+    return discardPos;
+  }
+
   private discardSlotIndex(tileId: number, fallback: number): number {
     const index = this.discardSlotOrder.indexOf(tileId);
     return index >= 0 ? index : fallback;
@@ -1239,6 +1266,7 @@ export class PhaserScene extends Phaser.Scene {
 
         if (
           this.tablePhase !== GamePhaseEnum.PASSING &&
+          this.canDiscard &&
           this.isInsidePlayableDiscardArea(pointer.worldX, pointer.worldY)
         ) {
           this.tileInteractionManager.cleanupDrop(runtime.vm.tile_id!);
@@ -1281,10 +1309,17 @@ export class PhaserScene extends Phaser.Scene {
           return;
         }
 
-        runtime.selected = false;
-        this.selectedIds.delete(runtime.vm.tile_id!);
-        runtime.image.clearTint();
-        this.snapTileToDiscard(runtime, ANIMATION_SPEED, "Cubic.Out");
+        if (this.canDiscard) {
+          runtime.selected = false;
+          this.selectedIds.delete(runtime.vm.tile_id!);
+          runtime.image.clearTint();
+          this.snapTileToDiscard(runtime, ANIMATION_SPEED, "Cubic.Out");
+        } else {
+          runtime.selected = false;
+          this.selectedIds.delete(runtime.vm.tile_id!);
+          runtime.image.clearTint();
+          this.returnTileToSlot(runtime);
+        }
       }
     });
   }
@@ -2160,6 +2195,8 @@ export class PhaserScene extends Phaser.Scene {
     this.latestExposures = exposures;
     if (!this.layout || Object.keys(this.allTiles).length === 0) return;
 
+    let discardAreaChanged = false;
+
     console.log("[PhaserScene] handleExposuresSet processing...");
     for (const meld of exposures.bottom) {
       if (!meld) continue;
@@ -2180,6 +2217,9 @@ export class PhaserScene extends Phaser.Scene {
 
       for (const tile of tilesToProcess) {
         if (!tile || tile.tile_id == null) continue;
+
+        const discardPos = this.removeTileFromDiscardArea(tile.tile_id);
+        if (discardPos) discardAreaChanged = true;
 
         console.log(`[PhaserScene] Processing exposure tile ${tile.tile_id}`);
 
@@ -2229,7 +2269,7 @@ export class PhaserScene extends Phaser.Scene {
         }
 
         // GamePlayActionEnum.CALL is 15
-        if (meld.kind === 15) {
+        if (meld.kind === GamePlayActionEnumAddon.CALL) {
           if (!this.exposureBuildAsset) {
             this.exposureBuildAsset = this.gameService.assetBaseName(this.allTiles[tile.tile_id]);
             console.log(`[PhaserScene] Set exposureBuildAsset to ${this.exposureBuildAsset}`);
@@ -2274,22 +2314,51 @@ export class PhaserScene extends Phaser.Scene {
         for (const tile of tilesToProcess) {
           if (!tile || tile.tile_id == null) continue;
 
+          const discardPos = this.removeTileFromDiscardArea(tile.tile_id);
+          if (discardPos) discardAreaChanged = true;
+
           const fullTile = this.allTiles[tile.tile_id];
           if (!fullTile) continue;
 
           // Use bottom layout width to pick correct atlas
           const tileWidth = Math.round(this.layout.bottomTileLayout.width);
-          const texture = this.gameService.resolve(fullTile as any, tileWidth);
+          let texture = this.gameService.resolve(fullTile as any, tileWidth);
           if (!texture) continue;
+
+          // If the requested atlas or frame is not loaded yet (e.g. 2x atlas on slow connections), 
+          // fallback to the 1x atlas which is guaranteed to be preloaded in BootScene.
+          if (!this.textures.exists(texture.atlasKey) || !this.textures.get(texture.atlasKey).has(texture.frameKey)) {
+            const fallbackTexture = this.gameService.resolve(fullTile as any, 10);
+            if (fallbackTexture && this.textures.exists(fallbackTexture.atlasKey) && this.textures.get(fallbackTexture.atlasKey).has(fallbackTexture.frameKey)) {
+              texture = fallbackTexture;
+            } else {
+              console.warn(`[PhaserScene] Skipping missing exposure texture: ${texture.atlasKey} - ${texture.frameKey}`);
+              continue;
+            }
+          }
 
           const image = this.add.image(-1000, -1000, texture.atlasKey, texture.frameKey);
           image.setDepth(15).disableInteractive();
           image.setData("exposure-asset", this.gameService.assetBaseName(fullTile as any));
 
+          if (!this.calledOpponentExposureTileIds.has(tile.tile_id)) {
+            image.setData("is-new-exposure", true);
+            if (discardPos) {
+              image.setData("anim-start-pos", discardPos);
+            }
+            this.calledOpponentExposureTileIds.add(tile.tile_id);
+          }
+
           this.calledOpponentExposureTiles[seat].push(image);
         }
       }
       this.layoutCalledOpponentExposureTiles(seat);
+    }
+
+    // Refresh the discard grid to clear any gap left by the claimed discard
+    if (discardAreaChanged) {
+      this.layoutDiscardTiles(true);
+      this.layoutOpponentDiscardTiles();
     }
   }
   /** Receives an opponent discard from the future API/WebSocket. */
@@ -2480,14 +2549,14 @@ export class PhaserScene extends Phaser.Scene {
   /** Moves the called discard from the table into the local player's exposure. */
   private animateCalledDiscardToBottomExposure(): void {
     console.log(`[DEBUG EXPOSURE] animateCalledDiscardToBottomExposure START. pendingTileCallImage:`, !!this.pendingTileCallImage, `pendingTileCallOffer:`, !!this.pendingTileCallOffer);
-    
+
     // 1. ALWAYS update the logical state even if the visual image doesn't exist
     if (this.pendingTileCallOffer) {
       const tileId = this.pendingTileCallOffer.discard.tile_id!;
       this.removeDiscardSlot(tileId);
       this.activeExposureBuildTileIds.push(tileId);
       console.log(`[DEBUG EXPOSURE] Pushed discard tile to activeExposureBuildTileIds:`, tileId);
-      
+
       if (this.pendingTileCallImage) {
         this.tileMap.set(tileId, {
           vm: this.pendingTileCallOffer.discard,
@@ -2676,10 +2745,24 @@ export class PhaserScene extends Phaser.Scene {
       const tile = this.calledOpponentExposureTileSize(seat);
       const target = this.calledOpponentExposureTilePosition(seat, activeIndex++);
 
-      image.setDisplaySize(tile.width, tile.height)
-        .setPosition(target.x, target.y)
-        .setAngle(angle)
-        .setDepth(15);
+      image.setDisplaySize(tile.width, tile.height);
+      if (image.getData("is-new-exposure")) {
+        image.setData("is-new-exposure", false);
+        const animStartPos = image.getData("anim-start-pos");
+        const startPos = animStartPos ?? this.pickTargetPointForSeat(seat);
+        image.setPosition(startPos.x, startPos.y);
+        this.tweens.add({
+          targets: image,
+          x: target.x,
+          y: target.y,
+          duration: ANIMATION_SPEED,
+          ease: "Cubic.Out",
+        });
+      } else {
+        this.tweens.killTweensOf(image);
+        image.setPosition(target.x, target.y);
+      }
+      image.setAngle(angle).setDepth(15);
     });
   }
 
@@ -3076,6 +3159,26 @@ export class PhaserScene extends Phaser.Scene {
     });
   }
 
+  private isTileInAnyExposure(tileId: number): boolean {
+    if (!this.latestExposures) return false;
+    const numericId = Number(tileId);
+    for (const seat of ["bottom", "top", "left", "right"] as const) {
+      const melds = this.latestExposures[seat];
+      if (!melds) continue;
+      for (const meld of melds) {
+        if (!meld) continue;
+        if (meld.tile && Number(meld.tile.tile_id) === numericId) return true;
+        if (meld.tiles) {
+          const tiles = Array.isArray(meld.tiles) ? meld.tiles : Object.values(meld.tiles);
+          for (const t of (tiles as any[])) {
+            if (t && Number(t.tile_id) === numericId) return true;
+          }
+        }
+      }
+    }
+    return false;
+  }
+
   private handleDiscardsSet(tiles: GameTileEntityGSDto[]): void {
     this.latestDiscards = tiles;
     if (!this.layout) return;
@@ -3084,6 +3187,7 @@ export class PhaserScene extends Phaser.Scene {
     for (const tile of tiles) {
       const discardId = tile.id ?? (9999000 + ++this.demoDiscardSequence);
       if (this.discardSlotOrder.includes(discardId)) continue; // Already rendered
+      if (this.isTileInAnyExposure(discardId)) continue; // Claimed, do not render in discard!
 
       const texture = this.gameService.resolve(tile as any, grid.tileWidth);
       if (!texture || !this.textures.exists(texture.atlasKey) || !this.textures.get(texture.atlasKey).has(texture.frameKey)) continue;
@@ -4774,6 +4878,41 @@ export class PhaserScene extends Phaser.Scene {
   ): void {
     const source = this.wallTileSourcePoint();
     const target = targetPoint ?? this.pickTargetPointForSeat(seat);
+
+    // Bottom seat: perfectly smooth linear scale from small size to rack size.
+    // Animating displayWidth/Height prevents raw texture scaling bugs.
+    if (seat === "bottom" && pickedTile) {
+      const rackSize = this.layout.bottomTileLayout;
+      const smallSize = this.passTileDisplaySize(seat);
+
+      const clone = this.createTileFrontPickClone(
+        pickedTile,
+        source.x,
+        source.y,
+        rackSize.width,
+        rackSize.height,
+      );
+
+      // Start exactly at the small size
+      clone.setDisplaySize(smallSize.width, smallSize.height);
+      clone.setAlpha(1).setDepth(190);
+
+      this.tweens.add({
+        targets: clone,
+        x: target.x,
+        y: target.y,
+        displayWidth: rackSize.width,
+        displayHeight: rackSize.height,
+        duration: this.pickAnimationDurationForSeat(seat) * 0.6,
+        ease: "Linear", // perfectly even scale, no sudden jumps
+        onComplete: () => {
+          clone.destroy();
+          onComplete();
+        }
+      });
+      return;
+    }
+
     const size = this.pickAnimationTileSize(seat);
     const startSize = this.wallTileBoxSize();
 
@@ -4839,11 +4978,6 @@ export class PhaserScene extends Phaser.Scene {
       height <= 900;
 
     if (seat === "bottom") {
-      if (isPhonePortrait) return 0.46;
-      if (isPhoneLandscape) return 0.48;
-      if (isTabletPortrait) return 0.64;
-      if (isTabletLandscape) return 0.68;
-
       return 1;
     }
 
@@ -4934,13 +5068,6 @@ export class PhaserScene extends Phaser.Scene {
     readonly width: number;
     readonly height: number;
   } {
-    if (seat === "bottom") {
-      return {
-        width: Math.round(this.layout.bottomTileLayout.width),
-        height: Math.round(this.layout.bottomTileLayout.height),
-      };
-    }
-
     return this.passTileDisplaySize(seat);
   }
 
