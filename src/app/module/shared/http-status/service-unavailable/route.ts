@@ -10,6 +10,7 @@ import { FoundationNavPositionEnum } from '@libs/foundation/nav/enum';
 import { UrlService } from '@libs/url/service';
 import { SLUG_HTTP_STATUS_SERVICE_UNAVAILABLE } from '@module/shared/http-status/service-unavailable/slug';
 import { OpenAreaRoute } from '@area/open/route';
+import { AppState } from '@app/app.state';
 
 @Service({ autoProvided: false })
 export class HttpStatusServiceUnavailableRoute extends FoundationModuleRoute {
@@ -74,6 +75,16 @@ export class HttpStatusServiceUnavailableRoute extends FoundationModuleRoute {
 
         /** ⚠ NOT decoration. this swallows every navigation failure, lazy chunk 404s included */
         log.error('[ROUTER] navigation failed', error);
+
+        /**
+         * ⚠ a required() resolver that hits a stateful-auth 401 fails its navigation
+         * as well as tripping the api error interceptor, and this handler runs AFTER
+         * AppService.terminateSession() has queued the redirect to signin. Without
+         * this stand-down, an expired login taken on a resolved route lands on /503.
+         */
+        if (inject(AppState).sessionTerminating()) {
+            return undefined;
+        }
 
         const target = HttpStatusServiceUnavailableRoute.absolutePath();
 

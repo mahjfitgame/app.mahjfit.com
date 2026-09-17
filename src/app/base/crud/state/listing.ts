@@ -71,6 +71,7 @@ export class CrudListingState implements CrudListingStateType {
             label: 'CRUD.LIST_OPERATION.LISTING_SELECTED_ROWS.LABEL',
             type: CrudFieldUiTypeEnum.ARRAY,
             url_matrix_param: 'lsr',
+            url_matrix_param_silent: true, // selection is UI-only persistence, not a real page change — see CrudUrl.syncMatrixParamsSilentlyToUrl()
             value: null,
             default: null,
             option: null, // will be filled dynamically at initialization
@@ -241,12 +242,26 @@ export class CrudListingState implements CrudListingStateType {
                 const hasListingDataLoaded = listingData !== null && listingData !== undefined;
                 const dataSource = this.listingDataSource?.();
                 const rows = Array.isArray(dataSource?.data) ? dataSource.data : [];
-                const loadedRowKeys = new Set(
-                    rows
-                        .map((row: any) => this.root.getRecordSecondaryKeyValue(row, secondaryKey))
-                        .filter((key: any) => key !== null && key !== undefined && String(key).trim().length > 0)
-                        .map((key: any) => String(key).trim()),
-                );
+                /**
+                 * ONE walk over rows, keeping key -> row instead of just the key.
+                 * Serves both the membership test below (was a Set) and the URL -> State
+                 * lookup at the bottom, which used to re-derive every row's key inside a
+                 * rows.find() per url key.
+                 *
+                 * First row wins on a duplicate key, matching what that find() returned.
+                 */
+                const rowsByKey = new Map<string, any>();
+                for (const row of rows) {
+                    const key = this.root.getRecordSecondaryKeyValue(row, secondaryKey);
+                    if (key === null) {
+                        continue;
+                    }
+                    const trimmedKey = String(key).trim();
+                    if (trimmedKey.length === 0 || rowsByKey.has(trimmedKey)) {
+                        continue;
+                    }
+                    rowsByKey.set(trimmedKey, row);
+                }
 
                 /**
                  * State -> URL:
@@ -279,7 +294,7 @@ export class CrudListingState implements CrudListingStateType {
                              */
                             const pendingKey = String(item ?? '').trim();
 
-                            return !hasListingDataLoaded || loadedRowKeys.has(pendingKey)
+                            return !hasListingDataLoaded || rowsByKey.has(pendingKey)
                                 ? pendingKey
                                 : null;
                         })
@@ -316,12 +331,7 @@ export class CrudListingState implements CrudListingStateType {
                 }
 
                 const selectedRows = uniqueUrlKeys
-                    .map((urlKey) => rows.find((row: any) => {
-                        const rowKey = this.root.getRecordSecondaryKeyValue(row, secondaryKey);
-                        return rowKey !== null &&
-                            rowKey !== undefined &&
-                            String(rowKey).trim() === urlKey;
-                    }))
+                    .map((urlKey) => rowsByKey.get(urlKey))
                     .filter((row) => !!row);
 
                 return new SelectionModel<any>(true, selectedRows);
@@ -482,6 +492,27 @@ export class CrudListingState implements CrudListingStateType {
 
     // Using a computed or linkedSignal if the fields ever change dynamically
     public formattedListingFields = linkedSignal(() => this.formatListingFieldObj(this.listingFieldObj() ?? {}));
+
+    /**
+     * The Display Fields selection as a lookup, for listing slot templates:
+     * `@if (displayFields.url_slug)` instead of
+     * `@if ((getDisplayFieldsValue() ?? getDisplayFieldsDefault() ?? []).includes('url_slug'))`
+     * once per line the slot draws. Only the selected keys are present, so a
+     * field that is switched off reads back undefined.
+     *
+     * ⚠ TYPED `any`, deliberately. The accurate shape is
+     * Record<string, boolean>, but this project sets
+     * noPropertyAccessFromIndexSignature, which the Angular template checker
+     * honours under strictTemplates - an index signature would force
+     * `displayFields['url_slug']` at every call site. Nothing is given up: the
+     * keys are the module's own runtime field names, so a mistyped key is a
+     * silent falsy either way, exactly as it is with .includes().
+     */
+    public readonly displayFields = computed<any>(() => {
+        const selected = this.getDisplayFieldsValue() ?? this.getDisplayFieldsDefault() ?? [];
+
+        return Object.fromEntries(selected.map((fkey) => [fkey, true]));
+    });
     public pageSkipIndex = computed(() => this.getStatePageSkipIndex());
     public readonly rowSelectionSummary = computed(() => {
         const rows = this.listingDataSource().data;
@@ -527,6 +558,57 @@ export class CrudListingState implements CrudListingStateType {
         }
 
         return patched;
+    }
+
+    /**
+     * Patch EVERY loaded row, the matched one differently from the rest — for a
+     * radio-style flag where at most one row may carry the value.
+     *
+     * MARK_AS_MAIN is the caller: the api clears is_main on the previously-main
+     * row server-side and the response reports only HOW MANY rows changed,
+     * never which — so the clicked row is set and every other loaded row is
+     * cleared. A previously-main row on another page is not on screen, so it
+     * cannot read back inconsistently.
+     *
+     * groupField narrows that sweep: a GROUPED marker column only un-mains its
+     * OWN group, so rows whose groupField value differs from the matched row's
+     * are left untouched. null (table-wide marker) clears every other row.
+     */
+    public patchAllListingData(
+        keyid: string | number,
+        matchedRowPatch: Record<string, unknown>,
+        otherRowsPatch: Record<string, unknown>,
+        groupField: string | null = null,
+    ): boolean {
+        const data = this._listingDataSource().data;
+        const matchedRow = data.find(
+            (row) => this.root.getRecordSecondaryKeyValue(row) === String(keyid),
+        );
+
+        // no matched row means a stale keyid: leave the other rows alone too
+        if (!matchedRow) {
+            return false;
+        }
+
+        const groupValue = this.root.getRecordFieldValue(matchedRow, groupField);
+
+        this.updateListingData(data.map((row) => {
+            if (row === matchedRow) {
+                return { ...row, ...matchedRowPatch };
+            }
+
+            // another group keeps its own main row
+            if (
+                groupField
+                && this.root.getRecordFieldValue(row, groupField) !== groupValue
+            ) {
+                return row;
+            }
+
+            return { ...row, ...otherRowsPatch };
+        }));
+
+        return true;
     }
 
     public removeListingData(keyid: string | number): boolean {
@@ -1291,6 +1373,59 @@ export class CrudListingState implements CrudListingStateType {
             ).map(String),
         );
         selectedColumns.add(sortField);
+
+        /**
+         * Same reason as sortField above: the QUERY needs a field the DISPLAY
+         * does not. The Mark as Main menu reads the marker off the clicked row
+         * (component/listing/record-action/template.html) and its group value
+         * through getIsMainFieldRefGroupRelationFieldValue(row), and
+         * patchAllListingData() re-reads that group value to sweep siblings.
+         *
+         * Hiding either column in Display Fields would drop it from the row
+         * selection: the marker going missing only hides the menu item, but a
+         * missing GROUP value is sent as an omitted
+         * ref_group_relation_field_value, which a grouped marker answers with
+         * affected: 0 + a snapshot.error - the action breaks with no visible
+         * cause. So both stay selected regardless of what is on screen.
+         *
+         * Selection only - what renders is driven by getDisplayFieldsValue().
+         * A module whose marker column does not exist (the field was never
+         * declared, or the entity has no such column) adds a key the loop below
+         * never iterates, so this is inert for them.
+         */
+        const isMainField = this.root.isMainField();
+
+        if (isMainField) {
+            selectedColumns.add(isMainField);
+
+            const isMainGroupField = this.root.isMainFieldRefGroupRelationField();
+
+            if (isMainGroupField) {
+                selectedColumns.add(isMainGroupField);
+            }
+        }
+
+        /**
+         * Same reason again, one field type further: a FILE cell falls back to
+         * initials taken from another column (`file.monogram_field`), and that
+         * column is a user choice in Display Fields. Unticking it would leave
+         * `row[monogram_field]` undefined and blank every fallback avatar with
+         * nothing on screen connecting the two, so the monogram source is
+         * force-added the way the sort and marker fields above are.
+         *
+         * listingFieldSchema is already flattened (top level + `sub`), so a
+         * FILE sub-field is covered by the same loop. Selection only - what
+         * renders is still driven by getDisplayFieldsValue().
+         */
+        for (const fieldInfo of Object.values(listingFieldSchema)) {
+            if (fieldInfo.type !== CrudFieldUiTypeEnum.FILE) continue;
+
+            const monogramField = fieldInfo.file?.monogram_field;
+
+            if (monogramField) {
+                selectedColumns.add(monogramField);
+            }
+        }
 
         const columns = {} as TColumns;
         const dynamicColumns = columns as Record<string, any>;

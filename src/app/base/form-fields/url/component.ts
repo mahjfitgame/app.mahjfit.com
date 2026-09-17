@@ -11,7 +11,7 @@ import { FormFieldUrlService } from '@base/form-fields/url/service';
 import { FormFieldUrlState } from '@base/form-fields/url/state';
 
 @Component({
-    selector: 'app-form-field-url',
+    selector: 'form-field-url-component',
     standalone: true,
     templateUrl: './template.html',
     styleUrl: './style.scss',

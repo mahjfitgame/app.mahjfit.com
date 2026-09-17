@@ -83,7 +83,7 @@ export class I18nService {
      *
      * THE ONE EXCEPTION to the rule documented on useModule() below: this call
      * stays in InternationalizationComponent.ngOnInit() and is NOT moved into a
-     * constructor. I18nService is @Service() - an app-root singleton - so its
+     * constructor. I18nService is @Service() - an root-component singleton - so its
      * constructor fires once, on first injection from anywhere in the app, at a
      * moment that has nothing to do with the component that renders the switcher.
      * Every other initI18n() in the app belongs in its service constructor.

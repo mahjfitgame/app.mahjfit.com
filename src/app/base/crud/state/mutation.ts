@@ -10,7 +10,7 @@ import {
     CrudStateMutationFieldObjType,
 } from "@base/crud/type";
 import { CrudActionUiLayoutEnum, CrudFieldUiTypeEnum } from "@base/crud/enum";
-import { UiSizeEnum } from "@libs/breakpoint/enum";
+import { BreakpointSizeEnum } from "@libs/breakpoint/enum";
 import { CrudValidation } from "../validation";
 import { CrudRootState } from "./root";
 import { CrudActionState } from "./action";
@@ -31,7 +31,7 @@ export class CrudMutationState implements CrudMutationStateType {
     private readonly _mutationActionUiLayout = signal<CrudActionUiLayoutEnum>(CrudActionUiLayoutEnum.END_SIDE_BAR);
     public readonly mutationActionUiLayout = this._mutationActionUiLayout.asReadonly();
 
-    private readonly _mutationActionUiSize = signal<UiSizeEnum>(UiSizeEnum.SM);
+    private readonly _mutationActionUiSize = signal<BreakpointSizeEnum>(BreakpointSizeEnum.SM);
     public readonly mutationActionUiSize = this._mutationActionUiSize.asReadonly();
 
     private readonly _mutationFormCustomComponent = signal<Type<any> | null>(null);
@@ -50,7 +50,7 @@ export class CrudMutationState implements CrudMutationStateType {
     public setMutationActionUiLayout(type: CrudActionUiLayoutEnum): void {
         this._mutationActionUiLayout.set(type);
     }
-    public setMutationActionUiSize(size: UiSizeEnum): void {
+    public setMutationActionUiSize(size: BreakpointSizeEnum): void {
         this._mutationActionUiSize.set(size);
     }
     public setMutationFormCustomComponent(component: Type<any> | null): void {

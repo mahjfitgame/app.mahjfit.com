@@ -11,7 +11,7 @@ import { FormFieldColorService } from '@base/form-fields/color/service';
 import { FormFieldColorState } from '@base/form-fields/color/state';
 
 @Component({
-    selector: 'app-form-field-color',
+    selector: 'form-field-color-component',
     standalone: true,
     templateUrl: './template.html',
     styleUrl: './style.scss',

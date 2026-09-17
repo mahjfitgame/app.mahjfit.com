@@ -13,7 +13,7 @@ import { NgClass } from '@angular/common';
 import { SnackBarTypeEnum } from '@base/snack-bar/enum';
 
 @Component({
-  selector: 'app-snackbar',
+  selector: 'snackbar-component',
   standalone: true,
   imports: [
     MatIconModule,

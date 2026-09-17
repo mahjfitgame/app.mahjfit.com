@@ -6,7 +6,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { NgClass } from '@angular/common';
 
 @Component({
-  selector: 'app-notify-banner',
+  selector: 'notify-banner-component',
   standalone: true,
   templateUrl: './template.html',
   styleUrls: ['./style.scss'],

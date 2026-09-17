@@ -1,0 +1,273 @@
+<!-- file: src/app/base/crud/default/listing/template.html -->
+ @let displayFields = service.state.listing.getDisplayFieldsValue() 
+    ?? service.state.listing.getDisplayFieldsDefault() 
+    ?? [];
+<mat-card>
+    <mat-card-content class="tw:p-1! tw:overflow-auto">
+        <table
+            mat-table
+            class="tw:w-full tw:bg-transparent!"
+            cdkDropList
+            cdkDropListOrientation="horizontal"
+            [cdkDropListDisabled]="!service.state.action.hasColumnPosition()"
+            (cdkDropListDropped)="service.listing.dragAndDropColumn($event)"
+            [dataSource]="service.state.listing.listingDataSource()"
+        >
+        @let base = 'tw:border-0! tw:bg-slate-100! tw:dark:bg-slate-100/10! tw:transition-all'; 
+        @let hoverColor = 'tw:hover:bg-slate-200! tw:dark:hover:bg-slate-200/15!';
+        @let roundedCorner = 'tw:first:rounded-s-md tw:last:rounded-e-md';
+        @let columnMove = 'tw:cursor-grab tw:active:cursor-grabbing!';
+
+        <!-- FIRST COLUMN -->
+        @if(service.state.action.hasRecordSelectionAction()){
+        <ng-container [matColumnDef]="service.CrudListingAdditionalColumnsEnum.RECORD_SELECT">
+            <th mat-header-cell *matHeaderCellDef [ngClass]="[base, hoverColor, roundedCorner]">
+                <div class="tw:flex tw:items-center tw:gap-2 tw:py-2">
+                    @let selectAllLabel = 'GL.COMMON.SELECT_ALL' | transloco;
+                    <mat-checkbox
+                        (change)="service.listing.toggleAllRows()"
+                        [checked]="service.listing.isAllRowsSelected()"
+                        [indeterminate]="service.listing.isPartiallyRowsSelected()"
+                        [aria-label]="selectAllLabel"
+                        [matTooltip]="selectAllLabel"
+                        matTooltipPosition="below"
+                    ></mat-checkbox>
+                </div>
+            </th>
+            <td mat-cell *matCellDef="let row" class="tw:align-top">
+                <mat-checkbox
+                    (click)="$event.stopPropagation()"
+                    (change)="service.listing.toggleRowSelection(row)"
+                    [checked]="service.listing.isRecordSelected(row)"
+                    [aria-label]="'GL.COMMON.SELECT_RECORD' | transloco"
+                ></mat-checkbox>
+            </td>
+            <td mat-footer-cell *matFooterCellDef [ngClass]="[base, roundedCorner]">
+                @if(service.state.listing.getListingSelectedRowsValue().selected.length > 0) {
+                    <crud-listing-selected-record-action-component>
+                    </crud-listing-selected-record-action-component>
+                }
+            </td>
+        </ng-container>    
+        }
+        
+        <!-- ALL FIELDS COLUMN -->
+        @for (field of service.state.listing.listingFieldObj() | keyvalue: null; track field.key) {
+            <!-- Assigning local variables -->
+            @let fkey = field.key;
+            @let finfo = field.value;
+            
+            <ng-container [matColumnDef]="fkey">
+                <!-- Header Cell -->
+                <th mat-header-cell cdkDrag [cdkDragDisabled]="!service.state.action.hasColumnPosition()" *matHeaderCellDef [ngClass]="[base, hoverColor, service.state.action.hasColumnPosition() ? columnMove : '', roundedCorner]">
+                    <div class="tw:flex tw:items-center tw:gap-2 tw:py-2">
+                        <div class="tw:h-6 tw:w-1 tw:rounded-full tw:bg-primary/40 tw:hover:bg-primary/90"></div>
+                        <strong class="tw:text-primary/90 tw:font-bold tw:text-base tw:tracking-tight tw:leading-none">
+                            @let label = finfo.label | transloco;
+                            @if (label !== finfo.label) {
+                                {{ label }}
+                            } @else {
+                                <span
+                                    class="tw:block tw:h-4 tw:w-20 tw:animate-pulse tw:rounded tw:bg-primary/15"
+                                    aria-hidden="true"
+                                ></span>
+                            }
+                        </strong>
+                    </div>
+                </th>
+
+                <!-- Data Cell -->
+                <td mat-cell *matCellDef="let row" class="tw:align-top">
+                    @if(finfo.sub && !finfo.slot) {
+                        <!-- Display main field -->
+                        <p class="tw:text-primary tw:mb-1">
+                            <ng-container *ngTemplateOutlet="CRUD_LISTING_FIELD_LAYOUT; context: { row: row, fkey: fkey, finfo: finfo,  }"></ng-container>
+                        </p>
+                        <!-- Display sub fields -->
+                            <div class="tw:text-sm tw:text-[13px]!">
+                            @for (fieldSub of finfo.sub | keyvalue: null; track fieldSub.key) {
+                                @let fskey = fieldSub.key;
+                                @let fsinfo = fieldSub.value;
+                                @if (fsinfo.type !== service.CrudFieldUiTypeEnum.NONE && displayFields.includes(fskey)) {
+                                    <p>
+                                        @if(!fsinfo.hide_label){
+                                        <strong class="tw:text-black/70 tw:dark:text-white/50">{{ fsinfo.label | transloco }}:</strong>
+                                        }
+                                        <ng-container
+                                            *ngTemplateOutlet="CRUD_LISTING_FIELD_LAYOUT;
+                                            context: { row: row, fkey: fskey, finfo: fsinfo,  }"
+                                        >
+                                        </ng-container>
+                                    </p>
+                                }
+                            }
+                        </div>
+                    } @else {
+                        <!-- Display main field -->
+                        <ng-container 
+                            *ngTemplateOutlet="CRUD_LISTING_FIELD_LAYOUT; 
+                            context: { row: row, fkey: fkey, finfo: finfo,  }"
+                        >
+                        </ng-container>
+                    }
+                </td>
+                <!-- Footer Cell -->
+                <td mat-footer-cell *matFooterCellDef [ngClass]="[base, roundedCorner]"></td>
+            </ng-container>
+        }
+
+        <!-- LAST COLUMN -->
+        @if(service.state.action.hasRecordAction()){
+        <ng-container [matColumnDef]="service.CrudListingAdditionalColumnsEnum.RECORD_ACTION">
+            <!-- Header Cell -->
+            <th mat-header-cell cdkDrag [cdkDragDisabled]="!service.state.action.hasColumnPosition()" *matHeaderCellDef [ngClass]="[base, hoverColor, service.state.action.hasColumnPosition() ? columnMove : '', roundedCorner]">
+                <div class="tw:flex tw:items-center tw:justify-center tw:gap-2 tw:py-2">
+                    <div class="tw:h-6 tw:w-1 tw:rounded-full tw:bg-primary/40 tw:hover:bg-primary/90"></div>
+                </div>
+            </th>
+            
+            <!-- Data Cell -->
+            <td mat-cell *matCellDef="let row" class="tw:align-top tw:text-center!">
+                <crud-listing-record-action-component
+                    [row]="row"
+                >
+                </crud-listing-record-action-component>
+            </td>
+
+            <!-- Footer Cell -->
+            <td mat-footer-cell *matFooterCellDef [ngClass]="[base, roundedCorner]"></td>
+
+        </ng-container>
+        }
+
+        @let listingColumns = service.state.listing.getListingColumnPositionValue() ?? [];
+        <tr mat-header-row *matHeaderRowDef="listingColumns"></tr>
+        <tr mat-row *matRowDef="let row; columns: listingColumns" class="tw:hover:bg-slate-50/60! tw:dark:hover:bg-slate-50/3!"></tr>
+        <tr mat-footer-row *matFooterRowDef="listingColumns"></tr>
+        <tr class="mat-row" *matNoDataRow>
+            <td class="mat-cell tw:text-center!" [attr.colspan]="listingColumns.length">
+                @if(service.gpbs.processing){
+                    {{ 'GL.COMMON.LOADING' | transloco }}
+                } @else {
+                    @if(service.state.listing.totalRecords() === 0){
+                        {{ 'GL.COMMON.NO_DATA' | transloco }}
+                    }
+                }
+            </td>
+        </tr>
+        </table>
+    </mat-card-content>
+</mat-card>
+
+<!-- Default listing field template -->
+<ng-template
+    #DEF_CRUD_LISTING_FIELD_LAYOUT
+    let-row="row"
+    let-fkey="fkey"
+    let-finfo="finfo"
+>
+    @if (finfo.type === service.CrudFieldUiTypeEnum.FILE) {
+        <!-- FILE never draws text, so quick-search highlighting is skipped on
+             purpose. [file.is_image] picks the half: a picture, or a link to
+             the file itself. -->
+        @if (finfo.file?.is_image) {
+            <!-- the THUMB variant, round, and the monogram when there is none -->
+            @let fileUrl = service.utility.getFileFieldUrl(row, finfo);
+            @let monogram = service.utility.getFileFieldMonogram(row, finfo);
+            @let imgClass = 'tw:h-10 tw:w-10 tw:shrink-0 tw:rounded-full tw:object-cover';
+            @if (fileUrl) {
+                @if (finfo.file?.slideshow) {
+                    <!-- [file.slideshow] opt-in: a real <button>, so Enter/Space
+                         and the focus ring come for free - an <img tabindex>
+                         would give neither. The group it opens is every VISIBLE
+                         row, see CrudListingService.openImageFileFieldSlideshow().
+                         stopPropagation because the cell sits inside a mat-row
+                         that may carry its own click. -->
+                    <button
+                        type="button"
+                        class="tw:cursor-zoom-in tw:rounded-full tw:border-0 tw:bg-transparent tw:p-0 tw:focus-visible:outline-2 tw:focus-visible:outline-primary"
+                        [attr.aria-label]="'GL.SLIDESHOW.OPEN' | transloco"
+                        [matTooltip]="'GL.SLIDESHOW.OPEN' | transloco"
+                        matTooltipPosition="below"
+                        (click)="$event.stopPropagation(); service.listing.openImageFileFieldSlideshow(row, finfo)"
+                    >
+                        <img
+                            [src]="fileUrl"
+                            [alt]="finfo.label | transloco"
+                            loading="lazy"
+                            [class]="imgClass"
+                        />
+                    </button>
+                } @else {
+                    <img
+                        [src]="fileUrl"
+                        [alt]="finfo.label | transloco"
+                        loading="lazy"
+                        [class]="imgClass"
+                    />
+                }
+            } @else if (monogram) {
+                <span class="tw:flex tw:h-10 tw:w-10 tw:shrink-0 tw:items-center tw:justify-center tw:rounded-full tw:bg-primary tw:text-on-primary tw:text-sm tw:font-semibold">{{ monogram }}</span>
+            }
+        } @else {
+            @let fileUrl = service.utility.getFileFieldUrl(row, finfo, 'direct');
+            @if (fileUrl) {
+                <a
+                    [href]="fileUrl"
+                    [download]="row[fkey]"
+                    target="_blank"
+                    rel="noopener"
+                    [matTooltip]="row[fkey]"
+                    matTooltipPosition="below"
+                    [attr.aria-label]="'GL.COMMON.DOWNLOAD' | transloco"
+                    class="tw:inline-flex tw:items-center tw:gap-1 tw:text-primary tw:hover:underline"
+                >
+                    <span>{{ service.utility.truncateFileName(row[fkey]) }}</span>
+                    <mat-icon class="material-symbols-rounded tw:text-sm! tw:w-4! tw:h-4! -tw:leading-none!">download</mat-icon>
+                </a>
+            }
+        }
+    } @else {
+        @let fvalue = row[fkey] | CrudFieldValueFormatPipe: finfo : row;
+        <span [termHighlight]="service.state.listing.getQuickSearchValue()">{{ fvalue }}</span>
+    }
+    @if(finfo.mat_icon_prepend){
+        <mat-icon class="material-symbols-rounded tw:text-primary! tw:text-sm! tw:w-4! tw:h-4! -tw:leading-none!">{{ finfo.mat_icon_prepend }}</mat-icon>
+    }
+</ng-template>
+
+<!-- SLOT: custom listing field template from child component -->
+<ng-template 
+    #CRUD_LISTING_FIELD_LAYOUT
+    let-row="row"
+    let-fkey="fkey"
+    let-finfo="finfo"
+>
+    @let portalKey = (typeof finfo?.slot === 'string' && finfo.slot.length > 0) 
+                        ? finfo.slot 
+                        : service.CrudFieldSlotPortalKeyPrefixEnum.LISTING + fkey;
+    @let customFieldPortal = service.state.getSlotField(portalKey);
+
+    @if (
+        finfo?.slot &&
+        customFieldPortal &&
+        (finfo.type === service.CrudFieldUiTypeEnum.NONE || displayFields.includes(fkey))
+    ) {
+        <ng-container
+            *ngTemplateOutlet="$any(customFieldPortal).templateRef; 
+            context: { row: row, fkey: fkey, finfo: finfo }"
+        ></ng-container>
+    } @else if (
+        !finfo?.slot &&
+        finfo.type !== service.CrudFieldUiTypeEnum.NONE &&
+        displayFields.includes(fkey) &&
+        (!finfo?.skip || finfo?.skip === false)
+    ) {
+        <!-- TODO: [finfo?.skip] flag is not working properly need to understand use case and make it usable -->
+        <ng-container 
+            *ngTemplateOutlet="DEF_CRUD_LISTING_FIELD_LAYOUT; 
+            context: { row: row, fkey: fkey, finfo: finfo }"
+        >
+        </ng-container>
+    }
+</ng-template>

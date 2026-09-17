@@ -19,7 +19,7 @@ import { FormFieldDatetimeModeEnum } from '@base/form-fields/datetime/enum';
 import { provideDateTimeFormat } from '@libs/date-time/provider';
 
 @Component({
-  selector: 'app-form-field-flag',
+  selector: 'form-field-flag-component',
   standalone: true,
   templateUrl: './template.html',
   styleUrl: './style.scss',

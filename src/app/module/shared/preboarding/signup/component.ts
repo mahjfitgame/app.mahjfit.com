@@ -16,7 +16,7 @@ import { NotifyBannerComponent } from 'src/app/base/notify-banner/component';
 import { SIGNUP_PROVIDER } from './provider';
 
 @Component({
-  selector: 'app-signup',
+  selector: 'signup-component',
   standalone: true,
   templateUrl: 'template.html',
   styleUrl: 'style.scss',

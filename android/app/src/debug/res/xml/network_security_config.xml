@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<network-security-config>
+    <!-- Debug-only: trust user-installed CA certs so the WebView can load
+         the local dev server (e.g. https://192.168.0.230:20155/) over HTTPS
+         with a self-signed/locally-issued certificate. Not included in release builds. -->
+    <base-config cleartextTrafficPermitted="true">
+        <trust-anchors>
+            <certificates src="system" />
+            <certificates src="user" />
+        </trust-anchors>
+    </base-config>
+</network-security-config>

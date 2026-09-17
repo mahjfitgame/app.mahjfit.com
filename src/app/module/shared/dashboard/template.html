@@ -244,7 +244,7 @@
     </mat-card>
     <mat-card>
         <mat-card-actions class="tw:p-1! tw:justify-center">
-            <app-pagination
+            <pagination-component
                 [totalRecords]="pagination.totalItems"
                 [pageIndex]="pagination.pageIndex"
                 [pageSize]="pagination.pageSize"
@@ -253,7 +253,7 @@
                 [showJumpToPage]="true"
                 (pageChange)="onPageChange($event)"
                 >
-            </app-pagination>
+            </pagination-component>
         </mat-card-actions>
     </mat-card>
 </div>

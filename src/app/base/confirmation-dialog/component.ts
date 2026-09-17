@@ -11,7 +11,7 @@ import { TranslocoModule } from '@jsverse/transloco';
 import { ConfirmationDialogDataType } from '@base/confirmation-dialog/type';
 
 @Component({
-    selector: 'app-confirmation-dialog',
+    selector: 'confirmation-dialog-component',
     standalone: true,
     templateUrl: './template.html',
     imports: [

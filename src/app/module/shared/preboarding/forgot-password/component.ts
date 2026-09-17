@@ -16,7 +16,7 @@ import { ForgotPasswordService } from './service';
 import { FORGOT_PASSWORD_PROVIDER } from './provider';
 
 @Component({
-  selector: 'app-forgot-password',
+  selector: 'forgot-password-component',
   standalone: true,
   templateUrl: 'template.html',
   styleUrl: 'style.scss',

@@ -5,12 +5,12 @@ import { MatDialog, MatDialogRef } from '@angular/material/dialog';
 import { submit } from "@angular/forms/signals";
 import { FoundationActionEnum } from "@libs/foundation/action/enum";
 import { CrudActionUiLayoutEnum, CrudEndSideBarTabEnum, CrudFieldNormalizeModeEnum, CrudFieldUiTypeEnum } from "@base/crud/enum";
-import { UiSizeEnum } from "@libs/breakpoint/enum";
-import { UI_WIDTH } from "@libs/breakpoint/const";
-import { CrudDefaultMutationBottomSheetComponent } from "@base/crud/default/mutation/bottom-sheet/component";
-import { CrudDefaultMutationDialogComponent } from "@base/crud/default/mutation/dialog/component";
-import { CrudDefaultMutationFormComponent } from "@base/crud/default/mutation/form/component";
-import { CrudDefaultMutationPageComponent } from "@base/crud/default/mutation/page/component";
+import { BreakpointSizeEnum } from "@libs/breakpoint/enum";
+import { BREAKPOINT_WIDTH } from "@libs/breakpoint/const";
+import { CrudMutationBottomSheetComponent } from "src/app/base/crud/component/mutation/bottom-sheet/component";
+import { CrudMutationDialogComponent } from "src/app/base/crud/component/mutation/dialog/component";
+import { CrudMutationFormComponent } from "src/app/base/crud/component/mutation/form/component";
+import { CrudMutationPageComponent } from "src/app/base/crud/component/mutation/page/component";
 import { BfwApiSdkError } from "@bfw/api-sdk/core";
 import {
     CrudCreateHandlerType,
@@ -31,8 +31,8 @@ export class CrudMutationService {
     public readonly mutationDialog = inject(MatDialog);
     public readonly mutationBottomSheet = inject(MatBottomSheet);
 
-    private activeMutationDialogRef: MatDialogRef<CrudDefaultMutationDialogComponent> | null = null;
-    private activeMutationBottomSheetRef: MatBottomSheetRef<CrudDefaultMutationBottomSheetComponent> | null = null;
+    private activeMutationDialogRef: MatDialogRef<CrudMutationDialogComponent> | null = null;
+    private activeMutationBottomSheetRef: MatBottomSheetRef<CrudMutationBottomSheetComponent> | null = null;
 
     constructor(
         private readonly root: CrudRootService,
@@ -70,7 +70,7 @@ export class CrudMutationService {
         }
 
         /**
-         * Defer so <app-crud-default-mutation-component> can render first.
+         * Defer so <crud-mutation-component-component> can render first.
          * Required for END_SIDE_BAR portal registration.
          */
         setTimeout(() => {
@@ -110,10 +110,10 @@ export class CrudMutationService {
         }
     }
     public getMutationFormComponent(): Type<any> {
-        return this.root.state.mutation.mutationFormCustomComponent() ?? CrudDefaultMutationFormComponent;
+        return this.root.state.mutation.mutationFormCustomComponent() ?? CrudMutationFormComponent;
     }
     public getMutationPageComponent(): Type<any> {
-        return this.root.state.mutation.mutationPageCustomComponent() ?? CrudDefaultMutationPageComponent;
+        return this.root.state.mutation.mutationPageCustomComponent() ?? CrudMutationPageComponent;
     }
     public toggleMutationEndDrawer(callback?: () => void): void {
         this.root.state.mutation.setMutationEndDrawerIsOpen(!this.root.state.mutation.mutationEndDrawerIsOpen());
@@ -149,18 +149,18 @@ export class CrudMutationService {
             }
 
             const size = this.root.state.mutation.mutationActionUiSize();
-            const fullscreen = size === UiSizeEnum.FULL;
+            const fullscreen = size === BreakpointSizeEnum.FULL;
 
             this.activeMutationDialogRef = this.mutationDialog.open(
-                CrudDefaultMutationDialogComponent,
+                CrudMutationDialogComponent,
                 {
                     panelClass: [
-                        'bfw-safe-area-p',
+                        ...(fullscreen ? [] : ['bfw-safe-area-p']),
                         ...(fullscreen ? ['tw:[--mat-dialog-container-shape:0px]'] : []),
                     ],
                     injector: this.root.getComponentInjector(),
                     disableClose: true,
-                    width: UI_WIDTH[size],
+                    width: BREAKPOINT_WIDTH[size],
                     maxWidth: fullscreen ? '100vw' : 'calc(100vw - 2rem)',
                     height: fullscreen ? '100dvh' : undefined,
                     maxHeight: fullscreen ? '100dvh' : undefined,
@@ -179,7 +179,7 @@ export class CrudMutationService {
             }
 
             this.activeMutationBottomSheetRef = this.mutationBottomSheet.open(
-                CrudDefaultMutationBottomSheetComponent,
+                CrudMutationBottomSheetComponent,
                 {
                     injector: this.root.getComponentInjector(),
                     disableClose: true,

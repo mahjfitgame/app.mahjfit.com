@@ -11,7 +11,7 @@ import { FormFieldEmailService } from '@base/form-fields/email/service';
 import { FormFieldEmailState } from '@base/form-fields/email/state';
 
 @Component({
-    selector: 'app-form-field-email',
+    selector: 'form-field-email-component',
     standalone: true,
     templateUrl: './template.html',
     styleUrl: './style.scss',

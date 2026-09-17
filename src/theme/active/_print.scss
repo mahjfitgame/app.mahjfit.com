@@ -1,0 +1,93 @@
+// file: src/theme/active/_print.scss
+/*
+Print page isolation.
+
+The native print path (PrintService.printLive → Printer.printWebView) prints the
+LIVE document, unlike the web path (PrintService.printInIframe) which builds a
+print document of its own in an offscreen iframe. So that both produce the same
+sheet, the service mounts a detached copy of the content as #bfw-print-root
+on <body> and this block hides everything else.
+
+The :has() guard is what keeps this safe for the web path: that iframe document
+holds only the copied content and no print root, so none of these rules apply
+there and the content still prints normally.
+
+Ids come from libs/src/print/const.ts — PRINT_ROOT_ID.
+*/
+@media print {
+    // The app shell is a fixed-height, scroll-clipped layout; a printed
+    // document has to flow across pages instead.
+    html,
+    body {
+        height: auto !important;
+        min-height: 0 !important;
+        max-height: none !important;
+        overflow: visible !important;
+        background: #fff !important;
+    }
+
+    // display:none rather than visibility:hidden — hidden app chrome must not
+    // reserve empty leading pages.
+    body:has(> #bfw-print-root) > *:not(#bfw-print-root) {
+        display: none !important;
+    }
+
+    // While a dialog or bottom-sheet is open the CDK blocks page scrolling with
+    // .cdk-global-scrollblock on <html>: `position: fixed` (overlay-prebuilt.css)
+    // plus an inline `top`/`left` of the negated scroll position
+    // (BlockScrollStrategy.enable). Print layout sizes a fixed box to the web
+    // view rather than to the page box, and the offset then pushes the content
+    // off the sheet — so the native live-document path prints one clipped, blank
+    // page from those two layouts while PAGE/END_DRAWER/END_SIDE_BAR, which use
+    // no overlay, print fine. !important is what beats those inline styles.
+    // Nothing needs the scroll lock while printing: the overlay itself is
+    // already hidden by the rule above.
+    html.cdk-global-scrollblock {
+        position: static !important;
+        top: auto !important;
+        left: auto !important;
+        width: auto !important;
+    }
+
+    // Decorative full-viewport gradient layers (_color.scss body::before,
+    // _thirdparty.scss .sidenav-container::after). These are FIXED pseudo
+    // elements: no child selector can reach them, and print layout sizes a
+    // fixed box to the web view rather than to the page box — so the gradient
+    // lands as a coloured band covering part of the sheet.
+    body::before,
+    body::after,
+    .sidenav-container::after,
+    .auth-layout::after {
+        content: none !important;
+        display: none !important;
+        background-image: none !important;
+    }
+
+    // Resolve every light-dark() token to its light value. The sheet is forced
+    // white above, and the theme's dark palette on white paper prints as pale
+    // text on pale background. color-scheme is set on <body> by the theme mode
+    // attribute (_color.scss), so the override belongs there too.
+    html,
+    body {
+        color-scheme: light !important;
+    }
+
+    #bfw-print-root {
+        display: block !important;
+        position: static !important;
+        width: 100% !important;
+        margin: 0 !important;
+        padding: 0 !important;
+    }
+
+    // Printers drop backgrounds by default, which erases the theme surface and
+    // divider colours the record layout is built on.
+    * {
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+    }
+
+    @page {
+        margin: 10mm;
+    }
+}

@@ -195,6 +195,14 @@ export abstract class CrudRootState extends SignalStateService implements Founda
     private readonly _isMainField = signal<string | null>(null);
     public readonly isMainField = this._isMainField.asReadonly();
 
+    /**
+     * Column whose value scopes is_main's uniqueness group — the entity's
+     * @MarkAsMainField({ ref_group_relation_field }). null means the whole table
+     * is one group and the api ignores the value.
+     */
+    private readonly _isMainFieldRefGroupRelationField = signal<string | null>(null);
+    public readonly isMainFieldRefGroupRelationField = this._isMainFieldRefGroupRelationField.asReadonly();
+
     private readonly _recordPositionField = signal<string | null>(null);
     public readonly recordPositionField = this._recordPositionField.asReadonly();
 
@@ -220,6 +228,9 @@ export abstract class CrudRootState extends SignalStateService implements Founda
     public setIsMainField(field: string | null): void {
         this._isMainField.set(field);
     }
+    public setIsMainFieldRefGroupRelationField(field: string | null): void {
+        this._isMainFieldRefGroupRelationField.set(field);
+    }
     public setRecordPositionField(field: string | null): void {
         this._recordPositionField.set(field);
     }
@@ -234,6 +245,25 @@ export abstract class CrudRootState extends SignalStateService implements Founda
     // ████ HELPER ███████████████████████████████████████████████████████
     // ███████████████████████████████████████████████████████████████████
 
+    /**
+     * The ONE row reader — every getter below is a wrapper that supplies its own
+     * field name from state, so a caller passes only the row.
+     */
+    public getRecordFieldValue(row: any, field?: string | null): string | null {
+        // no field name, nothing to read
+        if (!field || field === '') {
+            return null;
+        }
+
+        const value = field
+            .split('.') // nested property paths, not only simple keys. smaple [user.id]
+            .reduce((current, key) => current?.[key], row);
+
+        if (value === null || value === undefined || value === '') {
+            return null;
+        }
+        return String(value);
+    }
     public getRecordPrimaryKeyValue(row: any, rowPkField?: string): string | null {
         // get primary key field name from state
         const pkf = this.primaryKey();
@@ -243,19 +273,7 @@ export abstract class CrudRootState extends SignalStateService implements Founda
             rowPkField = pkf;
         }
 
-        // if still no id, then return null
-        if((!rowPkField || rowPkField === '') && (!pkf || pkf === '')) {
-            return null;
-        }
-
-        const value = (rowPkField as string)
-            .split('.') // nested property paths, not only simple keys. smaple [user.id]
-            .reduce((current, key) => current?.[key], row);
-
-        if (value === null || value === undefined || value === '') {
-            return null;
-        }
-        return String(value);
+        return this.getRecordFieldValue(row, rowPkField);
     }
     public getRecordSecondaryKeyValue(row: any, rowSkField?: string): string | null {
         // get secondary key field name from state
@@ -266,18 +284,18 @@ export abstract class CrudRootState extends SignalStateService implements Founda
             rowSkField = skf;
         }
 
-        // if still no id, then return null
-        if((!rowSkField || rowSkField === '') && (!skf || skf === '')) {
-            return null;
+        return this.getRecordFieldValue(row, rowSkField);
+    }
+    /** Value of the column that scopes is_main's uniqueness group, off ONE row. */
+    public getIsMainFieldRefGroupRelationFieldValue(row: any, rowRefField?: string): string | null {
+        // get ref group relation field name from state
+        const rgf = this.isMainFieldRefGroupRelationField();
+
+        // check for passed fields name, default to state
+        if(!rowRefField && rgf) {
+            rowRefField = rgf;
         }
 
-        const value = (rowSkField as string)
-            .split('.') // nested property paths, not only simple keys. smaple [user.id]
-            .reduce((current, key) => current?.[key], row);
-
-        if (value === null || value === undefined || value === '') {
-            return null;
-        }
-        return String(value);
+        return this.getRecordFieldValue(row, rowRefField);
     }
 }

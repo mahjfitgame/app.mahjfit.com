@@ -8,7 +8,7 @@ import { FormFieldSliderService } from '@base/form-fields/slider/service';
 import { FormFieldSliderState } from '@base/form-fields/slider/state';
 
 @Component({
-    selector: 'app-form-field-slider',
+    selector: 'form-field-slider-component',
     standalone: true,
     templateUrl: './template.html',
     styleUrl: './style.scss',

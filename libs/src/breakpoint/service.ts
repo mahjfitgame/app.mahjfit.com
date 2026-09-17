@@ -2,7 +2,7 @@ import { computed, inject, Service } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { BreakpointObserver } from '@angular/cdk/layout';
 import { map } from 'rxjs/operators';
-import { BREAKPOINT_XXL, BREAKPOINT_LG, BREAKPOINT_MD, BREAKPOINT_SM, BREAKPOINT_XL, BREAKPOINT_XS, BREAKPOINTS } from './const';
+import { BREAKPOINT_XXL, BREAKPOINT_LG, BREAKPOINT_MD, BREAKPOINT_SM, BREAKPOINT_XL, BREAKPOINT_XS, BREAKPOINT_RANGE } from './const';
 import { BreakpointType } from './type';
 
 @Service()
@@ -10,27 +10,27 @@ export class BreakpointObserverService {
   private readonly bpo = inject(BreakpointObserver);
 
   private readonly state = toSignal(
-    this.bpo.observe(Object.values(BREAKPOINTS)).pipe(
+    this.bpo.observe(Object.values(BREAKPOINT_RANGE)).pipe(
       map((result) => result.breakpoints),
     ),
     {
       initialValue: {
-        [BREAKPOINTS.xs]: false,
-        [BREAKPOINTS.sm]: false,
-        [BREAKPOINTS.md]: false,
-        [BREAKPOINTS.lg]: false,
-        [BREAKPOINTS.xl]: false,
-        [BREAKPOINTS.xxl]: false,
+        [BREAKPOINT_RANGE.xs]: false,
+        [BREAKPOINT_RANGE.sm]: false,
+        [BREAKPOINT_RANGE.md]: false,
+        [BREAKPOINT_RANGE.lg]: false,
+        [BREAKPOINT_RANGE.xl]: false,
+        [BREAKPOINT_RANGE.xxl]: false,
       },
     },
   );
 
-  public readonly isXs = computed(() => this.state()[BREAKPOINTS.xs]);
-  public readonly isSm = computed(() => this.state()[BREAKPOINTS.sm]);
-  public readonly isMd = computed(() => this.state()[BREAKPOINTS.md]);
-  public readonly isLg = computed(() => this.state()[BREAKPOINTS.lg]);
-  public readonly isXl = computed(() => this.state()[BREAKPOINTS.xl]);
-  public readonly isXxl = computed(() => this.state()[BREAKPOINTS.xxl]);
+  public readonly isXs = computed(() => this.state()[BREAKPOINT_RANGE.xs]);
+  public readonly isSm = computed(() => this.state()[BREAKPOINT_RANGE.sm]);
+  public readonly isMd = computed(() => this.state()[BREAKPOINT_RANGE.md]);
+  public readonly isLg = computed(() => this.state()[BREAKPOINT_RANGE.lg]);
+  public readonly isXl = computed(() => this.state()[BREAKPOINT_RANGE.xl]);
+  public readonly isXxl = computed(() => this.state()[BREAKPOINT_RANGE.xxl]);
 
   public readonly isSmAndUp = computed(() => !this.isXs());
   public readonly isMdAndUp = computed(() => this.isMd() || this.isLg() || this.isXl() || this.isXxl());

@@ -2,12 +2,16 @@
 import { formatDate } from "@angular/common";
 import { inject, Service } from "@angular/core";
 import {
+    CrudFieldFileShapeType,
+    CrudFieldInfoType,
     CrudFieldOptionSourceType,
     CrudFieldOptionType,
     CrudFieldSwitchOptionType,
     CrudModuleContextType,
+    CrudMutationResultType,
 } from "@base/crud/type";
-import type { FindOperatorDto } from "@bfw/api-sdk/graphql/libs";
+import { CRUD_FIELD_FILE_NAME_TRUNCATE, CRUD_FIELD_FILE_SHAPE } from "@base/crud/const";
+import type { CrudAffectedDto, FindOperatorDto } from "@bfw/api-sdk/graphql/libs";
 import { MatchScalarExpressionEnum } from "@bfw/api-sdk/graphql/libs/crud.enum";
 import { SignatureService } from "@libs/signature/service";
 import { UrlService } from "@libs/url/service";
@@ -138,6 +142,39 @@ export class CrudUtility {
                 },
             }
             : null;
+    }
+
+    // █████ API MUTATION RESULT ████████████████████████████████████████████████
+    /**
+     * Decodes the affected-count + snapshot envelope every crud api mutation
+     * answers with. The sdk publishes it as one entity-agnostic base class -
+     * `CrudAffectedDto` - which update/softDelete/restore/delete extend
+     * directly and markAsMain extends through `MarkAsMainOutputDto`, so one
+     * decoder covers every entity and every operation.
+     *
+     * Success is read off `affected`, not the snapshot: a snapshot-only read
+     * would report a no-op as a success.
+     *
+     * A bulk action reports no per-record message - there is no single record
+     * for it to be about - so the caller passes `isBulk` and gets the generic
+     * `GL.CRUD.SELECTED_RECORD_ACTION.*` fallback from CrudActionService.
+     */
+    public toAffectedResult(
+        data: CrudAffectedDto | null | undefined,
+        isBulk: boolean = false,
+    ): CrudMutationResultType {
+        const succeeded = Number(data?.affected ?? 0) > 0;
+
+        return {
+            success: succeeded,
+            message: isBulk
+                ? undefined
+                : succeeded
+                    ? data?.snapshot?.success?.[0]
+                        ?? data?.snapshot?.message?.[0]
+                    : data?.snapshot?.error?.[0]
+                        ?? data?.snapshot?.alert?.[0],
+        };
     }
 
     // █████ GENERAL ████████████████████████████████████████████████
@@ -284,6 +321,76 @@ export class CrudUtility {
         return path
             .split('.')
             .reduce<any>((current, key) => current?.[key], value);
+    }
+    /**
+     * One url variant of a FILE field, read off the row.
+     *
+     * [fr_field] names the access-url OBJECT on the row and
+     * CRUD_FIELD_FILE_SHAPE names the key each variant lives under, so the
+     * sdk's layout is spelled out in one const instead of inline here. The
+     * listing takes the default variant (thumb) and has no fallback by design:
+     * no thumb means the monogram, never a full-size image in a 40px cell.
+     */
+    public getFileFieldUrl(
+        row: Record<string, any>,
+        finfo: CrudFieldInfoType,
+        variant: keyof CrudFieldFileShapeType = 'thumb',
+    ): string | null {
+        const file = this.getByPath(row, finfo.fr_field);
+        const url = this.getByPath(file, CRUD_FIELD_FILE_SHAPE[variant]);
+
+        return this.isBlankValue(url) ? null : String(url);
+    }
+    /**
+     * Initials drawn in place of a missing FILE image, from the row field
+     * [file.monogram_field] names.
+     *
+     * ⚠ NOT a copy of ContextProfileState.user_monogram_avatar: its last-resort
+     * Math.random() branch would answer differently on every change detection
+     * and flicker in a table. No source = '' = the cell draws nothing.
+     */
+    public getFileFieldMonogram(
+        row: Record<string, any>,
+        finfo: CrudFieldInfoType,
+    ): string {
+        const source = this.toStringValue(
+            this.getByPath(row, finfo.file?.monogram_field),
+        ).trim();
+
+        if (!source) {
+            return '';
+        }
+
+        const parts = source.split(/[\s._@-]+/).filter(Boolean);
+        const initials = parts.length > 1
+            ? parts[0][0] + parts[1][0]
+            : source.slice(0, 2);
+
+        return initials.toUpperCase();
+    }
+    /**
+     * Middle-truncated file name for a FILE download cell.
+     *
+     * The EXTENSION is what tells the user what the file is, so it is never
+     * what gets cut - only the base name loses its middle. A name already
+     * short enough comes back untouched, and the full name still reaches the
+     * user through the cell's tooltip.
+     */
+    public truncateFileName(value: unknown): string {
+        const name = this.toStringValue(value).trim();
+
+        if (!name) {
+            return '';
+        }
+
+        const dot = name.lastIndexOf('.');
+        const ext = dot > 0 ? name.slice(dot) : '';
+        const base = dot > 0 ? name.slice(0, dot) : name;
+        const { head, tail } = CRUD_FIELD_FILE_NAME_TRUNCATE;
+
+        return base.length > head + tail + 1
+            ? `${base.slice(0, head)}…${base.slice(-tail)}${ext}`
+            : name;
     }
     public escapeHtml(value: unknown): string {
         return String(value ?? '')

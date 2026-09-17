@@ -8,7 +8,7 @@ import { I18nService } from '@base/internationalization/service';
 import { I18nLanguageEnum } from '@base/internationalization/enum';
 
 @Component({
-  selector: 'app-internationalization',
+  selector: 'internationalization-component',
   standalone: true,
   imports: [NgClass, TranslocoModule],
   templateUrl: './template.html',

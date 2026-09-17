@@ -60,7 +60,7 @@
       </header>
       <!-- ██ [1B] ██ -->
       <section class="bfw-safe-area-ps">
-        <app-private-nav 
+        <private-nav-component 
           [position]="service.FoundationNavPositionEnum.START" 
           (navigated)="closeSidenavIfSmAndDown(BfwStartSideBar)" 
         />
@@ -80,7 +80,7 @@
                 type="button"
                 [matMenuTriggerFor]="BfwAccountMenu"
                 [attr.aria-label]="'GL.COMMON.ACCOUNT_MENU' | transloco"
-                class="tw:group tw:flex tw:w-full tw:cursor-pointer tw:items-center tw:gap-3 tw:rounded-3xl tw:p-1 tw:text-left tw:transition-all tw:hover:bg-primary/20 tw:dark:hover:bg-primary/30"
+                class="tw:group tw:flex tw:w-full tw:cursor-pointer tw:items-center tw:gap-3 tw:rounded-full tw:p-1 tw:pe-4 tw:text-left tw:transition-all tw:hover:bg-primary/20 tw:dark:hover:bg-primary/30"
               >
                 @if (service.ctxp.state.user_file_profile_photo_url_thumb; as photoUrl) {
                   <img
@@ -224,7 +224,7 @@
       <!-- ██ [2B] ██ -->
       <main class="bfw-main bfw-safe-area-px tw:pt-14 tw:flex-1">
         <div class="tw:flex tw:flex-col tw:gap-1 tw:mx-2!">
-          <app-notify-banner></app-notify-banner>
+          <notify-banner-component></notify-banner-component>
         </div>
         <router-outlet></router-outlet>
       </main>
@@ -276,7 +276,7 @@
                  deeper inside this host element. renders nav_position "bottom",
                  which holds Home today. no (navigated) binding here: this bar is
                  not inside a sidenav, so there is nothing to close -->
-            <app-private-nav [position]="service.FoundationNavPositionEnum.BOTTOM" />
+            <private-nav-component [position]="service.FoundationNavPositionEnum.BOTTOM" />
           </div>
         </div>
       </footer>

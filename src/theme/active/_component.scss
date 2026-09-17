@@ -82,6 +82,15 @@ html[dir='rtl'] .mat-mdc-paginator-range-label {
         box-shadow: none !important;
     }
 }
+// ███ mat-menu [no override component, using material default]███████████████████████████████████
+/* compact menu items from lg and up: pointer devices need smaller touch targets than mobile */
+@include bfw-lg-and-up {
+    .mat-mdc-menu-item {
+        min-height: 2rem !important;
+        padding-inline: 0.75rem !important;
+    }
+}
+
 // ███ .mat-bottom-sheet [no override component, using material default]███████████████████████████
 .cdk-overlay-container {
   .mat-bottom-sheet-container,
@@ -116,7 +125,7 @@ html[dir='rtl'] .mat-mdc-paginator-range-label {
     background-image: none !important;
     background-color: transparent !important;
 }
-.toast-container .ngx-toastr app-notify {
+.toast-container .ngx-toastr notify-component {
     display: block;
 }
 
@@ -186,4 +195,10 @@ html[dir='rtl'] .toast-bottom-right,
             }
         }
     }
+}
+
+// ███ image-slideshow dialog [src/app/base/image-slideshow]███████████████████████████████
+.mat-mdc-dialog-surface:has(> image-slideshow-component) {
+    padding: 0;
+    overflow: hidden;
 }

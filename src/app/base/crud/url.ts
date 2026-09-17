@@ -279,7 +279,7 @@ export class CrudUrl {
              * AUTOSUGGEST and MULTIAUTOSUGGEST name their own values, so asking here is
              * the same request twice.
              *
-             * <app-form-field-autosuggest> is handed this very value_loader through
+             * <form-field-autosuggest-component> is handed this very value_loader through
              * [valueLoader] and asks for whatever it cannot name, ONCE PER KEY, from
              * its own mount. It is also the more complete of the two: this pass only
              * ever sees values that arrived in the URL, while the control equally
@@ -370,9 +370,111 @@ export class CrudUrl {
             ...this.getCrudMatrixParamsFromState(),
         };
 
+        /**
+         * If every param that actually differs is a silent one (e.g. lsr),
+         * patch the browser URL directly instead of routing through Router.
+         * A real navigation here would re-run route resolvers, flash the
+         * global progress bar, and reset scroll position for a change that
+         * is not a real page transition. A genuine ("loud") change still
+         * carries any pending silent value along through the normal path
+         * below, so it never gets dropped from the URL.
+         */
+        if (this.onlySilentMatrixParamsDiffer(currentMatrixParams, nextMatrixParams)) {
+            this.syncMatrixParamsSilentlyToUrl(nextMatrixParams);
+            return;
+        }
+
         // sync url state
         // ⚠ setMatrixParams REPLACES. patchMatrixParams would leave stale params behind.
         this.url.state.setMatrixParams(nextMatrixParams);
+    }
+
+    /**
+     * Writes matrix params straight onto the browser URL via
+     * Location.replaceState, reusing Router's own createUrlTree/serializeUrl
+     * for identical matrix-param encoding — but never calls router.navigate,
+     * so no NavigationStart/NavigationEnd fires at all.
+     */
+    private syncMatrixParamsSilentlyToUrl(nextMatrixParams: UrlParamsType): void {
+        const matrixParamRoute = this.url.getModuleActivatedRoute();
+
+        const urlTree = this.router.createUrlTree(
+            ['.', nextMatrixParams],
+            {
+                relativeTo: matrixParamRoute,
+                queryParams: this.url.state.getQueryParams(),
+                fragment: this.url.state.getFragment() ?? undefined,
+            },
+        );
+
+        this.location.replaceState(this.router.serializeUrl(urlTree));
+    }
+
+    /**
+     * True when nothing differs, or when every key that differs between the
+     * two matrix param sets is marked url_matrix_param_silent on its field.
+     */
+    private onlySilentMatrixParamsDiffer(
+        currentMatrixParams: UrlParamsType,
+        nextMatrixParams: UrlParamsType,
+    ): boolean {
+        const silentParamNames = this.getSilentMatrixParamNames();
+
+        const keys = new Set([
+            ...Object.keys(currentMatrixParams),
+            ...Object.keys(nextMatrixParams),
+        ]);
+
+        for (const key of keys) {
+            if (silentParamNames.has(key)) {
+                continue;
+            }
+
+            if (
+                this.normalizeUrlParamValueForCompare(currentMatrixParams[key])
+                !== this.normalizeUrlParamValueForCompare(nextMatrixParams[key])
+            ) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    private normalizeUrlParamValueForCompare(value: unknown): string {
+        if (this.shouldSkipUrlValue(value)) {
+            return '';
+        }
+
+        if (Array.isArray(value)) {
+            return value.join(',');
+        }
+
+        return String(value);
+    }
+
+    /**
+     * @returns Set of url_matrix_param names whose field is marked
+     * url_matrix_param_silent: true. See CrudFormFieldInfoType for semantics.
+     */
+    public getSilentMatrixParamNames(): Set<string> {
+        const names = new Set<string>();
+        const groups = this.getCrudStateFieldGroupsWithOrder();
+
+        for (let i = 0; i < groups.length; i++) {
+            const group = groups[i];
+            const keys = Object.keys(group);
+
+            for (let j = 0; j < keys.length; j++) {
+                const fieldInfo = group[keys[j]];
+
+                if (fieldInfo?.url_matrix_param && fieldInfo?.url_matrix_param_silent) {
+                    names.add(fieldInfo.url_matrix_param);
+                }
+            }
+        }
+
+        return names;
     }
 
     /**

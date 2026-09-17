@@ -9,7 +9,7 @@ import { HttpStatusNotFoundService } from './service';
 import { HTTP_STATUS_NOT_FOUND_PROVIDER } from './provider';
 
 @Component({
-    selector: 'app-not-found',
+    selector: 'not-found-component',
     standalone: true,
     templateUrl: './template.html',
     styleUrl: './style.scss',

@@ -31,7 +31,7 @@ import { PROTECTED_NAV_PROVIDER } from "@area/protected/nav/provider";
  * avatar menu and the footer bar all read ONE instance and ONE build
  */
 @Component({
-    selector: 'app-protected-area-layout',
+    selector: 'protected-area-layout-component',
     standalone: true,
     templateUrl: './template.html',
     styleUrl: './style.scss',
@@ -71,7 +71,7 @@ export class ProtectedAreaLayoutComponent implements OnInit, OnDestroy {
      * this area's menus, all generated from ProtectedAreaRegistry.build()
      *
      * ⚠ read directly by the avatar menu in this template. the header and
-     * footer bars go through <app-protected-nav />, which injects the service
+     * footer bars go through <protected-nav-component />, which injects the service
      * itself
      */
     public readonly nav = inject(ProtectedNavService);

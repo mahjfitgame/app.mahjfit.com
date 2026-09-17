@@ -12,7 +12,7 @@ import { FormFieldTextareaService } from '@base/form-fields/textarea/service';
 import { FormFieldTextareaState } from '@base/form-fields/textarea/state';
 
 @Component({
-    selector: 'app-form-field-textarea',
+    selector: 'form-field-textarea-component',
     standalone: true,
     templateUrl: './template.html',
     styleUrl: './style.scss',

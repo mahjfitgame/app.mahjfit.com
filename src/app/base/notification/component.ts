@@ -3,7 +3,7 @@ import { Component, inject, OnDestroy, OnInit } from '@angular/core';
 import { NotificationService } from '@base/notification/service';
 
 @Component({
-  selector: 'app-notification',
+  selector: 'notification-component',
   standalone: true,
   imports: [],
   providers: [],

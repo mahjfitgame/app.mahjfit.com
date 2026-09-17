@@ -8,6 +8,7 @@ export enum I18nLanguageEnum {
     AR = 'ar',
 }
 
+
 export enum I18nBidiEnum {
     LTR = 'ltr',
     RTL = 'rtl',

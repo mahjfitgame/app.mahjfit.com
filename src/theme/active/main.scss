@@ -82,3 +82,7 @@ Your component/layout objects → .bfw-*
 // ███ THIRD PARTY OVERRIDE ███████████████████████████████████████
 // it is important to load override after all the styling because it is require variables and dependencies for overriding styling
 @use '_thirdparty_override.scss';
+
+// ███ PRINT ██████████████████████████████████████████████████████
+// print page isolation: loaded last so it wins over screen layout rules
+@use '_print.scss';

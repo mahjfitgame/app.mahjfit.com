@@ -4,7 +4,7 @@
     <div class="tw:w-full tw:max-w-110">
         <mat-card class="tw:mb-6 tw:overflow-hidden tw:rounded-4xl! tw:bg-transparent! tw:shadow-none! tw:md:bfw-bg-gradient-b tw:md:shadow-sm!">
             <mat-card-header class="tw:flex-col! tw:items-stretch!">
-                <div class="tw:w-100 tw:p-2 tw:text-center tw:lg:text-start">
+                <div class="tw:p-2 tw:w-full tw:text-center tw:lg:text-start">
                     @defer (on idle) {
                         <h1 class="tw:mb-1 tw:text-4xl tw:font-normal! tw:tracking-tight tw:text-primary">
                             {{ 'PREBOARDING_RECOVERPASSWORD.MODULE.TITLE' | transloco }}
@@ -17,7 +17,7 @@
                         </div>
                     }
                 </div>
-                <app-notify-banner></app-notify-banner>
+                <notify-banner-component></notify-banner-component>
             </mat-card-header>
 
             <mat-card-content class="tw:p-6!">

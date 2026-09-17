@@ -6,9 +6,9 @@
 Fundamental of layout styling and rules to follow when styling the layouts.
 
 There are total 3 types of layout
-L1. app-open-area-layout: Open Area Layout: This layout is for pages that are open to all users, such as the home page, about page, etc. It has a simple and clean design with a focus on content.
-L2. app-auth-area-layout: Auth Area Layout: This layout is for pages that require authentication, such as login, register, etc. It has a split design with a start side for visual elements and an end side for interactive elements. The start side is hidden on smaller screens to prioritize the interactive elements.
-L3. app-private-area-layout: Private Area Layout: This layout is for pages that are only accessible to authenticated users, such as the dashboard, profile, etc. It has a sidebar for navigation and a main content area. The sidebar can be toggled between an expanded state with icons and labels and a collapsed state with icons only.
+L1. open-area-layout-component: Open Area Layout: This layout is for pages that are open to all users, such as the home page, about page, etc. It has a simple and clean design with a focus on content.
+L2. auth-area-layout-component: Auth Area Layout: This layout is for pages that require authentication, such as login, register, etc. It has a split design with a start side for visual elements and an end side for interactive elements. The start side is hidden on smaller screens to prioritize the interactive elements.
+L3. private-area-layout-component: Private Area Layout: This layout is for pages that are only accessible to authenticated users, such as the dashboard, profile, etc. It has a sidebar for navigation and a main content area. The sidebar can be toggled between an expanded state with icons and labels and a collapsed state with icons only.
 
 Each layout has its own component which is responsible for the overall structure and styling of the page, while the content within each layout is managed by individual components that are rendered in specific slots defined by the layout. This separation of concerns allows for a consistent design language across the application while also providing flexibility in how content is displayed within each layout.
 
@@ -25,16 +25,16 @@ It feels redundant to repeat the selector, but it is necessary for the styles to
 // █████████████████████████████████████████████████████████████████████
 
 // ███ #P1 DEFAULT █████████████████████████████████████████████████
-app-open-area-layout {
+open-area-layout-component {
     background: transparent;
 }
 // ███ #P2 MEDIA QUERY (BREAKPOINT) ████████████████████████████████
-app-open-area-layout {
+open-area-layout-component {
 
 }
 // ███ #P3 BIDIRECTIONAL ███████████████████████████████████████████
 :dir(rtl) {
-    app-open-area-layout {
+    open-area-layout-component {
 
     }
 }

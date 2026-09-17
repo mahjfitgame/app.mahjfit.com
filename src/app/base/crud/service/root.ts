@@ -4,13 +4,14 @@ import { BfwApiService } from "@libs/third-party-apis/bfw-api/service";
 import { BreakpointObserverService } from "@libs/breakpoint/service";
 import { ConfService } from "@libs/conf/service";
 import { LogService } from "@libs/log/service";
+import { PrintService } from "@libs/print/service";
 import { SignatureService } from "@libs/signature/service";
 import { PrivateAreaLayoutService } from "@area/private/service";
 import { BreadcrumbService } from "xng-breadcrumb";
 import { PrivateAreaLayoutSlotEnum } from "@area/private/enum";
 import { FoundationActionEnum } from "@libs/foundation/action/enum";
 import { CrudFieldSlotPortalKeyPrefixEnum, CrudFieldUiTypeEnum, CrudListingAdditionalColumnsEnum, CrudActionUiLayoutEnum, CrudEndSideBarTabEnum } from "@base/crud/enum";
-import { UiSizeEnum } from "@libs/breakpoint/enum";
+import { BreakpointSizeEnum } from "@libs/breakpoint/enum";
 import { GlobalProgressBarService } from "@base/global-progress-bar/service";
 import { CrudUrl } from "@base/crud/url";
 import { CrudRoute } from "@base/crud/route";
@@ -28,7 +29,7 @@ import {
 import { NotifyBannerService } from "@base/notify-banner/service";
 import { DateTimeService } from "@libs/date-time/service";
 import { I18nService } from "@base/internationalization/service";
-import { CRUD_I18N_KEY, CRUD_PRINT_SECTION_ID } from "@base/crud/const";
+import { CRUD_I18N_KEY } from "@base/crud/const";
 import { CrudState } from "src/app/base/crud/state/entry";
 import {
     FormFieldDatetimeModeEnum,
@@ -37,6 +38,7 @@ import {
 } from "@base/form-fields/datetime/enum";
 import { FoundationFieldDefaultNameEnum } from "@libs/foundation/field/enum";
 import { ConfirmationDialogService } from "@base/confirmation-dialog/service";
+import { I18nBidiEnum } from "@base/internationalization/enum";
 
 /**
  * Base of the CrudService split (mirrors CrudRootState in state/root.ts).
@@ -54,14 +56,14 @@ export abstract class CrudRootService {
     public readonly CrudFieldSlotPortalKeyPrefixEnum = CrudFieldSlotPortalKeyPrefixEnum;
     public readonly CrudListingAdditionalColumnsEnum = CrudListingAdditionalColumnsEnum;
     public readonly CrudActionUiLayoutEnum = CrudActionUiLayoutEnum;
-    public readonly UiSizeEnum = UiSizeEnum;
-    public readonly CRUD_PRINT_SECTION_ID = CRUD_PRINT_SECTION_ID;
+    public readonly UiSizeEnum = BreakpointSizeEnum;
     public readonly CrudEndSideBarTabEnum = CrudEndSideBarTabEnum;
     public readonly CrudActionEnum = FoundationActionEnum;
     public readonly FormFieldDatetimeModeEnum = FormFieldDatetimeModeEnum;
     public readonly FormFieldDatetimePickerModeEnum = FormFieldDatetimePickerModeEnum;
     public readonly FormFieldDatetimeStartViewEnum = FormFieldDatetimeStartViewEnum;
     public readonly FoundationFieldDefaultNameEnum = FoundationFieldDefaultNameEnum;
+    public readonly I18nBidiEnum = I18nBidiEnum;
 
     // ████████████████████████████████████████████████████████████████████
     // ███ DEPENDENCIES ███████████████████████████████████████████████████
@@ -79,6 +81,7 @@ export abstract class CrudRootService {
     public readonly sign = inject(SignatureService);
     public readonly bos = inject(BreakpointObserverService);
     public readonly gpbs = inject(GlobalProgressBarService);
+    public readonly print = inject(PrintService);
     public readonly breadcrumb = inject(BreadcrumbService);
     public readonly datetime = inject(DateTimeService);
 
@@ -109,9 +112,9 @@ export abstract class CrudRootService {
     /**
      * Set the injector from component.
      *
-     * CrudService is feature-scoped via providers (not app-root singleton).
+     * CrudService is feature-scoped via providers (not root-component singleton).
      * Logic is in service, but actual UI rendering context belongs to component tree/overlay host.
-     * So, insted of using app-root singleton from service, we need to use component injector.
+     * So, insted of using root-component singleton from service, we need to use component injector.
      * Here we can do same in service like
      * - private readonly injector = inject(Injector);
      * but component-driven injection is better, this keeps service less tightly coupled to DI container acquisition, while still allowing dynamic component resolution.

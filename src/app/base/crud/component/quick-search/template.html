@@ -1,0 +1,72 @@
+<!-- file: src/app/base/crud/default/quick-search/template.html -->
+ <ng-template #BfwCrudModuleQuickSearch>
+    <mat-form-field
+        appearance="outline"
+        subscriptSizing="dynamic"
+        class="tw:w-full"
+    >
+        @let quickSearchField = service.state.listing.listOperationFieldObj().quick_search;
+        <mat-label>
+            @let label = quickSearchField.label | transloco;
+            @if (label !== quickSearchField.label) {
+                {{ label }}
+            } @else {
+                <span class="tw:block tw:h-4 tw:w-20 tw:animate-pulse tw:rounded tw:bg-gray-200"></span>
+            }
+        </mat-label>
+        <mat-icon matPrefix class="material-symbols-rounded">{{ quickSearchField.mat_icon_prepend }}</mat-icon>
+        <input
+            matInput
+            #BfwCrudQuickSearchInput
+            type="text"
+            [placeholder]="quickSearchField.placeholder | transloco"
+            (keyup)="service.listing.setQuickSearchKeyword($event)"
+            [value]="service.state.listing.getQuickSearchValue() ?? ''"
+        />
+        <button
+            mat-icon-button
+            matSuffix
+            type="button"
+            [aria-label]="'CRUD.LIST_OPERATION.QUICK_SEARCH.CLEAR_SEARCH' | transloco"
+            (click)="service.listing.clearQuickSearchKeyword(BfwCrudQuickSearchInput)"
+            [class.tw:invisible]="!service.state.listing.getQuickSearchValue()"
+        >
+            <mat-icon class="material-symbols-rounded">{{ quickSearchField.mat_icon_append }}</mat-icon>
+        </button>
+    </mat-form-field>
+</ng-template>
+@if(service.bos.isLgAndUp()) {
+    <div class="tw:w-full tw:hidden tw:lg:block!">
+        <ng-container *ngTemplateOutlet="BfwCrudModuleQuickSearch"></ng-container>
+    </div>
+} @else {
+    <div
+        #BfwMobileQickSearch 
+        style="display: none"
+        class="bfw-safe-area-pt bfw-safe-area-ps position-absolute top-0 start-0 w-100 z-index-1 tw:gap-2"
+    >
+        <mat-toolbar class="tw:gap-2">
+            <ng-container *ngTemplateOutlet="BfwCrudModuleQuickSearch"></ng-container>
+            <button
+                matIconButton
+                type="button"
+                [aria-label]="'GL.COMMON.CLOSE' | transloco"
+                (click)="BfwMobileQickSearch.style.display = 'none'"
+            >
+                <!-- the button sits at the inline end, so the arrow points at the edge it dismisses to -->
+                <mat-icon class="material-symbols-rounded">{{
+                    service.i18n.state.bidi() == service.I18nBidiEnum.RTL ? 'arrow_back_ios_new' : 'arrow_forward_ios_new'
+                }}</mat-icon>
+            </button>
+        </mat-toolbar>
+    </div>
+    <button
+        matIconButton
+        type="button"
+        [aria-label]="'CRUD.LIST_OPERATION.QUICK_SEARCH.OPEN_QUICK_SEARCH' | transloco"
+        class="tw:rounded-full! tw:text-primary!  tw:block! tw:lg:hidden!"
+        (click)="BfwMobileQickSearch.style.display = ''"
+    >
+        <mat-icon class="material-symbols-rounded">{{ service.state.listing.listOperationFieldObj().quick_search.mat_icon_prepend }}</mat-icon>
+    </button>
+}

@@ -82,14 +82,19 @@ export class CrudState extends CrudRootState {
             uniqueKey: this.uniqueKey(),
             urlSlugField: this.urlSlugField(),
             isMainField: this.isMainField(),
+            isMainFieldRefGroupRelationField: this.isMainFieldRefGroupRelationField(),
             recordPositionField: this.recordPositionField(),
             activeField: this.activeField(),
             deletedField: this.deletedField(),
             rows: this.listing.listingDataSource().data,
             getRecordPrimaryKeyValue: 
                 (row, rowPkField) => this.getRecordPrimaryKeyValue(row, rowPkField),
-            getRecordSecondaryKeyValue: 
+            getRecordSecondaryKeyValue:
                 (row, rowSkField) => this.getRecordSecondaryKeyValue(row, rowSkField),
+            getRecordFieldValue:
+                (row, field) => this.getRecordFieldValue(row, field),
+            getIsMainFieldRefGroupRelationFieldValue:
+                (row, rowRefField) => this.getIsMainFieldRefGroupRelationFieldValue(row, rowRefField),
         };
     }
 }

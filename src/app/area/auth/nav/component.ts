@@ -22,7 +22,7 @@ import { FoundationNavPositionEnum } from '@libs/foundation/nav/enum';
  * AuthAreaLayoutComponent so every position reads one instance and one build
  */
 @Component({
-    selector: 'app-auth-nav',
+    selector: 'auth-nav-component',
     standalone: true,
     templateUrl: './template.html',
     styleUrl: './style.scss',

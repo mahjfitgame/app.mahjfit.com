@@ -1517,6 +1517,27 @@ export class CrudValidation {
     }
 
     /**
+     * Interpolation values used by the shared GL.VALIDATION messages.
+     *
+     * Lives here and not in the form-field component: the placeholder names
+     * ({{min_length}}, {{allowed}}, …) belong to the messages this class raises,
+     * so the bag that fills them moves whenever a rule's message does.
+     */
+    public validationMessageParams(fi: CrudFormFieldInfoType): Record<string, any> {
+        const validation = fi.validation;
+        const allowed = validation?.[CrudFieldValidationEnum.EXTENSION]?.value;
+
+        return {
+            min_length: validation?.[CrudFieldValidationEnum.MIN_LENGTH]?.value,
+            max_length: validation?.[CrudFieldValidationEnum.MAX_LENGTH]?.value,
+            min: validation?.[CrudFieldValidationEnum.MIN]?.value,
+            max: validation?.[CrudFieldValidationEnum.MAX]?.value,
+            expected: validation?.[CrudFieldValidationEnum.MATCH_FIELD]?.value,
+            allowed: Array.isArray(allowed) ? allowed.join(', ') : allowed,
+        };
+    }
+
+    /**
      * Format a configured field value for listing, quick-search and read-only views.
      */
     public formatCrudFieldValue(

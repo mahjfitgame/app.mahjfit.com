@@ -1,19 +1,33 @@
 // file: src/app/base/crud/service/listing.ts
 import { CdkDragDrop, moveItemInArray } from "@angular/cdk/drag-drop";
+import { inject } from "@angular/core";
 import { AppPaginationEvent } from "@base/pagination/type";
 import { FoundationActionEnum } from "@libs/foundation/action/enum";
 import { CrudDataLoadTypeEnum } from "@base/crud/enum";
 import {
+    CrudFieldInfoType,
     CrudFindInputType,
     CrudRecordActionType,
     CrudRecordKeyInputType,
     CrudViewOptionInputType,
 } from "@base/crud/type";
+import { ImageSlideshowDialog } from "@base/image-slideshow/dialog";
+import { ImageSlideshowItemType } from "@base/image-slideshow/type";
 import { CrudRootService } from "./root";
 import { CrudActionService } from "./action";
 import { CrudSearchFilterService } from "./search.filter";
 
 export class CrudListingService {
+
+    // ████████████████████████████████████████████████████████████████████
+    // ███ DEPENDENCIES ███████████████████████████████████████████████████
+    // ████████████████████████████████████████████████████████████████████
+    /**
+     * A FIELD initializer, not a constructor param: this class is new-ed inside
+     * CrudService's constructor (service/entry.ts), which IS an injection
+     * context. @see CrudMutationService.mutationDialog for the same idiom.
+     */
+    private readonly imageSlideshowDialog = inject(ImageSlideshowDialog);
 
     constructor(
         private readonly root: CrudRootService,
@@ -43,6 +57,52 @@ export class CrudListingService {
     // ████████████████████████████████████████████████████████████████████
     public getListingFieldSlotPortalKey(key: string): string {
         return `${this.root.CrudFieldSlotPortalKeyPrefixEnum.LISTING}${key}`;
+    }
+
+    // ████████████████████████████████████████████████████████████████████
+    // ███ FILE FIELD SLIDESHOW ███████████████████████████████████████████
+    // ████████████████████████████████████████████████████████████████████
+    /**
+     * Opens the fullscreen image slideshow over one FILE column.
+     */
+    public openImageFileFieldSlideshow(
+        row: Record<string, any>,
+        finfo: CrudFieldInfoType,
+    ): void {
+        if (!finfo.file?.is_image || !finfo.file?.slideshow) return;
+
+        const rows = this.root.state.listing.listingDataSource().filteredData ?? [];
+        const items: ImageSlideshowItemType[] = [];
+        let startIndex = 0;
+
+        for (const record of rows) {
+            const thumb = this.root.utility.getFileFieldUrl(record, finfo, 'thumb');
+            const src = this.root.utility.getFileFieldUrl(record, finfo, 'direct') ?? thumb;
+
+            if (!src) continue;
+
+            if (record === row) {
+                startIndex = items.length;
+            }
+
+            items.push({
+                src,
+                thumb: thumb ?? src,
+                alt: this.root.utility.getFileFieldMonogram(record, finfo),
+            });
+        }
+
+        if (!items.length) return;
+
+        // size is left undefined when the module did not set one, so the
+        // slideshow applies its own FULL default rather than this file guessing
+        //
+        // ⚠ .catch() and not void: open() awaits an import() of the slideshow
+        // chunk, which rejects offline or against a hash that a deploy has
+        // moved. void leaves that as an unhandled rejection.
+        this.imageSlideshowDialog
+            .open({ items, startIndex, size: finfo.file.slideshow_size })
+            .catch((error) => this.root.log.error?.('image slideshow open failed', error));
     }
 
     // ████████████████████████████████████████████████████████████████████
@@ -94,6 +154,7 @@ export class CrudListingService {
         keyid: CrudRecordKeyInputType,
     ): Promise<void> {
         const activeField = this.root.state.activeField();
+        const isMainField = this.root.state.isMainField();
         const deletedField = this.root.state.deletedField();
         const keyids = Array.isArray(keyid) ? keyid : [keyid];
         const actionTimestamp = new Date().toISOString();
@@ -109,6 +170,21 @@ export class CrudListingService {
                 this.root.state.listing.patchListingData(recordKey, {
                     [activeField]: actionTimestamp,
                 });
+            }
+
+            /**
+             * Only one row may be main PER GROUP, and the api clears the
+             * previously-main one itself — so the clicked row is set and every
+             * other LOADED row in the SAME group is cleared in the same pass.
+             * A marker column with no group relation field is table-wide.
+             */
+            if (action === FoundationActionEnum.MARK_AS_MAIN && isMainField) {
+                this.root.state.listing.patchAllListingData(
+                    recordKey,
+                    { [isMainField]: actionTimestamp },
+                    { [isMainField]: null },
+                    this.root.state.isMainFieldRefGroupRelationField(),
+                );
             }
 
             if (action === FoundationActionEnum.SOFT_DELETE && deletedField) {

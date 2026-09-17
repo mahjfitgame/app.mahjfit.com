@@ -1,6 +1,6 @@
 import { signal, Type } from '@angular/core';
 import { CrudActionUiLayoutEnum } from '@base/crud/enum';
-import { UiSizeEnum } from '@libs/breakpoint/enum';
+import { BreakpointSizeEnum } from '@libs/breakpoint/enum';
 import {
     CrudEndDrawerOnCloseType,
     CrudFieldInfoType,
@@ -65,7 +65,7 @@ export class CrudViewState implements CrudViewStateType {
     private readonly _viewActionUiLayout = signal<CrudActionUiLayoutEnum>(CrudActionUiLayoutEnum.BOTTOM_SHEET);
     public readonly viewActionUiLayout = this._viewActionUiLayout.asReadonly();
 
-    private readonly _viewActionUiSize = signal<UiSizeEnum>(UiSizeEnum.SM);
+    private readonly _viewActionUiSize = signal<BreakpointSizeEnum>(BreakpointSizeEnum.SM);
     public readonly viewActionUiSize = this._viewActionUiSize.asReadonly();
 
     private readonly _viewRecordCustomComponent = signal<Type<any> | null>(null);
@@ -90,7 +90,7 @@ export class CrudViewState implements CrudViewStateType {
     public setViewActionUiLayout(layout: CrudActionUiLayoutEnum): void {
         this._viewActionUiLayout.set(layout);
     }
-    public setViewActionUiSize(size: UiSizeEnum): void {
+    public setViewActionUiSize(size: BreakpointSizeEnum): void {
         this._viewActionUiSize.set(size);
     }
     public setViewRecordCustomComponent(component: Type<any> | null): void {

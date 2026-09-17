@@ -26,7 +26,7 @@ import {
 import { provideDateTimeFormat } from '@libs/date-time/provider';
 
 @Component({
-    selector: 'app-form-field-datetime',
+    selector: 'form-field-datetime-component',
     standalone: true,
     templateUrl: './template.html',
     styleUrl: './style.scss',

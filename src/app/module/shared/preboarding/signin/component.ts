@@ -21,7 +21,7 @@ import { NotifyBannerComponent } from "@base/notify-banner/component";
 import { SIGNIN_PROVIDER } from "./provider";
 
 @Component({
-  selector: 'app-signin',
+  selector: 'signin-component',
   standalone: true,
   templateUrl: 'template.html',
   styleUrl: 'style.scss',
@@ -59,10 +59,10 @@ import { SIGNIN_PROVIDER } from "./provider";
 export class SigninComponent implements OnInit, AfterViewInit, AfterViewChecked, OnDestroy {
   protected readonly service = inject(SigninService);
 
-  constructor() { }
+    constructor() {}
 
-  public async ngOnInit(): Promise<void> { }
-  public async ngAfterViewInit(): Promise<void> { }
-  public async ngAfterViewChecked(): Promise<void> { }
-  public async ngOnDestroy(): Promise<void> { }
+    public async ngOnInit(): Promise<void> {}
+    public async ngAfterViewInit(): Promise<void> {}
+    public async ngAfterViewChecked(): Promise<void> {}
+    public async ngOnDestroy(): Promise<void> {}
 }

@@ -815,6 +815,9 @@ export abstract class SignalStateService {
 
     if (stored && this.applyStoredValue(registration, stored.s)) {
       registration.lastSavedSnapshot = this.currentValueSnapshot(registration);
+    } else if (stored) {
+      registration.state.set(this.cloneValue(registration.initialValue));
+      await this.clearRegistration(registration);
     } else {
       this.applyInitialValue(registration);
     }

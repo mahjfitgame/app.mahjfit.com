@@ -7,7 +7,7 @@ import { FormFieldRangeService } from '@base/form-fields/range/service';
 import { FormFieldRangeState } from '@base/form-fields/range/state';
 
 @Component({
-    selector: 'app-form-field-range',
+    selector: 'form-field-range-component',
     standalone: true,
     templateUrl: './template.html',
     styleUrl: './style.scss',

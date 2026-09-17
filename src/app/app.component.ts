@@ -40,10 +40,21 @@ export class AppComponent implements OnInit, OnDestroy, AfterViewInit {
   }
   public async ngAfterViewInit(): Promise<void> {
     if (this.service.state.startupSucceeded() !== true) {
+      /**
+       * ⚠ NOT every failed startup is a dead server. A stateful-auth 401 during
+       * clientServerHandShake() fails the handshake too, and AppService.
+       * terminateSession() has already sent the user to signin — this hook runs
+       * AFTER it, so redirecting here would overwrite that exit and put an expired
+       * login on the maintenance page.
+       */
+      if (this.service.state.sessionTerminating()) {
+        this.service.log.warn('Session ended during startup. The auth redirect owns this exit.');
+      } else {
       this.service.log.error('Access interrupted. Redirecting to maintenance page.');
       await this.router.navigateByUrl(HttpStatusServiceUnavailableRoute.absolutePath(), {
         replaceUrl: true,
       });
+    }
     }
     
     this.service.splash.stream = 100;

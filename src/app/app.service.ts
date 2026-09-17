@@ -5,8 +5,11 @@ import { ConfService } from "@libs/conf/service";
 import { CookieService } from "@libs/cookie/service";
 import { LogService } from "@libs/log/service";
 import { PlatformService } from "@libs/platform/service";
+import { PrintService } from "@libs/print/service";
 import { ScrollDirectionService } from "@libs/scroll-direction/service";
 import { I18nService } from "@base/internationalization/service";
+import { THEME_MODE_ATTRIBUTE } from "@base/theme/const";
+import { ThemeModeEnum } from "@base/theme/type";
 import { SplashScreenService } from "@base/splash-screen/service";
 import { GlobalProgressBarService } from "@base/global-progress-bar/service";
 import { UserAuthentication, UserDeviceHandShakeInputDto } from "@bfw/api-sdk/graphql/endpoints/shared";
@@ -15,10 +18,9 @@ import { BfwApiSdkDefaultRequestHeaders, BfwApiSdkError, BfwApiSdkErrorIntercept
 import { AppState } from "@app/app.state";
 import { HttpStatusCode } from "@angular/common/http";
 import { Router } from "@angular/router";
-import { SignoutRoute } from "./module/shared/onboarding/signout/route";
-import { OpenAreaRoute } from "./area/open/route";
 import { NotifyService } from "./base/notify/service";
 import { NotifyBannerService } from "./base/notify-banner/service";
+import { SigninRoute } from "./module/shared/preboarding/signin/route";
 
 @Service()
 export class AppService {
@@ -36,6 +38,7 @@ export class AppService {
     public readonly cookie = inject(CookieService);
     public readonly scroll = inject(ScrollDirectionService);
     public readonly ps = inject(PlatformService);
+    public readonly print = inject(PrintService);
     public readonly splash = inject(SplashScreenService);
     public readonly gpbs = inject(GlobalProgressBarService);
     public readonly ctxp = inject(ContextProfileService);
@@ -59,6 +62,13 @@ export class AppService {
         try {
             await this.ps.init();
             this.splash.stream = 30;
+
+            // Paper is white. Without this the print document inherits whatever
+            // theme mode <body> carries, and the dark palette on white paper
+            // prints pale text on a pale background.
+            this.print.setDefaults({
+                bodyAttributes: { [THEME_MODE_ATTRIBUTE]: ThemeModeEnum.LIGHT },
+            });
 
             this.registerApiInterceptorsOnce();
             this.splash.stream = 40;
@@ -211,6 +221,93 @@ export class AppService {
         //await this.api.sdk.graphql.ws.connect();
     }
 
+    // ████ SESSION TERMINATION ████████████████████████████████████
+
+    /**
+     * The ONE exit for a session the server will no longer accept.
+     *
+     * A stateful-auth failure is not a handshake event. The error interceptor is
+     * registered on every graphql and rest call, so FC_401_SF2 / FC_401_SF3 can
+     * arrive from ANY request, at any point in the app's life:
+     *
+     *   - inside provideAppInitializer(), from clientServerHandShake() itself
+     *   - from a route resolver, mid navigation
+     *   - from a plain user action, long after boot
+     *   - from several of the above AT ONCE, when requests are in flight together
+     *
+     * Those need different exits and must still produce a single outcome, which is
+     * why no call site decides this for itself.
+     *
+     * @param rehandshake force the document reload even when the router is live —
+     *        for a failure that leaves the client's tokens unusable rather than
+     *        merely expired, where nothing may leave until a fresh handshake runs.
+     */
+    public terminateSession(messageKey: string, options: { rehandshake?: boolean } = {}): void {
+        // ⚠ LATCH, and it has to be first. See AppState.sessionTerminating.
+        if (this.state.sessionTerminating()) {
+            return;
+        }
+        this.state.setSessionTerminating(true);
+
+        /**
+         * Local teardown FIRST and unconditionally — the credential is dead
+         * whichever exit we take below.
+         *
+         * ⚠ This is also the LOOP GUARD. SignoutService.signout() bails on
+         * sessionToken() === null, and every request builds its headers from these
+         * signals, so once they are cleared the rejected token can no longer be
+         * posted back to the server to earn a second 401.
+         */
+        this.ctxp.state.clearSession();
+        this.ctxp.state.clearCsrfToken();
+
+        this.notifyBanner.error(this.i18n.translate(messageKey), 30);
+
+        /**
+         * ⚠ signin, NOT signout. SignoutService's job is to ask the server to end a
+         * LIVE session; handed a token the server has already rejected, that call
+         * can only 401 again. The session is gone server side, so there is nothing
+         * to sign out of — signin is the honest destination.
+         */
+        const target = SigninRoute.absolutePath();
+
+        /**
+         * ⚠ router.navigated is false until the FIRST navigation COMPLETES, and the
+         * app initializer runs before bootstrap, so before that navigation. A
+         * navigateByUrl() issued from there is dropped or immediately superseded,
+         * and AppComponent.ngAfterViewInit() then sends the user to /503 — which is
+         * the bug this branch exists to kill.
+         *
+         * The document reload is not a fallback, it is the requirement: no request
+         * may leave until a handshake has succeeded, and the tokens were cleared
+         * just above, so the reload's handshake comes back anonymous and the app
+         * boots cleanly logged out.
+         */
+        if (options.rehandshake === true || this.router.navigated !== true) {
+            this.document.defaultView?.location.replace(target);
+            return;
+        }
+
+        /**
+         * Remember where the user was. AreaGuard cannot capture it for us — we
+         * navigate straight to signin, so no guard runs on the page being left.
+         */
+        const from = this.router.url;
+        if (from && from !== target) {
+            this.ctxp.state.setRedirectAfterAuth(from);
+        }
+
+        /**
+         * replaceUrl keeps the rejected page out of history. A failing route
+         * RESOLVER also errors its own navigation after this one is queued — the
+         * navigationErrorHandler reads sessionTerminating and stands down rather
+         * than overwriting us with /503.
+         */
+        this.router.navigateByUrl(target, {
+            replaceUrl: true
+        });
+    }
+
     // ████ REGISTER API INTERCEPTORS ██████████████████████████████
     private registerApiInterceptorsOnce(): void {
         if (this.apiInterceptorsRegistered) {
@@ -281,31 +378,31 @@ export class AppService {
                         if(lastcode === FAILURE_CODE.FC_401_SF3) {
                             // sf token corrupted, this is very serious but rare case
                             
-                            // logically session will stay as it is on server but server gateway clear client side cookie
-                            // clear the session as service cleared sid
-                            this.ctxp.state.clearSession();
-
-                            // as session go off remove csrf as server also clear it
-                            this.ctxp.state.clearCsrfToken();
-
-                            // redirect to home page with a full page reload
-                            //const homeUrl = OpenAreaRoute.absolutePath();
-                            //this.document.defaultView?.location.replace(homeUrl);
-
-                            this.notifyBanner.error(this.i18n.translate('GL.COMMON.AUTHENTICATION_INTERRUPTED'), 30);
+                            // logically session stays as it is on the server but the server gateway
+                            // cleared the client side cookie, so the tokens this client holds are
+                            // unusable rather than merely expired — nothing may leave until a fresh
+                            // handshake has run, which is what rehandshake forces.
+                            this.terminateSession('GL.COMMON.AUTHENTICATION_INTERRUPTED', {
+                                rehandshake: true
+                            });
                         } else if(lastcode === FAILURE_CODE.FC_401_SF2) {
                             // sf token is expired
-                            this.notifyBanner.error(this.i18n.translate('GL.COMMON.AUTHENTICATION_EXPIRED'), 30);
-                            
-                            const signoutUrl = SignoutRoute.absolutePath();
-                            this.router.navigateByUrl(signoutUrl, {
-                                replaceUrl: true
-                            });
+                            this.terminateSession('GL.COMMON.AUTHENTICATION_EXPIRED');
                         } else if (lastcode === FAILURE_CODE.FC_401_H1 || lastcode === FAILURE_CODE.FC_401_H2) {
-                            // reload the current page, as host token is expired or missing
-                            this.router.navigateByUrl(this.router.url, {
-                                replaceUrl: true
-                            }); 
+                            // host token is expired or missing. only clientServerHandShake() mints a
+                            // new one and it only runs from provideAppInitializer(), so a DOCUMENT
+                            // reload is the fix — a router navigation cannot re-enter it, and
+                            // navigating to the url we are already on is dropped as a same-url
+                            // navigation anyway.
+                            //
+                            // ⚠ clear it FIRST. hostToken is localStorage persisted, so it survives
+                            // the reload — without this the new handshake can re-present the very
+                            // token the server just rejected, and the reload achieves nothing.
+                            this.ctxp.state.clearHostToken();
+
+                            // a reload that cannot handshake ends on /503 through
+                            // setStartupSucceeded(false), so this cannot spin forever.
+                            this.document.defaultView?.location.reload();
                         } else {
                             this.notifyBanner.error(this.i18n.translate('GL.COMMON.AUTHENTICATION_REQUIRED'), 30);
                         }

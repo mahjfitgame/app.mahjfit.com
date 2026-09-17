@@ -33,6 +33,17 @@ export class CookieService {
    */
   public async set(cookie: SetCookieOptionsType): Promise<void> {
     const normalizedCookie = this.normalizeSetCookieOptions(cookie);
+
+    // Android's native setCookie (CapacitorCookies.java) stores the value as-is, and its
+    // native getCookies always runs URLDecoder.decode on read regardless — so a literal '+'
+    // in our base64 ciphertext comes back as a space unless we encode it here ourselves.
+    // iOS's native setCookie (CapacitorCookieManager.swift) already percent-encodes the
+    // value unconditionally, so encoding here too would double-encode it - verified: doing
+    // so previously produced a cookie that only fully decoded on one of two applied layers.
+    if (this.group === 'android') {
+      normalizedCookie.value = encodeURIComponent(normalizedCookie.value);
+    }
+
     await CapacitorCookies.setCookie(normalizedCookie);
   }
 
@@ -44,17 +55,26 @@ export class CookieService {
 
     const getOptions = this.normalizeCookieUrlOptions(options);
     const cookies = await CapacitorCookies.getCookies(getOptions);
-    return cookies[key] ?? null;
+    const value = cookies[key];
+    if (value === undefined) {
+      return null;
+    }
+
+    // Only iOS's native getCookies leaves the value still percent-encoded (it never reverses
+    // its own setCookie's encoding). Android's native getCookies already decodes it for us,
+    // and web needs no change - decoding it again there would corrupt an already-plain value.
+    return this.group === 'ios' ? this.decodeNativeValue(value) : value;
   }
 
   public async getAll(options?: CookieUrlOptionsType): Promise<CookieMapType> {
     const getOptions = this.normalizeCookieUrlOptions(options);
     const cookies = await CapacitorCookies.getCookies(getOptions);
     const normalizedCookies: CookieMapType = {};
+    const isIos = this.group === 'ios';
 
     for (const [key, value] of Object.entries(cookies)) {
       if (key.startsWith(this.prefix)) {
-        normalizedCookies[key.slice(this.prefix.length)] = value;
+        normalizedCookies[key.slice(this.prefix.length)] = isIos ? this.decodeNativeValue(value) : value;
       }
     }
 
@@ -189,5 +209,13 @@ export class CookieService {
 
   private isWebPlatform(): boolean {
     return Capacitor.getPlatform() === 'web';
+  }
+
+  private decodeNativeValue(value: string): string {
+    try {
+      return decodeURIComponent(value);
+    } catch {
+      return value;
+    }
   }
 }
