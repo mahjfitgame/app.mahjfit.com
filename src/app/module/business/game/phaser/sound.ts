@@ -13,52 +13,60 @@ export class PhaserSound {
   private readonly tileVoiceSounds = new Map<string, Phaser.Sound.BaseSound>();
   private readonly charlestonVoiceSounds = new Map<string, Phaser.Sound.BaseSound>();
   private currentTileVoice?: Phaser.Sound.BaseSound;
+  private currentTileVoiceKey?: string;
   private lastTileVoiceAt = 0;
   private readonly sfxConfig: Record<TableSfxId, TableSfxConfig> = {
-    "tile-select": { key: "sfx-tile-select", urls: ["assets/sounds/tile-select.mp3"], volume: 0.45, poolSize: 3, throttleMs: 35 },
-    "tile-pass-waiting": { key: "sfx-tile-pass-waiting", urls: ["assets/sounds/tile-drop.mp3"], volume: 0.5, poolSize: 3, throttleMs: 35 },
-    "tile-return": { key: "sfx-tile-return", urls: ["assets/sounds/tile-drop.mp3"], volume: 0.45, poolSize: 2, throttleMs: 45 },
-    "tile-drop": { key: "sfx-tile-drop", urls: ["assets/sounds/tile-drop.mp3"], volume: 0.5, poolSize: 2, throttleMs: 45 },
-    pass: { key: "sfx-pass", urls: ["assets/sounds/pass.mp3"], volume: 0.65, poolSize: 1, throttleMs: 150 },
-    "pick-tile": { key: "sfx-pick-tile", urls: ["assets/sounds/pick-tile.mp3"], volume: 0.5, poolSize: 2, throttleMs: 45 },
-    "call": { key: "sfx-call", urls: ["assets/sounds/call.mp3"], volume: 0.65, poolSize: 1, throttleMs: 150 },
+    "tile-select": { key: "tile-select", urls: [], volume: 0.45, poolSize: 3, throttleMs: 35 },
+    "tile-pass-waiting": { key: "tile-drop", urls: [], volume: 0.5, poolSize: 3, throttleMs: 35 },
+    "tile-return": { key: "tile-drop", urls: [], volume: 0.45, poolSize: 2, throttleMs: 45 },
+    "tile-drop": { key: "tile-drop", urls: [], volume: 0.5, poolSize: 2, throttleMs: 45 },
+    pass: { key: "pass", urls: [], volume: 0.65, poolSize: 1, throttleMs: 150 },
+    "pick-tile": { key: "pick-tile", urls: [], volume: 0.5, poolSize: 2, throttleMs: 45 },
+    "call": { key: "call", urls: [], volume: 0.65, poolSize: 1, throttleMs: 2000 },
   };
   private readonly sfxPools = new Map<TableSfxId, Phaser.Sound.BaseSound[]>();
   private readonly sfxPoolCursor = new Map<TableSfxId, number>();
   private readonly lastSfxAt = new Map<TableSfxId, number>();
   private sfxReady = false;
+  private tilesSprite?: Phaser.Sound.BaseSound | any;
+  private effectsSprite?: Phaser.Sound.BaseSound | any;
 
   constructor(private readonly scene: Phaser.Scene, private readonly onHaptic?: (type: GameHapticType) => void) { }
 
   preload(): void { 
-    for (const config of Object.values(this.sfxConfig)) if (!this.scene.cache.audio.exists(config.key)) this.scene.load.audio(config.key, config.urls); 
-    for (const key of this.tileVoiceKeys) { const audioKey = this.tileVoiceAudioKey(key); if (!this.scene.cache.audio.exists(audioKey)) this.scene.load.audio(audioKey, [`assets/sounds/${key}.wav`]); } 
-    for (const key of this.charlestonVoiceKeys) { const audioKey = `charleston-voice-${key}`; if (!this.scene.cache.audio.exists(audioKey)) this.scene.load.audio(audioKey, [`assets/sounds/${key}.wav`]); }
+    if (!this.scene.cache.json.exists('tiles')) {
+      this.scene.load.audioSprite('tiles', 'assets/sounds/tiles.json', ['assets/sounds/tiles.webm', 'assets/sounds/tiles.mp3']);
+    }
+    if (!this.scene.cache.json.exists('effects')) {
+      this.scene.load.audioSprite('effects', 'assets/sounds/effects.json', ['assets/sounds/effects.webm', 'assets/sounds/effects.mp3']);
+    }
   }
-  create(): void { this.createSoundPools(); this.createTileVoiceSounds(); this.createCharlestonVoiceSounds(); }
+  create(): void { 
+    this.createSoundPools(); 
+    this.tilesSprite = this.scene.sound.addAudioSprite('tiles');
+    this.effectsSprite = this.scene.sound.addAudioSprite('effects');
+  }
   destroy(): void { 
-    if (this.currentTileVoice?.isPlaying) this.currentTileVoice.stop(); 
+    if (this.tilesSprite?.isPlaying) this.tilesSprite.stop(); 
+    if (this.effectsSprite?.isPlaying) this.effectsSprite.stop();
+    this.tilesSprite?.destroy();
+    this.effectsSprite?.destroy();
     this.currentTileVoice = undefined; 
-    for (const sound of this.tileVoiceSounds.values()) sound.destroy(); 
-    this.tileVoiceSounds.clear(); 
-    for (const sound of this.charlestonVoiceSounds.values()) sound.destroy();
-    this.charlestonVoiceSounds.clear();
+    this.currentTileVoiceKey = undefined;
   }
   playTileDiscardVoice(soundKey?: string): void {
-    const sound = soundKey ? this.tileVoiceSounds.get(soundKey) : undefined;
-    if (!sound || this.scene.time.now - this.lastTileVoiceAt < 80)
-      return; this.lastTileVoiceAt = this.scene.time.now;
-    if (this.currentTileVoice?.isPlaying)
-      this.currentTileVoice.stop(); this.currentTileVoice = sound;
-    if (sound.isPlaying)
-      sound.stop(); sound.play({ volume: this.tileVoiceVolume });
+    if (!soundKey || !this.tilesSprite || this.scene.time.now - this.lastTileVoiceAt < 80) return; 
+    this.lastTileVoiceAt = this.scene.time.now;
+    if (this.currentTileVoice?.isPlaying) this.currentTileVoice.stop(); 
+    this.currentTileVoice = this.tilesSprite;
+    this.currentTileVoiceKey = soundKey;
+    this.tilesSprite.play(soundKey, { volume: this.tileVoiceVolume });
   }
 
   playCharlestonVoice(key: string): void {
-    const sound = this.charlestonVoiceSounds.get(key);
-    if (!sound) return;
+    if (!this.effectsSprite) return;
 
-    if (this.currentTileVoice?.isPlaying && this.currentTileVoice === this.charlestonVoiceSounds.get("stop-the-chaleston")) {
+    if (this.currentTileVoice?.isPlaying && this.currentTileVoiceKey === "stop-the-chaleston") {
       this.currentTileVoice.once(Phaser.Sound.Events.COMPLETE, () => {
         this.playCharlestonVoice(key);
       });
@@ -66,23 +74,41 @@ export class PhaserSound {
     }
 
     if (this.currentTileVoice?.isPlaying) this.currentTileVoice.stop();
-    this.currentTileVoice = sound;
-    if (sound.isPlaying) sound.stop();
-    sound.play({ volume: 1.0 });
+    this.currentTileVoice = this.effectsSprite;
+    this.currentTileVoiceKey = key;
+    this.effectsSprite.play(key, { volume: 1.0 });
   }
   playCharlestonStopVoice(): void {
-    const sound = this.charlestonVoiceSounds.get("stop-the-chaleston");
-    if (!sound) return;
+    if (!this.effectsSprite) return;
     if (this.currentTileVoice?.isPlaying) this.currentTileVoice.stop();
-    this.currentTileVoice = sound;
-    if (sound.isPlaying) sound.stop();
-    sound.play({ volume: 1.0 });
+    this.currentTileVoice = this.effectsSprite;
+    this.currentTileVoiceKey = "stop-the-chaleston";
+    this.effectsSprite.play("stop-the-chaleston", { volume: 1.0 });
   }
-  playSfx(id: TableSfxId): void { const config = this.sfxConfig[id]; const pool = this.sfxPools.get(id); if (!pool?.length) return; const now = this.scene.time.now; const last = this.lastSfxAt.get(id) ?? 0; if (config.throttleMs && now - last < config.throttleMs) return; this.lastSfxAt.set(id, now); const cursor = this.sfxPoolCursor.get(id) ?? 0; const sound = pool[cursor]; this.sfxPoolCursor.set(id, (cursor + 1) % pool.length); if (sound.isPlaying) sound.stop(); sound.play({ volume: config.volume }); }
+  playSfx(id: TableSfxId): void { 
+    const config = this.sfxConfig[id]; 
+    const pool = this.sfxPools.get(id); 
+    if (!pool?.length) return; 
+    const now = this.scene.time.now; 
+    const last = this.lastSfxAt.get(id) ?? 0; 
+    if (config.throttleMs && now - last < config.throttleMs) return; 
+    this.lastSfxAt.set(id, now); 
+    const cursor = this.sfxPoolCursor.get(id) ?? 0; 
+    const sound = pool[cursor] as any; 
+    this.sfxPoolCursor.set(id, (cursor + 1) % pool.length); 
+    if (sound.isPlaying) sound.stop(); 
+    sound.play(config.key, { volume: config.volume }); 
+  }
   playHaptic(type: GameHapticType): void { this.onHaptic?.(type); }
   playWebFallback(type: GameHapticType): void { const nav = navigator as Navigator & { vibrate?: (pattern: number | readonly number[]) => boolean }; if (typeof nav.vibrate !== "function") return; if (type === "pass-submit") { nav.vibrate([8, 25, 12]); return; } nav.vibrate(type === "tile-discard" ? 14 : 8); }
-  private tileVoiceAudioKey(key: string): string { return `tile-voice-${key}`; }
-  private createTileVoiceSounds(): void { if (this.tileVoiceSounds.size) return; for (const key of this.tileVoiceKeys) { const audioKey = this.tileVoiceAudioKey(key); if (this.scene.cache.audio.exists(audioKey)) this.tileVoiceSounds.set(key, this.scene.sound.add(audioKey, { volume: this.tileVoiceVolume })); } }
-  private createCharlestonVoiceSounds(): void { if (this.charlestonVoiceSounds.size) return; for (const key of this.charlestonVoiceKeys) { const audioKey = `charleston-voice-${key}`; if (this.scene.cache.audio.exists(audioKey)) this.charlestonVoiceSounds.set(key, this.scene.sound.add(audioKey, { volume: 1.0 })); } }
-  private createSoundPools(): void { if (this.sfxReady) return; for (const [id, config] of Object.entries(this.sfxConfig) as [TableSfxId, TableSfxConfig][]) { if (!this.scene.cache.audio.exists(config.key)) continue; const pool: Phaser.Sound.BaseSound[] = []; for (let i = 0; i < config.poolSize; i += 1) pool.push(this.scene.sound.add(config.key, { volume: config.volume })); this.sfxPools.set(id, pool); this.sfxPoolCursor.set(id, 0); } this.sfxReady = true; }
+  private createSoundPools(): void { 
+    if (this.sfxReady) return; 
+    for (const [id, config] of Object.entries(this.sfxConfig) as [TableSfxId, TableSfxConfig][]) { 
+      const pool: Phaser.Sound.BaseSound[] = []; 
+      for (let i = 0; i < config.poolSize; i += 1) pool.push(this.scene.sound.addAudioSprite('effects') as any); 
+      this.sfxPools.set(id, pool); 
+      this.sfxPoolCursor.set(id, 0); 
+    } 
+    this.sfxReady = true; 
+  }
 }

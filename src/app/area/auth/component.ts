@@ -7,7 +7,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { AuthAreaLayoutService } from '@area/auth/service';
 import { AuthAreaLayoutState } from '@area/auth/state';
-import { AuthNavComponent } from '@area/auth/nav/component';
+
 import { AUTH_NAV_PROVIDER } from '@area/auth/nav/provider';
 import { TranslocoModule } from '@jsverse/transloco';
 
@@ -26,7 +26,6 @@ import { TranslocoModule } from '@jsverse/transloco';
     MatButtonModule,
     MatIconModule,
 
-    AuthNavComponent,
   ],
   providers: [
     AuthAreaLayoutState,

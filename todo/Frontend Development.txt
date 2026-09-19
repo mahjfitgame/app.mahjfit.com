@@ -31,7 +31,6 @@ Now, analysis the Mahjong and Wall game logic how it works. And how it manage th
 
 
 
-
 ============ REPSONCE FOR ABOVE HOW IT WOROKS ==============
 
 Searched for "sort"
@@ -119,8 +118,47 @@ Swap the bottom exposure as we discussed in the last meeting.
 
 
 
+3]
+Add the Mahjong button while hole game play, and make api call only when the turn is current player and have 14 tiles.
+Update the game play sound which gives the batter performance. Currently we are managing the multiple sound files and load multiple sounds file make multiple network request and becuase of that increase the initial take time to load. 
+While playing the realmahjong and do analysis how they load the sound file I found that they are manage the only two sound files to manage the whole game play sound.
+So after that I research and found the tool AudioSprite, which is used to merge multiple sound files into a single file and play them.
+Generated the files for AudioSprite 
+effects.json
+effects.webm
+effects.mp3
+tiles.json
+tiles.webm
+tiles.mp3
+Update the frontend code to use the AudioSprite to merge the sound files. Update the frontend code to use the AudioSprite to merge the sound files. 
+
+
+
+
 When bot make PUNK, KONG, QUINT etc... 
 
+
+
+================ IMPORTANT ===================
+==========GENERATE THE AudioSprite ===========
+==============================================
+GENERATE form the wav and mp3 files in the assets/sound folder
+
+Ah! My apologies!
+
+When I wrote the walkthrough, the background process that was encoding the audio files was actually still running. Generating the audio sprites takes a minute because the ffmpeg tool has to stitch together 50+ audio files and encode them into .webm and .mp3 formats.
+
+Because you checked the folder while the script was still processing, the files hadn't been written to the disk yet!
+
+The background process has now fully completed. If you check the public/assets/sounds directory again, you will see the newly generated files:
+
+effects.json
+effects.webm
+effects.mp3
+tiles.json
+tiles.webm
+tiles.mp3
+The game should now successfully load and play these files! Let me know if you run into any issues testing it out.
 ==============================================
 
 ERROR [09:11:48.000] (LibLogger/8894): [BOT_TURN_FAILED]
@@ -242,6 +280,13 @@ https://realmahjongg.com/sounds/new/effects.webm
 
 Tiles soudn:
 https://realmahjongg.com/sounds/new/tiles.webm
+
+#]
+If the call window open and player skip the call and no one can claim that tile and next turn seat is the current user who are aligable for the claim tile, then on next turn pick action also enable the call button so player either call or pick the tile.
+In sort, on next turn the player call button will enable. Because the next turn player is eligible for the claim tile. 
+
+#]
+On reload or initial load if found the hand_order array is not blank then follow the order assign in this. 
 
 #]
 If bot CALL the tile play the call sound. 

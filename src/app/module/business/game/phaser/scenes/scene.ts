@@ -2214,10 +2214,19 @@ export class PhaserScene extends Phaser.Scene {
   }
 
   private latestExposures: { bottom: any[], right: any[], top: any[], left: any[] } | null = null;
+  private previousTotalExposures = 0;
+  private initialExposuresLoaded = false;
   private latestDiscards: GameTileEntityGSDto[] | null = null;
 
   private handleExposuresSet(exposures: { bottom: any[], right: any[], top: any[], left: any[] }): void {
     this.latestExposures = exposures;
+    
+    const totalExposures = (exposures.bottom?.length || 0) + (exposures.right?.length || 0) + (exposures.top?.length || 0) + (exposures.left?.length || 0);
+    if (this.initialExposuresLoaded && totalExposures > this.previousTotalExposures) {
+      this.playSfx("call");
+    }
+    this.previousTotalExposures = totalExposures;
+    this.initialExposuresLoaded = true;
     if (!this.layout || Object.keys(this.allTiles).length === 0) return;
 
     let discardAreaChanged = false;
