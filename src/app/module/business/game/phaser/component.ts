@@ -1,5 +1,5 @@
 // file: src/app/module/business/game/phaser/component.ts
-import {
+import { Router } from "@angular/router"; import {
   AfterViewInit,
   Component,
   DestroyRef,
@@ -20,7 +20,7 @@ import Phaser from "phaser";
 import { Capacitor } from "@capacitor/core";
 
 import { PhaserScene } from "./scenes/scene";
-import { GameDeadHandReasonEnum, GamePhaseFirstRoundDirectionEnum, GameTileEntity, GameTileEntityGSDto, TileCategoryEnum, GamePlayActionEnum, TileCategoryEnumAddon, GamePhaseEnum, GameRackIDEnumAddon, GamePlayActionEnumAddon, GameTurnStageEnum } from "@bfw/api-sdk/graphql/endpoints/business";
+import { GameDeadHandReasonEnum, GamePhaseFirstRoundDirectionEnum, GameTileEntity, GameTileEntityGSDto, TileCategoryEnum, GamePlayActionEnum, TileCategoryEnumAddon, GamePhaseEnum, GameRackIDEnumAddon, GamePlayActionEnumAddon, GameTurnStageEnum, GameTileOrderEnumAddon } from "@bfw/api-sdk/graphql/endpoints/business";
 import {
   ClaimPanelOverlayState,
   DeadHandClaim,
@@ -31,6 +31,7 @@ import {
   InstructionPanelOverlayState,
   JoinTableRequest,
   JoinTableRequestDecision,
+  MahjongButtonOverlayState,
   MahjongWinCelebration,
   MobileDrawerOverlayState,
   MobileHeaderToggleOverlayState,
@@ -127,6 +128,7 @@ export class PhaserComponent implements AfterViewInit {
   readonly pointsState = signal<PointsOverlayState | null>(null);
   readonly playerLabelStates = signal<readonly PlayerLabelOverlayState[]>([]);
   readonly instructionPanelOverlay = signal<InstructionPanelOverlayState | undefined>(undefined);
+  readonly mahjongButtonOverlay = signal<MahjongButtonOverlayState | undefined>(undefined);
   readonly claimPanelOverlay = signal<ClaimPanelOverlayState | undefined>(undefined);
   readonly mobileHeaderToggleOverlay = signal<MobileHeaderToggleOverlayState | null>(null);
 
@@ -138,12 +140,14 @@ export class PhaserComponent implements AfterViewInit {
   readonly joinTableRemaining = signal<number>(0);
   readonly deadHandClaimTarget = signal<Exclude<TableSeat, "bottom"> | null>(null);
   readonly deadHandClaimReason = signal<DeadHandReason>(GameDeadHandReasonEnum.FALSE_MAHJONG);
+  readonly wallGameOver = signal<boolean>(false);
   readonly mahjongWinResult = signal<MahjongWinCelebration | null>(null);
 
 
   private readonly deviceLayout = inject(PhaserLayoutDevice);
   private readonly injector = inject(Injector);
   private readonly notify = inject(NotifyService);
+  private readonly router = inject(Router);
 
   /*constructor() {
     effect(() => {
@@ -161,10 +165,20 @@ export class PhaserComponent implements AfterViewInit {
     const order = this.gameState.personal_seat_rack_first_hand_order();
     const hand = this.gameState.personal_seat_rack_first_hand();
 
-    // Map the IDs to the actual GameTileEntityGSDto items
-    const rack = order.length > 0
-      ? order.map(id => hand[id]).filter(t => !!t)
-      : Object.values(hand);
+    if (order && order.length > 0) {
+      // First, get all tiles that exist in the hand AND are in the order array
+      const sortedTiles = order.map(id => hand[id]).filter(t => !!t);
+      
+      // Then, find any tiles in the hand that are NOT in the order array
+      // (e.g. newly picked tiles or tiles received from Charleston)
+      const unassignedTiles = Object.values(hand).filter(t => !order.includes(t.tile_id!));
+      
+      // Append unassigned tiles to the end of the rack
+      return [...sortedTiles, ...unassignedTiles];
+    }
+
+    // Fallback if hand_order is empty
+    const rack = Object.values(hand);
 
     rack.sort((a, b) => {
       let orderA: number | undefined;
@@ -297,13 +311,14 @@ export class PhaserComponent implements AfterViewInit {
 
     effect(() => {
       const rack = this.getSortedRack();
-
-      console.log('this.phaser', this.phaser, this.sceneReady());
-
-
       if (!this.phaser || !this.sceneReady()) return;
-
       this.phaser.events.emit("rack:set", rack);
+    });
+
+    effect(() => {
+      const order = this.gameState.personal_seat_rack_first_hand_order();
+      if (!this.phaser || !this.sceneReady() || !order) return;
+      this.phaser.events.emit("rack:order", order);
     });
 
     effect(() => {
@@ -429,7 +444,7 @@ export class PhaserComponent implements AfterViewInit {
       this.phaser.events.emit("table:turn_stage", turnStage);
 
       if (turnStage === GameTurnStageEnum.NEED_DISCARD && this.pendingDiscardTileId !== null) {
-        console.log(`[Component] Automatically firing pending discard tile ${this.pendingDiscardTileId}...`);
+        // console.log(`[Component] Automatically firing pending discard tile ${this.pendingDiscardTileId}...`);
         this.gameState.publishDiscardTile(this.pendingDiscardTileId);
         this.pendingDiscardTileId = null;
       }
@@ -499,22 +514,32 @@ export class PhaserComponent implements AfterViewInit {
 
     effect(() => {
       const isFinished = this.gameState.play_phase() === GamePhaseEnum.FINISHED;
-      const seats = this.gameState.ordered_seats();
+      const reason = this.gameState.play_finished_reason();
+      const winnerSeatIds = this.gameState.play_winner_seat_ids();
+
       if (this.phaser && this.sceneReady() && isFinished) {
-        const winner = seats.find(s => s.racks?.[GameRackIDEnumAddon.RACK_FIRST]?.is_mahjong);
-        this.phaser.events.emit("ui:game-finished", {
-          winnerSeatId: winner?.id,
-          winnerUid: winner?.u_id
-        });
+        if (reason === 'WALL_EMPTY') {
+          this.wallGameOver.set(true);
+        } else if (reason === 'MAHJONG' && winnerSeatIds && winnerSeatIds.length > 0) {
+          const winnerId = winnerSeatIds[0];
+          const tableSeat = this.gameState.seat_position_by_gseat_id()(winnerId);
+
+          if (tableSeat) {
+            this.setMahjongWinPopup({
+              winner: tableSeat,
+              requestId: 0
+            });
+          }
+        }
       }
     });
 
     effect(() => {
       const direction = this.gameState.play_pass_direction();
-      console.log('EFFECT Phaser pass:direction', direction)
+      // console.log('EFFECT Phaser pass:direction', direction)
       if (!this.phaser || !this.sceneReady() || !direction) return;
 
-      console.log("[PhaserBoardComponent] emit pass:direction", direction);
+      // console.log("[PhaserBoardComponent] emit pass:direction", direction);
 
       this.phaser.events.emit("pass:direction", direction);
     });
@@ -523,7 +548,7 @@ export class PhaserComponent implements AfterViewInit {
       const playPhase = this.gameState.play_phase();
       if (!this.phaser || !this.sceneReady() || !playPhase) return;
 
-      console.log("[PhaserBoardComponent] emit table:phase", playPhase);
+      // console.log("[PhaserBoardComponent] emit table:phase", playPhase);
 
       this.phaser.events.emit("table:phase", playPhase);
     });
@@ -570,9 +595,10 @@ export class PhaserComponent implements AfterViewInit {
       let scene!: PhaserScene;
       runInInjectionContext(this.injector, () => {
         scene = new PhaserScene(this.gameService, {
+          getUsername: () => this.gameState.ctxp.state.user_fullname || this.gameState.ctxp.state.user_username || "PLAYER",
           onSelectionChanged: (ids) => this.zone.run(() => this.selectionChanged.emit(ids)),
           onPassCompleted: async (payload) => {
-            console.log("[PhaserBoardComponent] Publishing Charleston with tiles:", payload.tileIds);
+            // console.log("[PhaserBoardComponent] Publishing Charleston with tiles:", payload.tileIds);
             await this.gameState.publishCharlestone(payload.tileIds);
           },
           onHaptic: (type: GameHapticType) => {
@@ -585,7 +611,7 @@ export class PhaserComponent implements AfterViewInit {
           onLocalPlayerDiscard: (tileId) => {
             if (this.gameState.play_turn_stage() === GameTurnStageEnum.NEED_EXPOSURE) {
               this.pendingDiscardTileId = tileId;
-              console.log(`[Component] Saved pending discard tile ${tileId} while waiting for exposure API...`);
+              // console.log(`[Component] Saved pending discard tile ${tileId} while waiting for exposure API...`);
             } else {
               this.gameState.publishDiscardTile(tileId);
             }
@@ -597,6 +623,14 @@ export class PhaserComponent implements AfterViewInit {
           onLocalPlayerPick: () => {
             this.gameState.publishPickTile();
           },
+          onSortRequested: (mode) => {
+            let enumMode = GameTileOrderEnumAddon.BY_RANK;
+            if (mode === "suit") enumMode = GameTileOrderEnumAddon.BY_SUIT;
+            this.gameState.publishOderPersonalRackTiles(enumMode);
+          },
+          onMahjongDeclare: () => {
+            this.gameState.publishMahjongDeclare();
+          },
           onWallCountOverlay: (state) => this.setWallCountOverlay(state),
           onPlayerLabelOverlay: (states) => this.setPlayerLabelOverlays(states),
           onPointsOverlay: (state) => this.setPointsOverlay(state),
@@ -604,6 +638,7 @@ export class PhaserComponent implements AfterViewInit {
           onMobileDrawerOverlay: (state) => this.setMobileDrawerOverlay(state),
           onMobileHeaderToggleOverlay: (state) => this.setMobileHeaderToggleOverlay(state),
           onInstructionPanelOverlay: (state) => this.setInstructionPanelOverlay(state),
+          onMahjongButtonOverlay: (state) => this.mahjongButtonOverlay.set(state),
           onClaimPanelOverlay: (state) => this.setClaimPanelOverlay(state),
           onTableOverlayBlocked: (level) => this.setTableOverlayBlocked(level),
           onDeadHandSeatSelection: (state) => this.setDeadHandSeatSelection(state),
@@ -654,11 +689,11 @@ export class PhaserComponent implements AfterViewInit {
         canvas.style.height = '100%';
       }
 
-      console.log('300 sceneReady', this.sceneReady());
+      // console.log('300 sceneReady', this.sceneReady());
 
       this.phaser.events.once("table:ready", () => {
         this.sceneReady.set(true);
-        console.log('304 sceneReady', this.sceneReady());
+        // console.log('304 sceneReady', this.sceneReady());
         // The scene has now registered its resize listener, so apply the
         // initial iOS/Android inset measurement through the normal layout
         // path instead of only storing it for a later resize.
@@ -675,7 +710,7 @@ export class PhaserComponent implements AfterViewInit {
 
           () => {
 
-            console.log("Charleston animation finished");
+            // console.log("Charleston animation finished");
 
             /**
              * Development only.
@@ -913,7 +948,33 @@ export class PhaserComponent implements AfterViewInit {
     return labels[targetSeat];
   }
 
+  private rawInstructionPanelState?: InstructionPanelOverlayState;
+  public confirmStopCharleston = signal(false);
+
   private setInstructionPanelOverlay(state: InstructionPanelOverlayState): void {
+    this.rawInstructionPanelState = state;
+    this.renderInstructionPanelOverlay();
+  }
+
+  private renderInstructionPanelOverlay(): void {
+    let state = this.rawInstructionPanelState;
+    if (state && this.confirmStopCharleston()) {
+      state = {
+        ...state,
+        title: "Are you sure?",
+        body: "",
+        button: {
+          ...state.button,
+          label: "YES",
+          action: "stop-confirm"
+        },
+        secondaryButton: {
+          ...state.secondaryButton!,
+          label: "NO",
+          action: "stop-cancel"
+        }
+      };
+    }
     this.zone.run(() => this.instructionPanelOverlay.set(state));
   }
 
@@ -926,10 +987,18 @@ export class PhaserComponent implements AfterViewInit {
     if (!state) return;
 
     if (action === "pass") {
+      this.confirmStopCharleston.set(false);
       this.gameState.publishCharlestoneSecondRoundVote(true);
     } else if (action === "stop") {
-
+      this.confirmStopCharleston.set(true);
+      this.renderInstructionPanelOverlay();
+    } else if (action === "stop-confirm") {
+      this.confirmStopCharleston.set(false);
+      this.phaser?.events.emit("play-stop-charleston");
       this.gameState.publishCharlestoneSecondRoundVote(false);
+    } else if (action === "stop-cancel") {
+      this.confirmStopCharleston.set(false);
+      this.renderInstructionPanelOverlay();
     } else {
       if (!state.button.enabled) return;
       this.phaser?.events.emit("instruction-panel:primary-action");
@@ -1025,18 +1094,23 @@ export class PhaserComponent implements AfterViewInit {
     this.setDeadHandPopup(null);
   }
 
-  public onClaimPanelClick(action: string): void {
+  public onMahjongButtonClick(): void {
+    console.log("Mahjong button clicked!");
+    this.gameState.publishMahjongDeclare();
+  }
+
+  public onClaimPanelClick(action: "call" | "skip" | "mahjong"): void {
     const claimTile = this.gameState.play_claim_tile();
     if (!claimTile) return;
 
     if (action === "call") {
       void this.gameState.publishClaimAction(GamePlayActionEnumAddon.CALL, claimTile.tile_id as number);
-      this.phaser?.events.emit("ui:claim-submitted", { tile_id: claimTile.tile_id });
+      this.phaser?.events.emit("ui:claim-submitted", { tile_id: claimTile.tile_id, action });
     } else if (action === "skip") {
       void this.gameState.publishClaimAction(GamePlayActionEnumAddon.PASS, claimTile.tile_id as number);
     } else if (action === "mahjong") {
       void this.gameState.publishClaimAction(GamePlayActionEnumAddon.MAHJONG, claimTile.tile_id as number);
-      this.phaser?.events.emit("ui:claim-submitted", { tile_id: claimTile.tile_id });
+      this.phaser?.events.emit("ui:claim-submitted", { tile_id: claimTile.tile_id, action });
     }
   }
 
@@ -1111,6 +1185,10 @@ export class PhaserComponent implements AfterViewInit {
     }
   }
 
+  public onDismissWallGamePopup(): void {
+    this.wallGameOver.set(false);
+  }
+
   private clearMahjongWinPopupTimer(): void {
     if (this.mahjongWinPopupTimer !== undefined) {
       window.clearTimeout(this.mahjongWinPopupTimer);
@@ -1123,6 +1201,10 @@ export class PhaserComponent implements AfterViewInit {
     const logo = this.headerLogoRef.nativeElement;
     logo.style.top = `${Math.round(state.top)}px`;
     logo.style.height = `${Math.round(state.height)}px`;
+  }
+
+  public onHeaderLogoClick(): void {
+    void this.router.navigate(["/"]);
   }
 
   private readCssPx(value: string): number {

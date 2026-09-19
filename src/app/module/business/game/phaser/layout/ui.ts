@@ -92,7 +92,7 @@ export class PhaserLayoutUi {
   private charlestonStage?: GameCharlestoneStageEnum;
   private isClaimWindowVisible: boolean = false;
   private passButtonLabel: string = "PASS";
-  
+
   public claimTileRect?: { x: number, y: number, width: number, height: number };
   private passButtonEnabled = true;
 
@@ -566,10 +566,16 @@ export class PhaserLayoutUi {
     // The instruction card, its copy, and its primary button are native HTML.
     // updateInstruction()/updatePassButtonState() republish that panel below.
     this.updateInstruction(tablePhase, options.charlestonStage, options.isPersonalTurn, passDirection, options.canDiscard ?? false);
+    
+    if (options.username && this.usernameText) {
+      this.usernameText.setText(options.username.toUpperCase());
+    }
+    
     this.updatePlayerNames(layout, renderDpr, options.activeSeat);
 
     this.updatePassButtonState(options);
     this.layoutMobileHud(layout);
+    this.layoutMahjongButton(layout, tablePhase);
     this.updateTextResolution(renderDpr);
   }
 
@@ -2156,36 +2162,36 @@ export class PhaserLayoutUi {
 
     // Use the instructionBar's Y as a baseline, but compute our own dimensions
     const baseY = layout.instructionBar.y;
-    
+
     // We want the panel to be about the height of a tile + padding
     const panelHeight = Math.round(Phaser.Math.Clamp(layout.metrics.passButtonHeight * 3.5, 90, 160));
-    
+
     // Tile size inside the panel
     const tileHeight = Math.round(panelHeight * 0.7);
     const tileWidth = Math.round(tileHeight * (layout.bottomTileLayout.width / layout.bottomTileLayout.height));
-    
+
     // Button size
     const buttonHeight = Math.round(tileHeight * 0.28); // Three buttons fit vertically inside tileHeight with a gap
     const buttonWidth = Math.round(tileWidth * 2.2);
     const buttonGap = Math.round(tileHeight * 0.08);
-    
+
     // Total width
     const paddingX = Math.round(panelHeight * 0.25);
     const panelGap = Math.round(panelHeight * 0.25); // Gap between tile and buttons
     const panelWidth = paddingX + tileWidth + panelGap + buttonWidth + paddingX;
-    
+
     // Center on screen horizontally
     const panelX = Math.round(layout.canvas.x + (layout.canvas.width - panelWidth) / 2);
-    
+
     // Shift panel up so it doesn't overlap the rack or bottom elements
     const panelY = Math.round(baseY - panelHeight * 0.2);
-    
+
     // Positions inside the panel
     const tileX = Math.round(panelX + paddingX);
     const tileY = Math.round(panelY + (panelHeight - tileHeight) / 2);
-    
+
     const buttonsX = Math.round(tileX + tileWidth + panelGap);
-    
+
     // Center the three buttons vertically inside the panel
     const buttonsTotalHeight = buttonHeight * 3 + buttonGap * 2;
     const buttonsStartY = Math.round((panelHeight - buttonsTotalHeight) / 2);
@@ -2193,7 +2199,7 @@ export class PhaserLayoutUi {
     const radius = Math.round(Phaser.Math.Clamp(panelHeight * 0.2, 16, 24));
     const borderWidth = Math.round(Phaser.Math.Clamp(panelHeight * 0.02, 2, 4));
     const buttonRadius = Math.round(Phaser.Math.Clamp(buttonHeight * 0.22, 6, 12));
-    
+
     // Button fonts
     const buttonFontSize = Math.round(buttonHeight * 0.4);
 
@@ -2209,10 +2215,10 @@ export class PhaserLayoutUi {
       fontSize: buttonFontSize,
       shadowY: Math.max(2, Math.round(buttonHeight * 0.10)),
       shadowBlur: Math.max(4, Math.round(buttonHeight * 0.22)),
-      background: "#e4684a", // Orange background
+      background: COLOR_FUSHIA, // Orange background
       color: "#ffffff"
     };
-    
+
     const skipButtonConfig = {
       label: "Skip",
       enabled: true,
@@ -2241,7 +2247,7 @@ export class PhaserLayoutUi {
       fontSize: buttonFontSize,
       shadowY: Math.max(2, Math.round(buttonHeight * 0.10)),
       shadowBlur: Math.max(4, Math.round(buttonHeight * 0.22)),
-      background: "#264089", // Blue background for Mahjong
+      background: COLOR_BLUE, // Blue background for Mahjong
       color: "#ffffff"
     };
 
@@ -3248,6 +3254,34 @@ export class PhaserLayoutUi {
 
     this.instructionPhase = tablePhase;
     this.publishInstructionPanel();
+  }
+
+  layoutMahjongButton(layout: TableLayout, phase: GamePhaseEnum): void {
+    if (phase !== GamePhaseEnum.PLAYING) {
+      this.callbacks.onMahjongButtonOverlay?.({
+        visible: false, x: 0, y: 0, width: 0, height: 0, radius: 0, fontSize: 0, shadowY: 0, shadowBlur: 0
+      });
+      return;
+    }
+
+    const exposure = layout.bottomExposure;
+    // Position it centered and just above the exposure panel
+    const width = Math.round(Phaser.Math.Clamp(exposure.width * 0.4, 80, 140));
+    const height = Math.round(Phaser.Math.Clamp(layout.canvas.height * 0.05, 26, 40));
+    const x = exposure.x + exposure.width / 2 - width / 2;
+    const y = exposure.y - height - 8;
+
+    this.callbacks.onMahjongButtonOverlay?.({
+      visible: true,
+      x: Math.round(x),
+      y: Math.round(y),
+      width,
+      height,
+      radius: Math.round(height / 2),
+      fontSize: Math.round(height * 0.4),
+      shadowY: Math.max(2, Math.round(height * 0.10)),
+      shadowBlur: Math.max(4, Math.round(height * 0.20)),
+    });
   }
 
   createPickSeatSelector(scene: Phaser.Scene): Phaser.GameObjects.Container {

@@ -42,6 +42,7 @@ export class PhaserState {
   readonly passWaitingTileIds: number[] = [];
   readonly optimisticPassTileIds: number[] = [];
   readonly passCloseButtons = new Map<number, Phaser.GameObjects.Container>();
+  readonly exposureCloseButtons = new Map<number, Phaser.GameObjects.Container>();
   passWaitingAreaGraphics?: Phaser.GameObjects.Graphics;
   isPassAnimating = false;
   readonly passWaitingTileScale = 1.08;
@@ -49,6 +50,7 @@ export class PhaserState {
 
   activeRackAtlasKey?: string;
   pendingAtlasRefresh = false;
+  jokerTooltip?: Phaser.GameObjects.Container;
 
   constructor() { }
 }

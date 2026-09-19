@@ -338,7 +338,7 @@ export class PhaserLayoutGame {
 
       username: {
         x: bottomExposure.x + bottomExposure.width / 2,
-        y: bottomExposure.y + bottomExposure.height * labelY,
+        y: bottomExposure.y + bottomExposure.height * (1 - labelY),
       },
 
       isMobile: metrics.isMobile,
@@ -589,7 +589,7 @@ export class PhaserLayoutGame {
 
       username: {
         x: bottomExposure.x + bottomExposure.width / 2,
-        y: bottomExposure.y + bottomExposure.height * labelY,
+        y: bottomExposure.y + bottomExposure.height * (1 - labelY),
       },
 
       isMobile: false,
@@ -873,7 +873,7 @@ export class PhaserLayoutGame {
 
       username: {
         x: bottomExposure.x + bottomExposure.width / 2,
-        y: bottomExposure.y + bottomExposure.height * labelY,
+        y: bottomExposure.y + bottomExposure.height * (1 - labelY),
       },
 
       isMobile: false,
@@ -1206,7 +1206,7 @@ export class PhaserLayoutGame {
 
       username: {
         x: bottomExposure.x + bottomExposure.width / 2,
-        y: bottomExposure.y + bottomExposure.height * labelY,
+        y: bottomExposure.y + bottomExposure.height * (1 - labelY),
       },
 
       isMobile: metrics.isMobile,
@@ -1497,7 +1497,7 @@ export class PhaserLayoutGame {
 
       username: {
         x: bottomExposure.x + bottomExposure.width / 2,
-        y: bottomExposure.y + bottomExposure.height * labelY,
+        y: bottomExposure.y + bottomExposure.height * (1 - labelY),
       },
       isMobile: metrics.isMobile,
       metrics,

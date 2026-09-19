@@ -2,15 +2,11 @@
 import { AfterViewInit, Component, effect, inject, input, OnInit, signal, computed } from "@angular/core";
 import { JsonPipe } from "@angular/common";
 import { Router } from "@angular/router";
-
-
-import { Haptics, ImpactStyle, NotificationType } from "@capacitor/haptics";
 import { GameService } from "./service";
 import { GAME_PROVIDER } from "./provider";
 import { PassDirection } from "./phaser/type";
-import { GamePhaseFirstRoundDirectionEnum, GameCharlestoneStageEnum } from "@bfw/api-sdk/graphql/endpoints/business";
-import { GameInstanceRoute, GameRoute } from './route';
-import { GameHeptic } from "./haptics";
+import { GamePhaseFirstRoundDirectionEnum } from "@bfw/api-sdk/graphql/endpoints/business";
+import { GameInstanceRoute } from './route';
 import { PhaserComponent } from "./phaser/component";
 
 
@@ -26,15 +22,11 @@ import { PhaserComponent } from "./phaser/component";
 })
 export class GameComponent implements OnInit, AfterViewInit {
   public readonly gkeyid = input<string>();
-
   protected readonly service = inject(GameService);
   private readonly router = inject(Router);
-
-
   readonly selectedTileIds = signal<readonly number[]>([]);
   readonly boardVisible = signal(true);
   readonly passDirection = signal<PassDirection>(GamePhaseFirstRoundDirectionEnum.RIGHT);
-
   readonly isDebugVisible = signal(false);
 
   toggleDebug() {
@@ -52,20 +44,20 @@ export class GameComponent implements OnInit, AfterViewInit {
     await this.service.state.whenReady();
     //this.service.state.setGkeyid(this.gkeyid());
 
-    console.log('GAME KEY', this.gkeyid());
+    // console.log('GAME KEY', this.gkeyid());
 
     if (this.gkeyid()) {
       const gameStartedResp = await this.service.state.startGame();
 
     } else {
       const gameCreatedResp = await this.service.state.createGame();
-      console.log('gameCreatedResp', gameCreatedResp);
+      // console.log('gameCreatedResp', gameCreatedResp);
 
       if (!gameCreatedResp) return;
 
       if (gameCreatedResp.keyid) {
         const redirect = GameInstanceRoute.absolutePath(gameCreatedResp.keyid);
-        console.log('redirect', redirect);
+        // console.log('redirect', redirect);
 
         // if accessing authenticated route without being authenticated then redirect to signin page
         this.router.navigateByUrl(redirect);
@@ -100,5 +92,4 @@ export class GameComponent implements OnInit, AfterViewInit {
     // there and destroys the Phaser game cleanly.
     await this.router.navigateByUrl("/");
   }
-
 }

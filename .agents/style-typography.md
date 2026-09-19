@@ -1,80 +1,45 @@
 Mahjfit — Mandatory Design System & AI Coding Rules
 CRITICAL INSTRUCTION
-
 These design rules are mandatory and persistent.
-
 You MUST follow them every time you create, modify, refactor, or extend code in this project.
 
 These rules apply to:
-
 New screens
-
 Existing screens
-
 Components
-
 Forms
-
 Buttons
-
 Navigation
-
 Cards
-
 Modals
-
 Dialogs
-
 Tables
-
 Labels
-
 Inputs
-
 Errors
-
 Validation
-
 Empty states
-
 Loading states
-
 Responsive layouts
-
 Icons
-
 Typography
-
 Colors
-
 Spacing
-
 Visual styling
-
 DO NOT override these rules based on personal design preference.
-
 If the user's request does not specify a visual treatment, use the existing Mahjfit design system defined below.
-
 If an existing component already follows the design system, reuse it instead of creating a visually different version.
 
 1. Design-System Priority
-
 When making changes, follow this priority:
-
 Explicit user requirements
-
 This mandatory Mahjfit design system
-
 Existing project components and design patterns
-
 Existing project architecture
-
 Accessibility and responsive requirements
-
 Minimal implementation necessary to complete the task
 
 Do not introduce visual changes that were not requested.
-
 2. Color System
 Solid Colors
 Name	Hex	Usage
@@ -86,77 +51,52 @@ Red	#F04846	Errors
 Green	#11B364	Validation, success
 Gray	#9EB5C1	Disabled — 60%
 Pink	#EFACBF	Decorative
+
 Mandatory Color Rules
-
 Use Fuchsia #B92A90 for primary buttons and links.
-
 Use Blue #264089 for headings and primary text.
-
 Use Lavender #DAB6D6 for applicable backgrounds.
-
 Use Avocado #C7C22E for labels and feedback.
-
 Use Red #F04846 for errors.
-
 Use Green #11B364 for validation and success.
-
 Use Gray #9EB5C1 at 60% for disabled states.
-
 Use Pink #EFACBF for decorative elements.
 
 Do NOT
-
 Invent new brand colors.
-
 Substitute arbitrary Tailwind colors.
-
 Use browser-default colors for designed UI.
-
 Introduce another shade of blue, pink, purple, etc. when an approved design-system color exists.
-
 Change an approved color because another color "looks better."
 
 If a color is not defined here, inspect the existing project implementation/design tokens first.
 
 3. Gradients
 Gradient — Elements
-
 Direction:
-
 left → right
 
 Colors:
-
 #B92A90 → #264089
 
 Usage:
-
 Progress bars
-
 Taglines
-
 Attention-grabbing non-clickable visual elements
 
 Important
-
 This gradient is intended to stand out and draw attention, but it must NOT be used to make an element appear clickable.
-
 Do not use this gradient indiscriminately on buttons or interactive controls.
 
 Gradient — Backgrounds
-
 Colors:
-
 #C9CEDF → #EDD0E2
 
 Angle:
-
 32deg
 
 Usage:
-
 Backgrounds
-
 Use this gradient only where appropriate to the background design.
 
 4. Typography System
@@ -164,50 +104,33 @@ Primary Application Font
 Outfit
 
 Use Outfit for the application interface.
-
 Outfit is mandatory for:
-
 Headings
-
 Body copy
-
 Buttons
-
 Labels
-
 Navigation
-
 Forms
-
 Inputs
-
 Interface elements
-
 Error messages
-
 Helper text
-
 Gameplay Tile Font
 Poppins
 
 Poppins is reserved for Mahjong gameplay tile artwork.
 
 Use Poppins only for:
-
 Mahjong tile numbers
-
 Mahjong tile lettering
 
 Tile-specific typography where applicable
 
 Important
-
 Do NOT use Poppins for general application UI.
-
 Do NOT use Outfit for gameplay tile lettering when Poppins is required by the tile artwork.
 
 5. Typography Scale
-
 Use the following base design-system values.
 
 Style	Font	Weight	Size
@@ -224,37 +147,24 @@ Tile Text	Poppins	500 Medium	Varies
 Typography Rules
 
 Maintain the defined typographic hierarchy.
-
 Do not randomly change font sizes.
-
 Do not use arbitrary font weights when an existing design-system weight applies.
-
 Use sentence case for headings and body copy.
-
 Use ALL CAPS only for buttons and small UI labels.
-
 Links must be underlined.
-
 Body copy should be left-aligned.
-
 Hero messaging may be center-aligned when appropriate.
-
 Maintain consistent spacing between typographic elements.
 
 6. Responsive Typography
-
 The sizes above represent the base design system.
 
 For smaller breakpoints:
-
 Typography may scale proportionally.
 
 Maintain the same hierarchy.
-
 Do not arbitrarily shrink typography until it becomes difficult to read.
-
 Do not change the relative importance of H1/H2/H3/body/etc.
-
 Responsive adjustments must preserve the Mahjfit visual hierarchy.
 
 7. Buttons
@@ -264,46 +174,34 @@ Default	#B92A90
 Hover	#C453A3
 Pressed	#921D70
 Disabled	#9EB5C1 at 60%
+
 Button Typography
-
 Font: Outfit
-
 Weight: 600 SemiBold
-
 Size: 20px
 
 Text treatment: ALL CAPS where appropriate
 
 Button Shape
-
 Border radius:
-
 8px
 
 Button Rules
-
 Every button implementation must account for the relevant states:
 
 Default
-
 Hover
-
 Pressed
-
 Disabled
 
 Do not create a button with a random radius or arbitrary color.
-
 Do not replace the Mahjfit button colors with generic framework colors.
 
 8. Iconography
-
 Default icon color:
-
 #B92A90
 
 States:
-
 State	Color
 Default	#B92A90
 Hover	#C453A3
@@ -312,50 +210,34 @@ Disabled	#9EB5C1 at 60%
 Icon Rules
 
 Maintain consistent icon sizing within the same component category.
-
 Use the existing icon library/components when one already exists in the project.
-
 Do not introduce a new icon library unnecessarily.
-
 Do not replace existing icons without a requirement.
 
 Icons must visually match the surrounding UI.
 
 9. Shape System
 Buttons
-
 Border radius:
-
 8px
 
 Mahjong Tiles
-
 Border radius:
-
 10px
-
 Shape Rules
-
 Do not arbitrarily change corner radii.
 
 If an existing component has a defined radius, preserve it unless the design system or user request requires a change.
 
 10. Layout & Spacing
-
 When modifying an existing screen:
-
 Preserve the existing layout unless the requested change requires modification.
 
 Maintain consistent spacing and alignment.
-
 Reuse existing spacing tokens/utilities if they exist.
-
 Do not introduce arbitrary spacing values unnecessarily.
-
 Align related elements consistently.
-
 Maintain visual hierarchy.
-
 If the project already has spacing/design tokens, use them instead of creating new values.
 
 11. Component Reuse
@@ -562,6 +444,11 @@ unless explicitly requested by the user.
 These rules apply to every future code change in this project.
 
 
+
+
+
+
+For cleanup reference, here is the same details of typography, shapes and colors:
 Color System:
 SOLIDS
 Name: Fuchsia
@@ -726,3 +613,7 @@ Component: Buttons
 Radius: 8 px
 Buttons 
 Tiles 10 px
+
+
+
+

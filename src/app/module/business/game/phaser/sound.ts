@@ -9,7 +9,7 @@ import { TableSfxConfig, TableSfxId } from "./scenes/type";
 export class PhaserSound {
   private readonly tileVoiceVolume = 0.85;
   private readonly tileVoiceKeys = ["1-bam", "2-bam", "3-bam", "4-bam", "5-bam", "6-bam", "7-bam", "8-bam", "9-bam", "1-crack", "2-crack", "3-crack", "4-crack", "5-crack", "6-crack", "7-crack", "8-crack", "9-crack", "1-dot", "2-dot", "3-dot", "4-dot", "5-dot", "6-dot", "7-dot", "8-dot", "9-dot", "east", "south", "west", "north", "red", "green", "soap", "joker", "flower"] as const;
-  private readonly charlestonVoiceKeys = ["first-right", "across", "first-left", "second-left", "final-right", "optional-across"] as const;
+  private readonly charlestonVoiceKeys = ["first-right", "across", "first-left", "second-left", "final-right", "optional-across", "stop-the-chaleston"] as const;
   private readonly tileVoiceSounds = new Map<string, Phaser.Sound.BaseSound>();
   private readonly charlestonVoiceSounds = new Map<string, Phaser.Sound.BaseSound>();
   private currentTileVoice?: Phaser.Sound.BaseSound;
@@ -21,6 +21,7 @@ export class PhaserSound {
     "tile-drop": { key: "sfx-tile-drop", urls: ["assets/sounds/tile-drop.mp3"], volume: 0.5, poolSize: 2, throttleMs: 45 },
     pass: { key: "sfx-pass", urls: ["assets/sounds/pass.mp3"], volume: 0.65, poolSize: 1, throttleMs: 150 },
     "pick-tile": { key: "sfx-pick-tile", urls: ["assets/sounds/pick-tile.mp3"], volume: 0.5, poolSize: 2, throttleMs: 45 },
+    "call": { key: "sfx-call", urls: ["assets/sounds/call.mp3"], volume: 0.65, poolSize: 1, throttleMs: 150 },
   };
   private readonly sfxPools = new Map<TableSfxId, Phaser.Sound.BaseSound[]>();
   private readonly sfxPoolCursor = new Map<TableSfxId, number>();
@@ -55,6 +56,22 @@ export class PhaserSound {
 
   playCharlestonVoice(key: string): void {
     const sound = this.charlestonVoiceSounds.get(key);
+    if (!sound) return;
+
+    if (this.currentTileVoice?.isPlaying && this.currentTileVoice === this.charlestonVoiceSounds.get("stop-the-chaleston")) {
+      this.currentTileVoice.once(Phaser.Sound.Events.COMPLETE, () => {
+        this.playCharlestonVoice(key);
+      });
+      return;
+    }
+
+    if (this.currentTileVoice?.isPlaying) this.currentTileVoice.stop();
+    this.currentTileVoice = sound;
+    if (sound.isPlaying) sound.stop();
+    sound.play({ volume: 1.0 });
+  }
+  playCharlestonStopVoice(): void {
+    const sound = this.charlestonVoiceSounds.get("stop-the-chaleston");
     if (!sound) return;
     if (this.currentTileVoice?.isPlaying) this.currentTileVoice.stop();
     this.currentTileVoice = sound;

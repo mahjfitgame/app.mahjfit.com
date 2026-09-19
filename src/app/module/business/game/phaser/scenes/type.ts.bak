@@ -93,7 +93,6 @@ export interface TableSceneCallbacks {
   readonly onPassWaitingStateChanged?: (payload: { readonly tileIds: readonly number[]; }) => void;
   onHaptic?: (type: GameHapticType) => void;
   onSortRequested?: (mode: "rank" | "suit") => void;
-  onMahjongDeclare?: () => void;
   onHudAction?: (action: HudActionKey) => void;
   readonly getDeviceLayout: (width: number, height: number) => DeviceLayoutState;
   readonly onMobileHeaderChanged: (collapsed: boolean) => void;
@@ -128,7 +127,6 @@ export interface TableSceneCallbacks {
   /** Draws the native Dead Hand seat picker over the opponent exposures. */
   readonly onDeadHandSeatSelection: (state: DeadHandSeatSelectionState) => void;
   readonly onHeaderLogoLayout: (state: HeaderLogoLayoutState) => void;
-  readonly onMahjongButtonOverlay?: (state: MahjongButtonOverlayState) => void;
 }
 
 export type TableSfxId =
@@ -209,8 +207,6 @@ export interface UiLayoutCallbacks {
   /** Applies the explicit sort mode chosen from the Sort dropdown. */
   readonly onSortRequested?: (mode: "rank" | "suit") => void;
   readonly onPrimaryAction?: () => void;
-  readonly onMahjongDeclare?: () => void;
-  readonly onMahjongButtonOverlay?: (state: MahjongButtonOverlayState) => void;
   readonly onPickSeatChange?: (seat: TableSeat) => void;
   readonly onHamburgerMenuAction?: (action: HamburgerMenuActionKey) => void;
   /** Positions the native HTML wall-count label over the Phaser tile icon. */
@@ -228,18 +224,6 @@ export interface UiLayoutCallbacks {
   readonly onInstructionPanelOverlay?: (state: InstructionPanelOverlayState) => void;
   readonly onClaimPanelOverlay?: (state: ClaimPanelOverlayState) => void;
   readonly logoTextureKey?: string;
-}
-
-export interface MahjongButtonOverlayState {
-  readonly visible: boolean;
-  readonly x: number;
-  readonly y: number;
-  readonly width: number;
-  readonly height: number;
-  readonly radius: number;
-  readonly fontSize: number;
-  readonly shadowY: number;
-  readonly shadowBlur: number;
 }
 
 export interface WallCountOverlayState {

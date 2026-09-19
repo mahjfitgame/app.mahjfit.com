@@ -3,28 +3,343 @@ Next week memo
 KNOW: For now we manage the direction only with the FIRSTROUND enum and based on that write the logic, I think we don't need 2 enum for the direction we can manage it with only one. So it will be like Direction and combine with the stage (FIRST, SECOND_DECISION, SECOND, COURTESY).
 The direction is just for the directions of animation.
 
+
+
+Current:
+[tech][Frontend][D1] Play game and do required upgradtion found while play for Pick, Discard, and Cliam tile
+
+
+
 [tech][Frontend Development][D1] Converting static design data to real-time Gameplay data - submit second round charleston vote
-
-Converting static design data to real-time Gameplay data, completed the charlestone round implementation.
-
-
 [tech][Frontend Development][D1] Converting static design data to real-time Gameplay data - Discard tile and Claim window, cross check with backend bot auto decision
 [tech][Frontend][D1] Integreate discard and calim tile with bot auto turn
-
+[tech][Frontend][D1] Integreate discard and calim tile with bot auto turn - preparing exposure tiles and display
 [tech][Frontend][D1] Integreate discard and calim tile with bot auto turn - preparing exposure tiles and display
 
 
-[tech][Frontend][D1] Integreate discard and calim tile with bot auto turn - preparing exposure tiles and display
+
 
 
 Simultaneously working on integrate discard and claim tile with bot auto turn, upgrade the charleson round and implemented the bliend pass and optional across allow to pass tile(1 or 2 or 3). 
 
+
+
+================ BACKEND API ==================
+Analysis How sort tiles work, sort by rank and sort by suit.
+Also how client side know and get the updated state that game is ended. And is there anything we have to upgrade.
+Now, analysis the Mahjong and Wall game logic how it works. And how it manage through the websocket.
+
+
+
+
+============ REPSONCE FOR ABOVE HOW IT WOROKS ==============
+
+Searched for "sort"
+Viewed rule.ts:4150-4380
+Ran command: `grep -rn "GamePhaseEnum.FINISHED" apps/app/src/graphql/business-app/game-engine/`
+Ran command: `grep -C 10 -i "wall game" apps/app/src/graphql/business-app/game-engine/rule.ts`
+Searched for "WALL_GAME"
+Viewed enum.ts:1-792
+
+Here is the complete analysis of how sorting, game ending, and Wall Game/Mahjong logic currently works in your engine.
+
+### 1. How Tile Sorting Works (Rank vs. Suit)
+The sorting logic resides in `rule.ts` (`sortRackTileIdsByMode`, `compareTilesBySuit`, and `compareTilesByRank`). The engine uses a helper function (`getTileSortMeta`) to assign a numeric weight to every tile so they can be easily compared.
+
+*   **Sort By Suit (`compareTilesBySuit`)**:
+    *   **Primary grouping**: It groups tiles by Category/Suit in this exact order: **Bams** -> **Craks** -> **Dots** -> **Dragons** -> **Winds** -> **Flowers** -> **Jokers**.
+    *   **Secondary sorting**: Within a suit (e.g., Bams), it sorts by **Rank** ascending (1 through 9).
+    *   **Result**: All Bams (1-9) are placed together, followed by all Craks (1-9), followed by all Dots (1-9), then Honors.
+
+*   **Sort By Rank (`compareTilesByRank`)**:
+    *   **Primary grouping**: It pulls **all suited tiles** (Bams, Craks, Dots) to the front of the rack.
+    *   **Secondary sorting**: It compares the **Rank** (number) first. This means all `1`s are grouped together, then all `2`s, then all `3`s, regardless of their suit.
+    *   **Tie-breaker**: If two tiles have the exact same number (e.g., a Bam 2 and a Crak 2), it falls back to the Suit order (Bam comes before Crak).
+    *   **Result**: 1-BAM, 1-CRAK, 1-DOT, 2-BAM, 2-CRAK, 2-DOT, etc. Honors and Jokers are pushed to the back.
+
+
+For ordering purposes, it should go- JOKERS, FLOWERS then NUMBERS, DRAGONS, NEWS
+
+
+### 2. How the Client Knows the Game has Ended
+Whenever a win or draw condition is met, the backend updates the game state in `rule.ts` and `service.ts`:
+1.  It sets `state.play.phase = GamePhaseEnum.FINISHED` (which evaluates to the integer `5`).
+2.  It sets a reason in the state (e.g., `GameFinishedReasonEnum.MAHJONG` or `WALL_EMPTY`).
+3.  It sets the `winner_seat_ids` array.
+4.  It immediately calls `commitStateAndScheduleNext()`, which broadcasts this final state over the `WS_GAME_PUBLISH_PERSONAL` WebSocket channel.
+
+**How the client reacts:**
+The client receives the WebSocket payload and updates state. 
+The frontend UI should have a reactive listener checking if `game.play.phase === 5`. When it hits `5`, the UI halts gameplay and displays the game over screen.
+
+**Is there anything to upgrade?**
+The mechanism is perfectly sound. 
+However, you should ensure that your frontend actively reads the `finished_reason` and `winner_seat_ids` fields from the payload. 
+If the `finished_reason` is `WALL_EMPTY`, the frontend should display "Wall Game (Draw)". 
+If it's `MAHJONG`, it should highlight the `winner_seat_ids`.
+
+### 3. Mahjong and Wall Game Logic 
+
+**Mahjong (Win)**
+*   A Mahjong win happens when a player clicks the Mahjong claim button, or declares Mahjong from their hand.
+*   The backend calls `isMahjongForRack()`. As we fixed earlier, this combines the concealed `hand` and the `exposures_meld`.
+*   If the tiles perfectly match a winning combination from the loaded JSON rulepack, `geRule.mahjong()` is triggered.
+*   This method modifies the state phase to `FINISHED`, logs the winning seat, and the WebSocket instantly pushes this to all players.
+
+**Wall Game (Draw)**
+*   A Wall Game is triggered naturally during the draw phase (`pickTile`).
+*   When a player's turn starts, they must pick a tile from the wall. The backend pops a tile out of the `state.private.wall_tiles` array.
+*   If the engine detects that `wall_tiles.length === 0` (there are no tiles left to draw) and no one has declared Mahjong, it immediately triggers the Wall Game logic.
+*   The state phase changes to `FINISHED`, the winner array is left empty, and the finished reason is set to `WALL_EMPTY`.
+*   The WebSocket broadcasts this, and the frontend stops the game.
+
 ============= POINTS ============= 
+1]
+Cross checked the design given by the designer and prepare list for the confirmation for beta release.
+Planout the layout and styles for the default styles and typographay.
+Play the game and find the required changes in gameplay. 
+Add mahjong button for default while game play.
+
+For the bottom exposure need to revert the player lable and take the confirmation for the changes.
+Upgrade the ws connection as per the game and the with the same user loggedin in multiple device and play the multiple game at same time and for that upgrade the current web socker connerction related code.
+
+Add close button on tile when player manualu move the matched tile to the exposure panel to nake the group.
+Add mahjong button while the whole game play and enable, so player can make mahjong by cliking on the button.
+
+
+
+
+2]
+Added link to the MAHJFIT logo and redirect to the home page.
+Added one more popup for confirmation to stop the second charleston round and also added the stop charlestone sound. 
+Set the sound order when play two sound one by one for stop charleston and optional across.
+Backend API update the tile sorting as per the given order - JOKERS, FLOWERS then NUMBERS, DRAGONS, NEWS. 
+Implement the sorting functionality in frontend side.
+Swap the bottom exposure as we discussed in the last meeting.
+
+
+
+When bot make PUNK, KONG, QUINT etc... 
+
+==============================================
+
+ERROR [09:11:48.000] (LibLogger/8894): [BOT_TURN_FAILED]
+    context: "SwaggerConfig"
+[TIMER:CLEAR_CLAIM BOT TURN] { keyid: '01a0b474-2a1e-74e2-ad3f-45ec41b61581' }
+[TIMER:SCHEDULE_AUTO] { keyid: '01a0b474-2a1e-74e2-ad3f-45ec41b61581' }
+[TIMER:CLEAR_CLAIM BOT TURN] { keyid: '01a0b474-2a1e-74e2-ad3f-45ec41b61581' }
+TRACE [09:11:48.000] (LibLogger/8894): [NEXT_TURN_CHECK]
+    context: "SwaggerConfig"
+TRACE [09:11:48.000] (LibLogger/8894): [BOT_TURN_SCHEDULED]
+    context: "SwaggerConfig"
+TRACE [09:11:49.000] (LibLogger/8894): [BOT_TURN_FIRED]
+    context: "SwaggerConfig"
+
+
+See, the image the game is repeatedly gives the error.
+
+There is no winner, there is no wall game, but as per the attached image the left seat, which is bot seat and that seat all 14 tiles are in the exposure, so how it is possible that need to move all tile to the exposure without winning the game, now that seat don't have any single tile to discard. So here, I think need to cross check the bot logical flow, this scanarion naver happen, either the bot is win the game or bot have tile to discard. So I don't know how bot take decision to make the PUNG, KONG, QUINT etc.. , Can bot take decision according to winning hand or not? Because if bot take decision as per the winning hand then this scenario never happens. I checked the play response and that seat don't  win the game and not dead.
+
+For the reference here is the play seat status 3040: is_dead: false,is_locked: false, is_mahjong: false, rack_id : 1
+------ RESPONS -------
+Viewed bot.ts:150-200
+Searched for "claim"
+Viewed bot.ts:284-350
+Viewed rule.ts:2435-2485
+Searched for "computeClaimOptionsForRack("
+Viewed rule.ts:914-1000
+Viewed rule.ts:1000-1100
+Edited rule.ts
+
+I know exactly why this is happening! This is an excellent find.
+
+**The Root Cause:**
+In American Mahjong, when you make an exposure (Pung, Kong, Quint) using a discarded tile, you must always have at least one concealed tile left in your hand so that you can discard at the end of your turn. 
+The only exception is if your claim completes a valid 14-tile **Mahjong** hand, in which case the game ends and you don't need to discard. 
+
+However, the core engine logic in `rule.ts` (`computeClaimOptionsForRack`) 
+was only checking if a player had enough matching tiles (e.g., `availableForSet >= 3` for a Kong). 
+It did **not** check if making that claim would leave the player with 0 concealed tiles.
+
+Because of this, the Bot saw an opportunity to make a Kong/Quint and took it, 
+using its very last concealed tiles. 
+This left the bot with exactly 14 exposed tiles and 0 concealed tiles. 
+Since it wasn't a valid Mahjong hand, it entered the `NEED_DISCARD` stage, but had nothing to discard, freezing the game loop!
+
+**The Fix:**
+I have updated `computeClaimOptionsForRack` in `rule.ts`. 
+I added a strict check to ensure that any Pung, Kong, or Quint claim will **only** be allowed if it leaves the player with `> 0` concealed tiles, 
+*unless* the claim also triggers `can_mahjong: true`.
+
+```typescript
+can_pung: availableForSet >= 2 && (handTileCount - 2 > 0 || canMahjong),
+can_kong: availableForSet >= 3 && (handTileCount - 3 > 0 || canMahjong),
+can_quint: availableForSet >= 4 && (handTileCount - 4 > 0 || canMahjong),
+```
+
+Now, the Bot (and human players) will be strictly prevented from making claims that would trap them with 0 concealed tiles, 
+and the Bot will correctly just `PASS` on that discard instead of getting stuck.
+
+Viewed rule.ts:1039-1073
+-------------------
+ ----- ASK -----
+ When bot take decison for PUNG, KONG, QUINT etc.. is it following the any winning hands rule as per the rack tile. Because we stored the tile at differnet place one in rack > hand and the group of tile PUNG, KONG, QUINT in exposure meild array, so when make new PUNG, KONG or anything it also consider this group of tile which follow the winning hand rule so that bot can win the game.
+
+ 
+ ----- RESPONSE ---- 
+Viewed bot.ts:350-430
+Searched for "distance"
+Searched for "pattern"
+Searched for "partial"
+Viewed rule.ts:1550-1600
+
+That is a very insightful question! 
+You have hit on the exact difference between how the game checks for a **Win** versus how the **Bot AI currently thinks**.
+
+Here is exactly what is happening:
+
+### 1. Does the system consider both `hand` and `exposures_meld` for winning?
+**Yes, perfectly.** 
+When checking for a final Mahjong win (in `isMahjongForRack`), 
+the engine combines all the concealed tiles in the `hand` AND all the tiles in the `exposures_meld` array into a single 14-tile group. 
+It then checks those 14 tiles against the selected year's JSON rule file. 
+So the engine knows exactly how to combine them to validate a real win.
+
+### 2. Does the Bot check the JSON winning hands *before* deciding to Pung/Kong?
+**No, it currently does not.** 
+Right now, the bot AI is "greedy" and somewhat naive.
+ When someone discards a tile, the bot simply looks at its concealed hand and says: *"Do I have 3 matching tiles? Yes? Then I will claim a Kong!"* 
+
+The bot **does not** currently check if making that Kong actually matches a valid pattern on the JSON card. 
+Because of this, the bot will often make claims that completely ruin its chances of actually winning the game, 
+because it's just blindly making Pungs and Kongs whenever it legally can.
+
+### How to fix the Bot AI (Future Feature)
+To make the bot play like a real human, it needs a much more advanced AI:
+1. When a tile is discarded, the bot would need to combine its `hand` + `exposures_meld` + `discarded_tile`.
+2. It would loop through every single winning hand in the JSON rule file.
+3. It would calculate a "distance score" to see if making this claim moves it closer to a valid 14-tile card hand.
+4. If the claim doesn't fit any valid hand on the card, the bot should `PASS`.
+
+Implementing this "Card Pattern Matching AI" is a massive feature. 
+Currently, the system just guarantees that the bot plays *legally*, but it doesn't guarantee that the bot plays *smartly*. 
+
+Would you like to start planning out how we could build this smart pattern-matching AI for the bot?
+
+
+
+
+
 
 ============= TODO =============
- 
+#]
+IMPORTANT 
+When the turn is not current player then click on MAHJONG didn't make the API call just play sound
+Need to analysis and do R&D for how to load single sound file and use that for the different sound  for specific action, The single sound file have all the sound on specific time, so how to use that and implement that with the dynamically
+In realmahjong there is two sound files one for the all actions sound and one for the tiles sound.
+Action sound:
+https://realmahjongg.com/sounds/new/effects.webm
+
+Tiles soudn:
+https://realmahjongg.com/sounds/new/tiles.webm
+
+#]
+If bot CALL the tile play the call sound. 
+
+#]
+Dead hand remains
+
+#]
+Backend need seperate call for the Mahjong to send the request and check wether this player can do the mahjong or not. By sending request from the client side. 
+
+On going work,
+#]
+Sort tiles are remains.
+Analysis How sort tiles work, sort by rank and sort by suit.
+
+#]
+Mahjong OR Wall game
+Also how client side know and get the updated state that game is ended. And is there anything we have to upgrade.
+
+#]
+Joker swap for other seat and the current seat exposure.
+There is other point as well, once I done the above point will finelised the other points. 
+
+#] 
+NEED TO CROSS CHECK 
+during Charleston, the tiles I am getting passed should come into my rack at the same time the other tiles are moving to other players. Now they are coming in after the other tiles pass.
+
+DONE - #]
+After asking Second Charleston Round and if choose yes then build one more popup that ask again for the confirmation and then stopped the second charlestone.
+The second popup should be like.
+Are you sure? YES or NO
+Then an audio for “Charleston Stopped”. 
+
+#]
+Texture "__MISSING" has no frame "wind_w@2x.png"
+scene.ts:2282 Texture "__MISSING" has no frame "wind_w@2x.png"
+
+scene.ts:2282 Texture "__MISSING" has no frame "joker_3@2x.png"
+3
+scene.ts:2282 Texture "__MISSING" has no frame "bam_1@2x.png"
+2
+scene.ts:2282 Texture "__MISSING" has no frame "dragon_white@2x.png"
+scene.ts:2282 Texture "__MISSING" has no frame "joker_4@2x.png"
+3
+scene.ts:2282 Texture "__MISSING" has no frame "bam_6@2x.png"
+3
+scene.ts:2282 Texture "__MISSING" has no frame "dot_1@2x.png"
+
+#]
+Make sure every where for the other ENUM but make sure it will not break the corrent working things, as we don't know when it comes to string and when come integer so both value are accepted or we can first convert the string value with the INTEGER.
+#]
+Need smooth small animation for another opponent seat when make PUNG, KONG etc... when they claim the tile from the discard area and make the PUNG, KONG etc....
+So generally the animation is Discarded tile move to the specific seat exposure and this is already works now need animation for another 2,3,4 etc.. tile as per the group, rack to exposure.
+#]
+When make CALL request play sound "call.mp3"
+DONE - #]
+Remove the claim tile from the discard area when it assign to specific seat exposure.
+DONE - #]
+When claim window open and move tile from the rack to exposure that tile must have close icon to back that tile to the rack, but this only allow while the current claim tile option is enable once the exposure complete and discard the tile, don't remove the close button from the move tile and disble to back it to the rack.
+#]
+Sometime stuck at:
+
+TRACE [07:32:10.000] (LibLogger/7041): [NEXT_TURN_CHECK]
+    context: "SwaggerConfig"
+TRACE [07:32:10.000] (LibLogger/7041): [BOT_TURN_SCHEDULED]
+    context: "SwaggerConfig"
+TRACE [07:32:10.000] (LibLogger/7041): [BOT_TURN_FIRED]
+    context: "SwaggerConfig"
+ERROR [07:32:10.000] (LibLogger/7041): [BOT_TURN_FAILED]
+    context: "SwaggerConfig"
+
+
+#]
+Backend side and data base for the flower tiles right now it is F1 to F8 instead, need to change it to FL , and for that need to change in the database as well as in the API rule.ts and the type.ts
+
+#]
+Frontend check tile image, and sound file, the files are not loaded  from the static it should be comes from the server. Also check is there any other static data.
+
+#]
+Need to enable/disable sound as per the user preferences.
+
+#]
+Play background music while game play. Now here might be one challenges is how to play two sound at a time, so need to cross checck everything.
 
 ============= REPLY ============= 
+FOR CLIENT]
+Today, I worked on the multiple points such as implemented the sort tiles feature, added confirmation 2nd popup when stop second roud, flip the bottom seat exposure panel. Upgrade bacekdn API sort tile functionality and client side wrapper.
+
+I will keep you posted on the work progress.
+Thank you!
+
+
+FOR CLIENT]
+Today, I worked on the game play to check the game play with the multiple use cases and prepare the points list for the required updates and started work on step by step and completed some points.
+
+I will keep you posted on the work progress.
+Thank you!
+
 FOR CLIENT]
 I feel header height on home is big so it might required to adjust the size of the header. If required too much then I will get confirmation from you.
 
@@ -158,8 +473,13 @@ Perform testing of claim window, this take time as we have to wait for the match
 On going work,
 1]
 Sort tiles are remains.
+Analysis How sort tiles work, sort by rank and sort by suit.
+
 2]
 Mahjong OR Wall game
+
+Also how client side know and get the updated state that game is ended. And is there anything we have to upgrade.
+
 3]
 Joker swap for other seat and the current seat exposure.
 
@@ -168,7 +488,6 @@ There is other point as well, once I done the above point will finelised the oth
 
 Demo URL
 https://mahjfit-com.thatsend.dev/
-
 
 #]
 [
@@ -253,49 +572,14 @@ https://mahjfit-com.thatsend.dev/
     }
 ]
 
-#]
-Texture "__MISSING" has no frame "wind_w@2x.png"
-scene.ts:2282 Texture "__MISSING" has no frame "wind_w@2x.png"
 
-scene.ts:2282 Texture "__MISSING" has no frame "joker_3@2x.png"
-3
-scene.ts:2282 Texture "__MISSING" has no frame "bam_1@2x.png"
-2
-scene.ts:2282 Texture "__MISSING" has no frame "dragon_white@2x.png"
-scene.ts:2282 Texture "__MISSING" has no frame "joker_4@2x.png"
-3
-scene.ts:2282 Texture "__MISSING" has no frame "bam_6@2x.png"
-3
-scene.ts:2282 Texture "__MISSING" has no frame "dot_1@2x.png"
-
-#]
+DONE- #]
 For the all seats exposure right, top and left when have exposure tiles and reload it shows the greenbox with the black background. Instead it should be blank same like bottom seat. 
-#]
+DONE - #]
 Need to make smooth and simple animation of tile movement for bottom seat PICK.
-#]
-Make sure every where for the other ENUM but make sure it will not break the corrent working things, as we don't know when it comes to string and when come integer so both value are accepted or we can first convert the string value with the INTEGER.
-#]
-Need smooth small animation for another opponent seat when make PUNG, KONG etc... when they claim the tile from the discard area and make the PUNG, KONG etc....
-So generally the animation is Discarded tile move to the specific seat exposure and this is already works now need animation for another 2,3,4 etc.. tile as per the group, rack to exposure.
-#]
-When make CALL request play sound "call.mp3"
-#]
-Remove the claim tile from the discard area when it assign to specific seat exposure.
-#]
-When claim window open and move tile from the rack to exposure that tile must have close icon to back that tile to the rack, but this only allow while the current claim tile option is enable once the exposure complete and discard the tile, don't remove the close button from the move tile and disble to back it to the rack.
-#]
-Sometime stuck at:
 
-TRACE [07:32:10.000] (LibLogger/7041): [NEXT_TURN_CHECK]
-    context: "SwaggerConfig"
-TRACE [07:32:10.000] (LibLogger/7041): [BOT_TURN_SCHEDULED]
-    context: "SwaggerConfig"
-TRACE [07:32:10.000] (LibLogger/7041): [BOT_TURN_FIRED]
-    context: "SwaggerConfig"
-ERROR [07:32:10.000] (LibLogger/7041): [BOT_TURN_FAILED]
-    context: "SwaggerConfig"
 
-#]
+DONE - #]
 The current turn seat is Bottom seat turn and on reload the turn stage is PICK and if I drag and drop tile to discard area it discad the tile, and added tile to the discard area, from the API it returns the error and but tile is moved to the discarded area and then after I again move all tile then that all tile move to the discarded area.
 It should not behave like that
 If tha phase is PLAYING = 3 and turn_stage is NEED_PICK = 1, then it not allow to move tile to the discard area. If drag and drop tile to the discard area it must be move to the rack agian not in the discard area. 
@@ -306,8 +590,8 @@ For the apponent seat, need the discard tile animation.
 DONE - #]
 Make 2 exposure and reload the game and check there is two group in the exposure
 
-
-
+DONE - #]
+Need to remove the tile shadow when claimed tile and move rack tile to the exposure panel.
 
 
 ============== TODO ==================

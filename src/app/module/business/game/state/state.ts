@@ -1,7 +1,7 @@
 // file: src/app/module/business/game/state.ts
 
 import { computed, effect, inject, Service, signal } from "@angular/core";
-import { BotLevelModeEnum, Game, GameAllowJoinEnum, GameBoatProfileEntityGSDto, GameCharlestoneStageEnum, GameCharlestoneStageEnumAddon, GameCreateInputDto, GameCreateOutputDto, GameEngine, GameEngineWs, GameEngineWsToken, GameModeEnum, GamePersonalClaimOutputGSDto, GamePersonalPassOutputGSDto, GamePersonalSeatEntityGSDto, GamePhaseEnum, GamePhaseFirstRoundDirectionEnum, GamePhaseFirstRoundDirectionEnumAddon, GamePhaseSecondRoundDirectionEnum, GamePlayAction, GamePlayActionEnum, GamePlayActionEnumAddon, GamePlayClaimGSOutputDto, GameRackDeadInfoGSOutputDto, GameRackExposuresMeldEntityGSDto, GameRackIDEnum, GameRackIDEnumAddon, GameService, GameStateGameOutputDto, GameStateOutputDto, GameStatePersonalOutputDto, GameStatePlayOutputDto, GameStatePublicStartInputDto, GameTileEntityGSDto, GameTurnStageEnum, TileEntity, TileEntityGSDto, TileStyleFindInputWhereDto, TileStyleFindOutputDto } from "@bfw/api-sdk/graphql/endpoints/business";
+import { BotLevelModeEnum, Game, GameAllowJoinEnum, GameBoatProfileEntityGSDto, GameCharlestoneStageEnum, GameCharlestoneStageEnumAddon, GameCreateInputDto, GameCreateOutputDto, GameEngine, GameEngineWs, GameEngineWsToken, GameModeEnum, GamePersonalClaimOutputGSDto, GamePersonalPassOutputGSDto, GamePersonalSeatEntityGSDto, GamePhaseEnum, GamePhaseFirstRoundDirectionEnum, GamePhaseFirstRoundDirectionEnumAddon, GamePhaseSecondRoundDirectionEnum, GamePlayAction, GamePlayActionEnum, GamePlayActionEnumAddon, GamePlayClaimGSOutputDto, GameRackDeadInfoGSOutputDto, GameRackExposuresMeldEntityGSDto, GameRackIDEnum, GameRackIDEnumAddon, GameService, GameStateGameOutputDto, GameStateOutputDto, GameStatePersonalOutputDto, GameStatePlayOutputDto, GameStatePublicStartInputDto, GameTileEntityGSDto, GameTileOrderEnumAddon, GameTileOrderModeEnum, GameTurnStageEnum, TileEntity, TileEntityGSDto, TileStyleFindInputWhereDto, TileStyleFindOutputDto } from "@bfw/api-sdk/graphql/endpoints/business";
 import { ConfService } from "@libs/conf/service";
 import { LogService } from "@libs/log/service";
 import { SignalStateService } from "@libs/signal-state/service";
@@ -219,24 +219,35 @@ export class GameState extends SignalStateService implements FoundationModuleSta
     // ████ play_phase SIGNAL ███████████████████████████████████████████
     public readonly play_phase = computed<GamePhaseEnum | undefined>(() => {
         const phase = this.play()?.phase as any;
-        if (typeof phase === 'number') {
-            if (phase === 1) return GamePhaseEnum.LOBBY;
-            if (phase === 2) return GamePhaseEnum.PASSING;
-            if (phase === 3) return GamePhaseEnum.PLAYING;
-            if (phase === 4) return GamePhaseEnum.CLAIM;
-            if (phase === 5) return GamePhaseEnum.FINISHED;
+        if (typeof phase === 'number' || typeof phase === 'string') {
+            if (phase === 1 || phase === '1') return GamePhaseEnum.LOBBY;
+            if (phase === 2 || phase === '2') return GamePhaseEnum.PASSING;
+            if (phase === 3 || phase === '3') return GamePhaseEnum.PLAYING;
+            if (phase === 4 || phase === '4') return GamePhaseEnum.CLAIM;
+            if (phase === 5 || phase === '5') return GamePhaseEnum.FINISHED;
         }
         return phase;
     });
+
+    // ████ play_finished_reason SIGNAL ███████████████████████████████████████████
+    public readonly play_finished_reason = computed<string | undefined>(() => {
+        return this.play()?.finished_reason as string;
+    });
+
+    // ████ play_winner_seat_ids SIGNAL ███████████████████████████████████████████
+    public readonly play_winner_seat_ids = computed<number[] | undefined>(() => {
+        return this.play()?.winner_seat_ids as number[] | undefined;
+    });
+
     // add public for all computed
 
     // ████ play_turn_stage SIGNAL ███████████████████████████████████████████
     public readonly play_turn_stage = computed<GameTurnStageEnum | undefined>(() => {
         const stage = this.play()?.turn_stage as any;
-        if (typeof stage === 'number') {
-            if (stage === 1) return GameTurnStageEnum.NEED_PICK;
-            if (stage === 2) return GameTurnStageEnum.NEED_DISCARD;
-            if (stage === 3) return GameTurnStageEnum.NEED_EXPOSURE;
+        if (typeof stage === 'number' || typeof stage === 'string') {
+            if (stage === 1 || stage === '1') return GameTurnStageEnum.NEED_PICK;
+            if (stage === 2 || stage === '2') return GameTurnStageEnum.NEED_DISCARD;
+            if (stage === 3 || stage === '3') return GameTurnStageEnum.NEED_EXPOSURE;
         }
         return stage;
     });
@@ -830,6 +841,7 @@ export class GameState extends SignalStateService implements FoundationModuleSta
                 current_turn_rack_id: true,
                 last_client_seq_by_player: true,
                 finished_reason: true,
+                winner_seat_ids: true,
                 wall_count: true,
                 pass: {
                     stage: true,
@@ -974,7 +986,7 @@ export class GameState extends SignalStateService implements FoundationModuleSta
         //await this.api.sdk.graphql.ws.gameEngine.leaveGroup(this.game_keyid());
 
         // Join game subject - personal room
-        await this.api.sdk.graphql.ws.gameEngine.joinSubject(this.personal_seat_u_id());
+        await this.api.sdk.graphql.ws.gameEngine.joinSubject(this.game_keyid() + "-" + this.personal_seat_u_id());
 
         // When user exist or lost connection
         //await this.api.sdk.graphql.ws.gameEngine.leaveSubject(this.personal_seat_u_id());
@@ -1426,13 +1438,47 @@ export class GameState extends SignalStateService implements FoundationModuleSta
         });
     }
 
+
+    // ████ WEB SOCKET ORDER PERSONAL RACK TILES BY USER ACTION ████████████████████████████████████████████
+    public async publishOderPersonalRackTiles(sortBy: GameTileOrderEnumAddon): Promise<void> {
+        const game_keyid = this.game_keyid();
+        if (!game_keyid) {
+            this.log.error('GAME_KEYID IS NULL');
+            return;
+        }
+
+
+        await this.api.sdk.graphql.ws.gameEngine?.publishActionOrderTiles({
+            input: {
+                keyid: game_keyid,
+                game_id: this.game_id(),
+                u_id: this.personal_seat_u_id(),
+                seat_id: this.personal_seat_id(),
+                rack_id: this.personal_seat_rack_first_rack_id(),
+                order_mode: sortBy as unknown as GameTileOrderModeEnum,
+            },
+            selections: this.commonSelectionFields,
+        });
+    }
+
     // ████ WEB SOCKET CALL PUBLISH MAHJONG ██████████████████████████████████████████
     public async publishMahjongDeclare(): Promise<void> {
         const game_keyid = this.game_keyid();
         if (!game_keyid) return;
 
         // TODO: Wait for API SDK support for MAHJONG or use a generic action
-        // await this.api.sdk.graphql.ws.gameEngine?.publishAction...
+        await this.api.sdk.graphql.ws.gameEngine?.publishActionCallMahjong({
+            input: {
+                keyid: game_keyid,
+                gpaction_id: GamePlayActionEnum.MAHJONG,
+                game_id: this.game_id(),
+                u_id: this.personal_seat_u_id(),
+                seat_id: this.personal_seat_id(),
+                rack_id: this.personal_seat_rack_first_rack_id(),
+            },
+            selections: this.commonSelectionFields,
+        });
+
     }
 
     // ████ WEB SOCKET CALL PUBLISH DEAD ████████████████████████████████████████████
@@ -1443,7 +1489,4 @@ export class GameState extends SignalStateService implements FoundationModuleSta
         // TODO: Wait for API SDK support for DECLAIRDEAD or use a generic action
         // await this.api.sdk.graphql.ws.gameEngine?.publishAction...
     }
-
-
-
 }
