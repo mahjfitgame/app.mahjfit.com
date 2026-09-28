@@ -127,6 +127,15 @@ export class GameService implements FoundationModuleServiceType {
         return width < 640 && height > width;
     }
 
+    public selectTileAtlasNew(tileDisplayWidth = 0): TileAtlasSelection {
+        // Use 1x atlas for smaller tiles (like those on mobile devices) to prevent aliasing
+        // when downscaling from the large 2x textures. 
+        if (tileDisplayWidth > 0 && tileDisplayWidth <= 85) {
+            return { atlasKey: TILE_ATLAS_1X_KEY, suffix: "" };
+        }
+
+        return { atlasKey: TILE_ATLAS_2X_KEY, suffix: "@2x" };
+    }
     public selectTileAtlas(tileDisplayWidth = 0): TileAtlasSelection {
         /**
          * Mobile portrait only:
@@ -145,8 +154,8 @@ export class GameService implements FoundationModuleServiceType {
         const dpr = window.devicePixelRatio || 1;
 
         if (tileDisplayWidth >= 48 || dpr >= 2) {
-            return { atlasKey: TILE_ATLAS_2X_KEY, suffix: "@2x" };
-        }
+        return { atlasKey: TILE_ATLAS_2X_KEY, suffix: "@2x" };
+    }
 
         return { atlasKey: TILE_ATLAS_1X_KEY, suffix: "" }; */
     }

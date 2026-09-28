@@ -181,6 +181,12 @@
     white-space: nowrap;
     -webkit-font-smoothing: antialiased;
     text-rendering: geometricPrecision;
+
+    &[aria-disabled="true"] {
+        opacity: 0.45;
+        cursor: not-allowed !important;
+        pointer-events: none !important;
+    }
 }
 
 .mobile-drawer-overlay {
@@ -516,15 +522,27 @@
     font-size: clamp(28px, 7vw, 58px);
     -webkit-text-stroke: max(1px, 2px) #ffffff;
     margin: 0 0 12px 0;
-    opacity: 0;
-    transform: scale(0.6);
-    animation: mahjong-title-pop 360ms cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+    animation: mahjong-title-pop 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards,
+               mahjong-title-pulse 2s ease-in-out 0.5s infinite alternate;
 }
 
 @keyframes mahjong-title-pop {
-    to {
+    0% {
+        opacity: 0;
+        transform: scale(0.5);
+    }
+    100% {
         opacity: 1;
         transform: scale(1);
+    }
+}
+
+@keyframes mahjong-title-pulse {
+    0% {
+        transform: scale(1);
+    }
+    100% {
+        transform: scale(1.05);
     }
 }
 
@@ -696,13 +714,15 @@
 
   &__card {
     background: #0b56b3;
-    padding: 30px;
+    padding: 40px 30px;
     border-radius: 12px;
     text-align: center;
     color: white;
     font-family: var(--font-family);
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
     border: 4px solid #fff;
+    width: 440px;
+    max-width: 95%;
   }
 
   &__title {
@@ -717,9 +737,30 @@
     margin-bottom: 24px;
   }
 
-  &__dismiss {
-    font-size: 14px;
-    opacity: 0.8;
+  &__actions {
+    display: flex;
+    justify-content: center;
+    gap: 16px;
+    margin-top: 24px;
+    
+    @media (max-width: 680px) and (orientation: portrait) {
+      flex-direction: column;
+      
+      button {
+        width: 100%;
+      }
+    }
+    
+    button {
+      padding: 12px 20px;
+      font-size: 14px;
+      font-weight: 700;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      color: white;
+      text-transform: uppercase;
+    }
   }
 }
 

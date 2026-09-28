@@ -292,23 +292,23 @@ export class PhaserScene extends Phaser.Scene {
         this.lastServerOrder = orderStr;
         // Only apply if we actually have a rackOrder already (not initial load)
         if (this.rackOrder.length > 0) {
-           // We apply the order, but only for tiles currently in rackOrder
-           // The new order might contain tiles that are in exposures, etc.
-           const newRackOrder = [];
-           for (const id of order) {
-             if (this.rackOrder.includes(id)) {
-               newRackOrder.push(id);
-             }
-           }
-           // Add any tiles that were in rackOrder but missing from the server order
-           for (const id of this.rackOrder) {
-             if (!newRackOrder.includes(id)) {
-               newRackOrder.push(id);
-             }
-           }
-           this.rackOrder = newRackOrder;
-           this.reindexRackRuntimeSlots();
-           this.layoutRackTiles(true);
+          // We apply the order, but only for tiles currently in rackOrder
+          // The new order might contain tiles that are in exposures, etc.
+          const newRackOrder = [];
+          for (const id of order) {
+            if (this.rackOrder.includes(id)) {
+              newRackOrder.push(id);
+            }
+          }
+          // Add any tiles that were in rackOrder but missing from the server order
+          for (const id of this.rackOrder) {
+            if (!newRackOrder.includes(id)) {
+              newRackOrder.push(id);
+            }
+          }
+          this.rackOrder = newRackOrder;
+          this.reindexRackRuntimeSlots();
+          this.layoutRackTiles(true);
         }
       }
     }, this);
@@ -474,7 +474,7 @@ export class PhaserScene extends Phaser.Scene {
       if (this.canSubmitPassWaitingTiles()) {
         this.submitPassWaitingTiles();
       }
-    } else if (this.tablePhase === GamePhaseEnum.PLAYING) {
+    } else if (this.tablePhase === GamePhaseEnum.PLAYING || this.tablePhase === GamePhaseEnum.CLAIM) {
       if (this.canDiscard) {
         this.callbacks.onMahjongDeclare?.();
         return;
@@ -482,7 +482,7 @@ export class PhaserScene extends Phaser.Scene {
 
       // Only the local Bottom seat uses the 13-tile hand rule.
       // remain available to the temporary Pick test controls.
-      if (!this.canPickFromWall()) return;
+      if (!this.canPickFromWall(true)) return;
       if (this.isPickAnimating) return;
 
       // Picking from the wall closes the opponent-discard call window. A tile
@@ -514,8 +514,12 @@ export class PhaserScene extends Phaser.Scene {
    * Enforces the 13-tile rule only for the local Bottom seat. The other seats
    * are test controls and can always receive a wall tile while one remains.
    */
-  private canPickFromWall(): boolean {
-    if (!this.stateManager.isPersonalTurn) return true;
+  private canPickFromWall(forUi: boolean = false): boolean {
+    if (!this.stateManager.isPersonalTurn) {
+      // The UI button should only be enabled when it's the personal player's turn.
+      // But test controls need this to return true.
+      return !forUi;
+    }
 
     // Use the exact count from the rack hand + exposure_meld from the API response
     const rackCount = this.rackOrder.length;
@@ -574,7 +578,7 @@ export class PhaserScene extends Phaser.Scene {
     this.tablePhase = phase;
     // console.log("setTablePhase", this.tablePhase);
 
-    if (phase !== GamePhaseEnum.PLAYING) {
+    if (phase !== GamePhaseEnum.PLAYING && phase !== GamePhaseEnum.CLAIM) {
       this.pendingTileCallOffer = undefined;
       this.closeTileCallWindow();
       // A Dead Hand claim is only valid during play, so never leave its
@@ -749,14 +753,15 @@ export class PhaserScene extends Phaser.Scene {
       }
     });
 
-    const tileWidth = Math.round(this.layout.bottomTileLayout.width);
     for (const seat of ["top", "left", "right"] as const) {
+      const tileSize = this.calledOpponentExposureTileSize(seat);
+      const seatTileWidth = Math.round(tileSize.width);
       const seatTiles = this.calledOpponentExposureTiles[seat];
       for (const image of seatTiles) {
         if (!image.active) continue;
         const fullTile = Object.values(this.allTiles).find(t => this.gameService.assetBaseName(t) === image.getData("exposure-asset"));
         if (fullTile) {
-          const texture = this.gameService.resolve(fullTile as any, tileWidth);
+          const texture = this.gameService.resolve(fullTile as any, seatTileWidth);
           if (texture) {
             image.setTexture(texture.atlasKey, texture.frameKey);
           }
@@ -1869,7 +1874,8 @@ export class PhaserScene extends Phaser.Scene {
 
     const modeKey = this.exposurePanelMode();
 
-    const lipRatio = this.gameLayout.exposureLipRatio(modeKey);
+    const isBottom = mode === "bottom";
+    const lipRatio = isBottom ? this.gameLayout.bottomExposureLipRatio(modeKey) : this.gameLayout.exposureLipRatio(modeKey);
     const nameStripRatio = this.gameLayout.exposureNameStripRatio(modeKey);
 
     const topLipH = Math.max(
@@ -1883,31 +1889,27 @@ export class PhaserScene extends Phaser.Scene {
     );
 
     const dividerH = 1;
-    const isBottom = mode === "bottom";
 
     let contentY, dividerY, stripY, lipY, contentH;
 
-    if (isBottom) {
-      stripY = y;
-      dividerY = y + nameStripH;
-      contentH = h - topLipH - nameStripH - dividerH;
-      contentY = dividerY + dividerH;
-      lipY = contentY + contentH;
-    } else {
-      lipY = y;
-      contentY = y + topLipH;
-      contentH = h - topLipH - nameStripH - dividerH;
-      dividerY = contentY + contentH;
-      stripY = dividerY + dividerH;
-    }
+    lipY = y;
+    contentY = y + topLipH;
+    contentH = h - topLipH - nameStripH - dividerH;
+    dividerY = contentY + contentH;
+    stripY = dividerY + dividerH;
 
     const contentX = x;
     const contentW = w;
 
 
-    const stripFill = active ? 0xd7d33a : 0x22488f;
-    const stripHighlight = active ? 0xf0eb78 : 0x3c63bb;
-    const dividerFill = active ? 0x9b9722 : 0x8ea4d0;
+    const stripFill = (active && !isBottom) ? 0xd7d33a : 0x22488f;
+    const stripHighlight = (active && !isBottom) ? 0xf0eb78 : 0x3c63bb;
+    const dividerFill = (active && !isBottom) ? 0x9b9722 : 0x8ea4d0;
+    
+    const isPassing = this.tablePhase === GamePhaseEnum.PASSING;
+    const isActiveBottomLip = active && isBottom && !isPassing;
+    const lipFill = isActiveBottomLip ? 0xd7d33a : 0x3159aa;
+    const lipHighlight = isActiveBottomLip ? 0xf0eb78 : 0x5e82d5;
 
     // --- FIXED SHADOW SYSTEM ---
     const isMobile = this.layout.tableOuter.width < 640;
@@ -1934,14 +1936,14 @@ export class PhaserScene extends Phaser.Scene {
     // g.strokeRect(x, y, w, h);
 
 
-    g.fillStyle(0x3159aa, 1);
-    g.fillRect(x, isBottom ? lipY : y, w, topLipH);
+    g.fillStyle(lipFill, 1);
+    g.fillRect(x, lipY, w, topLipH);
 
 
-    g.fillStyle(0x5e82d5, 0.42);
+    g.fillStyle(lipHighlight, (active && isBottom) ? 1 : 0.42);
     g.fillRect(
       x + Math.max(4, Math.round(w * 0.01)),
-      y + Math.max(2, Math.round(topLipH * 0.18)),
+      lipY + Math.max(2, Math.round(topLipH * 0.18)),
       w - Math.max(8, Math.round(w * 0.02)),
       Math.max(2, Math.round(topLipH * 0.16)),
     );
@@ -2039,6 +2041,10 @@ export class PhaserScene extends Phaser.Scene {
       () => this.uiLayoutManager.handleHtmlPrimaryAction(),
     );
     this.game.events.on(
+      "instruction-panel:mahjong",
+      () => this.handleHtmlMahjongAction(),
+    );
+    this.game.events.on(
       "dead-hand:select-seat",
       (seat: Exclude<TableSeat, "bottom">) => this.handleHtmlDeadHandSeatChosen(seat),
     );
@@ -2051,6 +2057,24 @@ export class PhaserScene extends Phaser.Scene {
 
     this.layoutStaticUi();
   }
+  private handleHtmlMahjongAction(): void {
+    if (this.turnStage === GameTurnStageEnum.NEED_EXPOSURE && this.activeExposureBuildTileIds.length > 0) {
+      this.callbacks.onLocalPlayerExposureCreate?.([...this.activeExposureBuildTileIds]);
+      this.activeExposureBuildTileIds = [];
+      for (const button of this.exposureCloseButtons.values()) {
+        button.destroy();
+      }
+      this.exposureCloseButtons.clear();
+
+      // Delay the mahjong declare slightly to ensure backend processes the exposure first
+      setTimeout(() => {
+        this.callbacks.onMahjongDeclare?.();
+      }, 500);
+    } else {
+      this.callbacks.onMahjongDeclare?.();
+    }
+  }
+
   private layoutStaticUi(): void {
     if (!this.layout) return;
 
@@ -2069,7 +2093,7 @@ export class PhaserScene extends Phaser.Scene {
       isPickAnimating: this.isPickAnimating,
       activeSeat: this.activeSeat,
       canDiscard: this.canDiscard,
-      canPickFromWall: this.canPickFromWall(),
+      canPickFromWall: this.canPickFromWall(true),
     });
     this.uiLayoutManager.setMobileHeaderVisible(
       !this.mobileHeaderCollapsed || !this.layout.metrics.isMobile,
@@ -2127,6 +2151,11 @@ export class PhaserScene extends Phaser.Scene {
     if (!tile) return;
     const texture = this.resolveTileTexture(tile);
     const dataUrl = this.getFrameDataUrl(texture.atlasKey, texture.frameKey);
+
+    if (!dataUrl) {
+      setTimeout(() => this.showClaimWindow(tile), 200);
+      return;
+    }
 
     this.uiLayoutManager.updateClaimWindow(true, dataUrl);
   }
@@ -2220,7 +2249,7 @@ export class PhaserScene extends Phaser.Scene {
 
   private handleExposuresSet(exposures: { bottom: any[], right: any[], top: any[], left: any[] }): void {
     this.latestExposures = exposures;
-    
+
     const totalExposures = (exposures.bottom?.length || 0) + (exposures.right?.length || 0) + (exposures.top?.length || 0) + (exposures.left?.length || 0);
     if (this.initialExposuresLoaded && totalExposures > this.previousTotalExposures) {
       this.playSfx("call");
@@ -2265,7 +2294,8 @@ export class PhaserScene extends Phaser.Scene {
             continue;
           }
 
-          const texture = this.gameService.resolve(fullTile as any, Math.round(this.layout.bottomTileLayout.width));
+          const tileSize = this.calledBottomExposureTileSize();
+          const texture = this.gameService.resolve(fullTile as any, Math.round(tileSize.width));
           if (!texture || !this.textures.exists(texture.atlasKey) || !this.textures.get(texture.atlasKey).has(texture.frameKey)) {
             // console.log(`[PhaserScene] Missing texture for ${tile.tile_id}`, texture);
             if (texture && this.textures.exists(texture.atlasKey)) {
@@ -2302,20 +2332,27 @@ export class PhaserScene extends Phaser.Scene {
           this.calledBottomExposureTiles.push(runtime.image);
         }
 
-        // GamePlayActionEnum.CALL is 15
-        if (meld.kind === GamePlayActionEnumAddon.CALL) {
+        let meldAsset: string | undefined;
+        for (const t of tilesToProcess) {
+          if (t && t.tile_id != null && !this.isJoker(t.tile_id)) {
+            meldAsset = this.gameService.assetBaseName(this.allTiles[t.tile_id]);
+            break;
+          }
+        }
+
+        // Recover incomplete CALL melds (active claims) during the exposure turn stage.
+        // Completed exposures will have length >= 3 and should not be recovered.
+        if (meld.kind === 15 /* CALL */ && tilesToProcess.length < 3 && this.turnStage === GameTurnStageEnum.NEED_EXPOSURE) {
           if (!this.exposureBuildAsset) {
-            this.exposureBuildAsset = this.gameService.assetBaseName(this.allTiles[tile.tile_id]);
-            // console.log(`[PhaserScene] Set exposureBuildAsset to ${this.exposureBuildAsset}`);
+            this.exposureBuildAsset = meldAsset || this.gameService.assetBaseName(this.allTiles[tile.tile_id]);
           }
           if (!this.activeExposureBuildTileIds.includes(tile.tile_id)) {
             this.activeExposureBuildTileIds.push(tile.tile_id);
-            // console.log(`[PhaserScene] Recovered pending claim tile ${tile.tile_id} into activeExposureBuildTileIds`);
           }
         }
 
         this.removeTileTextureFilter(runtime.image);
-        runtime.image.setData("exposure-asset", this.exposureBuildAsset);
+        runtime.image.setData("exposure-asset", meldAsset);
         runtime.image.disableInteractive();
 
         if (this.isJoker(tile.tile_id)) {
@@ -2355,8 +2392,9 @@ export class PhaserScene extends Phaser.Scene {
           const fullTile = this.allTiles[tile.tile_id];
           if (!fullTile) continue;
 
-          // Use bottom layout width to pick correct atlas
-          const tileWidth = Math.round(this.layout.bottomTileLayout.width);
+          // Use the specific opponent exposure tile width to pick the correct atlas
+          const tileSize = this.calledOpponentExposureTileSize(seat);
+          const tileWidth = Math.round(tileSize.width);
           let texture = this.gameService.resolve(fullTile as any, tileWidth);
           if (!texture) continue;
 
@@ -2645,7 +2683,7 @@ export class PhaserScene extends Phaser.Scene {
     const exposure = this.layout.bottomExposure;
     const mode = this.exposurePanelMode();
     const contentHeight = exposure.height * (
-      1 - this.gameLayout.exposureLipRatio(mode) - this.gameLayout.exposureNameStripRatio(mode)
+      1 - this.gameLayout.bottomExposureLipRatio(mode) - this.gameLayout.exposureNameStripRatio(mode)
     );
     const rackTile = this.layout.bottomTileLayout;
     const height = Math.min(
@@ -2665,10 +2703,10 @@ export class PhaserScene extends Phaser.Scene {
     const exposure = this.layout.bottomExposure;
     const tile = this.calledBottomExposureTileSize();
     const mode = this.exposurePanelMode();
-    const topLipHeight = exposure.height * this.gameLayout.exposureLipRatio(mode);
+    const topLipHeight = exposure.height * this.gameLayout.bottomExposureLipRatio(mode);
     const nameStripHeight = exposure.height * this.gameLayout.exposureNameStripRatio(mode);
     const contentHeight = exposure.height * (
-      1 - this.gameLayout.exposureLipRatio(mode) - this.gameLayout.exposureNameStripRatio(mode)
+      1 - this.gameLayout.bottomExposureLipRatio(mode) - this.gameLayout.exposureNameStripRatio(mode)
     );
     const gap = Math.max(2, Math.round(tile.width * 0.05));
     const startX = exposure.x + Math.max(5, Math.round(tile.width * 0.18)) + tile.width / 2;
@@ -3499,9 +3537,9 @@ export class PhaserScene extends Phaser.Scene {
 
       const tileWidth = Math.round(
         Phaser.Math.Clamp(
-          Math.min(widthByColumns, widthByRows, rackTile.width * 0.66),
+          Math.min(widthByColumns, widthByRows, rackTile.width),
           22,
-          42,
+          rackTile.width,
         ),
       );
 
@@ -3550,9 +3588,9 @@ export class PhaserScene extends Phaser.Scene {
 
       const tileWidth = Math.round(
         Phaser.Math.Clamp(
-          Math.min(widthByColumns, widthByRows, rackTile.width * 0.56),
+          Math.min(widthByColumns, widthByRows, rackTile.width),
           17,
-          30,
+          rackTile.width,
         ),
       );
 
@@ -3593,9 +3631,9 @@ export class PhaserScene extends Phaser.Scene {
 
     const tileWidth = Math.round(
       Phaser.Math.Clamp(
-        Math.min(widthFromColumns, widthFromRows, rackTile.width * 0.58),
+        Math.min(widthFromColumns, widthFromRows, rackTile.width),
         isTablet ? 22 : 26,
-        isTablet ? 38 : 46,
+        rackTile.width,
       ),
     );
 
@@ -3693,6 +3731,10 @@ export class PhaserScene extends Phaser.Scene {
       }
       this.exposureCloseButtons.clear();
     }
+
+    // Always clear the exposure build state on discard, as the turn is over
+    this.activeExposureBuildTileIds = [];
+    this.exposureBuildAsset = undefined;
 
     this.removeFromRackOrder(runtime.vm.tile_id!);
 
@@ -5015,7 +5057,7 @@ export class PhaserScene extends Phaser.Scene {
       isPassAnimating: this.isPassAnimating,
       isPickAnimating: this.isPickAnimating,
       wallTileCount: this.wallTileCount,
-      canPickFromWall: this.canPickFromWall(),
+      canPickFromWall: this.canPickFromWall(true),
       canDiscard: this.canDiscard,
       isPersonalTurn: this.stateManager.isPersonalTurn,
       rackLength: this.rackOrder.length,
@@ -5029,7 +5071,7 @@ export class PhaserScene extends Phaser.Scene {
       isPassAnimating: this.isPassAnimating,
       isPickAnimating: this.isPickAnimating,
       wallTileCount: this.wallTileCount,
-      canPickFromWall: this.canPickFromWall(),
+      canPickFromWall: this.canPickFromWall(true),
       canDiscard: this.canDiscard,
     });
 

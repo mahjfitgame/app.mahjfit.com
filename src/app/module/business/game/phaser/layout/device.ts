@@ -54,12 +54,12 @@ export class PhaserLayoutDevice implements OnDestroy {
   public resolveDeviceLayout(width: number, height: number): DeviceLayoutMode {
     const orientation = height >= width ? "portrait" : "landscape";
 
-    if (orientation === "portrait" && width <= 520) return "phone-portrait";
+    if (orientation === "portrait") {
+      if (width <= 520) return "phone-portrait";
+      return "tablet-portrait";
+    }
     if (orientation === "landscape" && height <= 520 && width <= 980) {
       return "phone-landscape";
-    }
-    if (orientation === "portrait" && width <= 1180 && height <= 1400) {
-      return "tablet-portrait";
     }
     if (
       orientation === "landscape" &&

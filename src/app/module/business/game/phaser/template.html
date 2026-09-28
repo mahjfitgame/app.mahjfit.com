@@ -36,29 +36,29 @@
 <div class="instruction-panel" aria-hidden="false" [style.display]="'block'" [style.left.px]="state.x"
   [style.top.px]="state.y" [style.width.px]="state.width" [style.height.px]="state.height"
   [style.borderWidth.px]="state.borderWidth" [style.borderRadius.px]="state.radius"
+  [style.background]="state.borderWidth === 0 ? '#c7c22e' : '#f4f2ec'"
   >
   <div class="instruction-panel__content" [style.left.px]="-state.borderWidth" [style.width.px]="state.width"
     [style.top.px]="state.contentTop - state.borderWidth"
+    [style.flexDirection]="state.borderWidth === 0 ? 'row' : 'column'"
     [style.height.px]="state.contentBottom - state.contentTop > 0 ? state.contentBottom - state.contentTop : 0">
     <div class="instruction-panel__title" [style.fontSize.px]="state.titleFontSize"
-      [style.marginBottom.px]="state.body ? state.titleGap : 0">{{ state.title }}</div>
+      [style.marginRight.px]="state.body ? state.titleGap : 0">{{ state.title }}</div>
     <div class="instruction-panel__body" [style.fontSize.px]="state.bodyFontSize">{{ state.body }}</div>
   </div>
+  @if (state.button && state.button.width > 0 && state.button.label) {
   <button type="button" class="instruction-panel__button btn-primary" [style.left.px]="state.button.x - state.borderWidth"
     [style.top.px]="state.button.y - state.borderWidth" [style.width.px]="state.button.width"
     [style.height.px]="state.button.height" [style.borderRadius.px]="state.button.radius"
     [style.fontSize.px]="state.button.fontSize"
-    
-     
-    [attr.aria-disabled]="!state.button.enabled" (click)="onInstructionPanelClick(state.button.action)">{{ state.button.label }}</button>
+    [attr.aria-disabled]="!state.button.enabled" (click)="state.button.enabled && onInstructionPanelClick(state.button.action)">{{ state.button.label }}</button>
+  }
   @if (state.secondaryButton) {
-  <button type="button" class="instruction-panel__button btn-secondary" [style.left.px]="state.secondaryButton.x - state.borderWidth"
+  <button type="button" class="instruction-panel__button btn-primary" [style.left.px]="state.secondaryButton.x - state.borderWidth"
     [style.top.px]="state.secondaryButton.y - state.borderWidth" [style.width.px]="state.secondaryButton.width"
     [style.height.px]="state.secondaryButton.height" [style.borderRadius.px]="state.secondaryButton.radius"
     [style.fontSize.px]="state.secondaryButton.fontSize"
-    
-     
-    [attr.aria-disabled]="!state.secondaryButton.enabled" (click)="onInstructionPanelClick(state.secondaryButton.action)">{{ state.secondaryButton.label }}</button>
+    [attr.aria-disabled]="!state.secondaryButton.enabled" (click)="state.secondaryButton.enabled && onInstructionPanelClick(state.secondaryButton.action)">{{ state.secondaryButton.label }}</button>
   }
 </div>
 }
@@ -69,61 +69,55 @@
 <div class="instruction-panel" aria-hidden="false" [style.display]="'block'" [style.left.px]="state.x"
   [style.top.px]="state.y" [style.width.px]="state.width" [style.height.px]="state.height"
   [style.borderWidth.px]="state.borderWidth" [style.borderRadius.px]="state.radius"
+  [style.background]="state.borderWidth === 0 ? 'transparent' : '#c7c22e'"
+  [style.pointerEvents]="state.borderWidth === 0 ? 'none' : 'auto'"
   >
   
+  @if (state.pickButton) {
+  <button type="button" class="instruction-panel__button" [style.left.px]="state.pickButton.x - state.x - state.borderWidth"
+    [style.top.px]="state.pickButton.y - state.y - state.borderWidth" [style.width.px]="state.pickButton.width"
+    [style.height.px]="state.pickButton.height" [style.borderRadius.px]="state.pickButton.radius"
+    [style.fontSize.px]="state.pickButton.fontSize"
+    [style.backgroundColor]="state.pickButton.enabled ? state.pickButton.background : '#9eb5c1'"
+    [style.color]="state.pickButton.color"
+    [attr.aria-disabled]="!state.pickButton.enabled" (click)="state.pickButton.enabled && onClaimPanelClick('pick')">{{ state.pickButton.label }}</button>
+  }
+
+  <button type="button" class="instruction-panel__button" [style.left.px]="state.callButton.x - state.x - state.borderWidth"
+    [style.top.px]="state.callButton.y - state.y - state.borderWidth" [style.width.px]="state.callButton.width"
+    [style.height.px]="state.callButton.height" [style.borderRadius.px]="state.callButton.radius"
+    [style.fontSize.px]="state.callButton.fontSize"
+    [style.backgroundColor]="state.callButton.enabled ? state.callButton.background : '#9eb5c1'"
+    [style.color]="state.callButton.color"
+    [attr.aria-disabled]="!state.callButton.enabled" (click)="state.callButton.enabled && onClaimPanelClick('call')">{{ state.callButton.label }}</button>
+
   @if (state.tileDataUrl) {
-    <img [src]="state.tileDataUrl" alt="Claim Tile" style="position: absolute;"
+    <img [src]="state.tileDataUrl" alt="Claim Tile" style="position: absolute; pointer-events: none;"
       [style.left.px]="state.tileX - state.x" [style.top.px]="state.tileY - state.y"
       [style.width.px]="state.tileWidth" [style.height.px]="state.tileHeight">
   }
 
-  <button type="button" class="instruction-panel__button btn-primary" [style.left.px]="state.callButton.x - state.borderWidth"
-    [style.top.px]="state.callButton.y - state.borderWidth" [style.width.px]="state.callButton.width"
-    [style.height.px]="state.callButton.height" [style.borderRadius.px]="state.callButton.radius"
-    [style.fontSize.px]="state.callButton.fontSize"
-    
-    
-     
-    [attr.aria-disabled]="!state.callButton.enabled" (click)="onClaimPanelClick('call')">{{ state.callButton.label }}</button>
-
-  <button type="button" class="instruction-panel__button btn-secondary" [style.left.px]="state.skipButton.x - state.borderWidth"
-    [style.top.px]="state.skipButton.y - state.borderWidth" [style.width.px]="state.skipButton.width"
+  <button type="button" class="instruction-panel__button" [style.left.px]="state.skipButton.x - state.x - state.borderWidth"
+    [style.top.px]="state.skipButton.y - state.y - state.borderWidth" [style.width.px]="state.skipButton.width"
     [style.height.px]="state.skipButton.height" [style.borderRadius.px]="state.skipButton.radius"
     [style.fontSize.px]="state.skipButton.fontSize"
-    
-    
-     
-    [attr.aria-disabled]="!state.skipButton.enabled" (click)="onClaimPanelClick('skip')">{{ state.skipButton.label }}</button>
+    [style.backgroundColor]="state.skipButton.enabled ? state.skipButton.background : '#9eb5c1'"
+    [style.color]="state.skipButton.color"
+    [attr.aria-disabled]="!state.skipButton.enabled" (click)="state.skipButton.enabled && onClaimPanelClick('skip')">{{ state.skipButton.label }}</button>
 
-  <button type="button" class="instruction-panel__button btn-primary" [style.left.px]="state.mahjongButton.x - state.borderWidth"
-    [style.top.px]="state.mahjongButton.y - state.borderWidth" [style.width.px]="state.mahjongButton.width"
+  <button type="button" class="instruction-panel__button" [style.left.px]="state.mahjongButton.x - state.x - state.borderWidth"
+    [style.top.px]="state.mahjongButton.y - state.y - state.borderWidth" [style.width.px]="state.mahjongButton.width"
     [style.height.px]="state.mahjongButton.height" [style.borderRadius.px]="state.mahjongButton.radius"
     [style.fontSize.px]="state.mahjongButton.fontSize"
-    
-    
-     
-    [attr.aria-disabled]="!state.mahjongButton.enabled" (click)="onClaimPanelClick('mahjong')">{{ state.mahjongButton.label }}</button>
+    [style.backgroundColor]="state.mahjongButton.enabled ? state.mahjongButton.background : '#9eb5c1'"
+    [style.color]="state.mahjongButton.color"
+    [attr.aria-disabled]="!state.mahjongButton.enabled" (click)="state.mahjongButton.enabled && onMahjongButtonClick()">{{ state.mahjongButton.label }}</button>
+
 </div>
 }
 }
 
-@if (mahjongButtonOverlay(); as state) {
-@if (state.visible) {
-  <button type="button" class="instruction-panel__button btn-primary" 
-    [style.position]="'absolute'"
-    [style.left.px]="state.x"
-    [style.top.px]="state.y" 
-    [style.width.px]="state.width"
-    [style.height.px]="state.height" 
-    [style.borderRadius.px]="state.radius"
-    [style.fontSize.px]="state.fontSize"
-    
-    
-    [style.zIndex]="100"
-    
-    (pointerdown)="$event.stopPropagation(); onMahjongButtonClick()">MAHJONG</button>
-}
-}
+
 
 @if (mobileDrawerState(); as state) {
 @if (state.visible) {
@@ -227,7 +221,7 @@
 }
 
 @if (mahjongWinResult(); as result) {
-<div class="mahjong-win-popup" aria-hidden="false" [style.display]="'block'" (pointerup)="onDismissMahjongWinPopup()">
+<div class="mahjong-win-popup" aria-hidden="false" [style.display]="'flex'" (pointerup)="onDismissMahjongWinPopup()">
   @for (confetti of mahjongConfetti(); track $index) {
   <div class="mahjong-win-popup__confetti" [style.left]="confetti.left" [style.top]="confetti.top"
     [style.width]="confetti.width" [style.height]="confetti.height" [style.background]="confetti.background"
@@ -237,9 +231,21 @@
   }
   <div class="mahjong-win-popup__card">
     <div class="mahjong-win-popup__title">MAH JONGG!</div>
-    <div class="mahjong-win-popup__winner">{{ result.winner === 'bottom' ? 'YOU WIN!' : (result.winner.toUpperCase() + '
-      WINS!') }}</div>
+    <div class="mahjong-win-popup__winner">{{ result.winner === 'bottom' ? 'YOU WIN!' : (result.winner.toUpperCase() + ' WINS!') }}</div>
     <div class="mahjong-win-popup__dismiss">TAP TO CONTINUE</div>
+  </div>
+</div>
+}
+
+@if (mahjongGameOver()) {
+<div class="wall-game-popup" aria-hidden="false">
+  <div class="wall-game-popup__card">
+    <div class="wall-game-popup__title">Game Over</div>
+    <div class="wall-game-popup__winner">The game has finished.</div>
+    <div class="wall-game-popup__actions">
+      <button type="button" class="popup-button-secondary" (pointerup)="$event.stopPropagation(); onExitGame()">EXIT GAME</button>
+      <button type="button" class="popup-button-active" (pointerup)="$event.stopPropagation(); onStartNewGame()">START NEW GAME</button>
+    </div>
   </div>
 </div>
 }
@@ -257,11 +263,14 @@
       assets/majhfit-logo@3x.png 3x
     " alt="MAJHFIT" draggable="false" />
 @if (wallGameOver()) {
-<div class="wall-game-popup" aria-hidden="false" [style.display]="'block'" (pointerup)="onDismissWallGamePopup()">
+<div class="wall-game-popup" aria-hidden="false">
   <div class="wall-game-popup__card">
     <div class="wall-game-popup__title">Wall Game</div>
     <div class="wall-game-popup__winner">That means no one win the game.</div>
-    <div class="wall-game-popup__dismiss">TAP TO CONTINUE</div>
+    <div class="wall-game-popup__actions">
+      <button type="button" class="popup-button-secondary" (pointerup)="$event.stopPropagation(); onExitGame()">EXIT GAME</button>
+      <button type="button" class="popup-button-active" (pointerup)="$event.stopPropagation(); onStartNewGame()">START NEW GAME</button>
+    </div>
   </div>
 </div>
 }

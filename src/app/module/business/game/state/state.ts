@@ -13,6 +13,7 @@ import { GameStateFieldEnum } from "../enum";
 import { GameStateCreated } from "./type";
 import { BfwApiSdkError, BfwApiSdkResponse } from "@bfw/api-sdk/core";
 import { FoundationModuleStateType } from "@libs/foundation/module/type";
+import { Router } from "@angular/router";
 
 @Service({ autoProvided: false })
 export class GameState extends SignalStateService implements FoundationModuleStateType {
@@ -25,6 +26,7 @@ export class GameState extends SignalStateService implements FoundationModuleSta
     public readonly gpbs = inject(GlobalProgressBarService);
     public readonly ctxp = inject(ContextProfileService);
     public readonly api = inject(BfwApiService);
+    private readonly router = inject(Router);
 
 
     // ████ CLASS PROPERTIES ████████████████████████████████████████████
@@ -199,12 +201,35 @@ export class GameState extends SignalStateService implements FoundationModuleSta
 
     // ████ _play_current_turn_seat_id SIGNAL ███████████████████████████████████████████
     public readonly play_claim_target_seat = computed<number[]>(() => {
-        return this.play_claim()?.target_seat || [];
+        const claim = this.play_claim();
+        if (!claim) return [];
+        if (claim.target_seat && claim.target_seat.length > 0) {
+            return claim.target_seat;
+        }
+        const fromSeat = claim.from_seat;
+        const seats = this.play()?.seats;
+        if (seats && typeof seats === 'object') {
+            const seatKeys = Array.isArray(seats) ? seats.map((s: any) => s.id) : Object.keys(seats).map(k => Number(k));
+            return seatKeys.filter((id: number) => id !== fromSeat);
+        }
+        return [];
     });
 
     // ████ _play_current_turn_seat_id SIGNAL ███████████████████████████████████████████
     public readonly play_claim_submissions = computed<Record<number, boolean>>(() => {
-        return this.play_claim()?.submissions || {};
+        const claim = this.play_claim();
+        if (!claim) return {};
+        const res: Record<number, boolean> = {};
+        if (claim.submissions) {
+            Object.assign(res, claim.submissions);
+        }
+        if (claim.intents && Array.isArray(claim.intents)) {
+            for (const intent of claim.intents as any[]) {
+                if (intent.seat_id) res[intent.seat_id] = true;
+                if (intent.u_id) res[intent.u_id] = true;
+            }
+        }
+        return res;
     });
 
     // ████ _play_current_turn_u_id SIGNAL ███████████████████████████████████████████
@@ -220,11 +245,11 @@ export class GameState extends SignalStateService implements FoundationModuleSta
     public readonly play_phase = computed<GamePhaseEnum | undefined>(() => {
         const phase = this.play()?.phase as any;
         if (typeof phase === 'number' || typeof phase === 'string') {
-            if (phase === 1 || phase === '1') return GamePhaseEnum.LOBBY;
-            if (phase === 2 || phase === '2') return GamePhaseEnum.PASSING;
-            if (phase === 3 || phase === '3') return GamePhaseEnum.PLAYING;
-            if (phase === 4 || phase === '4') return GamePhaseEnum.CLAIM;
-            if (phase === 5 || phase === '5') return GamePhaseEnum.FINISHED;
+            if (phase === 1 || phase === '1' || phase === 'LOBBY') return GamePhaseEnum.LOBBY;
+            if (phase === 2 || phase === '2' || phase === 'PASSING') return GamePhaseEnum.PASSING;
+            if (phase === 3 || phase === '3' || phase === 'PLAYING') return GamePhaseEnum.PLAYING;
+            if (phase === 4 || phase === '4' || phase === 'CLAIM') return GamePhaseEnum.CLAIM;
+            if (phase === 5 || phase === '5' || phase === 'FINISHED') return GamePhaseEnum.FINISHED;
         }
         return phase;
     });
@@ -1062,8 +1087,23 @@ export class GameState extends SignalStateService implements FoundationModuleSta
                 await this.afterGameStart();
                 return startResp;
             }
-        } catch (error) {
+        } catch (error: any | BfwApiSdkError) {
             this.log.error('ERROR START GAME', error);
+            // console.log('ERROR START GAME', error.message);
+            // console.log('ERROR RESPONSE', error.response);
+            // console.log('ERROR RS DATA', error.response.data.errors[0].message);
+            // console.log('ERROR STATUS', error.status);
+            if (error.status == 400) {
+                if (error.response.data.errors instanceof Array) {
+                    const arrError = error.response.data.errors;
+                    for (const key in arrError) {
+                        if (arrError[key].message.includes('No game found.')) {
+                            this.router.navigate(['/']);
+                        }
+                    }
+                }
+            }
+
             return false;
         }
         return false;

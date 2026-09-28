@@ -99,8 +99,6 @@ export class PhaserComponent implements AfterViewInit {
   /** Resets the temporary Discard selector after its one test discard. */
   readonly temporaryDiscardCompleted = output<void>();
   readonly joinTableRequestDecision = output<JoinTableRequestDecision>();
-  readonly restartGame = output<void>();
-  readonly quitGame = output<void>();
 
   private readonly zone = inject(NgZone);
   private readonly destroyRef = inject(DestroyRef);
@@ -141,6 +139,7 @@ export class PhaserComponent implements AfterViewInit {
   readonly deadHandClaimTarget = signal<Exclude<TableSeat, "bottom"> | null>(null);
   readonly deadHandClaimReason = signal<DeadHandReason>(GameDeadHandReasonEnum.FALSE_MAHJONG);
   readonly wallGameOver = signal<boolean>(false);
+  readonly mahjongGameOver = signal<boolean>(false);
   readonly mahjongWinResult = signal<MahjongWinCelebration | null>(null);
 
 
@@ -168,11 +167,11 @@ export class PhaserComponent implements AfterViewInit {
     if (order && order.length > 0) {
       // First, get all tiles that exist in the hand AND are in the order array
       const sortedTiles = order.map(id => hand[id]).filter(t => !!t);
-      
+
       // Then, find any tiles in the hand that are NOT in the order array
       // (e.g. newly picked tiles or tiles received from Charleston)
       const unassignedTiles = Object.values(hand).filter(t => !order.includes(t.tile_id!));
-      
+
       // Append unassigned tiles to the end of the rack
       return [...sortedTiles, ...unassignedTiles];
     }
@@ -464,18 +463,21 @@ export class PhaserComponent implements AfterViewInit {
     });
 
     effect(() => {
-      const isClaimPhase = this.gameState.play_phase() === GamePhaseEnum.CLAIM;
+      const phase = this.gameState.play_phase();
+      const isClaimPhase = phase === GamePhaseEnum.CLAIM || phase === GamePhaseEnum.PLAYING;
       if (!this.phaser || !this.sceneReady()) return;
 
       const targets: number[] = this.gameState.play_claim_target_seat() || [];
       const submitted: Record<number, boolean> = this.gameState.play_claim_submissions() || {};
       const mySeatId = this.gameState.personal_seat_id();
       const claimTile = this.gameState.play_claim_tile();
+      const claimObj = this.gameState.play_claim();
 
-      const isTargeted = mySeatId !== undefined && targets.includes(mySeatId);
-      const hasSubmitted = mySeatId !== undefined && submitted[mySeatId];
+      const fromSeat = this.gameState.play_claim_from_seat();
+      const isTargeted = mySeatId !== undefined && (targets.length === 0 ? mySeatId !== fromSeat : targets.includes(mySeatId));
+      const hasSubmitted = mySeatId !== undefined && !!submitted[mySeatId];
 
-      if (isClaimPhase && isTargeted && !hasSubmitted && claimTile) {
+      if (claimObj && claimTile && isTargeted && !hasSubmitted) {
         this.phaser.events.emit("ui:show-claim-window", { tile: claimTile });
       } else {
         this.phaser.events.emit("ui:hide-claim-window");
@@ -516,12 +518,33 @@ export class PhaserComponent implements AfterViewInit {
       const isFinished = this.gameState.play_phase() === GamePhaseEnum.FINISHED;
       const reason = this.gameState.play_finished_reason();
       const winnerSeatIds = this.gameState.play_winner_seat_ids();
+      const wallCount = this.gameState.play_wall_count();
 
-      if (this.phaser && this.sceneReady() && isFinished) {
-        if (reason === 'WALL_EMPTY') {
+      let winnerId = (reason === 'MAHJONG' && winnerSeatIds && winnerSeatIds.length > 0) ? winnerSeatIds[0] : null;
+
+      if (!winnerId) {
+        const seats = this.gameState.play_seats();
+        if (seats) {
+          for (const [seatId, seatData] of Object.entries(seats)) {
+            if (seatData?.racks) {
+              for (const rack of Object.values(seatData.racks)) {
+                if ((rack as any).is_mahjong) {
+                  winnerId = Number(seatId);
+                  break;
+                }
+              }
+            }
+            if (winnerId) break;
+          }
+        }
+      }
+
+      const isWallGame = reason === 'WALL_EMPTY' || (wallCount === 0 && !winnerId);
+
+      if (this.phaser && this.sceneReady() && (isFinished || isWallGame)) {
+        if (isWallGame) {
           this.wallGameOver.set(true);
-        } else if (reason === 'MAHJONG' && winnerSeatIds && winnerSeatIds.length > 0) {
-          const winnerId = winnerSeatIds[0];
+        } else if (winnerId) {
           const tableSeat = this.gameState.seat_position_by_gseat_id()(winnerId);
 
           if (tableSeat) {
@@ -650,13 +673,13 @@ export class PhaserComponent implements AfterViewInit {
           onDeadHandClaimPrompt: (targetSeat) => this.setDeadHandPopup(targetSeat),
           onTemporaryDiscardCompleted: () =>
             this.zone.run(() => this.temporaryDiscardCompleted.emit()),
-          onRestartGame: () => this.zone.run(() => this.restartGame.emit()),
-          onQuitGame: () => this.zone.run(() => this.quitGame.emit()),
+          onRestartGame: () => this.zone.run(() => this.onStartNewGame()),
+          onQuitGame: () => this.zone.run(() => this.onExitGame()),
         });
       });
 
       this.phaser = new Phaser.Game({
-        type: Phaser.WEBGL,
+        type: Phaser.AUTO,
         parent: host,
         // 2. Scale up base width and height by the DPR to match hardware pixels
         width: Math.max(1, host.clientWidth) * dpr,
@@ -1096,10 +1119,15 @@ export class PhaserComponent implements AfterViewInit {
 
   public onMahjongButtonClick(): void {
     console.log("Mahjong button clicked!");
-    this.gameState.publishMahjongDeclare();
+    this.phaser?.events.emit("instruction-panel:mahjong");
   }
 
-  public onClaimPanelClick(action: "call" | "skip" | "mahjong"): void {
+  public onClaimPanelClick(action: "call" | "skip" | "mahjong" | "pick"): void {
+    if (action === "pick") {
+      this.phaser?.events.emit("instruction-panel:primary-action");
+      return;
+    }
+
     const claimTile = this.gameState.play_claim_tile();
     if (!claimTile) return;
 
@@ -1173,20 +1201,21 @@ export class PhaserComponent implements AfterViewInit {
 
     this.mahjongConfetti.set(confettiList);
 
-    this.mahjongWinPopupTimer = window.setTimeout(() => {
-      this.mahjongWinPopupTimer = undefined;
-      this.setMahjongWinPopup(null);
-    }, 4200);
+    // Removed the automatic timer so the popup stays open permanently like the wall game popup.
+    // The user will dismiss it manually.
   }
 
   public onDismissMahjongWinPopup(): void {
-    if (this.mahjongWinPopupTimer !== undefined) {
-      this.setMahjongWinPopup(null);
-    }
+    this.setMahjongWinPopup(null);
+    this.mahjongGameOver.set(true);
   }
 
-  public onDismissWallGamePopup(): void {
-    this.wallGameOver.set(false);
+  public onExitGame(): void {
+    void this.router.navigate(["/"]);
+  }
+
+  public onStartNewGame(): void {
+    window.location.href = "/game";
   }
 
   private clearMahjongWinPopupTimer(): void {

@@ -19,9 +19,9 @@ Current:
 
 
 
-
+================ WEEKLY MEMO ==================
+Integrate bot auto-turn for discard and claim tiles, prepare exposure tiles, fix required gameplay issues, and implement tile sorting by suit and rank.
 Simultaneously working on integrate discard and claim tile with bot auto turn, upgrade the charleson round and implemented the bliend pass and optional across allow to pass tile(1 or 2 or 3). 
-
 
 
 ================ BACKEND API ==================
@@ -133,10 +133,18 @@ tiles.mp3
 Update the frontend code to use the AudioSprite to merge the sound files. Update the frontend code to use the AudioSprite to merge the sound files. 
 
 
+4]
+Changed the instructions panel and the botton placement as per the feedback.
+While playing the game found bot decision issue so upgrade the  the baeckend api discard tile logic.
+
+
+
 
 
 When bot make PUNK, KONG, QUINT etc... 
-
+Also the bot consider the discarded tiles and the exposure of other player when take any decision. 
+Bot play same as human and tried to win the game.
+Bot take decision as per the bot level.
 
 
 ================ IMPORTANT ===================
@@ -270,6 +278,73 @@ Would you like to start planning out how we could build this smart pattern-match
 
 
 ============= TODO =============
+
+#]
+While playing the game, there is my turn and wall have last tile to PICK when I pick it directly show the WALL GAME, so in that case, I don't have option to make Mahjong or pass the turn. It should be same as the normal turn. Show the option to make mahjong, pick, call, skip, pass. And on discard I think the gaame is end. if that tile no onec claim.
+
+
+#]
+Analysed the 1xtile atlas (public/assets/game/tiles/1x) and 2xtile atlast (public/assets/game/tiles/2x) which is best for the mobile device beacuse right now the tiles are too blurry in mobile devices. 
+
+DONE - #]
+Make the same size of tile in the discard area as we have in the rack. 
+Discard area tile size should be same as the rack tile size, so it show clear.
+
+DONR - #]
+Make the exposure panel and bottom rack tile space same as the top side space, also in some mobile device exposure tiles are not showing properly.
+
+DONE - #]
+Need gap bitweens the buttons (CALL, SKIP, TILE, PICK, MAHJONG) for the claim tile
+
+DONE - #]
+In mobile device instruction panel should be in the exposure and if it not preoply readed then findout some other way.
+Remove the current yellow box and move that instruction to the exposure panel same as the destop device. 
+
+DONE - #]
+Backend the API is stuck on the bot turn, 
+Why its stuck at 
+
+ERROR [09:52:33.000] (LibLogger/10267): [BOT_TURN_FAILED]
+    context: "SwaggerConfig"
+[TIMER:CLEAR_CLAIM BOT TURN] { keyid: '01a0c2c6-b067-7138-b9b3-f6e8396aacd3' }
+[TIMER:SCHEDULE_AUTO] { keyid: '01a0c2c6-b067-7138-b9b3-f6e8396aacd3' }
+[TIMER:CLEAR_CLAIM BOT TURN] { keyid: '01a0c2c6-b067-7138-b9b3-f6e8396aacd3' }
+TRACE [09:52:33.000] (LibLogger/10267): [NEXT_TURN_CHECK]
+    context: "SwaggerConfig"
+TRACE [09:52:33.000] (LibLogger/10267): [BOT_TURN_SCHEDULED]
+    context: "SwaggerConfig"
+TRACE [09:52:34.000] (LibLogger/10267): [BOT_TURN_FIRED]
+    context: "SwaggerConfig"
+
+The same issue repeatedly or what exactly happens
+
+
+#]
+https://localhost:20180/game/01a0c44e-5441-7663-afcb-2322f2caa181
+
+
+#]
+Wall game popup and end the game.
+claim: null
+current_turn_rack_id: 1
+current_turn_seat_id: 3071
+last_claim: {tile: {…}, from_seat: 3076, deadline_at: 1789813803766, intents: {…}, target_seat: Array(3), …}
+pass: {}
+phase: 3
+seats: 
+3071: {game_id: 667, gseattype_id: 1, u_id: 65, user_disconnected: null, active: null, …}
+3072: {game_id: 667, gseattype_id: 2, u_id: null, user_disconnected: null, active: null, …}
+3073: {game_id: 667, gseattype_id: 5, u_id: null, user_disconnected: null, active: null, …}
+3074: {game_id: 667, gseattype_id: 6, u_id: null, user_disconnected: null, active: null, …}
+3075: {game_id: 667, gseattype_id: 3, u_id: null, user_disconnected: null, active: null, …}
+3076: {game_id: 667, gseattype_id: 4, u_id: null, user_disconnected: null, active: null, …}
+
+turn_stage: 1
+wall_count: 0
+
+
+
+
 #]
 IMPORTANT 
 When the turn is not current player then click on MAHJONG didn't make the API call just play sound
@@ -288,21 +363,22 @@ In sort, on next turn the player call button will enable. Because the next turn 
 #]
 On reload or initial load if found the hand_order array is not blank then follow the order assign in this. 
 
-#]
+DONE - #]
 If bot CALL the tile play the call sound. 
 
 #]
 Dead hand remains
 
-#]
+DONE - #]
 Backend need seperate call for the Mahjong to send the request and check wether this player can do the mahjong or not. By sending request from the client side. 
 
 On going work,
-#]
+
+DONE - #]
 Sort tiles are remains.
 Analysis How sort tiles work, sort by rank and sort by suit.
 
-#]
+DONE - #]
 Mahjong OR Wall game
 Also how client side know and get the updated state that game is ended. And is there anything we have to upgrade.
 
@@ -320,7 +396,7 @@ The second popup should be like.
 Are you sure? YES or NO
 Then an audio for “Charleston Stopped”. 
 
-#]
+DONE - #]
 Texture "__MISSING" has no frame "wind_w@2x.png"
 scene.ts:2282 Texture "__MISSING" has no frame "wind_w@2x.png"
 
@@ -337,16 +413,19 @@ scene.ts:2282 Texture "__MISSING" has no frame "dot_1@2x.png"
 
 #]
 Make sure every where for the other ENUM but make sure it will not break the corrent working things, as we don't know when it comes to string and when come integer so both value are accepted or we can first convert the string value with the INTEGER.
+
 #]
 Need smooth small animation for another opponent seat when make PUNG, KONG etc... when they claim the tile from the discard area and make the PUNG, KONG etc....
 So generally the animation is Discarded tile move to the specific seat exposure and this is already works now need animation for another 2,3,4 etc.. tile as per the group, rack to exposure.
-#]
+
+DONE - #]
 When make CALL request play sound "call.mp3"
 DONE - #]
 Remove the claim tile from the discard area when it assign to specific seat exposure.
 DONE - #]
 When claim window open and move tile from the rack to exposure that tile must have close icon to back that tile to the rack, but this only allow while the current claim tile option is enable once the exposure complete and discard the tile, don't remove the close button from the move tile and disble to back it to the rack.
-#]
+
+DONE - #]
 Sometime stuck at:
 
 TRACE [07:32:10.000] (LibLogger/7041): [NEXT_TURN_CHECK]
@@ -372,6 +451,96 @@ Need to enable/disable sound as per the user preferences.
 Play background music while game play. Now here might be one challenges is how to play two sound at a time, so need to cross checck everything.
 
 ============= REPLY ============= 
+
+Please let me know about the homepage design at least. I can manage the remaining pages myself.
+
+Regarding the frontend homepage layout and design, if you would like me to create a mockup based on the content provided by Carolyn, please let me know.
+
+Alternatively, will you be discussing and finalizing the homepage design and layout on your end?
+
+
+
+
+-----
+JENNIFER MSG 
+PFA: service_unavailable
+@raj i’m having trouble accessing the game
+REPLY]
+Yes, this happened because the server shut down due to a power cut. I have restarted the server, and the site is live now. You can check it from your side.
+Thank you!
+
+
+
+
+In exposure need same hight for the USERNAME and the bottom space, there we show the instruction text.
+
+moving the instructions down onto the exposure of the user instead of the pop-up box on the game board. 
+In order to fit the instructions we may want to have both the top and the bottom of the user's exposure be wide both the top and the bottom.
+
+
+Do nit change in the code first check the possible issue, because you did the wrong changes,
+The issue I given is not for the Siamese game play its four player game play so I revert the last changes you suggested for
+rule.ts
+
+Also check the given photos there is more tiles seat rack have because exposure have only 4 tiles so remain tiles is in the rack hands, then why this issue happens?
+Find the exact possible root cause to happen this after that we apply the proper solution.
+
+
+
+
+
+we like the rack flipped as you have shown here, thanks so much!
+
+let's move forward with this style as well as moving the instructions down onto the rack instead of the pop-up box on the game board. 
+In order to fit the instructions we may want to have both the top and the bottom of the user's rack be wide both the top and the bottom.
+
+PFA: Directions.pdf
+
+See the screen shots of the notes I have so far:
+
+PFA: 
+After_Pick.pdf
+discarded_Tile.pdf
+move icons.pdf
+sort_rank.pdf
+Sort_Suit.pdf
+Sort.pdf
+
+
+Regarding the instruction panel, let me figurout the best way, if you have any other idea then also let me know.
+Becuase we also have to think about the mobile layout and in mobile device the exposure panel is too tiny.
+
+
+------
+
+FOR CLIENT]
+Please note that Developer will be on leave this Friday and Saturday.
+
+
+FOR CLIENT]
+Today, I worked on setup responsive layout with the feedback point and also upgrade the wall and mahjong game logic as per the use cases I found while upgrade the UI and test the app while development. 
+
+I will keep you posted on the work progress.
+Thank you!
+
+FOR CLIENT]
+Today, I worked on some layout points provided as per your feedback and cross check the sort tile feature order as per the given order in the point. 
+
+I will keep you posted on the work progress.
+Thank you!
+
+
+
+
+FOR CLIENT]
+Today, I worked on improving the sound file loading process. Instead of loading multiple audio tiles, I generated two sound files using an Audio Sprite. The sounds are now loaded and played during gameplay as needed.
+
+I also implemented the wall game popup, along with the options to exit the game or start a new game when the current game ends.
+
+I will keep you posted on the work progress.
+Thank you!
+
+
 FOR CLIENT]
 Today, I worked on the multiple points such as implemented the sort tiles feature, added confirmation 2nd popup when stop second roud, flip the bottom seat exposure panel. Upgrade bacekdn API sort tile functionality and client side wrapper.
 

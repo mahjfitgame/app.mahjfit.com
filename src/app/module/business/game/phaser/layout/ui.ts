@@ -11,6 +11,7 @@ import { HamburgerMenuActionKey, HudActionKey, HudImageButton, InstructionPanelB
  * Gameplay actions remain callbacks owned by TableScene.
  */
 export class PhaserLayoutUi {
+  private lastSortMode: "rank" | "suit" = "suit";
   hudTextObjects: Phaser.GameObjects.Text[] = [];
   hudActionIconImage: Phaser.GameObjects.Image[] = [];
   playerLabels: Phaser.GameObjects.Text[] = [];
@@ -147,7 +148,6 @@ export class PhaserLayoutUi {
       icon: "↻",
       label: "Sort",
       tooltip: "Sort Tiles",
-      items: ["Sort By Rank", "Sort By Suit"],
     },
     {
       key: "hint" as const,
@@ -566,11 +566,11 @@ export class PhaserLayoutUi {
     // The instruction card, its copy, and its primary button are native HTML.
     // updateInstruction()/updatePassButtonState() republish that panel below.
     this.updateInstruction(tablePhase, options.charlestonStage, options.isPersonalTurn, passDirection, options.canDiscard ?? false);
-    
+
     if (options.username && this.usernameText) {
       this.usernameText.setText(options.username.toUpperCase());
     }
-    
+
     this.updatePlayerNames(layout, renderDpr, options.activeSeat);
 
     this.updatePassButtonState(options);
@@ -663,8 +663,9 @@ export class PhaserLayoutUi {
       return;
     }
     if (label === "Sort") {
-      this.mobileActionSubmenu = "sort";
-      this.renderOpenMenusNow();
+      this.lastSortMode = this.lastSortMode === "rank" ? "suit" : "rank";
+      this.callbacks.onSortRequested?.(this.lastSortMode);
+      this.closeMobileDrawers();
       return;
     }
     if (label === "Settings") {
@@ -922,32 +923,10 @@ export class PhaserLayoutUi {
           return;
         }
 
-        // Sort has its own two-option submenu instead of sorting immediately.
-        if (action === "sort" && !isSubmenuItem) {
-          this.mobileActionSubmenu = "sort";
-          this.renderOpenMenusNow();
-          return;
-        }
-
         /**
          * Back row returns from Settings submenu to root drawer.
          */
         if (action === "settings" && isSubmenuItem && rowLabel === "‹ Back") {
-          this.mobileActionSubmenu = undefined;
-          this.renderOpenMenusNow();
-          return;
-        }
-
-        if (action === "sort" && isSubmenuItem && rowLabel === "‹ Back") {
-          this.mobileActionSubmenu = undefined;
-          this.renderOpenMenusNow();
-          return;
-        }
-
-        const sortMode = rowLabel === "Sort By Rank" ? "rank" : rowLabel === "Sort By Suit" ? "suit" : undefined;
-        if (sortMode) {
-          this.callbacks.onSortRequested?.(sortMode);
-          this.mobileActionMenuOpen = false;
           this.mobileActionSubmenu = undefined;
           this.renderOpenMenusNow();
           return;
@@ -1059,27 +1038,6 @@ export class PhaserLayoutUi {
           action: "settings" as const,
           normalTexture: settingsTextures.normal,
           activeTexture: settingsTextures.active,
-          isSubmenuItem: true,
-        })),
-      ];
-    }
-
-    if (this.mobileActionSubmenu === "sort") {
-      const sortTextures = this.hudActionTextures.sort;
-      const sortAction = this.hudActions.find((action) => action.key === "sort");
-      return [
-        {
-          label: "‹ Back",
-          action: "sort",
-          normalTexture: sortTextures.normal,
-          activeTexture: sortTextures.active,
-          isSubmenuItem: true,
-        },
-        ...(sortAction?.items ?? []).map((label) => ({
-          label,
-          action: "sort" as const,
-          normalTexture: sortTextures.normal,
-          activeTexture: sortTextures.active,
           isSubmenuItem: true,
         })),
       ];
@@ -1888,6 +1846,76 @@ export class PhaserLayoutUi {
   }
 
 
+  getActionButtonsConfig(layout: TableLayout, hasTile: boolean = true) {
+    const exposure = layout.bottomExposure;
+    const isSmallMobile = layout.metrics.isMobile && !layout.metrics.isTablet;
+
+    // Use smaller ratios for narrow mobile screens, original ratios for tablet/desktop
+    let buttonWidth = isSmallMobile
+      ? Math.round(Phaser.Math.Clamp(exposure.width * 0.17, 38, 80))
+      : Math.round(Phaser.Math.Clamp(exposure.width * 0.22, 50, 110));
+
+    let mahjongButtonWidth = Math.round(buttonWidth * 1.35); // 35% wider for the long text
+    const buttonHeight = Math.round(Phaser.Math.Clamp(layout.canvas.height * 0.045, 24, 36));
+
+    const panelHeight = Math.round(Phaser.Math.Clamp(layout.metrics.passButtonHeight * 3.5, 90, 160));
+    const tileHeight = Math.round(panelHeight * 0.7);
+    const tileWidth = hasTile ? Math.round(tileHeight * (layout.bottomTileLayout.width / layout.bottomTileLayout.height)) : 0;
+
+    // Apply the proportional tight gap for ALL devices, as requested
+    let gap = Math.round(buttonWidth * 0.12);
+    const tileGap = hasTile ? gap : 0;
+
+    // Prevent horizontal overflow on small screens and narrow tablet portraits
+    const availableSpace = layout.rightExposure.x - (layout.leftExposure.x + layout.leftExposure.width);
+    const maxWidth = Math.min(layout.canvas.width, availableSpace) - 24; // 12px padding on each side
+    let totalWidth = 3 * buttonWidth + mahjongButtonWidth + tileWidth + 3 * gap + tileGap;
+
+    if (totalWidth > maxWidth) {
+      const excess = totalWidth - maxWidth;
+      const gapReduction = Math.min(gap - 2, excess / (3 + (hasTile ? 1 : 0)));
+      gap -= gapReduction;
+      totalWidth -= gapReduction * (3 + (hasTile ? 1 : 0));
+
+      if (totalWidth > maxWidth) {
+        const fixedWidth = tileWidth + 3 * gap + tileGap;
+        buttonWidth = (maxWidth - fixedWidth) / 4.35; // 3 normal + 1.35 for mahjong
+        mahjongButtonWidth = buttonWidth * 1.35;
+        totalWidth = 3 * buttonWidth + mahjongButtonWidth + fixedWidth;
+      }
+    }
+
+    const startX = layout.canvas.x + layout.canvas.width / 2 - totalWidth / 2;
+
+    // Guarantee that the bottom of the buttons and tile sits completely above the yellow strip on ALL devices
+    const bottomEdge = exposure.y - 8;
+    const tileY = bottomEdge - tileHeight;
+    const buttonY = bottomEdge - buttonHeight;
+
+    return {
+      buttonWidth,
+      mahjongButtonWidth,
+      buttonHeight,
+      tileWidth,
+      tileHeight,
+      gap,
+      buttonY,
+      tileY,
+      // Expected Order: CALL, SKIP, [TILE], PICK, MAHJONG
+      claimX: startX,
+      skipX: startX + buttonWidth + gap,
+      tileX: startX + 2 * buttonWidth + 2 * gap,
+      pickX: startX + 2 * buttonWidth + tileWidth + 2 * gap + tileGap,
+      mahjongX: startX + 3 * buttonWidth + tileWidth + 3 * gap + tileGap,
+      radius: Math.round(buttonHeight * 0.25),
+      // Scale font down if buttonWidth becomes very small
+      fontSize: Math.round(Math.min(buttonHeight * 0.4, buttonWidth * 0.19)),
+      mahjongFontSize: Math.round(Math.min(buttonHeight * 0.4, mahjongButtonWidth * 0.17)),
+      shadowY: Math.max(1, Math.round(buttonHeight * 0.05)),
+      shadowBlur: Math.max(1, Math.round(buttonHeight * 0.1)),
+    };
+  }
+
   updateInstruction(
     phase: GamePhaseEnum,
     charlestonStage: GameCharlestoneStageEnum | undefined,
@@ -1901,8 +1929,11 @@ export class PhaserLayoutUi {
     this.charlestonStage = charlestonStage;
 
     if (phase !== GamePhaseEnum.PASSING && phase !== GamePhaseEnum.LOBBY) {
-      if (phase === GamePhaseEnum.PLAYING && !canDiscard && isPersonalTurn) {
+      const isGameplay = phase === GamePhaseEnum.PLAYING || phase === GamePhaseEnum.CLAIM;
+      if (isGameplay && !canDiscard && isPersonalTurn) {
         this.instructionMessage = "Pick a tile";
+      } else if (isGameplay && canDiscard && isPersonalTurn) {
+        this.instructionMessage = "Discard A Tile";
       } else {
         this.instructionMessage = "";
       }
@@ -1961,28 +1992,50 @@ export class PhaserLayoutUi {
     let buttonWidth = button.width;
     let buttonHeight = button.height;
 
+    // Use the central popup for passing (Charleston) and lobby phases
+    if (isPassing || this.instructionPhase === GamePhaseEnum.LOBBY) {
+      // Tighter dimensions to perfectly match the provided design mockups
+      cardHeight = Math.round(Phaser.Math.Clamp(layout.metrics.passButtonHeight * 2.6, 75, 120));
+      cardWidth = Math.round(Phaser.Math.Clamp(cardHeight * 2.3, 190, 280));
+
+      cardX = Math.round(layout.canvas.x + (layout.canvas.width - cardWidth) / 2);
+      cardY = Math.round(layout.canvas.y + (layout.canvas.height - cardHeight) / 2);
+
+      buttonHeight = Math.round(cardHeight * 0.32);
+      buttonWidth = Math.round(buttonHeight * 2.6);
+
+      buttonX = Math.round(cardX + (cardWidth - buttonWidth) / 2);
+      buttonY = Math.round(cardY + cardHeight - buttonHeight - (cardHeight * 0.12));
+    } else if (this.instructionPhase === GamePhaseEnum.PLAYING || this.instructionPhase === GamePhaseEnum.CLAIM) {
+      const cfg = this.getActionButtonsConfig(layout);
+      buttonX = cfg.pickX;
+      buttonY = cfg.buttonY;
+      buttonWidth = cfg.buttonWidth;
+      buttonHeight = cfg.buttonHeight;
+    }
+
     if (isPassing && compact) {
       const shrinkFactor = 0.80; // 20% smaller
 
-      const newCardWidth = card.width * shrinkFactor;
-      const newCardHeight = card.height * shrinkFactor;
-      cardX += (card.width - newCardWidth) / 2;
-      cardY += (card.height - newCardHeight) / 2;
+      const newCardWidth = cardWidth * shrinkFactor;
+      const newCardHeight = cardHeight * shrinkFactor;
+      cardX += (cardWidth - newCardWidth) / 2;
+      cardY += (cardHeight - newCardHeight) / 2;
       cardWidth = newCardWidth;
       cardHeight = newCardHeight;
 
-      const newButtonWidth = button.width * shrinkFactor;
-      const newButtonHeight = button.height * shrinkFactor;
-      buttonX += (button.width - newButtonWidth) / 2;
-      buttonY += (button.height - newButtonHeight) / 2;
+      const newButtonWidth = buttonWidth * shrinkFactor;
+      const newButtonHeight = buttonHeight * shrinkFactor;
+      buttonX += (buttonWidth - newButtonWidth) / 2;
+      buttonY += (buttonHeight - newButtonHeight) / 2;
       buttonWidth = newButtonWidth;
       buttonHeight = newButtonHeight;
     }
 
-    const radius = Math.round(Phaser.Math.Clamp(cardHeight * 0.22, 16, 34));
+    let radius = isPassing ? Math.round(Phaser.Math.Clamp(cardHeight * 0.22, 16, 34)) : 0;
     // The reference card carries a heavier olive rim than the old Phaser
     // stroke, held to a sane range so phone-sized cards keep their inner room.
-    const borderWidth = Math.round(Phaser.Math.Clamp(cardHeight * 0.026, 3, 7));
+    let borderWidth = isPassing ? Math.round(Phaser.Math.Clamp(cardHeight * 0.026, 3, 7)) : 0;
 
     let bodyFontSize = compactLandscape
       ? Math.round(Phaser.Math.Clamp(layout.hud.height * 0.11, 7, 9))
@@ -1994,6 +2047,12 @@ export class PhaserLayoutUi {
 
     if (isPassing && compact) {
       bodyFontSize = Math.round(bodyFontSize * 0.85); // Shrink text slightly
+    }
+
+    if (!isPassing) {
+      // Consistently size the text to fit the thin exposure tray across all other phases.
+      const scaleFactor = layout.metrics.isMobile ? 0.45 : 0.60;
+      bodyFontSize = Math.round(Phaser.Math.Clamp(cardHeight * scaleFactor, 12, layout.metrics.isMobile ? 18 : 22));
     }
 
     const buttonRadius = Math.round(Phaser.Math.Clamp(buttonHeight * 0.22, 6, 12));
@@ -2008,23 +2067,34 @@ export class PhaserLayoutUi {
       buttonFontSize = Math.round(buttonFontSize * 0.85); // Shrink button text slightly
     }
 
-    // The first segment is the emphasised heading; the rest is supporting copy.
-    const [titleSegment, ...bodySegments] = this.instructionMessage.split("|");
+    let instructionMessage = this.instructionMessage;
+
+    if (!isPassing) {
+      // Remove newlines so the text flows horizontally in the tray for non-passing phases
+      instructionMessage = instructionMessage.replace(/\n/g, " ");
+    }
+
+    const [titleSegment, ...bodySegments] = instructionMessage.split("|");
     const title = titleSegment;
     const body = bodySegments.join("\n");
-    const titleLines = title.split("\n");
+    const titleLines = title ? title.split("\n") : [];
     const bodyLines = body ? body.split("\n") : [];
 
     const buttonTop = Math.round(buttonY - cardY);
 
-    // Short phone cards are barely taller than their button, so they trade
-    // breathing room for legible copy; roomier cards keep the fuller insets.
     const tight = cardHeight < 100;
     const contentTop = Math.round(cardHeight * (tight ? 0.045 : 0.08));
-    const contentBottom = Math.max(
+
+    // Shrink the text content area so it stops just above the button
+    let contentBottom = Math.max(
       contentTop,
       buttonTop - Math.round(cardHeight * (tight ? 0.025 : 0.045)),
     );
+
+    if (this.instructionPhase === GamePhaseEnum.PLAYING || this.instructionPhase === GamePhaseEnum.CLAIM) {
+      // Full height for non-passing horizontal layout
+      contentBottom = cardHeight - contentTop;
+    }
 
     /**
      * Shrink the copy to the band above the button when it would not fit.
@@ -2034,13 +2104,23 @@ export class PhaserLayoutUi {
      * taller than their button, and this keeps the copy inside the card
      * instead of letting it run over the button.
      */
-    let titleFontSize = Math.round(bodyFontSize * 1.12);
+    let titleFontSize = bodyFontSize;
     let bodyFitted = bodyFontSize;
-    let titleGap = body ? Math.max(2, Math.round(bodyFontSize * 0.34)) : 0;
+    let titleGap = body ? Math.max(4, Math.round(bodyFontSize * 0.4)) : 0;
 
     const band = contentBottom - contentTop;
-    const required =
-      titleLines.length * titleFontSize * 1.2 + titleGap + bodyLines.length * bodyFitted * 1.32;
+    let required = 0;
+
+    if (this.instructionPhase === GamePhaseEnum.PLAYING || this.instructionPhase === GamePhaseEnum.CLAIM) {
+      // Since the layout is horizontal (flex-direction: row), the required vertical space is just the maximum line-height.
+      required = Math.max(
+        titleLines.length > 0 ? titleFontSize * 1.2 : 0,
+        bodyLines.length > 0 ? bodyFitted * 1.32 : 0
+      );
+    } else {
+      // Since the layout is vertical (flex-direction: column), the required vertical space is the sum.
+      required = titleLines.length * titleFontSize * 1.2 + titleGap + bodyLines.length * bodyFitted * 1.32;
+    }
 
     if (band > 0 && required > band) {
       // 8px matches the smallest size the compact-landscape clamp already
@@ -2052,13 +2132,22 @@ export class PhaserLayoutUi {
       titleGap = body ? Math.max(1, Math.floor(titleGap * scale)) : 0;
     }
 
-    const maxTitleWidthPx = cardWidth - (borderWidth * 2) - 16;
-    // Poppins 700 is approx 0.55em per character on average.
-    const maxTitleLineLength = Math.max(...titleLines.map((l) => l.length), 0);
-    const approxTitleWidth = maxTitleLineLength * titleFontSize * 0.55;
-    if (approxTitleWidth > maxTitleWidthPx && maxTitleWidthPx > 0) {
-      const hScale = maxTitleWidthPx / approxTitleWidth;
-      titleFontSize = Math.max(8, Math.floor(titleFontSize * hScale));
+    // For PLAYING and CLAIM, override scaling if we just want it centered in the lip
+    if (this.instructionPhase === GamePhaseEnum.PLAYING || this.instructionPhase === GamePhaseEnum.CLAIM) {
+      titleFontSize = bodyFontSize;
+      bodyFitted = bodyFontSize;
+      titleGap = body ? Math.round(bodyFontSize * 0.4) : 0;
+    }
+
+    if (this.instructionPhase === GamePhaseEnum.PLAYING || this.instructionPhase === GamePhaseEnum.CLAIM) {
+      const maxTitleWidthPx = cardWidth - (borderWidth * 2) - 16;
+      // Poppins 700 is approx 0.55em per character on average.
+      const maxTitleLineLength = Math.max(...titleLines.map((l) => l.length), 0);
+      const approxTitleWidth = maxTitleLineLength * titleFontSize * 0.55;
+      if (approxTitleWidth > maxTitleWidthPx && maxTitleWidthPx > 0) {
+        const hScale = maxTitleWidthPx / approxTitleWidth;
+        titleFontSize = Math.max(8, Math.floor(titleFontSize * hScale));
+      }
     }
 
     const isSecondDecision = this.charlestonStage === GameCharlestoneStageEnum.SECOND_DECISION;
@@ -2097,6 +2186,19 @@ export class PhaserLayoutUi {
         fontSize: buttonFontSize,
         shadowY: Math.max(3, Math.round(buttonHeight * 0.10)),
         shadowBlur: Math.max(6, Math.round(buttonHeight * 0.22)),
+      };
+    } else if (this.instructionPhase === GamePhaseEnum.PLAYING || this.instructionPhase === GamePhaseEnum.CLAIM) {
+      buttonConfig = {
+        label: "",
+        enabled: false,
+        x: 0,
+        y: 0,
+        width: 0,
+        height: 0,
+        radius: 0,
+        fontSize: 0,
+        shadowY: 0,
+        shadowBlur: 0,
       };
     } else {
       buttonConfig = {
@@ -2147,130 +2249,103 @@ export class PhaserLayoutUi {
     const layout = this.lastLayout;
     if (!layout) return;
 
-    if (!this.isClaimWindowVisible) {
-      this.claimTileRect = undefined;
+    if (this.instructionPhase === GamePhaseEnum.PLAYING || this.instructionPhase === GamePhaseEnum.CLAIM) {
+      const cfg = this.getActionButtonsConfig(layout, !!this.claimTileDataUrl);
+      const buttonRadius = cfg.radius;
+      const buttonFontSize = cfg.fontSize;
+
+      const pickButtonConfig = {
+        label: "PICK",
+        enabled: this.passButtonEnabled,
+        action: "pass" as const,
+        x: cfg.pickX,
+        y: cfg.buttonY,
+        width: cfg.buttonWidth,
+        height: cfg.buttonHeight,
+        radius: buttonRadius,
+        fontSize: buttonFontSize,
+        shadowY: cfg.shadowY,
+        shadowBlur: cfg.shadowBlur,
+        background: COLOR_FUSHIA,
+        color: "#ffffff"
+      };
+
+      const callButtonConfig = {
+        label: "CALL",
+        enabled: this.isClaimWindowVisible,
+        action: "call" as const,
+        x: cfg.claimX,
+        y: cfg.buttonY,
+        width: cfg.buttonWidth,
+        height: cfg.buttonHeight,
+        radius: buttonRadius,
+        fontSize: buttonFontSize,
+        shadowY: cfg.shadowY,
+        shadowBlur: cfg.shadowBlur,
+        background: COLOR_FUSHIA,
+        color: "#ffffff"
+      };
+
+      const skipButtonConfig = {
+        label: "SKIP",
+        enabled: this.isClaimWindowVisible,
+        action: "pass" as const,
+        x: cfg.skipX,
+        y: cfg.buttonY,
+        width: cfg.buttonWidth,
+        height: cfg.buttonHeight,
+        radius: buttonRadius,
+        fontSize: buttonFontSize,
+        shadowY: cfg.shadowY,
+        shadowBlur: cfg.shadowBlur,
+        background: COLOR_FUSHIA,
+        color: "#ffffff"
+      };
+
+      const mahjongButtonConfig = {
+        label: "MAHJONG",
+        enabled: true, // We will update this soon with proper condition
+        action: "mahjong" as const,
+        x: cfg.mahjongX,
+        y: cfg.buttonY,
+        width: cfg.mahjongButtonWidth,
+        height: cfg.buttonHeight,
+        radius: buttonRadius,
+        fontSize: cfg.mahjongFontSize,
+        shadowY: cfg.shadowY,
+        shadowBlur: cfg.shadowBlur,
+        background: COLOR_FUSHIA,
+        color: "#ffffff"
+      };
+
+      const tileY = cfg.tileY;
+      this.claimTileRect = { x: cfg.tileX, y: tileY, width: cfg.tileWidth, height: cfg.tileHeight };
+
       this.callbacks.onClaimPanelOverlay?.({
-        visible: false,
-        x: 0, y: 0, width: 0, height: 0, radius: 0, borderWidth: 0, shadowY: 0, shadowBlur: 0,
-        tileX: 0, tileY: 0, tileWidth: 0, tileHeight: 0,
-        callButton: { label: "", enabled: false, action: "pass", x: 0, y: 0, width: 0, height: 0, radius: 0, fontSize: 0, shadowY: 0, shadowBlur: 0 },
-        skipButton: { label: "", enabled: false, action: "pass", x: 0, y: 0, width: 0, height: 0, radius: 0, fontSize: 0, shadowY: 0, shadowBlur: 0 },
-        mahjongButton: { label: "", enabled: false, action: "pass", x: 0, y: 0, width: 0, height: 0, radius: 0, fontSize: 0, shadowY: 0, shadowBlur: 0 },
+        visible: true,
+        x: 0,
+        y: 0,
+        width: layout.canvas.width,
+        height: layout.canvas.height,
+        radius: 0,
+        borderWidth: 0,
+        shadowY: 0,
+        shadowBlur: 0,
+        tileX: cfg.tileX,
+        tileY,
+        tileWidth: cfg.tileWidth,
+        tileHeight: cfg.tileHeight,
+        tileDataUrl: this.isClaimWindowVisible ? this.claimTileDataUrl : undefined,
+        pickButton: pickButtonConfig,
+        callButton: callButtonConfig,
+        skipButton: skipButtonConfig,
+        mahjongButton: mahjongButtonConfig,
       });
       return;
     }
 
-    // Use the instructionBar's Y as a baseline, but compute our own dimensions
-    const baseY = layout.instructionBar.y;
-
-    // We want the panel to be about the height of a tile + padding
-    const panelHeight = Math.round(Phaser.Math.Clamp(layout.metrics.passButtonHeight * 3.5, 90, 160));
-
-    // Tile size inside the panel
-    const tileHeight = Math.round(panelHeight * 0.7);
-    const tileWidth = Math.round(tileHeight * (layout.bottomTileLayout.width / layout.bottomTileLayout.height));
-
-    // Button size
-    const buttonHeight = Math.round(tileHeight * 0.28); // Three buttons fit vertically inside tileHeight with a gap
-    const buttonWidth = Math.round(tileWidth * 2.2);
-    const buttonGap = Math.round(tileHeight * 0.08);
-
-    // Total width
-    const paddingX = Math.round(panelHeight * 0.25);
-    const panelGap = Math.round(panelHeight * 0.25); // Gap between tile and buttons
-    const panelWidth = paddingX + tileWidth + panelGap + buttonWidth + paddingX;
-
-    // Center on screen horizontally
-    const panelX = Math.round(layout.canvas.x + (layout.canvas.width - panelWidth) / 2);
-
-    // Shift panel up so it doesn't overlap the rack or bottom elements
-    const panelY = Math.round(baseY - panelHeight * 0.2);
-
-    // Positions inside the panel
-    const tileX = Math.round(panelX + paddingX);
-    const tileY = Math.round(panelY + (panelHeight - tileHeight) / 2);
-
-    const buttonsX = Math.round(tileX + tileWidth + panelGap);
-
-    // Center the three buttons vertically inside the panel
-    const buttonsTotalHeight = buttonHeight * 3 + buttonGap * 2;
-    const buttonsStartY = Math.round((panelHeight - buttonsTotalHeight) / 2);
-
-    const radius = Math.round(Phaser.Math.Clamp(panelHeight * 0.2, 16, 24));
-    const borderWidth = Math.round(Phaser.Math.Clamp(panelHeight * 0.02, 2, 4));
-    const buttonRadius = Math.round(Phaser.Math.Clamp(buttonHeight * 0.22, 6, 12));
-
-    // Button fonts
-    const buttonFontSize = Math.round(buttonHeight * 0.4);
-
-    const callButtonConfig = {
-      label: "Call",
-      enabled: true,
-      action: "call" as const,
-      x: buttonsX - panelX, // Relative to panelX
-      y: buttonsStartY,     // Relative to panelY
-      width: buttonWidth,
-      height: buttonHeight,
-      radius: buttonRadius,
-      fontSize: buttonFontSize,
-      shadowY: Math.max(2, Math.round(buttonHeight * 0.10)),
-      shadowBlur: Math.max(4, Math.round(buttonHeight * 0.22)),
-      background: COLOR_FUSHIA, // Orange background
-      color: "#ffffff"
-    };
-
-    const skipButtonConfig = {
-      label: "Skip",
-      enabled: true,
-      action: "pass" as const,
-      x: buttonsX - panelX, // Relative to panelX (same column)
-      y: buttonsStartY + buttonHeight + buttonGap, // Stacked below
-      width: buttonWidth,
-      height: buttonHeight,
-      radius: buttonRadius,
-      fontSize: buttonFontSize,
-      shadowY: Math.max(2, Math.round(buttonHeight * 0.10)),
-      shadowBlur: Math.max(4, Math.round(buttonHeight * 0.22)),
-      background: "#b8b5a5", // Gray background
-      color: "#2f2d2b"
-    };
-
-    const mahjongButtonConfig = {
-      label: "Mahjong",
-      enabled: true,
-      action: "mahjong" as const,
-      x: buttonsX - panelX, // Relative to panelX (same column)
-      y: buttonsStartY + (buttonHeight + buttonGap) * 2, // Stacked below skip
-      width: buttonWidth,
-      height: buttonHeight,
-      radius: buttonRadius,
-      fontSize: buttonFontSize,
-      shadowY: Math.max(2, Math.round(buttonHeight * 0.10)),
-      shadowBlur: Math.max(4, Math.round(buttonHeight * 0.22)),
-      background: COLOR_BLUE, // Blue background for Mahjong
-      color: "#ffffff"
-    };
-
-    this.claimTileRect = { x: tileX, y: tileY, width: tileWidth, height: tileHeight };
-    this.callbacks.onClaimPanelOverlay?.({
-      visible: true,
-      x: panelX,
-      y: panelY,
-      width: panelWidth,
-      height: panelHeight,
-      radius,
-      borderWidth,
-      shadowY: Math.max(3, Math.round(panelHeight * 0.10)),
-      shadowBlur: Math.max(6, Math.round(panelHeight * 0.22)),
-      tileX,
-      tileY,
-      tileWidth,
-      tileHeight,
-      tileDataUrl: this.claimTileDataUrl,
-      callButton: callButtonConfig,
-      skipButton: skipButtonConfig,
-      mahjongButton: mahjongButtonConfig,
-    });
+    // The old claim pop-up panel styling has been removed since claims only happen 
+    // during PLAYING or CLAIM phases, which are now handled by the persistent button layout above.
   }
 
   /** Routes a tap on the native primary button back through the normal callback. */
@@ -2346,7 +2421,7 @@ export class PhaserLayoutUi {
     const topColor = activeSeat === "top" ? activeLabelColor : inactiveLabelColor;
     const rightColor = activeSeat === "right" ? activeLabelColor : inactiveLabelColor;
     const leftColor = activeSeat === "left" ? activeLabelColor : inactiveLabelColor;
-    const bottomColor = activeSeat === "bottom" ? activeLabelColor : inactiveLabelColor;
+    const bottomColor = inactiveLabelColor; // Username background is unchanged, so keep text color inactive
 
 
     // 2. Clear any prior scale alterations. We must render at a 1:1 scale multiplier.
@@ -2622,12 +2697,16 @@ export class PhaserLayoutUi {
          */
         const isImmediateAction = action.key === "hint"
           || action.key === "dead-hand"
-          || action.key === "help";
+          || action.key === "help"
+          || action.key === "sort";
         this.activeHudDropdown = isImmediateAction
           ? undefined
           : this.activeHudDropdown === action.key ? undefined : action.key;
 
-        if (action.key !== "sort") {
+        if (action.key === "sort") {
+          this.lastSortMode = this.lastSortMode === "rank" ? "suit" : "rank";
+          this.callbacks.onSortRequested?.(this.lastSortMode);
+        } else {
           this.callbacks.onHudAction?.(action.key);
         }
 
@@ -2915,12 +2994,8 @@ export class PhaserLayoutUi {
     const pointerHeight = 10;
 
     const width = this.dropdownWidthForAction(action.key, fontSize, paddingX);
-    // Sort always exposes both modes. Keep this explicit so it cannot fall
-    // back to the earlier single-item "toggle next sort" behaviour.
-    const dropdownItems = action.key === "sort"
-      ? ["Sort By Rank", "Sort By Suit"]
-      : action.items;
-    const height = paddingY * 2 + dropdownItems.length * itemHeight;
+    const dropdownItems = action.items;
+    const height = paddingY * 2 + dropdownItems!.length * itemHeight;
 
     const x = Math.round(
       Phaser.Math.Clamp(
@@ -2962,11 +3037,11 @@ export class PhaserLayoutUi {
       width,
       height,
       title: action.label.toUpperCase(),
-      items: dropdownItems,
+      items: dropdownItems ?? [],
     });
 
-    for (let index = 0; index < dropdownItems.length; index += 1) {
-      const label = dropdownItems[index];
+    for (let index = 0; index < dropdownItems!.length; index += 1) {
+      const label = dropdownItems![index];
 
       const text = this.hudDropdownBg.scene.add
         .text(
@@ -2982,21 +3057,15 @@ export class PhaserLayoutUi {
         )
         .setOrigin(0, 0.5)
         .setDepth(221)
-        // Native HTML renders the label; retain this transparent text only
         // so the established Phaser tap handlers continue to work.
         .setAlpha(0.001)
         .setInteractive({ useHandCursor: true });
 
       text.on("pointerdown", (pointer: Phaser.Input.Pointer) => {
         pointer.event?.stopPropagation?.();
-        const sortMode = label === "Sort By Rank" ? "rank" : label === "Sort By Suit" ? "suit" : undefined;
         const settingsMenuAction = this.settingsMenuActionForLabel(label);
         this.activeHudDropdown = undefined;
         this.layoutHudDropdown(layout);
-        if (sortMode) {
-          this.callbacks.onSortRequested?.(sortMode);
-          return;
-        }
         if (settingsMenuAction) {
           this.callbacks.onHamburgerMenuAction?.(settingsMenuAction);
         }
@@ -3239,51 +3308,47 @@ export class PhaserLayoutUi {
       canDiscard,
     } = options;
 
+    const isGameplay = tablePhase === GamePhaseEnum.PLAYING || tablePhase === GamePhaseEnum.CLAIM;
     const enabled =
       canDiscard
         ? false // Disable the button entirely since discard is drag-and-drop
-        : tablePhase === GamePhaseEnum.PLAYING
+        : isGameplay
           ? canPickFromWall !== false && wallTileCount > 0 && !isPickAnimating
           : canSubmitPass && !isPassAnimating;
 
     this.passButtonEnabled = enabled;
     this.passButtonLabel =
-      tablePhase === GamePhaseEnum.PLAYING
+      isGameplay
         ? "PICK"
         : enabled ? "PASS" : `${passWaitingCount}/3`;
 
     this.instructionPhase = tablePhase;
     this.publishInstructionPanel();
+    this.publishClaimPanel();
   }
 
   layoutMahjongButton(layout: TableLayout, phase: GamePhaseEnum): void {
-    if (phase !== GamePhaseEnum.PLAYING) {
+    if (phase !== GamePhaseEnum.PLAYING && phase !== GamePhaseEnum.CLAIM) {
       this.callbacks.onMahjongButtonOverlay?.({
         visible: false, x: 0, y: 0, width: 0, height: 0, radius: 0, fontSize: 0, shadowY: 0, shadowBlur: 0
       });
       return;
     }
 
-    const exposure = layout.bottomExposure;
-    // Position it centered and just above the exposure panel
-    const width = Math.round(Phaser.Math.Clamp(exposure.width * 0.4, 80, 140));
-    const height = Math.round(Phaser.Math.Clamp(layout.canvas.height * 0.05, 26, 40));
-    const x = exposure.x + exposure.width / 2 - width / 2;
-    const y = exposure.y - height - 8;
+    const cfg = this.getActionButtonsConfig(layout, false);
 
     this.callbacks.onMahjongButtonOverlay?.({
       visible: true,
-      x: Math.round(x),
-      y: Math.round(y),
-      width,
-      height,
-      radius: Math.round(height / 2),
-      fontSize: Math.round(height * 0.4),
-      shadowY: Math.max(2, Math.round(height * 0.10)),
-      shadowBlur: Math.max(4, Math.round(height * 0.20)),
+      x: cfg.mahjongX,
+      y: cfg.buttonY,
+      width: cfg.mahjongButtonWidth,
+      height: cfg.buttonHeight,
+      radius: cfg.radius,
+      fontSize: cfg.mahjongFontSize,
+      shadowY: cfg.shadowY,
+      shadowBlur: cfg.shadowBlur,
     });
   }
-
   createPickSeatSelector(scene: Phaser.Scene): Phaser.GameObjects.Container {
     const labels: readonly { readonly seat: TableSeat; readonly label: string }[] = [
       { seat: "bottom", label: "Bottom" },

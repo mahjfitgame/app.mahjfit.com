@@ -358,6 +358,7 @@ export interface ClaimPanelOverlayState {
   readonly tileHeight: number;
   readonly tileDataUrl?: string;
 
+  readonly pickButton?: InstructionPanelButtonState;
   readonly callButton: InstructionPanelButtonState;
   readonly skipButton: InstructionPanelButtonState;
   readonly mahjongButton: InstructionPanelButtonState;

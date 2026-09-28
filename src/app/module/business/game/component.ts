@@ -80,6 +80,11 @@ export class GameComponent implements OnInit, AfterViewInit {
     // Destroying and recreating the board is safer than trying to reset each
     // Phaser object individually. It guarantees a clean rack and table UI.
     this.boardVisible.set(false);
+    
+    // Give Angular and the browser a moment to fully destroy the previous Phaser canvas
+    // and release the WebGL context before initializing a new one.
+    await new Promise(resolve => setTimeout(resolve, 100));
+
     try {
       await this.service.state.startGame();
     } finally {

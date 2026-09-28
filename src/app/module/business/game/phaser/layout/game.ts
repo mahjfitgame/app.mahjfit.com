@@ -153,16 +153,15 @@ export class PhaserLayoutGame {
 
     const tableEdgeInset = this.tableEdgeInset(tableOuter);
 
-    // In desktop, increase the gap between the exposure and table for all except bottom seat
-    const isDesktop = !metrics.isMobile && !metrics.isTablet;
-    const extraDesktopGap = isDesktop ? 15 : 0;
-
-    const innerLeft = tableOuter.x + tableEdgeInset + extraDesktopGap;
-    const innerTop = tableOuter.y + tableEdgeInset + extraDesktopGap;
-    const innerRight = tableOuter.x + tableOuter.width - tableEdgeInset - extraDesktopGap;
-
-    // Apply the extra gap to the bottom seat as well to shift it slightly up on desktop
-    const innerBottom = tableOuter.y + tableOuter.height - tableEdgeInset - extraDesktopGap;
+    // Unify padding on all 4 sides based on user feedback.
+    // Base inset + a slight increase (10px) to make the bottom gap a bit larger as requested,
+    // and applied equally to all sides for perfect symmetry.
+    const uniformPadding = tableEdgeInset + 10;
+    
+    const innerLeft = tableOuter.x + uniformPadding;
+    const innerTop = tableOuter.y + uniformPadding;
+    const innerRight = tableOuter.x + tableOuter.width - uniformPadding;
+    const innerBottom = tableOuter.y + tableOuter.height - uniformPadding;
 
     const sideExposureWidth = this.clamp(
       tableOuter.width * 0.074,
@@ -170,10 +169,8 @@ export class PhaserLayoutGame {
       154,
     );
 
-    // Adjust height on desktop so it doesn't overlap the bottom area when shifted down
-    const sideExposureHeight = tableOuter.height * (isDesktop ? 0.880 : 0.930);
-
     const sideExposureY = innerTop;
+    const sideExposureHeight = innerBottom - sideExposureY;
 
     const leftExposure: Rect = {
       x: innerLeft,
@@ -233,10 +230,24 @@ export class PhaserLayoutGame {
      * Bottom rack tiles sit below the username tray, centered,
      * with side panels still visible outside.
      */
-    const bottomRack: Rect = {
+    const unshiftedBottomRack: Rect = {
       x: tableOuter.x + tableOuter.width * 0.13,
       y: innerBottom - rackHeight,
       width: tableOuter.width * 0.74,
+      height: rackHeight,
+    };
+
+    // The tile sprite has some padding/shadow at the bottom, so its visual bottom is ~96% of its height.
+    // We compute a dynamic offset based on the ACTUAL calculated tile height, so it perfectly anchors 
+    // the visual bottom of the tiles to the side exposures, regardless of how the screen resizes!
+    const dummyTileLayout = this.computeTileLayout(unshiftedBottomRack, count, width, config);
+    const rackTopPadding = this.clamp(rackHeight * 0.025, 1, 6);
+    const tileBottomOffset = rackHeight - (rackTopPadding + dummyTileLayout.height * 0.96);
+    
+    const bottomRack: Rect = {
+      x: unshiftedBottomRack.x,
+      y: unshiftedBottomRack.y + tileBottomOffset,
+      width: unshiftedBottomRack.width,
       height: rackHeight,
     };
 
@@ -271,22 +282,18 @@ export class PhaserLayoutGame {
     const instructionHeight = this.clamp(tableOuter.height * 0.11, 100, 130);
 
     const instructionBar: Rect = {
-      x: Math.round(safeCenterX - instructionWidth / 2),
-      y: Math.round(
-        discardArea.y +
-        discardArea.height / 2 -
-        instructionHeight / 2,
-      ),
-      width: instructionWidth,
-      height: instructionHeight,
+      x: bottomExposure.x,
+      y: bottomExposure.y,
+      width: bottomExposure.width,
+      height: bottomExposure.height * this.bottomExposureLipRatio("desktop"),
     };
 
     const passButtonWidth = this.clamp(instructionWidth * 0.35, 70, 95);
     const passButtonHeight = this.clamp(instructionHeight * 0.25, 24, 32);
 
     const passButton: Rect = {
-      x: instructionBar.x + instructionBar.width / 2 - passButtonWidth / 2,
-      y: instructionBar.y + instructionBar.height - passButtonHeight - instructionHeight * 0.105,
+      x: Math.round(safeCenterX - passButtonWidth / 2),
+      y: Math.round(bottomExposure.y - passButtonHeight - tableEdgeInset),
       width: passButtonWidth,
       height: passButtonHeight,
     };
@@ -338,7 +345,7 @@ export class PhaserLayoutGame {
 
       username: {
         x: bottomExposure.x + bottomExposure.width / 2,
-        y: bottomExposure.y + bottomExposure.height * (1 - labelY),
+        y: bottomExposure.y + bottomExposure.height * labelY,
       },
 
       isMobile: metrics.isMobile,
@@ -394,17 +401,35 @@ export class PhaserLayoutGame {
 
     const rackHeight = this.clamp(safeHeight * 0.105, 86, 118);
     const bottomRackBottomInset = tablePadX;
-    const bottomRack: Rect = {
+    const unshiftedBottomRack: Rect = {
       x: tableOuter.x + tableOuter.width * 0.055,
       y: tableOuter.y + tableOuter.height - rackHeight - bottomRackBottomInset,
       width: tableOuter.width * 0.890,
       height: rackHeight,
     };
+    
+    // Shift bottomRack down dynamically based on tile height to perfectly align with side exposures
+    const dummyTileLayoutPortrait = this.computeTileLayout(unshiftedBottomRack, count, width, config);
+    const rackTopPaddingPortrait = this.clamp(rackHeight * 0.025, 1, 6);
+    const tileBottomOffsetPortrait = rackHeight - (rackTopPaddingPortrait + dummyTileLayoutPortrait.height * 0.96);
+    
+    const bottomRack: Rect = {
+      x: unshiftedBottomRack.x,
+      y: unshiftedBottomRack.y + tileBottomOffsetPortrait,
+      width: unshiftedBottomRack.width,
+      height: rackHeight,
+    };
+    
     const bottomTileLayout = this.computeTileLayout(bottomRack, count, width, config);
-    const panelRatios =
+    const bottomPanelRatios =
+      this.bottomExposureLipRatio("tablet") + this.exposureNameStripRatio("tablet");
+    const bottomExposureThickness = Math.ceil(
+      (bottomTileLayout.height + 2) / (1 - bottomPanelRatios),
+    );
+    const normalPanelRatios =
       this.exposureLipRatio("tablet") + this.exposureNameStripRatio("tablet");
     const exposureThickness = Math.ceil(
-      (bottomTileLayout.height + 2) / (1 - panelRatios),
+      (bottomTileLayout.height + 2) / (1 - normalPanelRatios),
     );
 
     /**
@@ -433,7 +458,7 @@ export class PhaserLayoutGame {
      */
     const bottomExposureWidth = topExposureWidth;
 
-    const bottomExposureHeight = exposureThickness;
+    const bottomExposureHeight = bottomExposureThickness;
 
     const bottomExposure: Rect = {
       x: safeCenterX - bottomExposureWidth / 2,
@@ -452,8 +477,7 @@ export class PhaserLayoutGame {
     const sideExposureY =
       topExposure.y + topExposure.height + tableOuter.height * 0.050;
 
-    const sideExposureBottom =
-      bottomExposure.y - tableOuter.height * 0.045;
+    const sideExposureBottom = bottomExposure.y - tablePadX;
 
     const sideExposureHeight = Math.max(
       260,
@@ -510,14 +534,10 @@ export class PhaserLayoutGame {
     );
 
     const instructionBar: Rect = {
-      x: Math.round(safeCenterX - instructionWidth / 2),
-      y: Math.round(
-        discardArea.y +
-        discardArea.height / 2 -
-        instructionHeight / 2,
-      ),
-      width: instructionWidth,
-      height: instructionHeight,
+      x: bottomExposure.x,
+      y: bottomExposure.y,
+      width: bottomExposure.width,
+      height: bottomExposure.height * this.bottomExposureLipRatio("tablet"),
     };
 
     const passButtonWidth = this.clamp(
@@ -533,12 +553,8 @@ export class PhaserLayoutGame {
     );
 
     const passButton: Rect = {
-      x: instructionBar.x + instructionBar.width / 2 - passButtonWidth / 2,
-      y:
-        instructionBar.y +
-        instructionBar.height -
-        passButtonHeight -
-        instructionHeight * 0.165,
+      x: Math.round(safeCenterX - passButtonWidth / 2),
+      y: Math.round(bottomExposure.y - passButtonHeight - tablePadX),
       width: passButtonWidth,
       height: passButtonHeight,
     };
@@ -589,7 +605,7 @@ export class PhaserLayoutGame {
 
       username: {
         x: bottomExposure.x + bottomExposure.width / 2,
-        y: bottomExposure.y + bottomExposure.height * (1 - labelY),
+        y: bottomExposure.y + bottomExposure.height * labelY,
       },
 
       isMobile: false,
@@ -662,7 +678,7 @@ export class PhaserLayoutGame {
       (provisionalTileLayout.height + 2) / (1 - panelRatios),
     );
     const rackSideGutter = this.clamp(tableOuter.width * 0.014, 10, 18);
-    const bottomRack: Rect = {
+    const unshiftedBottomRack: Rect = {
       x: tableOuter.x + tablePadX + provisionalExposureThickness + rackSideGutter,
       y: provisionalBottomRack.y,
       width: Math.max(
@@ -672,9 +688,29 @@ export class PhaserLayoutGame {
       ),
       height: rackHeight,
     };
+    
+    // Shift bottomRack down dynamically based on tile height to perfectly align with side exposures
+    const dummyTileLayoutLandscape = this.computeTileLayout(unshiftedBottomRack, count, width, config);
+    const rackTopPaddingLandscape = this.clamp(rackHeight * 0.025, 1, 6);
+    const tileBottomOffsetLandscape = rackHeight - (rackTopPaddingLandscape + dummyTileLayoutLandscape.height * 0.96);
+    
+    const bottomRack: Rect = {
+      x: unshiftedBottomRack.x,
+      y: unshiftedBottomRack.y + tileBottomOffsetLandscape,
+      width: unshiftedBottomRack.width,
+      height: rackHeight,
+    };
+    
     const bottomTileLayout = this.computeTileLayout(bottomRack, count, width, config);
+    const bottomPanelRatios =
+      this.bottomExposureLipRatio("tablet") + this.exposureNameStripRatio("tablet");
+    const bottomExposureThickness = Math.ceil(
+      (bottomTileLayout.height + 2) / (1 - bottomPanelRatios),
+    );
+    const normalPanelRatios =
+      this.exposureLipRatio("tablet") + this.exposureNameStripRatio("tablet");
     const exposureThickness = Math.ceil(
-      (bottomTileLayout.height + 2) / (1 - panelRatios),
+      (bottomTileLayout.height + 2) / (1 - normalPanelRatios),
     );
 
     /**
@@ -703,7 +739,7 @@ export class PhaserLayoutGame {
      */
     const bottomExposureWidth = topExposureWidth;
 
-    const bottomExposureHeight = exposureThickness;
+    const bottomExposureHeight = bottomExposureThickness;
 
     const bottomExposure: Rect = {
       x: safeCenterX - bottomExposureWidth / 2,
@@ -795,14 +831,10 @@ export class PhaserLayoutGame {
     );
 
     const instructionBar: Rect = {
-      x: Math.round(safeCenterX - instructionWidth / 2),
-      y: Math.round(
-        discardArea.y +
-        discardArea.height / 2 -
-        instructionHeight / 2,
-      ),
-      width: instructionWidth,
-      height: instructionHeight,
+      x: bottomExposure.x,
+      y: bottomExposure.y,
+      width: bottomExposure.width,
+      height: bottomExposure.height * this.bottomExposureLipRatio("tablet"),
     };
 
     const passButtonWidth = this.clamp(
@@ -818,12 +850,8 @@ export class PhaserLayoutGame {
     );
 
     const passButton: Rect = {
-      x: instructionBar.x + instructionBar.width / 2 - passButtonWidth / 2,
-      y:
-        instructionBar.y +
-        instructionBar.height -
-        passButtonHeight -
-        instructionHeight * 0.165,
+      x: Math.round(safeCenterX - passButtonWidth / 2),
+      y: Math.round(bottomExposure.y - passButtonHeight - tablePadX),
       width: passButtonWidth,
       height: passButtonHeight,
     };
@@ -873,7 +901,7 @@ export class PhaserLayoutGame {
 
       username: {
         x: bottomExposure.x + bottomExposure.width / 2,
-        y: bottomExposure.y + bottomExposure.height * (1 - labelY),
+        y: bottomExposure.y + bottomExposure.height * labelY,
       },
 
       isMobile: false,
@@ -942,13 +970,21 @@ export class PhaserLayoutGame {
       width: tableOuter.width * 0.640,
       height: rackHeight,
     };
+    
     const bottomTileLayout = this.computeTileLayout(bottomRack, count, width, config);
-    const panelRatios =
+    const bottomPanelRatios =
+      this.bottomExposureLipRatio("mobile-landscape") +
+      this.exposureNameStripRatio("mobile-landscape");
+    const bottomExposureThickness = Math.ceil(
+      (bottomTileLayout.height + 2) / (1 - bottomPanelRatios),
+    );
+
+    const normalPanelRatios =
       this.exposureLipRatio("mobile-landscape") +
       this.exposureNameStripRatio("mobile-landscape");
     // The rendered inner horizontal tray is exactly one rack-tile high.
     const exposureThickness = Math.ceil(
-      (bottomTileLayout.height + 2) / (1 - panelRatios),
+      (bottomTileLayout.height + 2) / (1 - normalPanelRatios),
     );
 
     /**
@@ -978,7 +1014,7 @@ export class PhaserLayoutGame {
     const bottomExposureWidth = topExposureWidth;
 
     // Keep the bottom tray the same thickness as the top/side exposures.
-    const bottomExposureHeight = exposureThickness;
+    const bottomExposureHeight = bottomExposureThickness;
 
     const bottomExposure: Rect = {
       x: safeCenterX - bottomExposureWidth / 2,
@@ -1103,20 +1139,16 @@ export class PhaserLayoutGame {
     );
 
     const instructionBar: Rect = {
-      x: Math.round(safeCenterX - instructionWidth / 2),
-      y: Math.round(
-        discardArea.y +
-        discardArea.height / 2 -
-        instructionHeight / 2,
-      ),
-      width: instructionWidth,
-      height: instructionHeight,
+      x: bottomExposure.x,
+      y: bottomExposure.y,
+      width: bottomExposure.width,
+      height: bottomExposure.height * this.bottomExposureLipRatio("mobile-landscape"),
     };
 
     const passButtonWidth = this.clamp(
       instructionWidth * 0.350,
-      40,
-      55,
+      60,
+      85,
     );
 
     const passButtonHeight = this.clamp(
@@ -1126,12 +1158,8 @@ export class PhaserLayoutGame {
     );
 
     const passButton: Rect = {
-      x: instructionBar.x + instructionBar.width / 2 - passButtonWidth / 2,
-      y:
-        instructionBar.y +
-        instructionBar.height -
-        passButtonHeight -
-        instructionHeight * 0.165,
+      x: Math.round(safeCenterX - passButtonWidth / 2),
+      y: Math.round(bottomExposure.y - passButtonHeight - tablePadX),
       width: passButtonWidth,
       height: passButtonHeight,
     };
@@ -1206,7 +1234,7 @@ export class PhaserLayoutGame {
 
       username: {
         x: bottomExposure.x + bottomExposure.width / 2,
-        y: bottomExposure.y + bottomExposure.height * (1 - labelY),
+        y: bottomExposure.y + bottomExposure.height * labelY,
       },
 
       isMobile: metrics.isMobile,
@@ -1289,12 +1317,19 @@ export class PhaserLayoutGame {
       width,
       config,
     );
-    const panelRatios =
+    const bottomPanelRatios =
+      this.bottomExposureLipRatio("mobile-portrait") +
+      this.exposureNameStripRatio("mobile-portrait");
+    const bottomExposureThickness = Math.ceil(
+      (bottomTileLayout.height + 2) / (1 - bottomPanelRatios),
+    );
+
+    const normalPanelRatios =
       this.exposureLipRatio("mobile-portrait") +
       this.exposureNameStripRatio("mobile-portrait");
     // The rendered inner horizontal tray is exactly one rack-tile high.
     const exposureThickness = Math.ceil(
-      (bottomTileLayout.height + 2) / (1 - panelRatios),
+      (bottomTileLayout.height + 2) / (1 - normalPanelRatios),
     );
 
     /** Side exposures use the same outer thickness as top and bottom. */
@@ -1355,7 +1390,7 @@ export class PhaserLayoutGame {
 
     const bottomExposureWidth = topExposureWidth;
 
-    const bottomExposureHeight = sideExposureWidth;
+    const bottomExposureHeight = bottomExposureThickness;
 
     const bottomExposure: Rect = {
       x: safeCenterX - bottomExposureWidth / 2,
@@ -1403,20 +1438,16 @@ export class PhaserLayoutGame {
     );
 
     const instructionBar: Rect = {
-      x: Math.round(safeCenterX - instructionWidth / 2),
-      y: Math.round(
-        discardArea.y +
-        discardArea.height / 2 -
-        instructionHeight / 2,
-      ),
-      width: instructionWidth,
-      height: instructionHeight,
+      x: bottomExposure.x,
+      y: bottomExposure.y,
+      width: bottomExposure.width,
+      height: bottomExposure.height * this.bottomExposureLipRatio("mobile-portrait"),
     };
 
     const passButtonWidth = this.clamp(
-      instructionWidth * 0.32,
-      42,
+      instructionWidth * 0.350,
       60,
+      85,
     );
 
     const passButtonHeight = this.clamp(
@@ -1426,12 +1457,8 @@ export class PhaserLayoutGame {
     );
 
     const passButton: Rect = {
-      x: instructionBar.x + instructionBar.width / 2 - passButtonWidth / 2,
-      y:
-        instructionBar.y +
-        instructionBar.height -
-        passButtonHeight -
-        instructionHeight * 0.165,
+      x: Math.round(safeCenterX - passButtonWidth / 2),
+      y: Math.round(bottomExposure.y - passButtonHeight - this.tableEdgeInset(tableOuter)),
       width: passButtonWidth,
       height: passButtonHeight,
     };
@@ -1497,7 +1524,7 @@ export class PhaserLayoutGame {
 
       username: {
         x: bottomExposure.x + bottomExposure.width / 2,
-        y: bottomExposure.y + bottomExposure.height * (1 - labelY),
+        y: bottomExposure.y + bottomExposure.height * labelY,
       },
       isMobile: metrics.isMobile,
       metrics,
@@ -1739,6 +1766,10 @@ export class PhaserLayoutGame {
   /** Keeps a small clearance between the exposure panels and the discard area. */
   private discardPanelGap(table: Rect): number {
     return this.clamp(Math.min(table.width, table.height) * 0.012, 5, 12);
+  }
+
+  public bottomExposureLipRatio(mode: ExposurePanelMode): number {
+    return this.exposureNameStripRatio(mode);
   }
 
   public exposureLipRatio(mode: ExposurePanelMode): number {
