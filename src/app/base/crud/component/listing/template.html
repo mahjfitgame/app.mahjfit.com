@@ -35,12 +35,21 @@
                 </div>
             </th>
             <td mat-cell *matCellDef="let row" class="tw:align-top">
+                <!--
+                  No index, no way to name this row in a bulk where: offer no
+                  checkbox at all. Hidden rather than disabled, like the record
+                  menu - a control that cannot do anything should not be on
+                  screen. The <td> still renders, so the column keeps its width
+                  from the header checkbox and the cell is simply empty.
+                -->
+                @if (service.state.hasRecordIndex(row)) {
                 <mat-checkbox
                     (click)="$event.stopPropagation()"
                     (change)="service.listing.toggleRowSelection(row)"
                     [checked]="service.listing.isRecordSelected(row)"
                     [aria-label]="'GL.COMMON.SELECT_RECORD' | transloco"
                 ></mat-checkbox>
+                }
             </td>
             <td mat-footer-cell *matFooterCellDef [ngClass]="[base, roundedCorner]">
                 @if(service.state.listing.getListingSelectedRowsValue().selected.length > 0) {

@@ -81,7 +81,10 @@ export enum CrudFieldValidationEnum {
     DIGIT = 'digit', // whole numbers only
     DECIMAL = 'decimal', // allows floating point
     TEXT = 'text', 
-    EXTENSION = 'extension', // for file type, validate file extension
+    FILE_EXTENSION = 'file_extension', // for file type, validate file extension
+    FILE_SIZE = 'file_size', // for file type, validate max file size in bytes
+    MEDIA_DIMENSION = 'media_dimension', // for file type, validate an image/video's pixel width/height
+    MAX_FILES = 'max_files', // for file type with file.multiple, validate max number of picked files
     OPTION_RANGE = 'option_range', // validate if value is in range of options. [option] attribute should have possible values for this validation type. Required to be array or object
     FN = 'fn', // custom function validation
 }

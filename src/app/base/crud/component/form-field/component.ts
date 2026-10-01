@@ -25,6 +25,7 @@ import { FormFieldTelComponent } from '@base/form-fields/tel/component';
 import { FormFieldNumberComponent } from '@base/form-fields/number/component';
 import { FormFieldCheckboxComponent } from '@base/form-fields/checkbox/component';
 import { FormFieldColorComponent } from '@base/form-fields/color/component';
+import { FormFieldFileRegularComponent } from '@base/form-fields/file/regular/component';
 import { FormFieldSliderComponent } from '@base/form-fields/slider/component';
 import { FormFieldRangeComponent } from '@base/form-fields/range/component';
 import { FormFieldSwitchComponent } from '@base/form-fields/switch/component';
@@ -66,6 +67,7 @@ import { FormFieldDatetimeComponent } from '@base/form-fields/datetime/component
     FormFieldNumberComponent,
     FormFieldCheckboxComponent,
     FormFieldColorComponent,
+    FormFieldFileRegularComponent,
     FormFieldSliderComponent,
     FormFieldRangeComponent,
     FormFieldSwitchComponent,

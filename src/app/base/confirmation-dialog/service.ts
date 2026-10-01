@@ -18,6 +18,7 @@ export class ConfirmationDialogService {
         const dialogRef = this.dialog.open(ConfirmationDialogComponent, {
             width: '420px',
             maxWidth: 'calc(100vw - 32px)',
+            panelClass: [],
             ...config,
             data,
         });

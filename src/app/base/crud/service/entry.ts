@@ -4,18 +4,14 @@ import { CrudActionUiLayoutEnum } from "@base/crud/enum";
 import {
     CrudFieldObj,
     CrudFormFieldInfoType,
-    CrudStateListingFieldObjType,
-    CrudStateListOperationFieldObjType,
-    CrudStateMutationFieldObjType,
-    CrudStateSearchFilterFieldObjType,
-    CrudStateViewFieldObjType,
-    CrudStateViewOptionFieldObjType,
+    CrudSetFieldObjType,
 } from "@base/crud/type";
 import { CrudRootService } from "./root";
 import { CrudActionService } from "./action";
 import { CrudSearchFilterService } from "./search.filter";
 import { CrudListingService } from "./listing";
 import { CrudMutationService } from "./mutation";
+import { CrudUploadService } from "./upload";
 import { CrudViewService } from "./view";
 
 @Service({ autoProvided: false })
@@ -24,6 +20,7 @@ export class CrudService extends CrudRootService {
     public readonly searchFilter: CrudSearchFilterService;
     public readonly listing: CrudListingService;
     public readonly mutation: CrudMutationService;
+    public readonly upload: CrudUploadService;
     public readonly view: CrudViewService;
 
     constructor() {
@@ -37,12 +34,13 @@ export class CrudService extends CrudRootService {
         this.searchFilter = new CrudSearchFilterService(this, this.action);
         this.listing = new CrudListingService(this, this.action, this.searchFilter);
         this.mutation = new CrudMutationService(this, this.action, this.listing);
+        this.upload = new CrudUploadService(this, this.action, this.listing);
         this.view = new CrudViewService(this, this.action, this.listing);
 
         /**
          * Overlay UI follows the action, which follows the route.
          * This is the UI half of the deleted initCrudActionFromUrl(); the
-         * state half (setCrudAction / setCrudActionRecordSecondaryKey) is now
+         * state half (setCrudAction / setCrudActionRecordIndex) is now
          * the linkedSignal's job. Branch order is unchanged from that method.
          *
          * Runs at tier 3 (effect flush, after NavigationEnd), which is what
@@ -51,33 +49,68 @@ export class CrudService extends CrudRootService {
          */
         effect(() => {
             const action = this.state.crudAction();
-            const recordKey = this.action.getCrudActionRecordSecondaryKeyValue();
+            const recordKey = this.action.getCrudActionRecordIndex();
+            // tracked on purpose: a direct-url action load races the listing's
+            // own fetch, so this effect must re-run once listingDataSource
+            // actually lands, not just once on the initial (empty) value
+            const listingDataSource = this.state.listing.listingDataSource();
 
             untracked(() => {
                 /**
                  * Route left the action URL. Was the
-                 * `if (!action) clearCrudActionAndRecordKey()` branch.
+                 * `if (!action) clearCrudActionAndRecordIndex()` branch.
                  */
                 if (!action) {
                     this.mutation.closeMutationOverlay();
+                    this.upload.closeUploadOverlay();
                     this.view.closeViewOverlay();
+                    this.state.clearActionListingRecord();
                     return;
                 }
 
+                /**
+                 * The record-action menu already captured this row on click
+                 * (setActionListingRecord in the menu template). A direct url
+                 * load never clicked anything, so resolve it here instead -
+                 * from whatever listingDataSource holds right now, and again
+                 * on every rerun this effect gets from the tracked read above
+                 * once the listing's own fetch actually lands. Silent no-op
+                 * when the row isn't loaded (yet, or ever - a deep link past
+                 * page one): never CLEARS an already-captured record over a
+                 * miss, only ever improves on it.
+                 */
+                if (recordKey !== null) {
+                    const row = this.state.listing.findListingDataSourceByIndexColumn(recordKey);
+
+                    if (row) {
+                        this.state.setActionListingRecord(row);
+                    }
+                }
+
                 if (this.mutation.isMutationActionActive()) {
+                    this.upload.closeUploadOverlay();
                     this.view.closeViewOverlay();
                     void this.mutation.initMutationActionFromUrl(recordKey);
                     return;
                 }
 
+                if (this.upload.isUploadActionActive()) {
+                    this.mutation.closeMutationOverlay();
+                    this.view.closeViewOverlay();
+                    void this.upload.initUploadActionFromUrl(recordKey);
+                    return;
+                }
+
                 if (this.view.isViewActionActive()) {
                     this.mutation.closeMutationOverlay();
+                    this.upload.closeUploadOverlay();
                     void this.view.initViewActionFromUrl(recordKey);
                     return;
                 }
 
                 if (this.view.isPrintActionActive()) {
                     this.mutation.closeMutationOverlay();
+                    this.upload.closeUploadOverlay();
                     this.view.closeViewOverlay();
                     void this.view.initPrintActionFromUrl(recordKey);
                     return;
@@ -104,34 +137,42 @@ export class CrudService extends CrudRootService {
         this.mutation.addEndDrawerOnCloseCallBack();
         this.view.addViewEndDrawerOnCloseCallBack();
     }
-    public setFieldObj(
-        listing: CrudStateListingFieldObjType,
-        searchFilter: CrudStateSearchFilterFieldObjType,
-        mutation: CrudStateMutationFieldObjType,
-        view: CrudStateViewFieldObjType = {},
-        listOperation?: CrudStateListOperationFieldObjType,
-        viewOption?: CrudStateViewOptionFieldObjType,
-    ): void {
-        // set field object
-        this.state.listing.setListingFieldObj(listing);
-        this.state.searchFilter.setSearchFilterFieldObj(searchFilter);
-        this.state.mutation.setMutationFieldObj(mutation);
-        this.state.view.setViewFieldObj(view);
+    /**
+     * Every key is optional - only set what this child actually has. Nothing
+     * is cleared when a key is left out, so a module can also call this again
+     * later to patch in one more field object without disturbing the rest.
+     */
+    public setFieldObj(fieldObj: CrudSetFieldObjType): void {
+        if (fieldObj.listing) {
+            this.state.listing.setListingFieldObj(fieldObj.listing);
+        }
+        if (fieldObj.searchFilter) {
+            this.state.searchFilter.setSearchFilterFieldObj(fieldObj.searchFilter);
+        }
+        if (fieldObj.mutation) {
+            this.state.mutation.setMutationFieldObj(fieldObj.mutation);
+        }
+        if (fieldObj.upload) {
+            this.state.upload.setUploadFieldObj(fieldObj.upload);
+        }
+        if (fieldObj.view) {
+            this.state.view.setViewFieldObj(fieldObj.view);
+        }
 
-        if (listOperation) {
+        if (fieldObj.listOperation) {
             // use complete new field object
             // no need to process for options and default values as its already included
-            this.state.listing.setListOperationFieldObj(listOperation);
+            this.state.listing.setListOperationFieldObj(fieldObj.listOperation);
         } else {
             // use default field object
             this.state.listing.setListOperationFieldObj(this.state.listing.DEFAULT_LIST_OPERATION_FIELD_OBJ);
             this.state.listing.initListOperationFieldObj(); // process for options and default values
         }
 
-        if (viewOption) {
+        if (fieldObj.viewOption) {
             // use complete new field object
             // no need to process for options and default values as its already included
-            this.state.listing.setViewOptionFieldObj(viewOption);
+            this.state.listing.setViewOptionFieldObj(fieldObj.viewOption);
         } else {
             // use default field object
             this.state.listing.setViewOptionFieldObj(this.state.listing.DEFAULT_VIEW_OPTION_FIELD_OBJ);
@@ -220,6 +261,24 @@ export class CrudService extends CrudRootService {
             }
         };
 
+        const syncUploadFormValue = (
+            field: string,
+            fieldValue: any,
+            markAsDirty = false,
+        ): void => {
+            if (!Object.is(ffObj, this.state.upload.uploadFieldObj())) return;
+
+            const fieldTree = (this.state.upload.uploadForm as any)?.[field];
+            if (typeof fieldTree !== 'function') return;
+
+            const fieldState = fieldTree();
+            fieldState.value.set(fieldValue);
+
+            if (markAsDirty) {
+                fieldState.markAsDirty();
+            }
+        };
+
         const syncFormValue = (
             field: string,
             fieldValue: any,
@@ -227,6 +286,7 @@ export class CrudService extends CrudRootService {
         ): void => {
             syncMutationFormValue(field, fieldValue, markAsDirty);
             syncListingSearchFormValue(field, fieldValue, markAsDirty);
+            syncUploadFormValue(field, fieldValue, markAsDirty);
         };
 
         finfo.value = value;

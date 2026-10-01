@@ -11,6 +11,8 @@ import {
     CrudMutationResultType,
     CrudRecordKeyInputType,
     CrudRecordKeyType,
+    CrudRecordTargetInputType,
+    CrudRecordTargetType,
     CrudRecordType,
     CrudStateRecordFieldObjType,
     CrudSearchFilterInputType,
@@ -57,6 +59,7 @@ export interface CrudChildServiceType {
      */
     enableUrlSync(flag: boolean): void;
 
+    
     // standard fields of module
     setPrimaryKey(): void;
     setSecondaryKey(): void;
@@ -72,9 +75,33 @@ export interface CrudChildServiceType {
     setRecordPositionField(): void;
     setActiveField(): void;
     setDeletedField(): void;
+    /** Used to display record connectivity with various process flows */
+    setLabelField(): void;
+    /**
+     * The COLUMN this module ADDRESSES records by — what travels in the record
+     * route param, what the row menu emits, what the listing matches on, and
+     * the where key for the seven record mutations.
+     *
+     * ⚠ CALL LAST, after every other column setter above. It names one of them
+     * (or any other unique column), so it reads as their conclusion — and the
+     * state setter's "can address nothing" check only holds once the rest are
+     * in.
+     *
+     * ⚠ PICK A NOT NULL COLUMN. A row whose index is null gets no url, no ⋮
+     * menu and no checkbox — it cannot be named in any where clause.
+     *
+     * Not optional, like everything else here — a module happy with the default
+     * still states so, so the choice is visible in the constructor.
+     */
+    setIndexColumn(): void;
 
-    /** Configure whether a successful record action reloads the listing. */
-    setReloadListingAfterRecordAction(): void;
+    /**
+     * Optional. Opt individual actions into a full listing refetch on top of
+     * their local patch — call state's setReloadListingAfterAction() here,
+     * once per action that needs it. Omit entirely for the default (local
+     * patch only, everywhere).
+     */
+    setReloadListingAfterAction?(): void;
 
     /** Set the child module's field object to perform actions. */
     setFieldObj(): void;
@@ -94,6 +121,20 @@ export interface CrudChildServiceType {
      * Defaults to UiSizeEnum.SM when the child does not override it.
      */
     setMutationActionUiSize(): void;
+
+    /**
+     * Configure the Upload dialog's size independently from Mutation's.
+     * Defaults to UiSizeEnum.SM when the child does not override it.
+     */
+    setUploadActionUiSize(): void;
+
+    /**
+     * Optionally replace the default Upload form body component (the one
+     * rendering UPLOAD_FIELD_OBJ) when a module needs full control over it.
+     * There is deliberately no setUploadPageCustomComponent() counterpart -
+     * Upload has one fixed UI mode (DIALOG), never a PAGE mode.
+     */
+    setUploadFormCustomComponent(): void;
 
     /**
      * Call to this method in the constructor
@@ -125,11 +166,32 @@ export interface CrudChildServiceType {
     setListingSelectedRowsInitialSource(): void;
 
     // Register this module's standard api operation methods for abstract CRUD service.
-    registerFindByPrimaryKey(): void;
-    registerFindBySecondaryKey(): void;
+    /**
+     * Register the by-COLUMN record lookup — normally reached with
+     * CrudState.indexColumn(), but the handler takes whatever column CRUD
+     * passes and must not assume which.
+     *
+     * ONE registration, not the find-by-primary/find-by-secondary pair this
+     * replaced: findRecordsBy() already took a column name, so that pair was
+     * two wrappers choosing which column to hand it.
+     */
+    registerFindByIndexColumn(): void;
     registerFind(): void;
     registerCreate(): void;
     registerUpdate(): void;
+    /**
+     * upload is a per-entity opt-in in the api, same precedent as
+     * registerMarkAsMain(): a module whose entity has no upload-capable field
+     * leaves this and upload() below INERT and keeps UPLOAD out of its route
+     * actions - which keeps hasUpload() false and the menu item hidden.
+     */
+    registerUpload(): void;
+    /**
+     * Same per-entity opt-in stance as registerUpload() - a module whose
+     * entity has no upload-delete-capable field leaves this and
+     * uploadDelete() below INERT.
+     */
+    registerUploadDelete(): void;
     registerActive(): void;
     registerInactive(): void;
     /**
@@ -159,9 +221,26 @@ export interface CrudChildServiceType {
     initialListingLoad(): Promise<boolean>;
 
     // ████ INTERAL METHODS ███████████████████
-    findByPrimaryKey(input: CrudRecordKeyInputType, fieldObj: CrudStateRecordFieldObjType): Promise<CrudRecordType[]>;
-    findBySecondaryKey(input: CrudRecordKeyInputType, fieldObj: CrudStateRecordFieldObjType): Promise<CrudRecordType[]>;
-    
+    /**
+     * The by-COLUMN lookup registerFindByIndexColumn() hands to CRUD. It puts
+     * `field` straight into the where clause rather than mapping it, so any
+     * unique column on the entity works.
+     */
+    findRecordsBy(field: string | null, input: CrudRecordKeyInputType, fieldObj: CrudStateRecordFieldObjType): Promise<CrudRecordType[]>;
+
+    /**
+     * Expands any RELATION-shaped fr_field (a dotted path, or a FILE
+     * field's flat access-url object) into its GraphQL sub-selection.
+     * Spread into findRecordsBy()'s row selection,
+     * and into any other query (e.g. loadListingData()) that selects the
+     * same object field - one function instead of a hand-written selection
+     * duplicated per query.
+     *
+     * A module whose entity has no relation/FILE fields needing this
+     * implements it INERT (`return {};`) - same precedent as registerMarkAsMain().
+     */
+    getForeignRelationSelection(fieldObj: CrudStateRecordFieldObjType): Record<string, any>;
+
     find(input: CrudFindInputType, type?: CrudDataLoadTypeEnum): Promise<boolean>;
     loadListingData(
         searchFilterInput: CrudSearchFilterInputType,
@@ -174,10 +253,35 @@ export interface CrudChildServiceType {
     
 
     create(input: CrudMutationInputType): Promise<CrudMutationResultType>;
-    update(keyid: string | number,  input: CrudMutationInputType): Promise<CrudMutationResultType>;
 
-    active(keyid: CrudRecordKeyInputType): Promise<CrudMutationResultType>;
-    inactive(keyid: CrudRecordKeyInputType): Promise<CrudMutationResultType>;
+    /**
+     * ONE SHAPE FOR EVERY RECORD MUTATION: the resolved target, never a bare
+     * key. CrudActionService resolves the row once — from the clicked listing
+     * row, the bulk selection, or a url lookup — and hands over BOTH key
+     * readings plus the record itself, so a child posts whichever its api keys
+     * on with no second fetch.
+     *
+     * Which one to read is the CHILD's call. Today: t.sk for update/active/
+     * inactive/markAsMain/softDelete/restore/delete, because their where
+     * clauses key on the `keyid` column; t.pk for upload, because
+     * UploadInputDto.ref_id is the entity primary key. Those are defaults, not
+     * constraints.
+     *
+     * ⚠ pk and sk are BOTH NULLABLE — they are read off the ROW, so an
+     * unresolved record reaches the child as null. Guard it and refuse with
+     * your own message rather than posting the literal "null".
+     *
+     * ⚠ the five bulk-capable actions take CrudRecordTargetInputType (scalar OR
+     * array) and must keep deriving isBulk with Array.isArray(). A bulk action
+     * on ONE row is still bulk, and the arity drives both the message set and
+     * the `deleted: { nulls: true }` clause.
+     */
+    update(target: CrudRecordTargetType, input: CrudMutationInputType): Promise<CrudMutationResultType>;
+    upload(target: CrudRecordTargetType, input: CrudMutationInputType): Promise<CrudMutationResultType>;
+    uploadDelete(target: CrudRecordTargetType, fkey: string): Promise<CrudMutationResultType>;
+
+    active(targets: CrudRecordTargetInputType): Promise<CrudMutationResultType>;
+    inactive(targets: CrudRecordTargetInputType): Promise<CrudMutationResultType>;
 
     /**
      * SINGLE record only — one row is main per group, so never an array.
@@ -186,12 +290,12 @@ export interface CrudChildServiceType {
      * value (null when the marker declares no group relation field).
      */
     markAsMain(
-        keyid: CrudRecordKeyType,
+        target: CrudRecordTargetType,
         markAsMainField: string,
         refGroupRelationFieldValue: string | null,
     ): Promise<CrudMutationResultType>;
 
-    softDelete(keyid: CrudRecordKeyInputType): Promise<CrudMutationResultType>;
-    restore(keyid: CrudRecordKeyInputType): Promise<CrudMutationResultType>;
-    delete(keyid: CrudRecordKeyInputType): Promise<CrudMutationResultType>;
+    softDelete(targets: CrudRecordTargetInputType): Promise<CrudMutationResultType>;
+    restore(targets: CrudRecordTargetInputType): Promise<CrudMutationResultType>;
+    delete(targets: CrudRecordTargetInputType): Promise<CrudMutationResultType>;
 }

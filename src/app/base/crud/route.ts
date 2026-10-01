@@ -2,9 +2,9 @@
 import { inject, Service } from "@angular/core";
 import { FoundationActionEnum } from "@libs/foundation/action/enum";
 import { FoundationActionRoute } from "@libs/foundation/action/route";
-import { CrudActionRecordPrimaryKeyValueType, CrudActionRecordSecondaryKeyValueType } from "@base/crud/type";
+import { CrudActionRecordIndexType } from "@base/crud/type";
 import { UrlService } from "@libs/url/service";
-import { FoundationFieldDefaultNameEnum } from "@libs/foundation/field/enum";
+import { FoundationRouteDefaultParamEnum } from "@libs/foundation/route/enum";
 
 /**
  * @CrudRoute
@@ -39,32 +39,20 @@ export class CrudRoute {
     }
 
     /**
-     * PARKED. Parses a ':id' segment — see CrudState for why the two key
-     * chains read different params.
+     * Parses the ':index' segment into the comma-separated multi-record shape.
+     *
+     * ⚠ SHAPE ONLY — which COLUMN that value addresses is CrudState's business
+     * (setIndexColumn), and deliberately does not live here: CrudRoute depends
+     * on nothing inside CRUD (see the class comment).
      */
-    public toCrudActionRecordPrimaryKey(id: string | null): CrudActionRecordPrimaryKeyValueType {
-        if (!id) {
+    public toCrudActionRecordIndex(value: string | null): CrudActionRecordIndexType {
+        if (!value) {
             return [];
         }
 
-        const ids = id.split(',').map((id) => id.trim());
+        const values = value.split(',').map((one) => one.trim());
 
-        return ids.length === 1 ? ids[0] : ids;
-    }
-
-    /**
-     * LIVE. Parses a ':keyid' segment, the param every record-scoped slug in
-     * FOUNDATION_ACTION_ROUTE_CONFIG declares. Same comma-separated multi-record
-     * shape as the primary parse.
-     */
-    public toCrudActionRecordSecondaryKey(key: string | null): CrudActionRecordSecondaryKeyValueType {
-        if (!key) {
-            return [];
-        }
-
-        const keys = key.split(',').map((key) => key.trim());
-
-        return keys.length === 1 ? keys[0] : keys;
+        return values.length === 1 ? values[0] : values;
     }
 
     // PARAM GETTERS ▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬
@@ -87,19 +75,20 @@ export class CrudRoute {
         return this.isCrudActionValue(firstPath) ? firstPath : null;
     }
 
-    // PARKED — mirrors crudActionRecordPrimaryKeyFromRoute, reads ':id'
-    public readCrudActionRecordPrimaryKeyFromRoute(): CrudActionRecordPrimaryKeyValueType {
+    /**
+     * Mirrors CrudState.crudActionRecordIndexFromRoute, reads ':index'.
+     *
+     * One reader, because there is ONE record param and one column it
+     * addresses. Kept as the live (tier 1-2) counterpart to the signal even
+     * while nothing calls it — that symmetry is the point, see the block
+     * comment above.
+     */
+    public readCrudActionRecordIndexFromRoute(): CrudActionRecordIndexType {
         // live read, same reason as readCrudActionFromRoute() above
-        return this.toCrudActionRecordPrimaryKey(
-            this.url.state.getActivatedRouteSnapshot().paramMap.get(FoundationFieldDefaultNameEnum.ID),
-        );
-    }
-
-    // LIVE — mirrors crudActionRecordSecondaryKeyFromRoute, reads ':keyid'
-    public readCrudActionRecordSecondaryKeyFromRoute(): CrudActionRecordSecondaryKeyValueType {
-        // live read, same reason as readCrudActionFromRoute() above
-        return this.toCrudActionRecordSecondaryKey(
-            this.url.state.getActivatedRouteSnapshot().paramMap.get(FoundationFieldDefaultNameEnum.KEYID),
+        return this.toCrudActionRecordIndex(
+            this.url.state.getActivatedRouteSnapshot().paramMap.get(
+                FoundationRouteDefaultParamEnum.INDEX,
+            ),
         );
     }
 

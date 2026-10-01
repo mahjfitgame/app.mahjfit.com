@@ -80,7 +80,8 @@ export class CrudActionState {
     // ADDITIONAL DEPENDENT ACTIONS ▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬
     // ▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬
     public readonly hasRecordSelectionAction = computed(() =>
-        Boolean(this.root.secondaryKey())
+        // no addressing column, no way to name a row in a bulk where
+        Boolean(this.root.indexColumn())
         && this.hasBulkAction()
         && (
             (
@@ -99,7 +100,8 @@ export class CrudActionState {
     );
 
     public readonly hasRecordAction = computed(() =>
-        Boolean(this.root.secondaryKey())
+        // no addressing column, no url and no where can name a record
+        Boolean(this.root.indexColumn())
         && FOUNDATION_RECORD_ACTION.some((action) => this.hasPermittedAction(action))
     );
 

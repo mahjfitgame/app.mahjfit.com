@@ -1,0 +1,255 @@
+// file: src/theme/open/_variable.scss
+@use '@angular/material' as mat;
+@use '../breakpoint' as *;
+/*
+IMPORTANT NOTE:
+we have defined breakpoints variables in [src/tailwind.css] as it also reset in taiwind so check there
+*/
+* {
+    scrollbar-width: thin;
+}
+
+:root {
+  interpolate-size: allow-keywords;
+
+  // as we need to rest in tailwind, we have defined in tailwind.css file, check there [src/tailwind.css]
+  --bfw-breakpoint-min-sm: #{$bfw-breakpoint-min-sm};
+  --bfw-breakpoint-min-md: #{$bfw-breakpoint-min-md};
+  --bfw-breakpoint-min-lg: #{$bfw-breakpoint-min-lg};
+  --bfw-breakpoint-min-xl: #{$bfw-breakpoint-min-xl};
+  --bfw-breakpoint-min-xxl: #{$bfw-breakpoint-min-xxl};
+
+  // ███ SHAPE SYSTEM ███████████████████████████████████████████████
+  // brand guide p7. only two radii are specified, everything else derives.
+  --bfw-radius-button: 8px;
+  --bfw-radius-tile: 10px;
+
+  // ███ BRAND METRICS ██████████████████████████████████████████████
+  // brand guide p1: 180px min width desktop / 120px mobile, 32px clear space
+  --bfw-brand-logo-min-width: 7.5rem;
+  --bfw-brand-logo-clear-space: 2rem;
+  // 2906.19 / 1391.22, straight off the logo svg viewBox
+  --bfw-brand-logo-ratio: 2.089;
+
+  // ███ OPEN LAYOUT METRICS ████████████████████████████████████████
+  --bfw-open-header-height: 4.5rem;
+  // 1200px content column, measured off the desktop comps
+  --bfw-open-content-max: 75rem;
+
+  --mat-form-field-container-height: 44px;
+  --mat-form-field-container-vertical-padding: 10px;
+  --mat-snack-bar-container-shape: var(--bfw-radius-tile);
+}
+
+@include bfw-md-and-up {
+  :root {
+    --bfw-brand-logo-min-width: 11.25rem;
+  }
+}
+
+// the <body class="bfw-field-rounded"> override moved to _color.scss, nested on `body`
+// there (matching private/_color.scss) instead of a separate top-level rule here.
+
+// the body[data-bfw-theme-mode] light/dark toggle moved to src/theme/_utility.scss -
+// it was identical here and in private/_color.scss, so it's shared now, not per-theme.
+
+// ███ THEME COLOR ██████████████████████████████████████████████████
+/*
+⚠ src/index.html hardcodes data-bfw-theme="default" and ThemeEnum (app/base/theme/type.ts)
+has only DEFAULT, so the mahjfit palette MUST live under 'default'. do not invent a new
+theme key here - nothing would ever set it.
+*/
+body[data-bfw-theme='default'] {
+
+  // ███ MATERIAL DESIGN 3 COLOR SYSTEM █████████████████████████████
+  /*
+  LIGHT values are the brand guide.
+  DARK values are DERIVED HERE - the guide ships no dark palette. the approach: surfaces
+  are grounded on the brand blue rather than a neutral grey, so the dark site still reads
+  as mahjfit, and fuchsia / blue / avocado are lifted in tone to hold contrast on them.
+  revisit the whole dark column if design ever publishes one.
+  */
+  --mat-sys-primary: light-dark(#B92A90, #E97BC5);
+  --mat-sys-on-primary: light-dark(#FFFFFF, #470C34);
+  --mat-sys-primary-container: light-dark(#F7DCEF, #8A2069);
+  --mat-sys-on-primary-container: light-dark(#4E0C3A, #FCD9EE);
+  --mat-sys-inverse-primary: light-dark(#E97BC5, #B92A90);
+
+  --mat-sys-secondary: light-dark(#264089, #AEC0F7);
+  --mat-sys-on-secondary: light-dark(#FFFFFF, #0E2158);
+  --mat-sys-secondary-container: light-dark(#DDE3F6, #33478F);
+  --mat-sys-on-secondary-container: light-dark(#0E1B44, #DDE3F6);
+
+  --mat-sys-tertiary: light-dark(#C7C22E, #DDD866);
+  --mat-sys-on-tertiary: light-dark(#2A2905, #33310A);
+  --mat-sys-tertiary-container: light-dark(#F3EF9C, #5C591A);
+  --mat-sys-on-tertiary-container: light-dark(#2A2905, #F3EF9C);
+
+  --mat-sys-error: light-dark(#C4302E, #FF9A96);
+  --mat-sys-on-error: light-dark(#FFFFFF, #5C0B0A);
+  --mat-sys-error-container: light-dark(#FFDAD8, #8E1E1C);
+  --mat-sys-on-error-container: light-dark(#5C0B0A, #FFDAD8);
+
+  /*
+  ⚠ the guide names Blue as the colour of TEXT, not merely of headings - every string in
+  every desktop comp is #264089. so on-surface is brand blue, not a near-black.
+  */
+  --mat-sys-background: light-dark(#F4EDF3, #14172B);
+  --mat-sys-on-background: light-dark(#264089, #E6E3EE);
+  --mat-sys-surface: light-dark(#FFFFFF, #14172B);
+  --mat-sys-on-surface: light-dark(#264089, #E6E3EE);
+  --mat-sys-surface-variant: light-dark(#EDE3EC, #3E4463);
+  --mat-sys-on-surface-variant: light-dark(#4A5B99, #C6C7DD);
+
+  --mat-sys-surface-dim: light-dark(#E4D9E3, #0D0F1E);
+  --mat-sys-surface-bright: light-dark(#FFFFFF, #333861);
+  --mat-sys-surface-container-lowest: light-dark(#FFFFFF, #0D0F1E);
+  --mat-sys-surface-container-low: light-dark(#FBF5FA, #191D33);
+  --mat-sys-surface-container: light-dark(#F6EFF5, #1E2240);
+  --mat-sys-surface-container-high: light-dark(#F0E8EF, #272C4E);
+  --mat-sys-surface-container-highest: light-dark(#EAE0E9, #333861);
+
+  --mat-sys-outline: light-dark(#9EB5C1, #8D90AB);
+  --mat-sys-outline-variant: light-dark(#DCD3DC, #43476A);
+  --mat-sys-inverse-surface: light-dark(#2E3135, #E6E3EE);
+  --mat-sys-inverse-on-surface: light-dark(#F4EDF3, #2A2E48);
+  --mat-sys-surface-tint: light-dark(#B92A90, #E97BC5);
+  --mat-sys-scrim: light-dark(#000000, #000000);
+  --mat-sys-shadow: light-dark(#000000, #000000);
+
+  --mat-sys-primary-fixed: light-dark(#F7DCEF, #F7DCEF);
+  --mat-sys-primary-fixed-dim: light-dark(#E97BC5, #E97BC5);
+  --mat-sys-on-primary-fixed: light-dark(#4E0C3A, #4E0C3A);
+  --mat-sys-on-primary-fixed-variant: light-dark(#8A2069, #8A2069);
+  --mat-sys-secondary-fixed: light-dark(#DDE3F6, #DDE3F6);
+  --mat-sys-secondary-fixed-dim: light-dark(#AEC0F7, #AEC0F7);
+  --mat-sys-on-secondary-fixed: light-dark(#0E1B44, #0E1B44);
+  --mat-sys-on-secondary-fixed-variant: light-dark(#33478F, #33478F);
+  --mat-sys-tertiary-fixed: light-dark(#F3EF9C, #F3EF9C);
+  --mat-sys-tertiary-fixed-dim: light-dark(#DDD866, #DDD866);
+  --mat-sys-on-tertiary-fixed: light-dark(#2A2905, #2A2905);
+  --mat-sys-on-tertiary-fixed-variant: light-dark(#5C591A, #5C591A);
+
+  // ███ SHAPE ██████████████████████████████████████████████████████
+  // brand guide p7: buttons 8px, tiles 10px
+  --mat-sys-corner-small: var(--bfw-radius-button);
+  --mat-sys-corner-medium: var(--bfw-radius-tile);
+
+  // ███ BFW COLOR SYSTEM ███████████████████████████████████████████
+  /*
+  brand guide p3.
+
+  ⚠ these two names are LOAD BEARING. src/tailwind.css already exposes them as
+  @utility bfw-bg-gradient-a / bfw-bg-gradient-b, so declaring them here is the only
+  thing needed for tw:bfw-bg-gradient-a to work in the open area. do not rename.
+  */
+  // "gradient - backgrounds", linear 32deg. the splash art is this exact ramp.
+  --bfw-body-gradient: linear-gradient(
+      90deg,
+      light-dark(#C9CEDF, #191D33) 0%,
+      light-dark(#EDD0E2, #35203D) 100%
+  );
+
+  /*
+  "gradient - elements", linear left to right.
+  ⚠ the guide is explicit that this one draws attention but is NOT CLICKABLE - it belongs
+  on the progress bar and the tagline. never put it on a button or a link.
+  */
+  --bfw-element-gradient: linear-gradient(
+      to right,
+      var(--mat-sys-primary) 0%,
+      var(--mat-sys-secondary) 100%
+  );
+
+  /*
+  ⚠ was `var(--bfw-element-gradient)` - the guide is explicit that gradient is NEVER for a
+  button or a link (see the comment above), yet this token backs the ACTIVE NAV LINK
+  background in _layout.scss, which is exactly a link. private avoids the same trap by
+  giving links their own distinct gradient rather than reusing its "elements" ramp - do the
+  same here: a single-hue fuchsia ramp, not the two-hue fuchsia->blue "elements" one.
+  */
+  --bfw-link-gradient: linear-gradient(
+      45deg,
+      var(--mat-sys-primary) 0%,
+      color-mix(in srgb, var(--mat-sys-primary) 78%, black 22%) 100%
+  );
+
+  // consumed by #L3's collapsed-rail hover overlay (_layout.scss) at 25% opacity
+  --bfw-navbar-gradient: linear-gradient(
+      25deg,
+      var(--mat-sys-primary) 0%,
+      var(--mat-sys-secondary) 60%,
+      var(--mat-template-background) 100%
+  );
+
+  --mat-template-background: light-dark(#F4EDF3, #14172B);
+}
+
+// ███ GENERAL ████████████████████████████████████████████████████
+
+html {
+  /*
+  ⚠ density only. the private theme passes `typography: Roboto` here and then overrides
+  every family again in _font.scss, which is redundant - the open theme declares its
+  typography exactly once, in _font.scss.
+  */
+  @include mat.theme((
+    density: 0,
+  ));
+
+  // mat-card / tiles
+  --mat-sys-level2: 0 1px 2px rgba(38, 64, 137, 0.06), 0 3px 5px rgba(38, 64, 137, 0.06);
+  --mat-card-elevated-container-color: var(--mat-sys-surface);
+  --mat-card-outlined-container-color: var(--mat-sys-surface);
+  --mat-card-elevated-container-shape: var(--bfw-radius-tile);
+  --mat-card-outlined-container-shape: var(--bfw-radius-tile);
+  --mat-card-elevated-container-elevation: var(--mat-sys-level2);
+  --mat-card-subtitle-text-color: var(--mat-sys-on-surface-variant);
+  --mat-card-subtitle-text-weight: normal;
+
+  // toolbar / menu
+  --mat-toolbar-title-text-size: 1rem;
+  --mat-toolbar-container-background-color: var(--mat-sys-surface);
+  --mat-menu-container-color: var(--mat-sys-surface-container-lowest);
+  --mat-menu-container-shape: var(--bfw-radius-tile);
+  --mat-menu-container-elevation-shadow: 0 3px 8px rgba(38, 64, 137, 0.15), 0 10px 15px rgba(38, 64, 137, 0.04);
+  /*
+  ⚠ material maps mat-menu-item's label text to the SAME label-large role a button uses
+  (@angular/material/menu/_m3-menu.scss), so it inherited the same 20px/600 brand-guide
+  size before this override - the private theme never touches label-large at all, so its
+  menu items sit at material's own baseline. pin menu items back to that baseline, same
+  value the button fix in _component.scss uses.
+  */
+  --mat-menu-item-label-text-size: 0.875rem;
+  --mat-menu-item-label-text-weight: 500;
+  --mat-menu-item-label-text-line-height: 1.25rem;
+  --mat-menu-item-label-text-tracking: normal;
+
+  // datepicker / select
+  --mat-datepicker-calendar-container-background-color: var(--mat-sys-surface-container-lowest);
+  --mat-select-panel-background-color: var(--mat-sys-surface-container-lowest);
+
+  // table
+  --mat-table-row-item-outline-color: var(--mat-sys-outline-variant);
+  --mat-table-row-item-label-text-line-height: 22px;
+  --mat-table-row-item-label-text-size: 15px;
+
+  // sidebar widths, consumed by #L3 in _layout.scss
+  --sidebar-width: 290px;
+  --inner-sidebar-width: 290px;
+
+  // label
+  --mat-checkbox-label-text-size: var(--mat-sys-body-large-size);
+
+  // divider
+  --mat-divider-color: var(--mat-sys-outline-variant);
+
+  // field
+  --mat-form-field-filled-container-color: var(--mat-sys-surface-container);
+
+  // header background
+  --mat-header-background-color: var(--mat-sys-surface);
+
+  // template background
+  --mat-template-background: light-dark(#F4EDF3, #14172B);
+}

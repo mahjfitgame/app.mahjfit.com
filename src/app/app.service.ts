@@ -14,7 +14,7 @@ import { SplashScreenService } from "@base/splash-screen/service";
 import { GlobalProgressBarService } from "@base/global-progress-bar/service";
 import { UserAuthentication, UserDeviceHandShakeInputDto } from "@bfw/api-sdk/graphql/endpoints/shared";
 import { ContextProfileService } from "@libs/context-profile/service";
-import { BfwApiSdkDefaultRequestHeaders, BfwApiSdkError, BfwApiSdkErrorInterceptor, BfwApiSdkRequest, BfwApiSdkRequestInterceptor, BfwApiSdkResponse, BfwApiSdkResponseInterceptor, checkFailureSignal, FAILURE_CODE, getLastCode, TRIGGER_GRAPHQL_STATEFUL_AUTHORISATION_FAILURE, TRIGGER_REST_STATEFUL_AUTHORISATION_FAILURE } from "@bfw/api-sdk/core";
+import { BfwApiSdkDefaultRequestHeaders, BfwApiSdkError, BfwApiSdkErrorInterceptor, BfwApiSdkRequest, BfwApiSdkRequestInterceptor, BfwApiSdkResponse, BfwApiSdkResponseInterceptor, checkFailureSignal, FAILURE_CODE, getLastCode, TRIGGER_GRAPHQL_HOST_AUTHORISATION_FAILURE, TRIGGER_REST_HOST_AUTHORISATION_FAILURE, TRIGGER_GRAPHQL_STATEFUL_AUTHORISATION_FAILURE, TRIGGER_REST_STATEFUL_AUTHORISATION_FAILURE, TRIGGER_GRAPHQL_PRIVILEGE_AUTHORISATION_FAILURE, TRIGGER_REST_PRIVILEGE_AUTHORISATION_FAILURE } from "@bfw/api-sdk/core";
 import { AppState } from "@app/app.state";
 import { HttpStatusCode } from "@angular/common/http";
 import { Router } from "@angular/router";
@@ -159,6 +159,7 @@ export class AppService {
                     ctxs: true,
                     csrft: true,
                     stoken: true,
+                    ptoken: true,
                     logged_in: true,
                     keep_logged: true,
                 },
@@ -174,6 +175,7 @@ export class AppService {
             const ctxs = resp.ctxs ?? null;
             const csrft = resp.csrft ?? null;
             const stoken = resp.stoken ?? null;
+            const ptoken = resp.ptoken ?? null;
             const logged_in = resp.logged_in ?? null;
             const keep_logged = resp.keep_logged ?? null;
 
@@ -190,7 +192,12 @@ export class AppService {
 
                 // set or clear stateful token in state
                 if(logged_in && stoken) {
-                    this.ctxp.state.setSessionToken(stoken);
+                    this.ctxp.state.setStatefulToken(stoken);
+                    if (ptoken) {
+                        this.ctxp.state.setPrivilegeToken(ptoken);
+                    } else {
+                        this.ctxp.state.clearPrivilegeToken();
+                    }
                 } else {
                     this.ctxp.state.clearSession();
                 }
@@ -257,6 +264,8 @@ export class AppService {
          * sessionToken() === null, and every request builds its headers from these
          * signals, so once they are cleared the rejected token can no longer be
          * posted back to the server to earn a second 401.
+         * 
+         * clearSession() perform multiple cleanup 
          */
         this.ctxp.state.clearSession();
         this.ctxp.state.clearCsrfToken();
@@ -365,8 +374,12 @@ export class AppService {
 
                     const triggers: string[] = [
                         ...new Set([
+                            ...TRIGGER_GRAPHQL_HOST_AUTHORISATION_FAILURE,
+                            ...TRIGGER_REST_HOST_AUTHORISATION_FAILURE,
                             ...TRIGGER_GRAPHQL_STATEFUL_AUTHORISATION_FAILURE,
                             ...TRIGGER_REST_STATEFUL_AUTHORISATION_FAILURE,
+                            ...TRIGGER_GRAPHQL_PRIVILEGE_AUTHORISATION_FAILURE,
+                            ...TRIGGER_REST_PRIVILEGE_AUTHORISATION_FAILURE,
                         ])
                     ];
 
@@ -388,6 +401,23 @@ export class AppService {
                         } else if(lastcode === FAILURE_CODE.FC_401_SF2) {
                             // sf token is expired
                             this.terminateSession('GL.COMMON.AUTHENTICATION_EXPIRED');
+                        } else if (lastcode === FAILURE_CODE.FC_401_P1 || lastcode === FAILURE_CODE.FC_401_P2) {
+                            // privilege token is missing, expired or no longer held by
+                            // this user. The SESSION is still valid, so this must NOT go
+                            // through terminateSession() — signing the user out over a
+                            // role problem is the wrong exit.
+                            //
+                            // ⚠ RETRY the SAME pick first, do not clear it. P1/P2 give no
+                            // indication the role itself is invalid — clearing the privilege token
+                            // here would also wipe authorisation_role_title for a token that just
+                            // needs a fresh switch call. reloadPrivilege() re-runs the SAME
+                            // switch; if there is no pick to reload, it returns false.
+                            const reloaded = this.ctxp.state.reloadPrivilege();
+
+                            if (!reloaded) {
+                                // TODO(role-picker): send the user to the chooser here.
+                                this.notifyBanner.error(this.i18n.translate('GL.COMMON.AUTHORISATION_REQUIRED'), 30);
+                            }
                         } else if (lastcode === FAILURE_CODE.FC_401_H1 || lastcode === FAILURE_CODE.FC_401_H2) {
                             // host token is expired or missing. only clientServerHandShake() mints a
                             // new one and it only runs from provideAppInitializer(), so a DOCUMENT

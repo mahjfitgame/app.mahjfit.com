@@ -1,0 +1,8 @@
+{
+  "HTTP_STATUS_FORBIDDEN": {
+    "MODULE": {
+      "TITLE": "Acceso denegado",
+      "HINT": "No tienes permiso para acceder a esta página. Inicia sesión con una cuenta válida."
+    }
+  }
+}

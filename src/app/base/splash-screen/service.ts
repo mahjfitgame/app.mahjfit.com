@@ -6,7 +6,8 @@ import { ProgressBarService } from '@base/progress-bar/service';
 
 @Service()
 export class SplashScreenService {
-    public readonly splashBrandLogo = '/assets/logo.png';
+    public readonly brandLogoSrc = 'open/assets/brand/icons/icon-96x96.png';
+    //public readonly brandLogoSrc = 'private/assets/brand/logo/logo.png';
 
     private readonly log = inject(LogService);
     private readonly aps = inject(PlatformService);

@@ -7,8 +7,7 @@ import { CrudDataLoadTypeEnum } from "@base/crud/enum";
 import {
     CrudFieldInfoType,
     CrudFindInputType,
-    CrudRecordActionType,
-    CrudRecordKeyInputType,
+    CrudRecordTargetInputType,
     CrudViewOptionInputType,
 } from "@base/crud/type";
 import { ImageSlideshowDialog } from "@base/image-slideshow/dialog";
@@ -39,7 +38,7 @@ export class CrudListingService {
         // see CrudActionService.afterRecordActionSuccess for why this is a
         // registered callback instead of a constructor dependency.
         this.action.registerAfterRecordActionSuccess(
-            (action, keyid) => this.updateListingAfterRecordAction(action, keyid),
+            (action, targets) => this.updateListingAfterRecordAction(action, targets),
         );
         // same idiom — runFind() needs listing's pagination/search-filter/
         // view-option assembly before it can call the registered find handler,
@@ -150,16 +149,31 @@ export class CrudListingService {
     // ████████████████████████████████████████████████████████████████████
     /** Registered into CrudActionService.afterRecordActionSuccess — see this.action.registerAfterRecordActionSuccess() in the constructor above. */
     private async updateListingAfterRecordAction(
-        action: CrudRecordActionType,
-        keyid: CrudRecordKeyInputType,
+        action: FoundationActionEnum,
+        targets: CrudRecordTargetInputType,
     ): Promise<void> {
         const activeField = this.root.state.activeField();
         const isMainField = this.root.state.isMainField();
         const deletedField = this.root.state.deletedField();
-        const keyids = Array.isArray(keyid) ? keyid : [keyid];
+        const list = Array.isArray(targets) ? targets : [targets];
         const actionTimestamp = new Date().toISOString();
 
-        for (const recordKey of keyids) {
+        /**
+         * No conversion here any more. The three patchers below match rows on
+         * the INDEX COLUMN — the same column the action was invoked with — so
+         * the value passes straight through.
+         *
+         * A target with no index has nothing local to patch: either the row was
+         * never loaded, or its index column is null and it could not have been
+         * acted on in the first place.
+         */
+        for (const target of list) {
+            if (target.index === null) {
+                continue;
+            }
+
+            const recordKey = target.index;
+
             if (action === FoundationActionEnum.ACTIVE && activeField) {
                 this.root.state.listing.patchListingData(recordKey, {
                     [activeField]: null,
@@ -206,25 +220,35 @@ export class CrudListingService {
 
         this.root.state.listing.setListingSelectedRowsValue([]);
 
-        if (this.root.state.listing.reloadListingAfterRecordAction()) {
+        if (this.root.state.listing.shouldReloadListingAfterAction(action)) {
             await this.action.runFind({}, CrudDataLoadTypeEnum.ACTION);
         }
     }
-    public getSelectedRecordKeyValues(): string[] | null {
+    /**
+     * The index of every selected row, or null if the selection is empty or
+     * any row cannot be addressed.
+     *
+     * The all-or-nothing null is a BACKSTOP rather than a live path: a row with
+     * no index gets no checkbox and is skipped by select-all, so it should
+     * never reach here. Kept because refusing the whole action is the right
+     * answer if one ever does — a bulk delete that half-matched is not
+     * recoverable.
+     */
+    public getSelectedRecordIndexes(): string[] | null {
         const selectedRows = this.root.state.listing
             .getListingSelectedRowsValue<Record<string, any>>()
             .selected;
-        const keys = selectedRows.map((row) => {
-            const key = this.root.state.getRecordSecondaryKeyValue(row)?.trim();
+        const indexes = selectedRows.map((row) => {
+            const index = this.root.state.getRecordIndexColumnValue(row)?.trim();
 
-            return key || null;
+            return index || null;
         });
 
-        if (keys.length === 0 || keys.some((key) => key === null)) {
+        if (indexes.length === 0 || indexes.some((index) => index === null)) {
             return null;
         }
 
-        return [...new Set(keys as string[])];
+        return [...new Set(indexes as string[])];
     }
     public isRecordSelected(row: any): boolean {
         return this.root.state.listing.getListingSelectedRowsValue().isSelected(row);
@@ -245,12 +269,15 @@ export class CrudListingService {
             return;
         }
 
+        // only rows that can actually be acted on
         this.root.state.listing.setListingSelectedRowsValue([
-            ...this.root.state.listing.listingDataSource().data,
+            ...this.root.state.listing.indexedListingRows(),
         ]);
     }
     public toggleRowSelection(row: any): void {
         if (!this.root.state.action.hasBulkAction()) return;
+        // backstop for a programmatic call - no checkbox is rendered for one
+        if (!this.root.state.hasRecordIndex(row)) return;
 
         const selectedRows = this.root.state.listing.getListingSelectedRowsValue().selected;
 

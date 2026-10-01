@@ -30,7 +30,7 @@ export class CrudViewService {
 
     /**
      * Record wrapper of the View host currently on screen, handed over by that
-     * host (see `component/view/page/component.ts`). Only the /print/:keyid
+     * host (see `component/view/page/component.ts`). Only the /print/:index
      * route needs it: that print is triggered by the router, not by a button,
      * so there is no template to pass an element from. A plain field, not a
      * signal — it is a DOM handle nothing renders off.
@@ -65,13 +65,13 @@ export class CrudViewService {
         this.root.state.view.setViewEndDrawerIsOpen(!this.root.state.view.viewEndDrawerIsOpen());
     }
     public async initViewActionFromUrl(
-        keyid: string | number | null = this.action.getCrudActionRecordSecondaryKeyValue(),
+        value: string | number | null = this.action.getCrudActionRecordIndex(),
     ): Promise<void> {
         if (!this.action.ensureActionPermitted(this.root.state.action.hasView())) {
             return;
         }
 
-        if (keyid === null) {
+        if (value === null) {
             this.root.notify.error(this.root.i18n.translate('GL.CRUD.RECORD_ACTION.KEY_MISSING'));
             return;
         }
@@ -80,15 +80,28 @@ export class CrudViewService {
         this.root.state.view.setViewRecordProcessing(true);
 
         try {
-            const record = await this.root.findOneBySecondaryKey(
-                keyid,
-                this.root.state.view.viewFieldObj(),
-            );
+            /**
+             * PAGE layout never loads the listing (shouldLoadListingOnRouteEnter()),
+             * so listingDataSource() stays empty on a direct url load and
+             * actionListingRecord() has nothing to resolve from - this fetch is the
+             * only record PAGE mode ever gets. Force labelField() into its
+             * selection (same force-include reasoning as isMainField/monogram_field
+             * in CrudListingState.getListingSearchFormViewOption()) so the title
+             * can read it below even when the module's own view schema has no
+             * reason to select it.
+             */
+            const labelField = this.root.state.labelField();
+            const baseViewFieldObj = this.root.state.view.viewFieldObj();
+            const recordFieldObj = labelField && !(labelField in baseViewFieldObj)
+                ? { ...baseViewFieldObj, [labelField]: { label: '', type: CrudFieldUiTypeEnum.TEXT } }
+                : baseViewFieldObj;
+
+            const record = await this.action.findOneByActionRecordIndexColumn(recordFieldObj);
 
             // Ignore a response for a View route that is no longer active.
             if (
                 !this.isViewActionActive()
-                || this.action.getCrudActionRecordSecondaryKeyValue() !== keyid
+                || this.action.getCrudActionRecordIndex() !== value
             ) {
                 return;
             }
@@ -100,6 +113,7 @@ export class CrudViewService {
             }
 
             this.root.state.view.setViewRecord(record);
+            this.root.state.setActionListingRecord(record);
 
             if (this.root.state.view.viewActionUiLayout() !== CrudActionUiLayoutEnum.PAGE) {
                 // Defer until the View host has registered an END_SIDE_BAR portal.
@@ -257,7 +271,7 @@ export class CrudViewService {
         this.autoPrintArea = element;
     }
     /**
-     * Used by the dedicated /print/:keyid route AND the inline Print button on View.
+     * Used by the dedicated /print/:index route AND the inline Print button on View.
      *
      * `target` is the element to print — every View host template passes its own
      * record wrapper (`#printArea`), so a page showing two <crud-component> hosts, or a
@@ -282,13 +296,13 @@ export class CrudViewService {
         }
     }
     public async initPrintActionFromUrl(
-        keyid: string | number | null = this.action.getCrudActionRecordSecondaryKeyValue(),
+        value: string | number | null = this.action.getCrudActionRecordIndex(),
     ): Promise<void> {
         if (!this.action.ensureActionPermitted(this.root.state.action.hasPrint())) {
             return;
         }
 
-        if (keyid === null) {
+        if (value === null) {
             this.root.notify.error(this.root.i18n.translate('GL.CRUD.RECORD_ACTION.KEY_MISSING'));
             return;
         }
@@ -297,15 +311,20 @@ export class CrudViewService {
         this.root.state.view.setViewRecordProcessing(true);
 
         try {
-            const record = await this.root.findOneBySecondaryKey(
-                keyid,
-                this.root.state.view.viewFieldObj(),
-            );
+            // same PAGE-mode reasoning as initViewActionFromUrl above - /print/:index
+            // is always a direct url load, so this fetch is the only record it gets
+            const labelField = this.root.state.labelField();
+            const baseViewFieldObj = this.root.state.view.viewFieldObj();
+            const recordFieldObj = labelField && !(labelField in baseViewFieldObj)
+                ? { ...baseViewFieldObj, [labelField]: { label: '', type: CrudFieldUiTypeEnum.TEXT } }
+                : baseViewFieldObj;
+
+            const record = await this.action.findOneByActionRecordIndexColumn(recordFieldObj);
 
             // Ignore a response for a Print route that is no longer active.
             if (
                 !this.isPrintActionActive()
-                || this.action.getCrudActionRecordSecondaryKeyValue() !== keyid
+                || this.action.getCrudActionRecordIndex() !== value
             ) {
                 return;
             }
@@ -317,6 +336,7 @@ export class CrudViewService {
             }
 
             this.root.state.view.setViewRecord(record);
+            this.root.state.setActionListingRecord(record);
 
             // Wait for the page host to actually render the loaded record before
             // printing — a setTimeout(0) macrotask is not guaranteed to run after
@@ -330,7 +350,7 @@ export class CrudViewService {
                 if (!this.autoPrintArea) {
                     // The host renders before the record resolves, so this should be
                     // set by now — logged rather than ignored, since the symptom is
-                    // simply nothing happening on the /print/:keyid route.
+                    // simply nothing happening on the /print/:index route.
                     this.root.log.error('[PRINT RECORD FAILED]', 'No View host registered a print area.');
                     return;
                 }

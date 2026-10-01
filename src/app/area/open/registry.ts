@@ -5,10 +5,13 @@ import { FoundationAreaBuilder } from '@libs/foundation/area/builder';
 import { FoundationModuleRouteNavType } from '@libs/foundation/module/type';
 import { FoundationAreaBuildType, FoundationAreaRegistryType } from '@libs/foundation/area/type';
 import { OpenAreaRoute } from '@area/open/route';
+import { DesignHtmlRoute } from '@area/open/design-html/route';
 import { HomeRoute } from '@module/business/home/route';
 import { HttpStatusNotFoundRoute } from '@module/shared/http-status/not-found/route';
 import { HttpStatusServiceUnavailableRoute } from '@module/shared/http-status/service-unavailable/route';
 import { GameInstanceRoute, GameRoute } from 'src/app/module/business/game/route';
+import { HttpStatusForbiddenRoute } from '@module/shared/http-status/forbidden/route';
+
 
 export class OpenAreaRegistry {
     // CLASS PROPERTIES ▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬
@@ -34,6 +37,10 @@ export class OpenAreaRegistry {
         // SHARED MODULES
         [HttpStatusServiceUnavailableRoute.registryKey]: HttpStatusServiceUnavailableRoute,
         [HttpStatusNotFoundRoute.registryKey]: HttpStatusNotFoundRoute,
+        [HttpStatusForbiddenRoute.registryKey]: HttpStatusForbiddenRoute,
+
+        // ⚠ TEMPORARY — see design-html/route.ts. Pull this row out again once
+        [DesignHtmlRoute.registryKey]: DesignHtmlRoute,
     };
 
     // NAVS ▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬

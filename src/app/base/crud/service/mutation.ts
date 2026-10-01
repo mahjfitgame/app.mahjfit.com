@@ -51,7 +51,7 @@ export class CrudMutationService {
     // ███ MUTATION OPERATION █████████████████████████████████████████████
     // ████████████████████████████████████████████████████████████████████
     public async initMutationActionFromUrl(
-        keyid: string | number | null = this.action.getCrudActionRecordSecondaryKeyValue(),
+        value: string | number | null = this.action.getCrudActionRecordIndex(),
     ): Promise<void> {
         if (
             (this.isMutationCreate() && !this.action.ensureActionPermitted(this.root.state.action.hasCreate()))
@@ -61,7 +61,7 @@ export class CrudMutationService {
             return;
         }
 
-        if (!await this.loadMutationFormFieldValues(keyid)) {
+        if (!await this.loadMutationFormFieldValues(value)) {
             return;
         }
 
@@ -236,7 +236,10 @@ export class CrudMutationService {
         }
     }
     public async closeMutationAction(): Promise<void> {
-        await this.action.closeCrudAction();
+        const action = this.root.state.crudAction();
+        await this.action.closeCrudAction(
+            action !== null && this.root.state.listing.shouldReloadListingAfterAction(action),
+        );
     }
     public addEndDrawerOnCloseCallBack(): void {
         /**
@@ -255,7 +258,7 @@ export class CrudMutationService {
         // add more call back
     }
     private async loadMutationFormFieldValues(
-        keyid: string | number | null,
+        value: string | number | null,
     ): Promise<boolean> {
         // this method is called only for update to fill up the form with existing values from database using api
         if (this.isMutationCreate()) {
@@ -263,7 +266,7 @@ export class CrudMutationService {
             return true;
         }
 
-        if (keyid === null) {
+        if (value === null) {
             this.root.notify.error(this.action.getMutationFormMessage('key_missing'));
             return false;
         }
@@ -271,10 +274,23 @@ export class CrudMutationService {
         this.root.state.mutation.setMutationFormProcessing(true);
 
         try {
-            const record = await this.root.findOneBySecondaryKey(
-                keyid,
-                this.root.state.mutation.mutationFieldObj(),
-            );
+            /**
+             * PAGE layout never loads the listing (shouldLoadListingOnRouteEnter()),
+             * so listingDataSource() stays empty on a direct url load and
+             * actionListingRecord() has nothing to resolve from - this fetch is the
+             * only record PAGE mode ever gets. Force labelField() into its
+             * selection (same force-include reasoning as isMainField/monogram_field
+             * in CrudListingState.getListingSearchFormViewOption()) so the title
+             * can read it below even when the module's own mutation schema has no
+             * reason to select it.
+             */
+            const labelField = this.root.state.labelField();
+            const baseMutationFieldObj = this.root.state.mutation.mutationFieldObj();
+            const recordFieldObj = labelField && !(labelField in baseMutationFieldObj)
+                ? { ...baseMutationFieldObj, [labelField]: { label: '', type: CrudFieldUiTypeEnum.TEXT } }
+                : baseMutationFieldObj;
+
+            const record = await this.action.findOneByActionRecordIndexColumn(recordFieldObj);
 
             if (!record) {
                 this.root.notify.error(this.action.getMutationFormMessage('failed'));
@@ -287,20 +303,26 @@ export class CrudMutationService {
                     !this.isMutationUpdate()
                     && !this.isMutationDuplicate()
                 )
-                || this.action.getCrudActionRecordSecondaryKeyValue() !== keyid
+                || this.action.getCrudActionRecordIndex() !== value
             ) {
                 return false;
             }
 
-            const keyField = this.root.state.secondaryKey();
+            /**
+             * Verify the record we got back really is the one the url asked
+             * for — against the column the url ADDRESSED it by. Comparing to a
+             * fixed column would report a bogus key_mismatch on every load for
+             * any module not indexed by that one.
+             */
+            const indexColumn = this.root.state.indexColumn();
 
             if (
-                keyField
+                indexColumn
                 && Object.prototype.hasOwnProperty.call(
                     this.root.state.mutation.mutationFieldObj(),
-                    keyField,
+                    indexColumn,
                 )
-                && String(record[keyField]) !== String(keyid)
+                && String(record[indexColumn]) !== String(value)
             ) {
                 this.root.notify.error(
                     this.action.getMutationFormMessage('key_mismatch'),
@@ -308,14 +330,25 @@ export class CrudMutationService {
                 return false;
             }
 
+            // verified against value/indexColumn above - safe to publish as the
+            // action's record even before the entry.ts effect's own resolution
+            this.root.state.setActionListingRecord(record);
+
             const mutationValues = this.normalizeMutationFormLoadValues(record);
 
             if (this.isMutationDuplicate()) {
                 const mutationFieldObj = this.root.state.mutation.mutationFieldObj();
-                const identityFields = [
+                /**
+                 * ⚠ the index column belongs here too, and ADDS to the pair
+                 * rather than replacing it: it is unique by definition, so
+                 * carrying it into the duplicate would violate that constraint.
+                 * The Set keeps this correct when the index IS one of the two.
+                 */
+                const identityFields = [...new Set([
                     this.root.state.primaryKey(),
                     this.root.state.secondaryKey(),
-                ];
+                    this.root.state.indexColumn(),
+                ])];
 
                 for (const fieldName of identityFields) {
                     if (
@@ -513,6 +546,7 @@ export class CrudMutationService {
         }
 
         const mutationForm = this.root.state.mutation.mutationForm;
+        const isCreate = this.isMutationCreate();
         const isUpdate = this.isMutationUpdate();
         const isDuplicate = this.isMutationDuplicate();
         let handler: CrudCreateHandlerType;
@@ -520,9 +554,9 @@ export class CrudMutationService {
         if (isUpdate) {
             if (!this.action.ensureActionPermitted(this.root.state.action.hasUpdate())) return;
 
-            const keyid = this.action.getCrudActionRecordSecondaryKeyValue();
+            const value = this.action.getCrudActionRecordIndex();
 
-            if (keyid === null) {
+            if (value === null) {
                 this.root.notify.error(
                     this.action.getMutationFormMessage('key_missing'),
                 );
@@ -530,15 +564,16 @@ export class CrudMutationService {
             }
 
             handler = async (input: CrudMutationInputType) => {
-                const keyField = this.root.state.secondaryKey();
+                // the column the url addressed this record by, not a fixed one
+                const indexColumn = this.root.state.indexColumn();
 
                 if (
-                    keyField
+                    indexColumn
                     && Object.prototype.hasOwnProperty.call(
                         this.root.state.mutation.mutationFieldObj(),
-                        keyField,
+                        indexColumn,
                     )
-                    && String(input[keyField]) !== String(keyid)
+                    && String(input[indexColumn]) !== String(value)
                 ) {
                     return {
                         success: false,
@@ -546,7 +581,7 @@ export class CrudMutationService {
                     };
                 }
 
-                return this.action.runUpdate(keyid, input);
+                return this.action.runUpdate(value, input);
             };
         } else {
             const permitted = isDuplicate
@@ -559,6 +594,7 @@ export class CrudMutationService {
         }
 
         let successMessage: string | undefined;
+        let resultData: Record<string, unknown> | undefined;
 
         const succeeded = await submit(mutationForm, {
             action: async (field) => {
@@ -574,6 +610,7 @@ export class CrudMutationService {
 
                     if (result.success) {
                         successMessage = result.message;
+                        resultData = result.data;
                         return undefined;
                     }
 
@@ -633,7 +670,26 @@ export class CrudMutationService {
             successMessage
                 ?? this.action.getMutationFormMessage('success'),
         );
-        this.root.state.mutation.resetMutationForm();
+
+        // only reset if its create otherwise form load with default values so no reset required
+        if(isCreate){
+            this.root.state.mutation.resetMutationForm();
+        }
+        
+        if (resultData) {
+            if (isUpdate) {
+                const index = this.action.getCrudActionRecordIndex();
+                if (index !== null) {
+                    this.root.state.listing.patchListingData(index, resultData);
+                }
+            } else {
+                // CREATE and DUPLICATE share this branch already (see the
+                // isUpdate check above) — a duplicated record is a new row,
+                // same as CREATE.
+                this.root.state.listing.prependListingData(resultData);
+            }
+        }
+
         await this.closeMutationAction();
     }
 }

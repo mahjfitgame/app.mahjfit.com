@@ -1,0 +1,8 @@
+{
+  "HTTP_STATUS_FORBIDDEN": {
+    "MODULE": {
+      "TITLE": "Access Denied",
+      "HINT": "You do not have permission to access this page. Sign in with a valid account."
+    }
+  }
+}

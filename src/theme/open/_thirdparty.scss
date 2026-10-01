@@ -1,0 +1,19 @@
+// file: src/theme/open/_thirdparty.scss
+/*
+INTENTIONALLY EMPTY.
+
+The private theme's _thirdparty.scss is a 2243-line dump of the adminuiux template
+(theme/adminuiux/src/template-style.scss) kept only for reference — per src/theme/theme.md
+it "is not much used, its just for reference we broke it and transfored it with only
+required and you can see it in src/theme/private/_layout.scss".
+
+The open theme is built from the Mahjfit design system, not from a purchased template, so
+there is no third-party theme to absorb here. Everything it needs is expressed directly in
+_color.scss / _font.scss / _layout.scss, with Tailwind and Angular Material doing the rest.
+
+Third-party PACKAGE stylesheets (ngx-toastr, the datetime picker) are not loaded here
+either — they live in _component.scss, next to the overrides that shape them, which is the
+same place the private theme keeps them.
+
+Keep the file: main.scss @use's it, and the import order is documented as fixed.
+*/

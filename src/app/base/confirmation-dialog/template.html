@@ -1,17 +1,22 @@
 <mat-toolbar class="tw:bg-transparent! tw:p-0! tw:h-auto! tw:whitespace-normal!">
-    <h2 mat-dialog-title
-        class="tw:flex! tw:items-center tw:gap-2 tw:text-lg! tw:before:hidden! tw:min-w-0 tw:w-full tw:py-2!"
-    >
+    <div class="tw:flex tw:items-center tw:gap-3 tw:min-w-0 tw:w-full tw:px-6 tw:py-4">
         @if(data.icon) {
             <mat-icon class="material-symbols-rounded tw:shrink-0">
                 {{ data.icon }}
             </mat-icon>
         }
 
-        <span class="tw:min-w-0 tw:wrap-break-word">
-            {{ data.titleKey | transloco: data.params }}
-        </span>
-    </h2>
+        <div class="tw:min-w-0">
+            <h2 mat-dialog-title
+                class="tw:text-lg! tw:font-semibold tw:m-0! tw:p-0! tw:leading-tight tw:before:hidden! tw:wrap-break-word"
+            >
+                {{ data.titleKey | transloco: data.params }}
+            </h2>
+            @if (data.label) {
+                <p class="tw:text-sm tw:font-normal tw:m-0 tw:mt-0.5 tw:leading-tight tw:opacity-70 tw:truncate">{{ data.label }}</p>
+            }
+        </div>
+    </div>
 </mat-toolbar>
 
 <mat-dialog-content class="tw:overflow-x-hidden!">

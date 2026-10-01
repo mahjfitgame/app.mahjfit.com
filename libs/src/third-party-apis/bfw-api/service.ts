@@ -98,13 +98,13 @@ export class BfwApiService {
                 },
             });
 
-            const jwt = {
-                jwt_access_token: this.conf.bfwApiSdkJwtAccessToken,
-                jwt_refresh_token: this.conf.bfwApiSdkJwtRefreshToken,
+            const bt = {
+                bt_access: this.conf.bfwApiSdkJwtAccessToken,
+                bt_refresh: this.conf.bfwApiSdkJwtRefreshToken,
             };
             
-            this.sdk.graphql.jwtAuthorization.initializeTokens(jwt);
-            this.sdk.rest.jwtAuthorization.initializeTokens(jwt);
+            this.sdk.graphql.btAuthorization.initializeTokens(bt);
+            this.sdk.rest.btAuthorization.initializeTokens(bt);
 
             // ▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬
             // EXTERNAL REGISTRATION
@@ -112,7 +112,7 @@ export class BfwApiService {
             // all of them are provided by specific module and that module controllers that process
             // these has to stay in individual module not here, keep adding comments to keep watch on all implementations
             // ----------------------------------------------------------
-            // ▬ setHeaderCtxs | jwtHostAuthorization | jwtStatefulAuthorization
+            // ▬ setHeaderCtxs | btHostAuthorization | btStatefulAuthorization | btPrivilegeAuthorization
             // file: libs/src/context-profile/state.ts
             //
             // ▬ setHeaderAcceptLanguage | setHeaderCurrentBidi

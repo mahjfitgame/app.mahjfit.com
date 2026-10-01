@@ -31,3 +31,4 @@ export const CRUD_RECORD_SORT_DIRECTION_OPTION: Record<RecordSortDirectionEnum, 
     [RecordSortDirectionEnum.ASC]: RecordSortDirectionEnum.ASC,
     [RecordSortDirectionEnum.DESC]: RecordSortDirectionEnum.DESC,
 };
+

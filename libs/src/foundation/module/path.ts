@@ -108,7 +108,27 @@ export class FoundationModulePath {
 
         // 1. substitute what was given
         Object.entries(params).forEach(([key, value]) => {
-            path = path.replace(key, value.toString());
+            const next = path.replace(key, value.toString());
+
+            /**
+             * ⚠ a supplied param that matched NOTHING is a slug/builder name
+             * mismatch, and step 2 below hides it: the unfilled placeholder is
+             * dropped, so the url comes back one segment SHORT instead of
+             * failing. /country/update/:index with a ':keyid' param supplied
+             * becomes /country/update, with no error anywhere.
+             *
+             * test the SUPPLIED key, not the leftover placeholders - an
+             * unfilled placeholder is often legitimate (of() with no params is
+             * how absolutePath() drops an optional token), but a key that WAS
+             * supplied and matched nothing never is.
+             */
+            if (isDevMode() && next === path) {
+                console.error(
+                    `[path] "${registryKey}" has no "${key}" placeholder - url will be short a segment`,
+                );
+            }
+
+            path = next;
         });
 
         // 2. drop empties and any :placeholder still unfilled

@@ -1,0 +1,604 @@
+// file: src/theme/open/_layout.scss
+@use '../breakpoint' as *;
+@use './variable' as *;
+
+/*
+Fundamental of layout styling and rules to follow when styling the layouts.
+
+There are total 3 types of layout
+L1. open-area-layout-component: Open Area Layout: This layout is for pages that are open to all users, such as the home page, about page, etc. It has a simple and clean design with a focus on content.
+L2. auth-area-layout-component: Auth Area Layout: This layout is for pages that require authentication, such as login, register, etc. It has a split design with a start side for visual elements and an end side for interactive elements. The start side is hidden on smaller screens to prioritize the interactive elements.
+L3. private-area-layout-component: Private Area Layout: This layout is for pages that are only accessible to authenticated users, such as the dashboard, profile, etc. It has a sidebar for navigation and a main content area. The sidebar can be toggled between an expanded state with icons and labels and a collapsed state with icons only.
+
+Each layout has its own component which is responsible for the overall structure and styling of the page, while the content within each layout is managed by individual components that are rendered in specific slots defined by the layout. This separation of concerns allows for a consistent design language across the application while also providing flexibility in how content is displayed within each layout.
+
+There are main 3 parts of each layout
+P1. DEFAULT: Origin of the layout, which is the base styling for the layout
+P2. MEDIA QUERY:  For responsive design
+P3. BIDIRECTIONAL: Support for RTL languages. Bidirectional can have its own media query if needed, but in most cases, the default styles can be adapted for RTL with some adjustments.
+All of 3 parts starts with the same selector as the default to ensure that the styles are applied correctly when the conditions are met.
+It feels redundant to repeat the selector, but it is necessary for the styles to be applied correctly. It also helps to keep the styles organized and easy to understand, as all styles related to a specific layout are grouped together under the same selector.
+
+⚠ ALL THREE layouts carry real rules here, unlike a theme that only owns its own area.
+src/styles.scss compiles exactly ONE theme for the whole app, so while the open theme is
+the active one it styles the auth screens and the private console too. leaving L2 or L3
+empty would render those shells unstyled, not fall back to the private theme.
+*/
+
+// █████████████████████████████████████████████████████████████████████
+// ███ #L0 GLOBAL BODY ████████████████████████████████████████████████
+// █████████████████████████████████████████████████████████████████████
+/*
+moved out of _color.scss - color.scss is for colour tokens/values, and most of this block
+is layout mechanics (position/isolation/margin/min-height, the ::before gradient-overlay
+scaffold) rather than colour. it sits ahead of L1/L2/L3 rather than inside one of them
+because today it applies globally, underneath all three area shells - splitting it per area
+is the reason it lives in _layout.scss at all, so a future area-specific look has a home.
+*/
+body {
+    position: relative;
+    color: var(--mat-sys-on-surface);
+    background-color: var(--mat-template-background);
+    isolation: isolate;
+    margin: 0;
+    min-height: 100vh;
+    min-height: 100dvh;
+
+    // the 32deg page gradient rides a fixed pseudo-layer so it never scrolls with content
+    &::before {
+        content: '';
+        position: fixed;
+        inset: 0;
+        z-index: -1;
+        pointer-events: none;
+        background-image: var(--bfw-body-gradient);
+        background-repeat: no-repeat;
+        background-size: cover;
+        background-position: center top;
+    }
+
+    /*
+    ⚠ src/index.html hardcodes <body class="bfw-field-rounded"> and theme.md forbids editing
+    anything inside it beyond font/asset loading. that class pills every form field at 28px,
+    but mahjfit-desktop-3-memberlogin.pdf shows ~10px fields. override the class here rather
+    than fight it from every component downstream.
+    */
+    &.bfw-field-rounded {
+        --mat-form-field-outlined-container-shape: var(--bfw-radius-tile);
+        --mat-chip-container-shape-radius: var(--bfw-radius-tile);
+        --mat-button-toggle-shape: var(--bfw-radius-button);
+    }
+}
+
+// █████████████████████████████████████████████████████████████████████
+// ███ #L1 OPEN AREA LAYOUT ████████████████████████████████████████████
+// █████████████████████████████████████████████████████████████████████
+
+// ███ #P1 DEFAULT █████████████████████████████████████████████████
+open-area-layout-component {
+    display: block;
+    background: transparent;
+
+    /*
+    ⚠ the brand bar is a SOLID white band in every desktop comp - it is not part of the
+    page gradient, the 32deg ramp starts below it. this is the one surface in the open
+    theme that deliberately does not follow the body background.
+    */
+    > header {
+        position: sticky;
+        inset-block-start: 0;
+        z-index: 20;
+        background-color: var(--mat-sys-surface);
+        box-shadow: 0 1px 0 var(--mat-sys-outline-variant);
+    }
+
+    > main {
+        position: relative;
+        // above .bfw-brand-motif, which sits at z-index 0
+        z-index: 1;
+        width: 100%;
+        max-width: var(--bfw-open-content-max);
+        margin-inline: auto;
+    }
+
+    > footer {
+        position: relative;
+        z-index: 1;
+        width: 100%;
+        max-width: var(--bfw-open-content-max);
+        margin-inline: auto;
+    }
+}
+// ███ #P2 MEDIA QUERY (BREAKPOINT) ████████████████████████████████
+open-area-layout-component {
+    @include bfw-sm-and-down {
+        // 32px of clear space around the logo eats a phone header, halve it
+        > header {
+            --bfw-brand-logo-clear-space: 1rem;
+        }
+    }
+}
+// ███ #P3 BIDIRECTIONAL ███████████████████████████████████████████
+:dir(rtl) {
+    open-area-layout-component {
+        /*
+        ⚠ the element gradient is a brand asset and reads fuchsia -> blue in every printed
+        piece. `to right` is physical, so RTL would flip the brand. mirror it back.
+        */
+        .bfw-brand-gradient-text,
+        .bfw-brand-gradient-bar {
+            background-image: linear-gradient(
+                to left,
+                var(--mat-sys-primary) 0%,
+                var(--mat-sys-secondary) 100%
+            );
+        }
+    }
+}
+
+// █████████████████████████████████████████████████████████████████████
+// ███ #L2 AUTH AREA LAYOUT ████████████████████████████████████████████
+// █████████████████████████████████████████████████████████████████████
+
+/*
+ported from src/theme/private/_layout.scss:55-96 as-is - no structural change, the open
+theme just inherits the same transparent + backdrop-blur header treatment over the shared
+50/50 split markup (src/app/area/auth/template.html). nothing here needs retokenizing:
+private's block carries no hardcoded colour, so there is no mahjfit-specific value to swap.
+*/
+
+// ███ #P1 DEFAULT █████████████████████████████████████████████████
+auth-area-layout-component {
+    background: transparent;
+
+    .bfw-start-side {
+
+    }
+
+    .bfw-end-side {
+        header {
+            top: 0;
+            z-index: 10;
+            transition: cubic-bezier(0.25, 0.8, 0.25, 1) all 400ms;
+            background-color: transparent;
+            backdrop-filter: blur(10px);
+            width: stretch;
+            position: sticky;
+        }
+
+        main {
+
+        }
+
+        footer {
+
+        }
+    }
+}
+// ███ #P2 MEDIA QUERY (BREAKPOINT) ████████████████████████████████
+auth-area-layout-component {
+    @include bfw-md-and-down {
+        .bfw-end-side {
+
+        }
+    }
+}
+// ███ #P3 BIDIRECTIONAL ███████████████████████████████████████████
+:dir(rtl) {
+    auth-area-layout-component {
+
+    }
+}
+
+// █████████████████████████████████████████████████████████████████████
+// ███ #L3 PRIVATE AREA LAYOUT █████████████████████████████████████████
+// █████████████████████████████████████████████████████████████████████
+/*
+ported from src/theme/private/_layout.scss:108-471. that block was already written almost
+entirely against --mat-sys-* / --bfw-* tokens, so it adopts the mahjfit palette by itself.
+all structural measurements are unchanged. what DID change, and why:
+
+  1. the active nav item's text was a literal `light-dark(#ffffff, #02448f)`, now a token.
+  2. the collapsed rail's hover background was `light-dark(#ffffff, #000000)`, now a token.
+  3. the accordion's 35px pills predate the brand's shape system (8px / 10px), retokenized.
+  4. the end-sidebar tab animation was DEAD in the private theme: it used the tailwind v3
+     `theme()` function, which sass passes through untouched and tailwind v4 never
+     processes, so the whole shorthand was dropped as invalid - and the keyframe it named
+     was never defined anywhere in src/. now a literal easing, and the keyframe is defined
+     in open/_utility.scss.
+*/
+
+// ███ #P1 DEFAULT █████████████████████████████████████████████████
+private-area-layout-component {
+    // ███ BREADCRUMB ██████████████████████████████████████████████████
+    .xng-breadcrumb-root {
+        margin-inline: calc(var(--tw-spacing) * 2) !important;
+        --xng-font-size: 87.35%;
+        color: var(--mat-sys-secondary);
+
+        .xng-breadcrumb-list {
+            display: flex;
+            width: 100%;
+            align-items: center;
+            justify-content: flex-start;
+        }
+
+        .xng-breadcrumb-separator {
+            margin: 0;
+            .mat-icon {
+                font-size: var(--xng-font-size);
+                height: var(--xng-font-size);
+                width: var(--xng-font-size);
+            }
+        }
+        .xng-breadcrumb-item {
+            font-size: var(--xng-font-size);
+            .xng-breadcrumb-link-icon {
+                font-size: var(--xng-font-size);
+                height: var(--xng-font-size);
+                width: var(--xng-font-size);
+            }
+            .xng-breadcrumb-link {
+                &:hover {
+                    text-decoration: none;
+                    color: var(--mat-sys-primary);
+                }
+            }
+            .xng-breadcrumb-trail {
+
+            }
+        }
+    }
+    // ███ MAIN CONTAINER ██████████████████████████████████████████████
+    .bfw-sidenav-container {
+        --sidebar-area: 290px;
+        --sidebar-width: var(--sidebar-area);
+        min-height: 100dvh;
+        background-color: transparent;
+
+        // ███ SIDEBAR START ███████████████████████████████████████████
+        .bfw-sidenav-start {
+            width: var(--sidebar-width);
+            border-radius: 0;
+            background-color: transparent;
+
+            nav {
+                a {
+                    margin-block-end: 2px;
+                }
+                .mat-mdc-nav-list {
+                    --mat-list-list-item-one-line-container-height: 44px;
+                    --mat-list-list-item-leading-icon-start-space: 1px;
+                    --mat-list-list-item-leading-icon-end-space: 16px;
+
+                    .mat-mdc-list-item {
+                        &.mdc-list-item--with-leading-icon {
+                            &.mdc-list-item {
+                                padding-inline-start: 0.75rem;
+                                padding-inline-end: 0;
+                            }
+
+                            .mdc-list-item__start {
+                                margin-inline-start: var(--mat-list-list-item-leading-icon-start-space);
+                                margin-inline-end: var(--mat-list-list-item-leading-icon-end-space);
+                            }
+                        }
+
+                        &:hover,
+                        &:focus {
+                            color: var(--mat-sys-on-primary-container);
+                            background-color: var(--mat-sys-primary-container);
+
+                            * {
+                                color: var(--mat-sys-on-primary-container);
+                            }
+                        }
+
+                        &.active {
+                            color: var(--mat-sys-primary-container);
+                            background: var(--mat-sys-primary);
+                            background-image: var(--bfw-link-gradient);
+
+                            // ⚠ was light-dark(#ffffff, #02448f) - the only hardcoded
+                            // colour in the private nav. this is text ON the fuchsia
+                            // gradient, so it is on-primary by definition.
+                            * {
+                                color: var(--mat-sys-on-primary);
+                            }
+                        }
+                    }
+                }
+
+                mat-accordion {
+                    // ⚠ was var(--bfw-radius-tile) (10px, guide p7) - on a tall multi-row
+                    // expanded group that reads as barely-rounded/square next to private's
+                    // 35px pill. matching private's own value here, scoped to just this
+                    // sidebar accordion - --bfw-radius-tile itself is untouched, it still
+                    // drives cards/menus/snackbars everywhere else.
+                    //
+                    // ⚠ !important is required, not cosmetic. Material's own structural css
+                    // ships mat-accordion/mat-expansion-panel as a "grouped card": every panel
+                    // resets to border-radius:0 EXCEPT :first-of-type (top corners only) and
+                    // :last-of-type (bottom corners only) - see @angular/material's
+                    // expansion.mjs. Those selectors carry 3 classes of specificity
+                    // (.mat-accordion .mat-expansion-panel:not(...)), while this rule's full
+                    // selector chain only carries 2, so without !important Material's grouped
+                    // look always wins regardless of the value set here. private only gets
+                    // full 4-corner rounding because of an unrelated, app-wide !important rule
+                    // in the (mostly vestigial) private/_thirdparty.scss:2052-2054 - this is
+                    // the scoped, sidebar-only equivalent for open. see coding-rules.md.
+                    border-radius: 35px !important;
+
+                    mat-expansion-panel {
+                        --mat-expansion-container-shape: 35px;
+                        border-radius: 35px !important;
+                        box-shadow: none;
+                        background-color: transparent;
+                        margin-block-end: 0;
+
+                        mat-expansion-panel-header {
+                            font-weight: normal;
+
+                            &:hover, &:focus {
+                                background: none;
+                            }
+
+                            mat-icon {
+                                margin-inline-start: var(--mat-list-list-item-leading-icon-start-space);
+                                margin-inline-end: var(--mat-list-list-item-leading-icon-end-space);
+                            }
+
+                            .mat-expansion-indicator {
+                                svg {
+                                    margin-block: 0 !important;
+                                    margin-inline: 10px !important;
+                                }
+                            }
+                        }
+
+                        &.mat-expanded {
+                            // ⚠ was --bfw-element-gradient (the fuchsia->blue "elements" ramp) - too
+                            // dark as a panel fill. --bfw-body-gradient is the "backgrounds" gradient
+                            // the design system actually intends for surfaces.
+                            background-image: var(--bfw-body-gradient);
+                            background-color: var(--mat-sys-on-primary);
+                            margin-block-end: 0.5rem;
+                        }
+
+                        .mat-expansion-panel-body {
+                            padding-block: 0.5rem;
+                            padding-inline: 0;
+
+                            .mat-expansion-panel.mat-expanded {
+                                box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05), 0 3px 10px rgba(0, 0, 0, 0.05);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // ███ SIDEBAR START ICONIC ████████████████████████████████████
+        &.bfw-icon-sidebar-opened {
+            .bfw-sidenav-content {
+                margin-inline-start: var(--sidebar-area);
+            }
+        }
+
+        &.bfw-icon-sidebar-closed {
+            --sidebar-width: 75px;
+
+            .bfw-sidenav-start {
+                transform: none;
+                visibility: visible !important;
+
+                ::-webkit-scrollbar {
+                    width: 0px;
+                    height: 0px;
+                }
+
+                .mat-drawer-inner-container {
+                    display: block !important;
+
+                    .bfw-nav-link-name, .mdc-list-item__content, .mat-expansion-indicator {
+                        display: none;
+                    }
+                }
+
+                &:hover {
+                    --sidebar-width: var(--sidebar-area);
+                    transform: none;
+                    visibility: visible !important;
+                    z-index: 9;
+                    // ⚠ was light-dark(#ffffff, #000000)
+                    background-color: var(--mat-sys-surface-container-lowest);
+
+                    .bfw-nav-link-name, .mdc-list-item__content, .mat-expansion-indicator {
+                        display: inline;
+                    }
+
+                    &:after {
+                        content: "";
+                        position: absolute;
+                        left: 0;
+                        top: 0;
+                        height: 100%;
+                        width: 100%;
+                        background-image: var(--bfw-navbar-gradient);
+                        opacity: 0.25;
+                        z-index: -1;
+                    }
+                }
+            }
+
+            .bfw-sidenav-content {
+                margin-inline-start: var(--sidebar-width);
+            }
+        }
+
+        // ███ MAIN BODY ███████████████████████████████████████████████
+        .bfw-sidenav-content {
+            margin-inline: 0;
+            z-index: 2;
+
+            .bfw-main {
+                padding-block-start: calc(var(--bfw-safe-area-top) + (var(--tw-spacing) * 16));
+            }
+            .bfw-mobile-menu-btn {
+                display: none !important;
+            }
+        }
+
+        // ███ SIDEBAR END █████████████████████████████████████████████
+        .bfw-sidenav-end {
+            // map custom heights
+            --bfw-end-sidebar-header-height: calc(var(--bfw-safe-area-top, 0px) + 56px);
+            --bfw-tab-header-height: 48px;
+
+            // matches tw:backdrop-blur-md exactly
+            --bfw-end-sidebar-glass-filter: blur(12px) saturate(150%);
+
+            // ⚠ was --bfw-element-gradient - too dark for a full-panel fill behind search/
+            // notification content. --bfw-body-gradient is the "backgrounds" gradient; the
+            // "elements" one is reserved for progress bars / taglines, never a surface.
+            background-image: var(--bfw-body-gradient);
+            background-size: cover;
+            background-repeat: no-repeat;
+
+            transition-property: transform !important;
+            transition-duration: 290ms !important;
+            transition-timing-function: cubic-bezier(0.16, 1, 0.3, 1) !important;
+
+            /* THE FIX: Single Continuous Glass Shelf */
+            &::before {
+                content: "";
+                position: absolute;
+                top: 0;
+                left: 0;
+                right: 0;
+                // Combines Header + Tab Header height exactly
+                height: calc(var(--bfw-end-sidebar-header-height) + var(--bfw-tab-header-height));
+                backdrop-filter: var(--bfw-end-sidebar-glass-filter);
+                -webkit-backdrop-filter: var(--bfw-end-sidebar-glass-filter);
+
+                z-index: 30;
+                pointer-events: none;
+            }
+
+            .bfw-sidenav-end-header,
+            .bfw-end-sidebar-tab-group .mat-mdc-tab-header {
+                background: transparent !important;
+                backdrop-filter: none !important;
+                -webkit-backdrop-filter: none !important;
+                box-shadow: none !important;
+                border: 0 !important;
+            }
+
+            .bfw-sidenav-end-header {
+                height: var(--bfw-end-sidebar-header-height);
+            }
+
+            .bfw-end-sidebar-tab-group {
+                .mat-mdc-tab-header {
+                    position: sticky;
+                    top: var(--bfw-end-sidebar-header-height);
+                    height: var(--bfw-tab-header-height);
+                    z-index: 40;
+                    margin-block-start: -1px; // Ensure no sub-pixel gap
+                    padding-inline-end: var(--bfw-safe-area-inline-end); // this is important
+                }
+
+                .mat-mdc-tab-label-container,
+                .mat-mdc-tab-list,
+                .mat-mdc-tab-labels {
+                    background: transparent !important;
+                }
+
+                .mat-mdc-tab-body-wrapper,
+                .mat-mdc-tab-body,
+                .mat-mdc-tab-body-content {
+                    overflow-y: visible !important;
+                    overflow-x: clip !important;
+                }
+
+                /* APPEAR ANIMATION (No Slide) */
+                .mat-mdc-tab-body {
+                    transform: none !important;
+                    &.mat-mdc-tab-body-active {
+                        /*
+                        ⚠ the private theme writes the easing as theme('transitionTimingFunction.out'),
+                        a tailwind v3 function. this file is compiled by sass and tailwind v4 never
+                        processes its output, so that token never resolves and the whole animation
+                        shorthand is dropped - the animation has never run. literal easing instead.
+                        the keyframe itself is defined in open/_utility.scss, because it is not
+                        defined anywhere in the private theme either.
+                        */
+                        animation: bfw-tab-appear 180ms cubic-bezier(0, 0, 0.2, 1);
+                    }
+                }
+            }
+        }
+        .mat-drawer-backdrop {
+            transition-duration: 90ms !important;
+            transition-timing-function: linear !important;
+        }
+    }
+}
+// ███ #P2 MEDIA QUERY (BREAKPOINT) ████████████████████████████████
+private-area-layout-component {
+    .bfw-sidenav-container {
+        @include bfw-sm-and-down {
+            .bfw-sidenav-start {
+                padding-left: 0;
+                padding-right: 0;
+                background-color: var(--mat-sys-primary-container);
+            }
+
+            .bfw-sidenav-content {
+                margin-inline-start: 0;
+
+                .bfw-mobile-menu-btn {
+                    display: block !important;
+                }
+            }
+
+            .bfw-sidenav-end {
+                --bfw-end-sidebar-header-height: calc(var(--bfw-safe-area-top, 0px) + 53px);
+            }
+        }
+    }
+}
+// ███ #P3 BIDIRECTIONAL ███████████████████████████████████████████
+:dir(rtl) {
+    private-area-layout-component {
+
+        .xng-breadcrumb-root {
+            .xng-breadcrumb-separator {
+                .mat-icon {
+                    transform: rotate(180deg);
+                }
+            }
+        }
+
+        .bfw-sidenav-container {
+            .bfw-sidenav-start {
+                nav {
+                    // When the sidebar is icon-only, remove start/end icon spacing so
+                    // the icons sit in the visual center for RTL as they do in LTR.
+                    .mat-mdc-nav-list {
+                        --mat-list-list-item-leading-icon-start-space: 16px;
+                        --mat-list-list-item-leading-icon-end-space: 1px;
+                    }
+                }
+            }
+
+            .bfw-sidenav-content {
+
+            }
+
+            .bfw-sidenav-end  {
+
+            }
+        }
+    }
+}

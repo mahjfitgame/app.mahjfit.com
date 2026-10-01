@@ -4,8 +4,9 @@ import { computed, Injector, linkedSignal, Signal, signal } from "@angular/core"
 import { FieldTree, form, validate } from "@angular/forms/signals";
 import { SelectionModel } from "@angular/cdk/collections";
 import { MatTableDataSource } from "@angular/material/table";
-import { CrudFieldOptionType, CrudFormFieldInfoType, CrudListingFormattedFieldObjType, CrudListingStateType, CrudListingViewOptionResultType, CrudModuleContextType, CrudStateFormFieldObjType, CrudStateListingDataType, CrudStateListingFieldObjType, CrudStateListingSearchFieldObjType, CrudStateListOperationFieldObjType, CrudStateViewOptionFieldObjType, CrudViewOptionInputType } from "@base/crud/type";
+import { CrudFieldOptionType, CrudFormFieldInfoType, CrudListingFormattedFieldObjType, CrudListingStateType, CrudListingViewOptionResultType, CrudModuleContextType, CrudRecordType, CrudReloadListingAfterActionType, CrudStateFormFieldObjType, CrudStateListingDataType, CrudStateListingFieldObjType, CrudStateListingSearchFieldObjType, CrudStateListOperationFieldObjType, CrudStateViewOptionFieldObjType, CrudViewOptionInputType } from "@base/crud/type";
 import { CrudFieldNormalizeModeEnum, CrudFieldUiTypeEnum, CrudListingAdditionalColumnsEnum, CrudListingItemPerPageOptionEnum, CrudListingSearchFormGroupKeyEnum, CrudListOperationFieldsEnum, CrudViewOptionFieldsEnum } from "@base/crud/enum";
+import { FoundationActionEnum } from "@libs/foundation/action/enum";
 import { CRUD_RECORD_SORT_DIRECTION_OPTION } from "@base/crud/const";
 import { RecordSortDirectionEnum, RecordSortNullPositionEnum } from "@bfw/api-sdk/graphql/libs/crud.enum";
 import { CrudValidation } from "../validation";
@@ -236,37 +237,46 @@ export class CrudListingState implements CrudListingStateType {
                     return String(value ?? '').split(',');
                 };
 
-                const secondaryKey = this.root?.secondaryKey?.() ?? undefined;
+                /**
+                 * ⚠ keep the optional chaining. `this.root` is a constructor
+                 * parameter property, so it is still undefined while these
+                 * field-obj definitions are built during initialisation.
+                 */
+                const indexColumn = this.root?.indexColumn?.() ?? undefined;
 
                 const listingData = this.listingData?.();
                 const hasListingDataLoaded = listingData !== null && listingData !== undefined;
                 const dataSource = this.listingDataSource?.();
                 const rows = Array.isArray(dataSource?.data) ? dataSource.data : [];
                 /**
-                 * ONE walk over rows, keeping key -> row instead of just the key.
-                 * Serves both the membership test below (was a Set) and the URL -> State
-                 * lookup at the bottom, which used to re-derive every row's key inside a
-                 * rows.find() per url key.
+                 * ONE walk over rows, keeping index -> row instead of just the
+                 * index. Serves both the membership test below (was a Set) and the
+                 * URL -> State lookup at the bottom, which used to re-derive every
+                 * row's value inside a rows.find() per url entry.
                  *
-                 * First row wins on a duplicate key, matching what that find() returned.
+                 * First row wins on a duplicate, matching what that find() returned.
+                 *
+                 * ⚠ the null skip is load-bearing, not defensive: a row whose index
+                 * column is null cannot be addressed, so it must never become
+                 * selectable from a crafted url either.
                  */
-                const rowsByKey = new Map<string, any>();
+                const rowsByIndex = new Map<string, any>();
                 for (const row of rows) {
-                    const key = this.root.getRecordSecondaryKeyValue(row, secondaryKey);
-                    if (key === null) {
+                    const index = this.root.getRecordIndexColumnValue(row, indexColumn);
+                    if (index === null) {
                         continue;
                     }
-                    const trimmedKey = String(key).trim();
-                    if (trimmedKey.length === 0 || rowsByKey.has(trimmedKey)) {
+                    const trimmedIndex = String(index).trim();
+                    if (trimmedIndex.length === 0 || rowsByIndex.has(trimmedIndex)) {
                         continue;
                     }
-                    rowsByKey.set(trimmedKey, row);
+                    rowsByIndex.set(trimmedIndex, row);
                 }
 
                 /**
                  * State -> URL:
                  * Runtime value is SelectionModel rows.
-                 * Return raw SECONDARY keys. apply_enc is false, so what this
+                 * Return raw INDEX values. apply_enc is false, so what this
                  * returns is literally what lands in the URL — no encId pass
                  * runs after this any more.
                  *
@@ -279,59 +289,60 @@ export class CrudListingState implements CrudListingStateType {
                 if (mode === CrudFieldNormalizeModeEnum.STOC) {
                     const selectedItems = toArray(v);
 
-                    const keys = selectedItems
+                    const indexes = selectedItems
                         .map((item) => {
                             /**
-                             * If it is a row object, convert to row secondary key.
+                             * If it is a row object, read its index column.
                              */
                             if (item && typeof item === 'object') {
-                                return this.root.getRecordSecondaryKeyValue(item, secondaryKey);
+                                return this.root.getRecordIndexColumnValue(item, indexColumn);
                             }
 
                             /**
-                             * If rows are not loaded yet, keep primitive pending keys so
-                             * initial URL hydration can resolve them after API data arrives.
+                             * If rows are not loaded yet, keep primitive pending values
+                             * so initial URL hydration can resolve them after API data
+                             * arrives.
                              */
-                            const pendingKey = String(item ?? '').trim();
+                            const pendingIndex = String(item ?? '').trim();
 
-                            return !hasListingDataLoaded || rowsByKey.has(pendingKey)
-                                ? pendingKey
+                            return !hasListingDataLoaded || rowsByIndex.has(pendingIndex)
+                                ? pendingIndex
                                 : null;
                         })
-                        .map((key) => String(key ?? '').trim())
-                        .filter((key) => key.length > 0);
+                        .map((index) => String(index ?? '').trim())
+                        .filter((index) => index.length > 0);
 
-                    const uniqueKeys = [...new Set(keys)];
+                    const uniqueIndexes = [...new Set(indexes)];
 
-                    return uniqueKeys.length > 0 ? uniqueKeys : null;
+                    return uniqueIndexes.length > 0 ? uniqueIndexes : null;
                 }
 
                 /**
                  * URL -> State:
-                 * With apply_enc false the value arrives as plain secondary keys,
+                 * With apply_enc false the value arrives as plain index values,
                  * no decrypt step in front of it.
-                 * If listing data is not loaded yet, unresolved keys are kept
-                 * temporarily. This preserves real keys when someone copy-pastes a URL
+                 * If listing data is not loaded yet, unresolved values are kept
+                 * temporarily. This preserves real ones when someone copy-pastes a URL
                  * and opens it in a new browser load. Once listing data is loaded, keep
-                 * only keys that match listing data so suspicious URL values are dropped
-                 * and then removed from the URL by STOC sync.
+                 * only values that match listing data so suspicious URL entries are
+                 * dropped and then removed from the URL by STOC sync.
                  */
-                const urlKeys = toArray(v)
+                const urlIndexes = toArray(v)
                     .map((item) => String(item ?? '').trim())
                     .filter((item) => item.length > 0);
 
-                const uniqueUrlKeys = [...new Set(urlKeys)];
+                const uniqueUrlIndexes = [...new Set(urlIndexes)];
 
-                if (uniqueUrlKeys.length === 0) {
+                if (uniqueUrlIndexes.length === 0) {
                     return new SelectionModel<any>(true, []);
                 }
 
                 if (!hasListingDataLoaded) {
-                    return new SelectionModel<any>(true, uniqueUrlKeys);
+                    return new SelectionModel<any>(true, uniqueUrlIndexes);
                 }
 
-                const selectedRows = uniqueUrlKeys
-                    .map((urlKey) => rowsByKey.get(urlKey))
+                const selectedRows = uniqueUrlIndexes
+                    .map((urlIndex) => rowsByIndex.get(urlIndex))
                     .filter((row) => !!row);
 
                 return new SelectionModel<any>(true, selectedRows);
@@ -478,17 +489,19 @@ export class CrudListingState implements CrudListingStateType {
     private readonly _listingFieldObj = signal<CrudStateListingFieldObjType>({});
     public readonly listingFieldObj = this._listingFieldObj.asReadonly();
 
+    // the whole payload including pagination metadata — not just rows coming from api response
     private readonly _listingData = signal<CrudStateListingDataType | null>(null);
     public readonly listingData = this._listingData.asReadonly();
 
+    // only the rows from _listingData, pure records for various operations
     private readonly _listingDataSource = signal<MatTableDataSource<any>>(new MatTableDataSource<any>([]));
     public readonly listingDataSource = this._listingDataSource.asReadonly();
 
     private readonly _totalRecords = signal<number>(0);
     public readonly totalRecords = this._totalRecords.asReadonly();
 
-    private readonly _reloadListingAfterRecordAction = signal(false);
-    public readonly reloadListingAfterRecordAction = this._reloadListingAfterRecordAction.asReadonly();
+    private readonly _reloadListingAfterAction = signal<CrudReloadListingAfterActionType>({});
+    public readonly reloadListingAfterAction = this._reloadListingAfterAction.asReadonly();
 
     // Using a computed or linkedSignal if the fields ever change dynamically
     public formattedListingFields = linkedSignal(() => this.formatListingFieldObj(this.listingFieldObj() ?? {}));
@@ -514,8 +527,31 @@ export class CrudListingState implements CrudListingStateType {
         return Object.fromEntries(selected.map((fkey) => [fkey, true]));
     });
     public pageSkipIndex = computed(() => this.getStatePageSkipIndex());
+    /**
+     * Loaded rows this module can ADDRESS — index column non-null.
+     *
+     * A nullable index column is the child developer's choice to make, but a
+     * row it leaves null cannot be acted on at all: no url can point at it and
+     * no where can name it. Such a row must not be SELECTABLE either, or one
+     * of them would make getSelectedRecordIndexes() answer null and refuse
+     * every bulk action for the whole page, with no indication why.
+     *
+     * A computed, so the filter runs once per data change rather than on every
+     * read — cheaper than the per-call filter rowSelectionSummary used to do.
+     */
+    public readonly indexedListingRows = computed(
+        () => this.listingDataSource().data.filter(
+            (row) => this.root.hasRecordIndex(row),
+        ),
+    );
+    /**
+     * Counted over the ADDRESSABLE rows, so isAllRowsSelected() and
+     * isPartiallyRowsSelected() stay correct with no change of their own —
+     * otherwise "all selected" could never be true once one row is
+     * unaddressable, because select-all skips those.
+     */
     public readonly rowSelectionSummary = computed(() => {
-        const rows = this.listingDataSource().data;
+        const rows = this.indexedListingRows();
         const selection = this.getListingSelectedRowsValue();
         const selectedCount = rows.filter((row) => selection.isSelected(row)).length;
         return { numRows: rows.length, selectedCount };
@@ -534,18 +570,108 @@ export class CrudListingState implements CrudListingStateType {
     public setTotalRecords(total: number): void {
         this._totalRecords.set(total);
     }
-    public setReloadListingAfterRecordAction(reload: boolean): void {
-        this._reloadListingAfterRecordAction.set(reload);
+    public setReloadListingAfterAction(actions: CrudReloadListingAfterActionType): void {
+        this._reloadListingAfterAction.set(actions);
+    }
+    public updateReloadListingAfterAction(action: FoundationActionEnum, reload: boolean): void {
+        this._reloadListingAfterAction.update((current) => ({ ...current, [action]: reload }));
+    }
+    public removeReloadListingAfterAction(action: FoundationActionEnum): void {
+        this._reloadListingAfterAction.update((current) => ({ ...current, [action]: undefined }));
+    }
+    public shouldReloadListingAfterAction(action: FoundationActionEnum): boolean {
+        return this._reloadListingAfterAction()[action] ?? false;
+    }
+
+    // ███████████████████████████████████████████████████████████████████
+    // ████ LISTING DATA SOURCE █ BY-KEY LOOKUP █████████████████████████
+    // ███████████████████████████████████████████████████████████████████
+
+    /**
+     * The loaded row whose PRIMARY key matches, or null.
+     *
+     * Declared alongside the secondary reading below for the same reason
+     * getRecordPrimaryKeyValue()/getRecordSecondaryKeyValue() come in pairs:
+     * which key a caller holds is the caller's business. Neither has a call
+     * site today — everything addresses records through
+     * findListingDataSourceByIndexColumn() — and both are kept as the
+     * SPECIFIC-identifier half for the api shapes that need one.
+     *
+     * The blank guard is not padding: getRecordFieldValue() answers null for
+     * an empty column, so without it a keyless lookup would pair with the
+     * first keyless row and return the wrong record.
+     *
+     * Reads .data, not .filteredData — quick search is a CLIENT-side
+     * filterPredicate, and a row the user filtered out after starting an
+     * action on it must still resolve.
+     */
+    public findListingDataSourceByPrimaryKey(
+        pk: string | number,
+    ): CrudRecordType | null {
+        const wanted = String(pk).trim();
+
+        if (wanted === '') {
+            return null;
+        }
+
+        return this.listingDataSource().data.find(
+            (row) => this.root.getRecordPrimaryKeyValue(row) === wanted,
+        ) ?? null;
+    }
+    /**
+     * The loaded row whose SECONDARY key matches, or null — the other half of
+     * the specific-identifier pair above. What a record-scoped action URL
+     * carries is the INDEX, so findListingDataSourceByIndexColumn() is what
+     * patchListingData()/removeListingData() and the record resolver mean.
+     */
+    public findListingDataSourceBySecondaryKey(
+        sk: string | number,
+    ): CrudRecordType | null {
+        const wanted = String(sk).trim();
+
+        if (wanted === '') {
+            return null;
+        }
+
+        return this.listingDataSource().data.find(
+            (row) => this.root.getRecordSecondaryKeyValue(row) === wanted,
+        ) ?? null;
+    }
+    /**
+     * The loaded row whose INDEX COLUMN matches, or null — the third sibling of
+     * the pair above, and the one every record-scoped action url means.
+     *
+     * Not a replacement for either: those two name a SPECIFIC identifier, this
+     * one reads whichever column the module declared via setIndexColumn(). It
+     * replaces the pk/sk ternary the record resolver and upload used to run.
+     *
+     * Same two guards as its siblings: blank is refused (getRecordFieldValue()
+     * answers null for an empty column, so a keyless lookup would otherwise
+     * pair with the first keyless row), and it reads .data rather than
+     * .filteredData so a row the user quick-searched away still resolves.
+     */
+    public findListingDataSourceByIndexColumn(
+        index: string | number,
+    ): CrudRecordType | null {
+        const wanted = String(index).trim();
+
+        if (wanted === '') {
+            return null;
+        }
+
+        return this.listingDataSource().data.find(
+            (row) => this.root.getRecordIndexColumnValue(row) === wanted,
+        ) ?? null;
     }
 
     public patchListingData(
-        keyid: string | number,
+        index: string | number,
         patch: Record<string, unknown>,
     ): boolean {
         let patched = false;
 
         const rows = this._listingDataSource().data.map((row) => {
-            if (this.root.getRecordSecondaryKeyValue(row) !== String(keyid)) {
+            if (this.root.getRecordIndexColumnValue(row) !== String(index)) {
                 return row;
             }
 
@@ -575,17 +701,17 @@ export class CrudListingState implements CrudListingStateType {
      * are left untouched. null (table-wide marker) clears every other row.
      */
     public patchAllListingData(
-        keyid: string | number,
+        index: string | number,
         matchedRowPatch: Record<string, unknown>,
         otherRowsPatch: Record<string, unknown>,
         groupField: string | null = null,
     ): boolean {
         const data = this._listingDataSource().data;
         const matchedRow = data.find(
-            (row) => this.root.getRecordSecondaryKeyValue(row) === String(keyid),
+            (row) => this.root.getRecordIndexColumnValue(row) === String(index),
         );
 
-        // no matched row means a stale keyid: leave the other rows alone too
+        // no matched row means a stale index: leave the other rows alone too
         if (!matchedRow) {
             return false;
         }
@@ -611,10 +737,18 @@ export class CrudListingState implements CrudListingStateType {
         return true;
     }
 
-    public removeListingData(keyid: string | number): boolean {
+    /** Inserts a newly created row at the front, for CREATE/DUPLICATE's local patch. */
+    public prependListingData(row: Record<string, unknown>): void {
+        this.updateListingData(
+            [row, ...this._listingDataSource().data],
+            this._totalRecords() + 1,
+        );
+    }
+
+    public removeListingData(index: string | number): boolean {
         const currentRows = this._listingDataSource().data;
         const rows = currentRows.filter(
-            (row) => this.root.getRecordSecondaryKeyValue(row) !== String(keyid),
+            (row) => this.root.getRecordIndexColumnValue(row) !== String(index),
         );
 
         if (rows.length === currentRows.length) {
@@ -1403,6 +1537,18 @@ export class CrudListingState implements CrudListingStateType {
             if (isMainGroupField) {
                 selectedColumns.add(isMainGroupField);
             }
+        }
+
+        /**
+         * Same reason as isMainField above: labelField() names the record for
+         * a dialog title (upload/mutation), read off whatever row is already
+         * in listingDataSource - not worth a dedicated api call. Force-added
+         * so unticking it in Display Fields does not blank that title.
+         */
+        const labelField = this.root.labelField();
+
+        if (labelField) {
+            selectedColumns.add(labelField);
         }
 
         /**

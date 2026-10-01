@@ -133,23 +133,29 @@ export class ConfService {
     public get numOfRecordsPerPage(): number {
         return this._conf.NUM_OF_RECORDS_PER_PAGE;
     }
-    public get fileFormatImage(): string[] {
+    public get fileFormatImage(): Record<string, string> {
         return this._conf.FILE_FORMAT_IMAGE;
     }
-    public get fileFormatDoc(): string[] {
+    public get fileFormatDoc(): Record<string, string> {
         return this._conf.FILE_FORMAT_DOC;
     }
-    public get fileFormatAudio(): string[] {
+    public get fileFormatAudio(): Record<string, string> {
         return this._conf.FILE_FORMAT_AUDIO;
     }
-    public get fileFormatVideo(): string[] {
+    public get fileFormatVideo(): Record<string, string> {
         return this._conf.FILE_FORMAT_VIDEO;
     }
-    public get fileFormatOther(): string[] {
-        return this._conf.FILE_FORMAT_OTHER;
+    public get fileFormatCode(): Record<string, string> {
+        return this._conf.FILE_FORMAT_CODE;
     }
-    public get validFileMimeType(): string[] {
-        return this._conf.VALID_FILE_MIME_TYPE;
+    public get fileFormatExecutable(): Record<string, string> {
+        return this._conf.FILE_FORMAT_EXECUTABLE;
+    }
+    public get fileFormatGraphics(): Record<string, string> {
+        return this._conf.FILE_FORMAT_GRAPHICS;
+    }
+    public get fileFormatCad(): Record<string, string> {
+        return this._conf.FILE_FORMAT_CAD;
     }
 
     // ████ PUBLIC █ INDEPENDENT █████████████████████████████████████████████

@@ -92,7 +92,7 @@ export class ForgotPasswordService implements FoundationModuleServiceType {
         if(precheck) {
             try {
                 this.gpbs.stream = 30;
-                const publicid = this.ctxp.state.publicid();
+                const publicid = this.ctxp.state.sessionPublicId();
                 
                 if(publicid){
                     // set returning url

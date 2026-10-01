@@ -19,7 +19,7 @@ import { CrudUtility } from "@base/crud/utility";
 import { CrudValidation } from "@base/crud/validation";
 import { NotifyService } from "@base/notify/service";
 import {
-    CrudFindByKeyHandlerType,
+    CrudFindByIndexColumnHandlerType,
     CrudRecordKeyInputType,
     CrudRecordKeyType,
     CrudRecordType,
@@ -95,10 +95,9 @@ export abstract class CrudRootService {
     public readonly route = inject(CrudRoute);
 
     // ████████████████████████████████████████████████████████████████████
-    // ███ API ACCESS (generic by-key finders) ███████████████████████████
+    // ███ API ACCESS (generic by-column finder) █████████████████████████
     // ████████████████████████████████████████████████████████████████████
-    private findByPrimaryKeyHandler: CrudFindByKeyHandlerType | null = null;
-    private findBySecondaryKeyHandler: CrudFindByKeyHandlerType | null = null;
+    private findByIndexColumnHandler: CrudFindByIndexColumnHandlerType | null = null;
 
     // ████████████████████████████████████████████████████████████████████
     // ███ OTHER ██████████████████████████████████████████████████████████
@@ -130,54 +129,50 @@ export abstract class CrudRootService {
     }
 
     // ████████████████████████████████████████████████████████████████████
-    // ███ CRUD MODULE EXECUTOR REGISTRATION (by-key finders) █████████████
+    // ███ CRUD MODULE EXECUTOR REGISTRATION (by-column finder) ███████████
     // ████████████████████████████████████████████████████████████████████
-    public registerFindByPrimaryKey(handler: CrudFindByKeyHandlerType): void {
-        this.findByPrimaryKeyHandler = handler;
-    }
-    public registerFindBySecondaryKey(handler: CrudFindByKeyHandlerType): void {
-        this.findBySecondaryKeyHandler = handler;
+    /**
+     * ONE registration, not the find-by-primary/find-by-secondary pair this
+     * replaced. Both children's findRecordsBy() already took a column name, so
+     * that pair was two thin wrappers around one column-parameterised method —
+     * and its only consumer was the pk/sk dispatch that indexColumn() removes.
+     */
+    public registerFindByIndexColumn(handler: CrudFindByIndexColumnHandlerType): void {
+        this.findByIndexColumnHandler = handler;
     }
 
-    /** Find zero or more records using this module's configured primary key. */
-    public async findByPrimaryKey(
-        input: CrudRecordKeyInputType,
+    /**
+     * Find zero or more records by ANY column — normally state.indexColumn().
+     *
+     * A null field answers [] rather than throwing: an unconfigured module has
+     * nothing to look up, which is the same "no record" every caller already
+     * handles.
+     */
+    public async findByIndexColumn(
+        field: string | null,
+        indexes: CrudRecordKeyInputType,
         fieldObj: CrudStateRecordFieldObjType,
     ): Promise<CrudRecordType[]> {
-        if (!this.findByPrimaryKeyHandler) {
-            throw new Error('CRUD find-by-primary-key handler is not registered.');
+        if (!this.findByIndexColumnHandler) {
+            throw new Error('CRUD find-by-index-column handler is not registered.');
         }
 
-        const keys = this.normalizeRecordKeys(input);
-        return keys.length > 0 ? this.findByPrimaryKeyHandler(keys, fieldObj) : [];
-    }
-
-    /** Find zero or more records using this module's configured secondary key. */
-    public async findBySecondaryKey(
-        input: CrudRecordKeyInputType,
-        fieldObj: CrudStateRecordFieldObjType,
-    ): Promise<CrudRecordType[]> {
-        if (!this.findBySecondaryKeyHandler) {
-            throw new Error('CRUD find-by-secondary-key handler is not registered.');
+        if (!field) {
+            return [];
         }
 
-        const keys = this.normalizeRecordKeys(input);
-        return keys.length > 0 ? this.findBySecondaryKeyHandler(keys, fieldObj) : [];
+        const values = this.normalizeRecordKeys(indexes);
+        return values.length > 0
+            ? this.findByIndexColumnHandler(field, values, fieldObj)
+            : [];
     }
 
-    public async findOneByPrimaryKey(
-        key: CrudRecordKeyType,
+    public async findOneByIndexColumn(
+        field: string | null,
+        index: CrudRecordKeyType,
         fieldObj: CrudStateRecordFieldObjType,
     ): Promise<CrudRecordType | null> {
-        const records = await this.findByPrimaryKey(key, fieldObj);
-        return records[0] ?? null;
-    }
-
-    public async findOneBySecondaryKey(
-        key: CrudRecordKeyType,
-        fieldObj: CrudStateRecordFieldObjType,
-    ): Promise<CrudRecordType | null> {
-        const records = await this.findBySecondaryKey(key, fieldObj);
+        const records = await this.findByIndexColumn(field, index, fieldObj);
         return records[0] ?? null;
     }
 

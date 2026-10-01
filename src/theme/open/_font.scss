@@ -1,0 +1,178 @@
+// file: src/theme/open/_font.scss
+@use '@angular/material' as mat;
+@use '../breakpoint' as *;
+@use './variable' as *;
+
+/*
+theme/open/Majhfit Design System-Sep2026.pdf p3-p4.
+
+Outfit is the primary UI font - headings, body copy, buttons, labels, navigation, forms.
+Poppins Medium is the mahjong TILE font ONLY. it exists so rendered tiles match the tile
+artwork, which was drawn in Poppins. do not reach for it in ordinary UI.
+
+both are loaded in src/index.html under the OPEN AREA LAYOUT marker.
+
+⚠ the guide's own type table lists H2 at 22px and H3 at 28px - i.e. H3 is LARGER than H2.
+that is an error in the source document, not a style choice. the material roles below are
+therefore mapped by SIZE rather than by H-number: headline-medium (28px) is the guide's
+"H3" and title-large (22px) is its "H2". revisit if design corrects the table.
+*/
+$bfw-font-ui: 'Outfit', 'Manrope', sans-serif;
+$bfw-font-tile: 'Poppins', sans-serif;
+
+:root {
+  --bfw-font-ui: #{$bfw-font-ui};
+  --bfw-font-tile: #{$bfw-font-tile};
+
+  /* Body */
+  --mat-sys-body-large-font: var(--bfw-font-ui);
+  --mat-sys-body-medium-font: var(--bfw-font-ui);
+  --mat-sys-body-small-font: var(--bfw-font-ui);
+
+  /* Display */
+  --mat-sys-display-large-font: var(--bfw-font-ui);
+  --mat-sys-display-medium-font: var(--bfw-font-ui);
+  --mat-sys-display-small-font: var(--bfw-font-ui);
+
+  /* Headline */
+  --mat-sys-headline-large-font: var(--bfw-font-ui);
+  --mat-sys-headline-medium-font: var(--bfw-font-ui);
+  --mat-sys-headline-small-font: var(--bfw-font-ui);
+
+  /* Title */
+  --mat-sys-title-large-font: var(--bfw-font-ui);
+  --mat-sys-title-medium-font: var(--bfw-font-ui);
+  --mat-sys-title-small-font: var(--bfw-font-ui);
+
+  /* Label */
+  --mat-sys-label-large-font: var(--bfw-font-ui);
+  --mat-sys-label-medium-font: var(--bfw-font-ui);
+  --mat-sys-label-small-font: var(--bfw-font-ui);
+
+  // ███ TYPE SCALE █████████████████████████████████████████████████
+  // brand guide p4, mapped by size - see the note at the top of this file
+  --mat-sys-headline-large-size: 2.25rem;     // H1          700 / 36px
+  --mat-sys-headline-large-weight: 700;
+  --mat-sys-headline-large-line-height: 2.75rem;
+  --mat-sys-headline-medium-size: 1.75rem;    // H3          600 / 28px
+  --mat-sys-headline-medium-weight: 600;
+  --mat-sys-headline-medium-line-height: 2.25rem;
+  --mat-sys-title-large-size: 1.375rem;       // H2          600 / 22px
+  --mat-sys-title-large-weight: 600;
+  --mat-sys-title-large-line-height: 1.75rem;
+  --mat-sys-body-large-size: 1rem;            // Body, Input 400 / 16px
+  --mat-sys-body-large-weight: 400;
+  --mat-sys-body-large-line-height: 1.5rem;
+  --mat-sys-label-large-size: 1.25rem;        // Button      600 / 20px
+  --mat-sys-label-large-weight: 600;
+  --mat-sys-label-large-line-height: 1.5rem;
+  --mat-sys-label-medium-size: 0.875rem;      // Error       500 / 14px
+  --mat-sys-label-medium-weight: 500;
+  --mat-sys-label-medium-line-height: 1.25rem;
+  --mat-sys-label-small-size: 0.75rem;        // Caption     500 / 12px
+  --mat-sys-label-small-weight: 500;
+  --mat-sys-label-small-line-height: 1rem;
+
+  /*
+  ⚠ MUST BE KEPT IN STEP WITH THE BLOCK ABOVE.
+
+  material emits every type role TWICE: as the granular --mat-sys-<role>-size / -weight /
+  -line-height / -font tokens, and as a `font:` shorthand --mat-sys-<role>. its own
+  component styles read BOTH - roughly 25 places read the granular tokens and another
+  dozen read the shorthand. overriding only the granular half leaves those shorthand
+  consumers rendering material's default scale, e.g. an H1 at 400/32px instead of the
+  brand's 700/36px.
+
+  mat.theme() composes the shorthand from its own sass config, which knows nothing about
+  the css variables above, so it has to be recomposed here. these are written out of the
+  granular tokens rather than repeating the numbers, so there is only one place to edit.
+
+  (mat.theme() emits its copies under `html`, a type selector. this block is :root, a
+  pseudo-class, so it wins on specificity regardless of source order.)
+  */
+  --mat-sys-headline-large:
+      var(--mat-sys-headline-large-weight) var(--mat-sys-headline-large-size) /
+      var(--mat-sys-headline-large-line-height) var(--bfw-font-ui);
+  --mat-sys-headline-medium:
+      var(--mat-sys-headline-medium-weight) var(--mat-sys-headline-medium-size) /
+      var(--mat-sys-headline-medium-line-height) var(--bfw-font-ui);
+  --mat-sys-title-large:
+      var(--mat-sys-title-large-weight) var(--mat-sys-title-large-size) /
+      var(--mat-sys-title-large-line-height) var(--bfw-font-ui);
+  --mat-sys-body-large:
+      var(--mat-sys-body-large-weight) var(--mat-sys-body-large-size) /
+      var(--mat-sys-body-large-line-height) var(--bfw-font-ui);
+  --mat-sys-label-large:
+      var(--mat-sys-label-large-weight) var(--mat-sys-label-large-size) /
+      var(--mat-sys-label-large-line-height) var(--bfw-font-ui);
+  --mat-sys-label-medium:
+      var(--mat-sys-label-medium-weight) var(--mat-sys-label-medium-size) /
+      var(--mat-sys-label-medium-line-height) var(--bfw-font-ui);
+  --mat-sys-label-small:
+      var(--mat-sys-label-small-weight) var(--mat-sys-label-small-size) /
+      var(--mat-sys-label-small-line-height) var(--bfw-font-ui);
+}
+
+html,
+body {
+  font-family: var(--bfw-font-ui);
+}
+
+html {
+  @include mat.theme((
+    typography: (
+      plain-family: $bfw-font-ui,
+      brand-family: $bfw-font-ui,
+    ),
+  ));
+}
+
+// ███ TYPOGRAPHY PRINCIPLES ██████████████████████████████████████
+/*
+brand guide p5:
+  sentence case for headings and body copy
+  ALL CAPS for buttons and small UI labels only
+  body copy is left aligned, hero messaging centred where appropriate
+
+⚠ the guide also calls for underlined links, but the open theme deliberately opts out of
+that one rule - product direction is no underline on anchors anywhere in this theme.
+*/
+a {
+  text-decoration: none;
+}
+
+/*
+material exposes a per-variant token for this, which is the supported hook and beats
+writing text-transform on the host - the button's own css sets the property on the LABEL
+span, and material's runtime-injected stylesheet lands after this file in <head>, so a
+plain host rule loses there.
+
+⚠ token names are --mat-button-<variant>-*, NOT --mdc-<variant>-button-* - see the note
+in _component.scss about the angular material 22 rename.
+*/
+.mat-mdc-button-base {
+  --mat-button-filled-label-text-transform: uppercase;
+  --mat-button-outlined-label-text-transform: uppercase;
+  --mat-button-text-label-text-transform: uppercase;
+  --mat-button-protected-label-text-transform: uppercase;
+  --mat-button-tonal-label-text-transform: uppercase;
+
+  letter-spacing: 0.02em;
+}
+
+// ⚠ a nav link is not a button label. the guide asks for sentence case in navigation,
+// so anything carrying this class opts back out of the uppercase rule above.
+.bfw-nav-link {
+  --mat-button-filled-label-text-transform: none;
+  --mat-button-outlined-label-text-transform: none;
+  --mat-button-text-label-text-transform: none;
+  --mat-button-protected-label-text-transform: none;
+  --mat-button-tonal-label-text-transform: none;
+
+  letter-spacing: normal;
+
+  &.mdc-button .mdc-button__label,
+  .mdc-button__label {
+    text-transform: none;
+  }
+}

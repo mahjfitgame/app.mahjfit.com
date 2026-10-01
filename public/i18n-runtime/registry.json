@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-09-17T06:21:50.411Z",
+  "generated_at": "2026-10-01T13:07:49.670Z",
   "items": [
     {
       "key": "global",
@@ -61,6 +61,20 @@
       "key": "app.module.shared.dashboard",
       "source": "src/app/module/shared/dashboard/i18n",
       "path": "/i18n-runtime/app/module/shared/dashboard",
+      "langs": [
+        "ar",
+        "en",
+        "es",
+        "fr",
+        "gu",
+        "hi"
+      ],
+      "global": false
+    },
+    {
+      "key": "app.module.shared.http-status.forbidden",
+      "source": "src/app/module/shared/http-status/forbidden/i18n",
+      "path": "/i18n-runtime/app/module/shared/http-status/forbidden",
       "langs": [
         "ar",
         "en",

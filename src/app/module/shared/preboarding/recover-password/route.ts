@@ -47,7 +47,7 @@ export class RecoverPasswordRoute extends FoundationModuleRoute {
     // NAV ▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬
     /**
      * ⚠ url_slug carries :publicid, the pre existing session/entity key, NOT
-     * the new :keyid which is a table row key. they are different concepts
+     * the crud :index which is a table row key. they are different concepts
      *
      * ⚠ the bare `recover-password` -> /404 redirect is gone. one row is one
      * route, and the bare path now falls through to AreaRoute's '**' which

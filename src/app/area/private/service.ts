@@ -13,6 +13,9 @@ import { UtilityService } from "@libs/utility/service";
 @Service({ autoProvided: false })
 export class PrivateAreaLayoutService {
 
+    public readonly brandLogoSrc = 'assets/logo.png';
+    //public readonly brandLogoSrc = 'private/assets/brand/logo/logo.png';
+
     public FoundationNavPositionEnum = FoundationNavPositionEnum;
     public PAL_NOTIFICATION_TAB_KEY = PAL_NOTIFICATION_TAB_KEY;
     

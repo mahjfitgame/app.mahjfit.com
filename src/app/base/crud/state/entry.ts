@@ -2,6 +2,7 @@
 import { Service } from "@angular/core";
 import { CrudListingState } from "./listing";
 import { CrudMutationState } from "./mutation";
+import { CrudUploadState } from "./upload";
 import { CrudRootState } from "./root";
 import { CrudSearchFilterState } from "./search.filter";
 import { CrudModuleContextType } from "../type";
@@ -14,6 +15,7 @@ export class CrudState extends CrudRootState {
     public readonly searchFilter: CrudSearchFilterState;
     public readonly listing: CrudListingState;
     public readonly mutation: CrudMutationState;
+    public readonly upload: CrudUploadState;
     public readonly view: CrudViewState;
 
     // ████ STATE DEBUGGER ██████████████████████████████████████████████
@@ -41,6 +43,12 @@ export class CrudState extends CrudRootState {
             this.searchFilter,
         );
         this.mutation = new CrudMutationState(
+            this,
+            this.action,
+            this.crudInjector,
+            this.validation,
+        );
+        this.upload = new CrudUploadState(
             this,
             this.action,
             this.crudInjector,

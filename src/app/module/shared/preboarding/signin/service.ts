@@ -6,8 +6,8 @@ import { LogService } from "@libs/log/service";
 import { PlatformService } from "@libs/platform/service";
 import { GlobalProgressBarService } from "@base/global-progress-bar/service";
 import { I18nService } from "@base/internationalization/service";
-import { PREBOARDING_SIGNIN_I18N_KEY } from "@module/shared/preboarding/signin/const";
-import { AppStepSigninInputDto, AppStepSigninUserOutputDto, AppStepSigninUserOutputSelectionSchema, AuthorisationRoleEnum, SigninStepEnum, StepSigninSubProcessEnum, UserAuthentication, UserMultiFactorAuthenticationMapAddon, UserMultiFactorAuthenticationTypeEnum, UserMultiFactorAuthenticationTypeEnumAddon } from "@bfw/api-sdk/graphql/endpoints/shared";
+import { ALLOWED_AUTHORISATION_ROLES, PREBOARDING_SIGNIN_I18N_KEY } from "@module/shared/preboarding/signin/const";
+import { AppStepSigninInputDto, AppStepSigninUserOutputDto, AppStepSigninUserOutputSelectionSchema, AuthorisationRoleEnum, AuthorisationRoleEnumAddon, AuthorisationRoleMapAddon, SigninStepEnum, StepSigninSubProcessEnum, UserAuthentication, UserMultiFactorAuthenticationMapAddon, UserMultiFactorAuthenticationTypeEnum, UserMultiFactorAuthenticationTypeEnumAddon } from "@bfw/api-sdk/graphql/endpoints/shared";
 import { NotifyService } from "@base/notify/service";
 import { NotifyBannerService } from "@base/notify-banner/service";
 import { BfwApiSdkError, BfwApiSdkResponse } from "@bfw/api-sdk/core";
@@ -21,10 +21,12 @@ import { ForgotPasswordRoute } from "../forgot-password/route";
 import { FoundationModuleServiceType } from "@libs/foundation/module/type";
 import { DashboardRoute } from "@module/shared/dashboard/route";
 import { SigninRoute } from "./route";
-import { ContextProfileStatefulInfo } from "@libs/context-profile/type";
+import { ContextProfileStatefulInfo, ContextProfileUauthorisation } from "@libs/context-profile/type";
+import { SignoutService } from "@module/shared/onboarding/signout/service";
 
 @Service({ autoProvided: false })
 export class SigninService implements FoundationModuleServiceType {
+    public readonly AllowedAuthorisationRoles = ALLOWED_AUTHORISATION_ROLES;
     public readonly SignupRoute = SignupRoute;
     public readonly ForgotPasswordRoute = ForgotPasswordRoute;
     public finishRedirectUrl: string = DashboardRoute.absolutePath();
@@ -46,6 +48,7 @@ export class SigninService implements FoundationModuleServiceType {
     public readonly notifyBanner = inject(NotifyBannerService);
     public readonly sign = inject(SignatureService);
     public readonly utility = inject(UtilityService);
+    public readonly signout = inject(SignoutService);
     
     public readonly api = inject(BfwApiService);
 
@@ -262,11 +265,14 @@ export class SigninService implements FoundationModuleServiceType {
                      * DO NOT USE SIGNAL [this.state.step()] as it might have security issue
                      */
                     if(resp.next_step === SigninStepEnum.FINISH) {
-                        void await this.stepFinish(resp);
+                        const finished = await this.stepFinish(resp);
 
-                        // as success need to reset the form
+                        // reset only on success: a failed finish restarts at USERNAME with an
+                        // error on the field, and resetting would wipe that error straight away
+                        if (finished) {
                         this.state.resetMutationForm();
                     }
+                }
                 }
             } catch (e: any | BfwApiSdkError) {
                 
@@ -317,8 +323,11 @@ export class SigninService implements FoundationModuleServiceType {
                 }, 
                 uauthorisation: {
                     keyid: true,
-                    active: true,
-                    deleted: true
+                    arole_id: true,
+                    fr_authorisation_role: {
+                        keyid: true,
+                        role_title: true,
+                    },
                 },
                 udevice: {
                     keyid: true,
@@ -328,12 +337,6 @@ export class SigninService implements FoundationModuleServiceType {
                     user_defined_name: true,
                     active: true,
                     deleted: true,
-                },
-                authorisation: {
-                    keyid: true,
-                    role_title: true,
-                    active: true,
-                    deleted: true
                 },
                 device: {
                     keyid: true,
@@ -352,7 +355,8 @@ export class SigninService implements FoundationModuleServiceType {
                     logged_in: true,
                     active: true,
                     deleted: true,
-                }
+                },
+                ptoken: true,
             },
             snapshot: {
                 success: true,
@@ -379,8 +383,11 @@ export class SigninService implements FoundationModuleServiceType {
                 input: {
                     ...this.getStepSigninDefaultInput(),
 
-                    arole_id: AuthorisationRoleEnum.USER,
-                    un_pe_pm: un_pe_pm
+                    un_pe_pm: un_pe_pm,
+                    
+                    // if we have strict mode or only one role allowed then we need to set arole_id
+                    // or if system UI support multiple role access symultaneously, then do not set arole_id
+                    //arole_id: AuthorisationRoleEnum.USER
                 }
             });
             return http;
@@ -516,32 +523,87 @@ export class SigninService implements FoundationModuleServiceType {
             this.gpbs.stop();
         }
     }
-    public async stepFinish(resp: AppStepSigninUserOutputDto): Promise<void> {
+    public async stepFinish(resp: AppStepSigninUserOutputDto): Promise<boolean> {
         const session = resp.authenticated?.session; 
         const user = resp.authenticated?.user; 
         const uauthorisation = resp.authenticated?.uauthorisation;  
-        const authorisation = resp.authenticated?.authorisation;  
         const udevice = resp.authenticated?.udevice;  
         const device = resp.authenticated?.device;
 
-        if(
+        // account / device / session not in a usable state. Fail closed:
+        // the server may have created a session, so revoke it there too, then 403.
+        // signoutAndForbid() reads the stateful token from state (it is also what puts
+        // the stateful header on the SDK), so set it first. It copes with a null jwt
+        // (skips revoke, still clears + navigates)
+        if(!(
             user?.suspended === null && 
             user?.active === null && 
             user?.deleted === null && 
-            uauthorisation?.active === null && 
-            uauthorisation?.deleted === null &&
             udevice?.active === null && 
             udevice?.deleted === null && 
-            authorisation?.active === null && 
-            authorisation?.deleted === null && 
             device?.active === null && 
             device?.deleted === null &&
             session?.active === null &&
             session?.deleted === null
-        ) {
-            if(session.logged_in) {
+        )) {
+            this.ctxp.state.setStatefulToken(session?.jwt ?? null);
+            await this.signout.signoutAndForbid();
+            return false;
+        }
+
+        // not logged in, or logged in without a token. Nothing usable was
+        // issued: wipe local state and restart instead of hanging on FINISH
+        if(!session.logged_in || !session.jwt) {
+            this.ctxp.state.clearSession();
+            this.restartSignin('PREBOARDING_SIGNIN.VALIDATION.SIGNIN_FAILED');
+            return false;
+        }
+        
+        // keep only the roles this UI supports. Everything below (auto-pick,
+        // ptoken check, the stored list the header switcher reads) works off
+        // this filtered list, so an unsupported role can never become active.
+        const allowedAroles = this.AllowedAuthorisationRoles.map((r) => AuthorisationRoleMapAddon[r]);
+        const rows = (Array.isArray(uauthorisation)
+            ? (uauthorisation as ContextProfileUauthorisation[])
+            : []
+        ).filter((r) =>
+            typeof r.keyid === 'string' && r.keyid !== '' &&
+            !!r.arole_id && allowedAroles.includes(r.arole_id as AuthorisationRoleEnum)
+        );
+
+        // Decide the role BEFORE persisting anything, so a session with no
+        // usable role never reaches storage and authenticated() never flips
+        // true for it. Two paths, matching what the SDK actually does:
+        //
+        // 1. arole_id WAS supplied at signin (not by this app's own
+        //    stepUsername() today, but the SDK supports it and a future
+        //    caller might) — the server already validated it and minted the
+        //    token in THIS SAME response. Accept it only if its sub (the
+        //    uauthorisation keyid) is one of the allowed rows; otherwise
+        //    ignore it and fall through to path 2.
+        // 2. No usable ptoken — auto-pick the first allowed role (in
+        //    ALLOWED_AUTHORISATION_ROLES priority order) the user holds.
+        const rawPtoken = resp.authenticated?.ptoken ?? null;
+        const ptokenSub = this.ctxp.state.decodePrivilegeToken(rawPtoken)?.sub ?? null;
+        const ptoken = ptokenSub && rows.some((r) => r.keyid === ptokenSub)
+            ? rawPtoken
+            : null;
+        const roleTarget = ptoken
+            ? null
+            : allowedAroles
+                .map((arole) => rows.find((r) => r.arole_id === arole))
+                .find((r) => !!r) ?? null;
+
+        // neither an allowed server-minted ptoken nor any allowed role held:
+        // the server session is live, so revoke it there, not only locally
+        if (!ptoken && !roleTarget?.keyid) {
+            this.ctxp.state.setStatefulToken(session.jwt);
+            await this.signout.signoutAndForbid();
+            return false;
+        }
+
                 // set the stateful jwt in persistent storage
-                this.ctxp.state.setSessionToken(session?.jwt ?? null);
+                this.ctxp.state.setStatefulToken(session.jwt);
 
                 // set the stateful info in persistent storage
                 const sfinfo: ContextProfileStatefulInfo = {
@@ -566,9 +628,6 @@ export class SigninService implements FoundationModuleServiceType {
                         user_defined_id: udevice?.user_defined_id ?? null,
                         user_defined_name: udevice?.user_defined_name ?? null,
                     },
-                    authorisation: {
-                        role_title: authorisation?.role_title ?? null,
-                    },
                     device: {
                         name: device?.name ?? null,
                         interface: device?.interface ?? null,
@@ -581,10 +640,21 @@ export class SigninService implements FoundationModuleServiceType {
                 };
                 this.ctxp.state.setStatefulInfo(sfinfo);
                 
-                // if user is authenticated, redirect to last page
-                // do not use this.ctxp.state.authenticated() in if
-                // because sometimes it still contains the previous false result and do not redirect
-                if(session?.logged_in && session?.jwt) {
+        // set the uauthorisation list in persistent storage
+        this.ctxp.state.setUauthorisation(rows.length > 0 ? rows : null);
+
+        if (ptoken) {
+            this.ctxp.state.setPrivilegeToken(ptoken);
+        } else if (roleTarget?.keyid) {
+            // setPrivilegeKeyid() is a plain signal set, NOT awaited: it is
+            // state.ts's _privilegeSwitch resource that actually calls
+            // AppSwitchPrivilegeAuthorisation, asynchronously.
+            this.ctxp.state.setPrivilegeKeyid(roleTarget.keyid);
+        }
+
+        // redirect to last page. logged_in && jwt are guaranteed by the guards above.
+        // do not use this.ctxp.state.authenticated() here, it can still hold the
+        // previous false result and the redirect would not happen
                     this.finishRedirectUrl =
                         this.ctxp.state.redirectAfterAuth() ??
                         DashboardRoute.absolutePath();
@@ -599,11 +669,17 @@ export class SigninService implements FoundationModuleServiceType {
                                 this.ctxp.state.setRedirectAfterAuth(null);
                             }
                     }, 1.5 * 1000);
-                }
-            } else {
-                // this is for security reason
-                this.ctxp.state.clearSession();
-            }
-        }
+
+        return true;
+    }
+    /**
+     * FINISH came back unusable and no server session is worth revoking.
+     * Start the process over from USERNAME with a fresh stamp, and say why.
+     */
+    private restartSignin(errorKey: string): void {
+        this.state.setStamp(Date.now().toString());
+        this.state.setStepSequence({ [SigninStepEnum.USERNAME]: null });
+        this.state.setStep(SigninStepEnum.USERNAME);
+        this.state.updateMutationFormError({ un_pe_pm: errorKey });
     }
 }

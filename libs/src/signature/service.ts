@@ -143,28 +143,39 @@ export class SignatureService {
 
   // Encrypt: String -> "p02mx7"
   static sme(text: string): string {
-    return btoa(
-      text
-        .split('')
-        .map(char => String.fromCharCode(char.charCodeAt(0) ^ this.k))
-        .join('')
-    )
-    .replace(/\+/g, '-') // Make URL safe
-    .replace(/\//g, '_')
-    .replace(/=+$/, ''); // Remove padding
+    const bytes = new TextEncoder().encode(text);
+    const key = this.k & 0xFF;
+    const out = new Uint8Array(bytes.length);
+
+    for (let i = 0; i < bytes.length; i++) {
+      out[i] = bytes[i] ^ key;
+    }
+
+    let binary = '';
+    for (let i = 0; i < out.length; i++) {
+      binary += String.fromCharCode(out[i]);
+    }
+
+    return btoa(binary)
+      .replace(/\+/g, '-')  // Make URL safe
+      .replace(/\//g, '_')
+      .replace(/=+$/, '');  // Remove padding
   }
 
   // Decrypt: "p02mx7" -> String
   static smd(encoded: string): string {
-    // Add padding back for btoa
     let base64 = encoded.replace(/-/g, '+').replace(/_/g, '/');
     while (base64.length % 4) base64 += '=';
-    
-    const decoded = atob(base64);
-    return decoded
-      .split('')
-      .map(char => String.fromCharCode(char.charCodeAt(0) ^ this.k))
-      .join('');
+
+    const binary = atob(base64);
+    const key = this.k & 0xFF;
+    const bytes = new Uint8Array(binary.length);
+
+    for (let i = 0; i < binary.length; i++) {
+      bytes[i] = binary.charCodeAt(0 + i) ^ key;
+    }
+
+    return new TextDecoder().decode(bytes);
   }
 
   private toHex(bytes: Uint8Array): string {

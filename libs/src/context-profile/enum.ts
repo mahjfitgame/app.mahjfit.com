@@ -6,4 +6,6 @@ export enum ContextProfileStateFieldEnum {
     REDIRECT_AFTER_AUTH = 'raa',
     STATEFUL_INFO = 'sfinfo',
     CSRF_TOKEN = 'csrf',
+    UAUTHORISATION = 'uar',
+    PRIVILEGE_TOKEN = 'pa',
 }

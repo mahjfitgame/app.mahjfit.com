@@ -1,31 +1,28 @@
 <!-- file: src/app/base/crud/default/mutation/page/template.html -->
- <section class="tw:flex tw:min-h-full tw:flex-col">
-    <header class="tw:flex tw:items-center tw:justify-between tw:gap-4 tw:px-4">
-        <div>
-            <h1 class="tw:text-xl tw:font-semibold">
+<ng-template
+    cdkPortal
+    [privateAreaLayout]="service.PrivateAreaLayoutSlotEnum.SLOT_MAIN_HEADER_TOOLBAR_EXTENSION"
+>
+    <div class="tw:flex tw:min-w-0 tw:items-center tw:gap-2">
+        <mat-icon class="material-symbols-rounded tw:shrink-0">{{ service.mutation.getMutationIcon() }}</mat-icon>
+        <div class="tw:min-w-0 tw:leading-tight">
+            <h1 class="tw:truncate tw:text-base tw:font-semibold tw:m-0 tw:leading-tight">
                 {{ service.mutation.getMutationTitle() | transloco }}
             </h1>
-
-            @if (service.action.getCrudActionRecordSecondaryKeyValue()) {
-                <p class="tw:text-sm tw:opacity-70">
-                    {{ 'GL.COMMON.RECORD_KEY' | transloco }}: {{ service.action.getCrudActionRecordSecondaryKeyValue() }}
-                </p>
+            @if (service.state.getRecordLabelFieldValue(service.state.actionListingRecord()); as label) {
+                <p class="tw:truncate tw:text-xs tw:font-normal tw:m-0 tw:leading-tight tw:opacity-70">{{ label }}</p>
             }
         </div>
 
-        <button
-            mat-icon-button
-            type="button"
-            class="tw:flex! tw:items-center! tw:justify-center!"
-            [attr.aria-label]="'GL.COMMON.BACK' | transloco"
-            (click)="service.action.closeCrudAction()"
-        >
-            <mat-icon class="material-symbols-rounded">
-                close
-            </mat-icon>
-        </button>
-    </header>
+        <mat-divider [vertical]="true" class="tw:mx-1 tw:h-6!"></mat-divider>
 
+        <button mat-icon-button type="button" class="tw:flex! tw:items-center! tw:justify-center!" [attr.aria-label]="'GL.COMMON.BACK' | transloco" (click)="service.action.closeCrudAction()">
+            <mat-icon class="material-symbols-rounded">close</mat-icon>
+        </button>
+    </div>
+</ng-template>
+
+<section class="tw:flex tw:min-h-full tw:flex-col">
     <main class="tw:flex-1 tw:p-4">
         <ng-container
             *ngComponentOutlet="

@@ -1,12 +1,13 @@
 // file: src/app/base/crud/validation.ts
-import { inject, Service } from "@angular/core";
+import { computed, inject, resource, Service } from "@angular/core";
 import { formatDate } from '@angular/common';
-import { SchemaPathTree, email, hidden, maxLength, minLength, pattern, required, validate, max, min } from "@angular/forms/signals";
-import { CrudFieldInfoType, CrudFieldOptionType, CrudFieldValidationResultType, CrudFieldValidationType, CrudFormFieldInfoType, CrudFormFieldValueAngularValidatorLookUpType, CrudFormFieldValueNormalizerLookUpType, CrudFormFieldValueValidatorLookUpType, CrudFieldValueFormatterLookUpType, CrudStateMutationFieldObjType, CrudFieldValidationInfoType, CrudModuleContextType } from "@base/crud/type";
+import { SchemaPathTree, email, hidden, maxLength, minLength, pattern, required, validate, validateAsync, max, min } from "@angular/forms/signals";
+import { CrudFieldInfoType, CrudFieldOptionType, CrudFieldValidationResultType, CrudFieldValidationType, CrudFormFieldInfoType, CrudFormFieldValueAngularValidatorLookUpType, CrudFormFieldValueNormalizerLookUpType, CrudFormFieldValueValidatorLookUpType, CrudFieldValueFormatterLookUpType, CrudStateMutationFieldObjType, CrudFieldValidationInfoType, CrudModuleContextType, CrudMediaDimensionValidationResult } from "@base/crud/type";
 import { CrudFieldNormalizeModeEnum, CrudFieldUiTypeEnum, CrudFieldValidationEnum } from "@base/crud/enum";
 import { ConfService } from "@libs/conf/service";
 import { CrudUtility } from "@base/crud/utility";
 import { I18nService } from "@base/internationalization/service";
+import { FormFieldFileUtility } from "@base/form-fields/file/utility";
 
 @Service({ autoProvided: false })
 export class CrudValidation {
@@ -19,9 +20,13 @@ export class CrudValidation {
     private static readonly TEXT_PATTERN = /^[a-zA-Z\s\u00C0-\u017F,.'-]+$/;
 
     private readonly utility = inject(CrudUtility);
+    private readonly fileUtility = inject(FormFieldFileUtility);
 
     private readonly conf = inject(ConfService);
     private readonly i18n = inject(I18nService);
+
+    /** Dimensions decoded per-File by MEDIA_DIMENSION's async check - read back for the {{current_dimension}} message placeholder. */
+    private readonly mediaDimensionCache = new WeakMap<File, { width: number; height: number }>();
 
     private readonly fieldFormatter: CrudFieldValueFormatterLookUpType = {
         [CrudFieldUiTypeEnum.NONE]: (value) => value,
@@ -288,19 +293,57 @@ export class CrudValidation {
                 : this.validationFailure(v, 'GL.VALIDATION.TEXT');
         },
 
-        [CrudFieldValidationEnum.EXTENSION]: (v: any, fi: CrudFormFieldInfoType) => {
+        [CrudFieldValidationEnum.FILE_EXTENSION]: (v: any, fi: CrudFormFieldInfoType) => {
             if (this.utility.isValidationEmpty(v)) return this.validationSuccess(v);
 
-            const allowed = fi.validation?.[CrudFieldValidationEnum.EXTENSION]?.value as string[] | undefined;
-            if (!Array.isArray(allowed) || allowed.length === 0) return this.validationSuccess(v);
+            const extensionMimeMap = fi.validation?.[CrudFieldValidationEnum.FILE_EXTENSION]?.value;
+            const allowed = this.fileUtility.getAllowedFileExtensions(extensionMimeMap);
+            if (allowed.length === 0) return this.validationSuccess(v);
 
             const fileName = this.utility.toStringValue(v);
             const dotIndex = fileName.lastIndexOf('.');
             if (dotIndex < 0) return this.validationFailure(v, this.i18n.translate('GL.VALIDATION.EXTENSION', { allowed: allowed.join(', ') }));
 
-            const ok = this.hasAllowedExtension(fileName, allowed);
+            const extensionAllowed = this.fileUtility.hasAllowedExtension(fileName, allowed);
+            const mimeTypeAllowed = this.fileUtility.hasAllowedMimeType(v, this.fileUtility.getAllowedMimeTypes(extensionMimeMap));
 
-            return ok ? this.validationSuccess(v) : this.validationFailure(v, this.i18n.translate('GL.VALIDATION.EXTENSION', { allowed: allowed.join(', ') }));
+            return (extensionAllowed && mimeTypeAllowed)
+                ? this.validationSuccess(v)
+                : this.validationFailure(v, this.i18n.translate('GL.VALIDATION.EXTENSION', { allowed: allowed.join(', ') }));
+        },
+
+        [CrudFieldValidationEnum.FILE_SIZE]: (v: any, fi: CrudFormFieldInfoType) => {
+            if (this.utility.isValidationEmpty(v)) return this.validationSuccess(v);
+
+            const maxSize = this.fileUtility.getMaxFileSize(fi.validation?.[CrudFieldValidationEnum.FILE_SIZE]?.value);
+            if (maxSize === null) return this.validationSuccess(v);
+
+            // nothing to measure on a bare filename (eg. a url-matrix-restored value) -
+            // only a real File carries a byte size.
+            if (!(v instanceof File)) return this.validationSuccess(v);
+
+            return v.size <= maxSize
+                ? this.validationSuccess(v)
+                : this.validationFailure(v, this.i18n.translate('GL.VALIDATION.FILE_SIZE', { max_size: this.fileUtility.formatFileSize(maxSize), current_size: this.fileUtility.formatFileSize(v.size) }));
+        },
+
+        [CrudFieldValidationEnum.MEDIA_DIMENSION]: (v: any) => {
+            // pixel dimensions require decoding the file (async) - this plain-value
+            // path is synchronous, so real enforcement happens on the signals-form
+            // path (setCrudSignalFormValidation) via validateAsync below.
+            return this.validationSuccess(v);
+        },
+
+        [CrudFieldValidationEnum.MAX_FILES]: (v: any, fi: CrudFormFieldInfoType) => {
+            if (this.utility.isValidationEmpty(v)) return this.validationSuccess(v);
+
+            const maxFiles = this.fileUtility.getMaxFiles(fi.validation?.[CrudFieldValidationEnum.MAX_FILES]?.value);
+            if (maxFiles === null) return this.validationSuccess(v);
+
+            const count = this.fileUtility.countFiles(v);
+            return count <= maxFiles
+                ? this.validationSuccess(v)
+                : this.validationFailure(v, this.i18n.translate('GL.VALIDATION.MAX_FILES', { max_files: maxFiles, current_files: count }));
         },
 
         [CrudFieldValidationEnum.OPTION_RANGE]: (v: any, fi: CrudFormFieldInfoType) => {
@@ -499,15 +542,95 @@ export class CrudValidation {
         },
 
         // EXTENSION
-        [CrudFieldValidationEnum.EXTENSION]: <T>(sp: SchemaPathTree<T>, f: string, validationType: CrudFieldValidationEnum, rule: CrudFieldValidationInfoType, fi: CrudFormFieldInfoType) => {
+        [CrudFieldValidationEnum.FILE_EXTENSION]: <T>(sp: SchemaPathTree<T>, f: string, validationType: CrudFieldValidationEnum, rule: CrudFieldValidationInfoType, fi: CrudFormFieldInfoType) => {
             validate((sp as any)[f], (ctx) => {
-                const fileName = ctx.value() as string;
-                if (!fileName || typeof fileName !== 'string') return null;
+                const value = ctx.value();
+                if (this.utility.isValidationEmpty(value)) return null;
 
-                const allowedExt = rule.value as string[];
-                const isValid = this.hasAllowedExtension(fileName, allowedExt);
+                // a picked FILE field holds File/File[], not the filename string the
+                // url-matrix-restored path used to assume - read .name off each File.
+                const files = Array.isArray(value) ? value : [value];
+
+                const allowedExt = this.fileUtility.getAllowedFileExtensions(rule.value);
+                const allowedMimeTypes = this.fileUtility.getAllowedMimeTypes(rule.value);
+                const isValid = files.every((item) => {
+                    const fileName = item instanceof File ? item.name : this.utility.toStringValue(item);
+                    return this.fileUtility.hasAllowedExtension(fileName, allowedExt) && this.fileUtility.hasAllowedMimeType(item, allowedMimeTypes);
+                });
 
                 return isValid ? null : { kind: 'extension', message: rule.message };
+            });
+        },
+
+        // FILE_SIZE
+        [CrudFieldValidationEnum.FILE_SIZE]: <T>(sp: SchemaPathTree<T>, f: string, validationType: CrudFieldValidationEnum, rule: CrudFieldValidationInfoType, fi: CrudFormFieldInfoType) => {
+            validate((sp as any)[f], (ctx) => {
+                const value = ctx.value();
+                if (this.utility.isValidationEmpty(value)) return null;
+
+                const maxSize = this.fileUtility.getMaxFileSize(rule.value);
+                if (maxSize === null) return null;
+
+                const files = Array.isArray(value) ? value : [value];
+                const isValid = files.every((file) => !(file instanceof File) || file.size <= maxSize);
+
+                return isValid ? null : { kind: 'file_size', message: rule.message };
+            });
+        },
+
+        // MEDIA_DIMENSION
+        [CrudFieldValidationEnum.MEDIA_DIMENSION]: <T>(sp: SchemaPathTree<T>, f: string, validationType: CrudFieldValidationEnum, rule: CrudFieldValidationInfoType, fi: CrudFormFieldInfoType) => {
+            validateAsync((sp as any)[f], {
+                params: (ctx) => {
+                    const value = ctx.value();
+                    if (this.utility.isValidationEmpty(value)) return undefined;
+
+                    const files = (Array.isArray(value) ? value : [value]).filter((item): item is File => item instanceof File);
+                    return files.length > 0 ? files : undefined;
+                },
+                factory: (params) => {
+                    /**
+                     * params() hands back a fresh array on every re-evaluation (the field's
+                     * touched/dirty/sync-validity signals all retrigger it). A resource discards
+                     * an in-flight load whose request object is no longer identical, so without
+                     * this equality the picked file's decode is thrown away mid-flight and the
+                     * field sits pending forever - an image wins that race, a video does not.
+                     */
+                    const stableFiles = computed(() => params(), {
+                        equal: (a, b) => a === b || (!!a && !!b && a.length === b.length && a.every((file, i) => file === b[i])),
+                    });
+
+                    return resource({
+                        params: () => stableFiles(),
+                        loader: ({ params: files }) => Promise.all(files.map((file) => this.readMediaDimensionResult(file))),
+                    });
+                },
+                onSuccess: (results) => {
+                    // a file whose size could not be read is never silently accepted - several
+                    // FILE_FORMAT_VIDEO entries (mkv/avi/wmv/flv) are containers no browser can
+                    // decode, so passing those through would skip the check entirely.
+                    const readable = results.filter((r) => r.status === 'ok');
+                    if (readable.length !== results.length) {
+                        return { kind: 'media_dimension_unsupported', message: 'GL.VALIDATION.MEDIA_DIMENSION_UNSUPPORTED' };
+                    }
+
+                    const isValid = readable.every((r) => this.fileUtility.isMediaDimensionValid(r, rule.value));
+                    return isValid ? null : { kind: 'media_dimension', message: rule.message };
+                },
+                onError: () => ({ kind: 'media_dimension_unsupported', message: 'GL.VALIDATION.MEDIA_DIMENSION_UNSUPPORTED' }),
+            });
+        },
+
+        // MAX_FILES
+        [CrudFieldValidationEnum.MAX_FILES]: <T>(sp: SchemaPathTree<T>, f: string, validationType: CrudFieldValidationEnum, rule: CrudFieldValidationInfoType, fi: CrudFormFieldInfoType) => {
+            validate((sp as any)[f], (ctx) => {
+                const value = ctx.value();
+                if (this.utility.isValidationEmpty(value)) return null;
+
+                const maxFiles = this.fileUtility.getMaxFiles(rule.value);
+                if (maxFiles === null) return null;
+
+                return this.fileUtility.countFiles(value) <= maxFiles ? null : { kind: 'max_files', message: rule.message };
             });
         },
 
@@ -1440,17 +1563,36 @@ export class CrudValidation {
         return CrudValidation.TEXT_PATTERN.test(this.utility.toStringValue(value));
     }
 
-    private hasAllowedExtension(
-        fileName: string,
-        allowedExtensions: string[],
-    ): boolean {
-        const fileExtension = fileName
-            .substring(fileName.lastIndexOf('.'))
-            .toLowerCase();
 
-        return allowedExtensions.some((extension) => {
-            return extension.toLowerCase() === fileExtension;
-        });
+
+    private async readMediaDimensionResult(file: File): Promise<CrudMediaDimensionValidationResult> {
+        const result = await this.fileUtility.readMediaDimensions(
+            file,
+            file.name,
+            this.conf.fileFormatImage,
+            this.conf.fileFormatVideo,
+        );
+
+        if (result.status === 'ok') {
+            this.mediaDimensionCache.set(file, { width: result.width, height: result.height });
+        }
+
+        return result;
+    }
+
+    /**
+     * The picked file(s)' own decoded size, for the {{current_dimension}} message placeholder.
+     * Reads back mediaDimensionCache - populated by MEDIA_DIMENSION's async check, so this is only
+     * ever consulted once that check has already run (and failed) for the value being displayed.
+     */
+    private formatCurrentMediaDimension(value: unknown): string | undefined {
+        const files = (Array.isArray(value) ? value : [value]).filter((item): item is File => item instanceof File);
+        const sizes = files
+            .map((file) => this.mediaDimensionCache.get(file))
+            .filter((dim): dim is { width: number; height: number } => !!dim)
+            .map((dim) => `${dim.width}x${dim.height}px`);
+
+        return sizes.length > 0 ? sizes.join(', ') : undefined;
     }
 
     private isOptionValueAllowed(
@@ -1523,9 +1665,12 @@ export class CrudValidation {
      * ({{min_length}}, {{allowed}}, …) belong to the messages this class raises,
      * so the bag that fills them moves whenever a rule's message does.
      */
-    public validationMessageParams(fi: CrudFormFieldInfoType): Record<string, any> {
+    public validationMessageParams(fi: CrudFormFieldInfoType, value?: unknown): Record<string, any> {
         const validation = fi.validation;
-        const allowed = validation?.[CrudFieldValidationEnum.EXTENSION]?.value;
+        const allowed = validation?.[CrudFieldValidationEnum.FILE_EXTENSION]?.value;
+        const maxSize = validation?.[CrudFieldValidationEnum.FILE_SIZE]?.value;
+        const mediaDimension = validation?.[CrudFieldValidationEnum.MEDIA_DIMENSION]?.value;
+        const maxFiles = validation?.[CrudFieldValidationEnum.MAX_FILES]?.value;
 
         return {
             min_length: validation?.[CrudFieldValidationEnum.MIN_LENGTH]?.value,
@@ -1533,7 +1678,13 @@ export class CrudValidation {
             min: validation?.[CrudFieldValidationEnum.MIN]?.value,
             max: validation?.[CrudFieldValidationEnum.MAX]?.value,
             expected: validation?.[CrudFieldValidationEnum.MATCH_FIELD]?.value,
-            allowed: Array.isArray(allowed) ? allowed.join(', ') : allowed,
+            allowed: allowed === undefined ? undefined : this.fileUtility.getAllowedFileExtensions(allowed).join(', '),
+            max_size: maxSize === undefined ? undefined : this.fileUtility.formatFileSize(Number(maxSize)),
+            current_size: maxSize === undefined ? undefined : this.fileUtility.formatCurrentFileSize(value),
+            dimension: mediaDimension === undefined ? undefined : this.fileUtility.formatMediaDimensionRule(mediaDimension),
+            current_dimension: mediaDimension === undefined ? undefined : this.formatCurrentMediaDimension(value),
+            max_files: maxFiles,
+            current_files: maxFiles === undefined ? undefined : this.fileUtility.countFiles(value),
         };
     }
 

@@ -38,8 +38,18 @@ export class OpenAreaRoute extends FoundationModuleRoute {
      * ⚠ url_slug is '' AND this node has children, so the builder must NOT emit
      * pathMatch:'full' for it — that only goes on a leaf
      *
-     * ⚠ default_child_key is the ONLY thing routing '/'. omit it and the app
-     * lands on /404, which is precisely the 2026-08-16 symptom
+     * ⚠ default_child_key is normally the ONLY thing routing '/' — omit it with
+     * no other blank-slug child around and the app lands on /404, which is
+     * precisely the 2026-08-16 symptom.
+     *
+     * ⚠ TEMPORARY — default_child_key is OUT while DesignHtmlRoute exists,
+     * because that module owns url_slug: '' itself now and renders straight at
+     * '/' with no redirect (see its route.ts). A default_child_key pointing at
+     * 'DESIGN_HTML' here would emit a SECOND path:'' entry (a redirectTo one)
+     * ahead of it in the same children array and self-redirect.
+     *
+     * Restore `default_child_key: 'HOME'` here the moment design-html/ is
+     * deleted — without it '/' goes to /404 again.
      */
     public static override nav(): FoundationModuleRouteNavType {
         return {
