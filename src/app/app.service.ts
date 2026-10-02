@@ -155,6 +155,7 @@ export class AppService {
             `[AppService] app version changed: ${stored ?? 'none'} -> ${running}. Clearing context.`,
         );
 
+        this.ctxp.state.clearHostToken();
         this.ctxp.state.clearSession();
         this.ctxp.state.clearCtxs();
         this.ctxp.state.clearCsrfToken();
