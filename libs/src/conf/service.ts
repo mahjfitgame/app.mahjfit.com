@@ -18,6 +18,9 @@ export class ConfService {
 
 
     // ████ PUBLIC █ SYNC ████████████████████████████████████████████████████
+    public get appVersion(): string {
+        return this._conf.APP_VERSION;
+    }
     public get env(): string {
         return this._conf.NODE_ENV;
     }

@@ -73,6 +73,10 @@ export class AppService {
             this.registerApiInterceptorsOnce();
             this.splash.stream = 40;
 
+            // ⚠ must stay ahead of clientServerHandShake() — see reconcileAppVersion()
+            await this.appVersionInspection();
+            this.splash.stream = 50;
+
             const handshake = await this.clientServerHandShake();
             this.splash.stream = 60;
 
@@ -85,6 +89,16 @@ export class AppService {
             this.splash.stream = 70;
 
             this.state.setStartupSucceeded(true);
+
+            /**
+             * Stamp only on a CLEAN startup, so a boot that failed mid-way reconciles
+             * again on the next reload instead of marking itself done.
+             *
+             * Unconditional on purpose, no equality check needed: signal-state compares
+             * the JSON snapshot before it writes, so an unchanged version is dropped at
+             * the persistence gate and the normal boot costs no storage write.
+             */
+            this.state.setAppVersion(this.conf.appVersion);
             return true;
         } catch (error) {
             this.log.error('[AppService] initialization failed', error);
@@ -99,6 +113,51 @@ export class AppService {
         this.scroll.updateScrollDirection(this.document, {
             applyTo: this.document.body,
         });
+    }
+
+    // ████ APP VERSION RECONCILIATION ██████████████████████████████
+
+    /**
+     * A new build must not inherit the previous build's context.
+     *
+     * ⚠ ORDER. This runs BEFORE clientServerHandShake(), because that method
+     * calls configureBfwApiHeaders() and then sends the first request of the
+     * app's life. Clearing after it would post the old build's tokens and then
+     * throw away the fresh ones the response carries.
+     *
+     * Both whenReady() awaits are required, not defensive:
+     *  - appVersion() is a persisted signal, null until restoration finishes,
+     *    so an early read reports a version change on every single reload;
+     *  - signal-state suppresses save effects while syncing is true, so a clear
+     *    issued before ctxp is ready changes memory only and the localStorage
+     *    and cookie records survive the reload.
+     *
+     * A null stored version counts as a change on purpose: a browser carrying a
+     * live context from a build that predates this field has no stamp to match.
+     *
+     * The host token is deliberately NOT cleared. It identifies the device, not
+     * the session, and the handshake response replaces it below either way.
+     */
+    private async appVersionInspection(): Promise<void> {
+        await Promise.all([
+            this.state.whenReady(),
+            this.ctxp.state.whenReady(),
+        ]);
+
+        const running = this.conf.appVersion;
+        const stored = this.state.appVersion();
+
+        if (stored === running) {
+            return;
+        }
+
+        this.log.warn(
+            `[AppService] app version changed: ${stored ?? 'none'} -> ${running}. Clearing context.`,
+        );
+
+        this.ctxp.state.clearSession();
+        this.ctxp.state.clearCtxs();
+        this.ctxp.state.clearCsrfToken();
     }
 
     // ████ CLIENT SERVER HANDSHAKE ████████████████████████████████

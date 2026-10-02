@@ -3,6 +3,9 @@ export class ConfPublic {
   // ████ PUBLIC █ env variables not in env.ts file █████████████████████████████████████████████████████████
   // ████ PUBLIC █ SYNC █ all below with █ main .env █ file located at root █ ./env/.env ████████████████████
   
+  // App version
+  public APP_VERSION: string = '1.0.0';
+
   // Environment
   public NODE_ENV: string = 'production';
 
