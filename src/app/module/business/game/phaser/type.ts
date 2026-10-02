@@ -194,6 +194,8 @@ export interface GameTableConfig {
     readonly passDurationMs: number;
     readonly dragReturnMs: number;
   };
+  // NEWCODE
+  mobilePortraitRackOffset?: number;
 }
 
 
@@ -225,6 +227,7 @@ export interface DemoDiscardRequest {
 export interface MahjongWinCelebration {
   readonly winner: TableSeat;
   readonly requestId: number;
+  readonly opponentHands?: Record<string, number[]>;
 }
 
 /** Server-supplied away state for the local moderation prompt. */

@@ -1999,7 +1999,8 @@ export class PhaserLayoutUi {
       cardWidth = Math.round(Phaser.Math.Clamp(cardHeight * 2.3, 190, 280));
 
       cardX = Math.round(layout.canvas.x + (layout.canvas.width - cardWidth) / 2);
-      cardY = Math.round(layout.canvas.y + (layout.canvas.height - cardHeight) / 2);
+      const exposuresMidY = (layout.topExposure.y + layout.topExposure.height + layout.bottomExposure.y) / 2;
+      cardY = Math.round(exposuresMidY - cardHeight / 2);
 
       buttonHeight = Math.round(cardHeight * 0.32);
       buttonWidth = Math.round(buttonHeight * 2.6);

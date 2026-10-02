@@ -40,6 +40,7 @@ export class PhaserSound {
     if (!this.scene.cache.json.exists('effects')) {
       this.scene.load.audioSprite('effects', 'assets/sounds/effects.json', ['assets/sounds/effects.webm', 'assets/sounds/effects.mp3']);
     }
+    this.scene.load.audio('joker_exchange', 'assets/sounds/joker_exchange.mp3');
   }
   create(): void { 
     this.createSoundPools(); 
@@ -84,6 +85,9 @@ export class PhaserSound {
     this.currentTileVoice = this.effectsSprite;
     this.currentTileVoiceKey = "stop-the-chaleston";
     this.effectsSprite.play("stop-the-chaleston", { volume: 1.0 });
+  }
+  playJokerExchange(): void {
+    this.scene.sound.play('joker_exchange', { volume: 0.8 });
   }
   playSfx(id: TableSfxId): void { 
     const config = this.sfxConfig[id]; 

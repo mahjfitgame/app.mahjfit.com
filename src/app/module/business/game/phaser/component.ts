@@ -298,7 +298,24 @@ export class PhaserComponent implements AfterViewInit {
       this.gameState.publishClaimAction(action, tile_id);
     }
    */
+  private lastProcessedExchange: any = null;
+
   constructor() {
+    effect(() => {
+      const exchange = this.gameState.play_last_joker_exchange();
+      if (!this.phaser || !this.sceneReady() || !exchange) return;
+
+      if (JSON.stringify(this.lastProcessedExchange) !== JSON.stringify(exchange)) {
+        this.lastProcessedExchange = exchange;
+        const payload = {
+          ...exchange,
+          from_seat: this.gameState.seat_position_by_gseat_id()(exchange.from_gseat_id),
+          to_seat: this.gameState.seat_position_by_gseat_id()(exchange.to_gseat_id)
+        };
+        this.phaser.events.emit("joker:exchange", payload);
+      }
+    });
+
     effect(() => {
       const err = this.gameState.play_action_error();
       if (!this.phaser || !this.sceneReady() || !err) return;
@@ -539,7 +556,8 @@ export class PhaserComponent implements AfterViewInit {
         }
       }
 
-      const isWallGame = reason === 'WALL_EMPTY' || (wallCount === 0 && !winnerId);
+      // const isWallGame = reason === 'WALL_EMPTY' || (wallCount === 0 && !winnerId); // OLDCODE
+      const isWallGame = reason === 'WALL_EMPTY';
 
       if (this.phaser && this.sceneReady() && (isFinished || isWallGame)) {
         if (isWallGame) {
@@ -548,9 +566,25 @@ export class PhaserComponent implements AfterViewInit {
           const tableSeat = this.gameState.seat_position_by_gseat_id()(winnerId);
 
           if (tableSeat) {
+            const opponentHands: Record<string, number[]> = {};
+            const seats = this.gameState.play_seats();
+            if (seats) {
+              for (const [seatId, seatData] of Object.entries(seats)) {
+                const seatPos = this.gameState.seat_position_by_gseat_id()(Number(seatId));
+                if (seatPos && seatPos !== 'bottom' && seatData?.racks) {
+                   const tiles: number[] = [];
+                   for (const rack of Object.values(seatData.racks)) {
+                      if ((rack as any).tiles) tiles.push(...(rack as any).tiles);
+                   }
+                   opponentHands[seatPos] = tiles;
+                }
+              }
+            }
+
             this.setMahjongWinPopup({
               winner: tableSeat,
-              requestId: 0
+              requestId: 0,
+              opponentHands
             });
           }
         }
@@ -642,6 +676,22 @@ export class PhaserComponent implements AfterViewInit {
           },
           onLocalPlayerExposureCreate: async (tileIds) => {
             await this.gameState.publishMoveTilesToExposurePanel(tileIds, 0); // targetRackId isn't actually used in publishMoveTilesToExposurePanel's GraphQL call inside state.ts
+          },
+          onLocalPlayerJokerExchange: async (targetJokerTileId, rackReplacementTileId, targetSeat) => {
+            let toSeatId = this.gameState.personal_seat_id();
+            if (targetSeat !== "bottom") {
+              const opponentSeat = Object.values(this.gameState.play_seats()).find((s: any) => this.gameState.seat_position_by_gseat_id()(s.id) === targetSeat);
+              if (opponentSeat) {
+                toSeatId = opponentSeat.id;
+              }
+            }
+            await this.gameState.publishJokerExchange(
+              targetJokerTileId,
+              rackReplacementTileId,
+              this.gameState.personal_seat_id(),
+              toSeatId,
+              GameRackIDEnumAddon.RACK_FIRST
+            );
           },
           onLocalPlayerPick: () => {
             this.gameState.publishPickTile();
@@ -998,7 +1048,11 @@ export class PhaserComponent implements AfterViewInit {
         }
       };
     }
-    this.zone.run(() => this.instructionPanelOverlay.set(state));
+    //this.zone.run(() => this.instructionPanelOverlay.set(state)); // OLDCODE
+    this.zone.run(() => {
+      this.instructionPanelOverlay.set(state);
+      this.phaser?.events.emit("instruction-panel:sync", state);
+    });
   }
 
   setClaimPanelOverlay(state: ClaimPanelOverlayState): void {

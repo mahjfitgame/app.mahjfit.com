@@ -264,6 +264,11 @@ export class GameState extends SignalStateService implements FoundationModuleSta
         return this.play()?.winner_seat_ids as number[] | undefined;
     });
 
+    // ████ play_last_joker_exchange SIGNAL ██████████████████████████████████████
+    public readonly play_last_joker_exchange = computed<any | undefined>(() => {
+        return (this.play() as any)?.last_joker_exchange;
+    });
+
     // add public for all computed
 
     // ████ play_turn_stage SIGNAL ███████████████████████████████████████████
@@ -1452,6 +1457,33 @@ export class GameState extends SignalStateService implements FoundationModuleSta
             selections: this.commonSelectionFields,
         });
     }
+
+    // ████ WEB SOCKET JOKER EXCHANGE ████████████████████████████████████████████
+    public async publishJokerExchange(targetJokerTileId: number, rackReplacementTileId: number, fromSeatId: number, toSeatId: number, targetRackId: GameRackIDEnumAddon): Promise<void> {
+        const game_keyid = this.game_keyid();
+        if (!game_keyid) {
+            this.log.error('GAME_KEYID IS NULL');
+            return;
+        }
+
+        await this.api.sdk.graphql.ws.gameEngine?.publishActionExchangeJoker({
+            input: {
+                keyid: game_keyid,
+                gpaction_id: GamePlayActionEnumAddon.JOKER_EXCHANGE as unknown as GamePlayActionEnum,
+                game_id: this.game_id(),
+                u_id: this.personal_seat_u_id(),
+                id: this.personal_seat_id(),
+                from_gseat_id: fromSeatId,
+                to_gseat_id: toSeatId,
+                rack_id: this.personal_seat_rack_first_rack_id() as unknown as GameRackIDEnum,
+                to_rack_id: targetRackId as unknown as GameRackIDEnum,
+                from_tile_id: rackReplacementTileId,
+                joker_tile_id: targetJokerTileId
+            },
+            selections: this.commonSelectionFields,
+        });
+    }
+
 
     // ████ WEB SOCKET MOVE TILES TO EXPOSURE PANEL BY USER ACTION ████████████████████████████████████████████
     public async publishMoveTilesToExposurePanel(tile_ids: number[], targetRackId: number,): Promise<void> {

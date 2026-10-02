@@ -33,11 +33,20 @@
 
 @if (instructionPanelOverlay(); as state) {
 @if (state.visible) {
-<div class="instruction-panel" aria-hidden="false" [style.display]="'block'" [style.left.px]="state.x"
-  [style.top.px]="state.y" [style.width.px]="state.width" [style.height.px]="state.height"
-  [style.borderWidth.px]="state.borderWidth" [style.borderRadius.px]="state.radius"
-  [style.background]="state.borderWidth === 0 ? '#c7c22e' : '#f4f2ec'"
-  >
+  <!-- OLDCODE
+  <div class="instruction-panel" aria-hidden="false" [style.display]="'block'" [style.left.px]="state.x"
+    [style.top.px]="state.y" [style.width.px]="state.width" [style.height.px]="state.height"
+    [style.borderWidth.px]="state.borderWidth" [style.borderRadius.px]="state.radius"
+    [style.background]="state.borderWidth === 0 ? '#c7c22e' : '#f4f2ec'"
+    >
+  -->
+  <!-- NEWCODE -->
+  <div class="instruction-panel" aria-hidden="false" [style.display]="'block'" [style.left.px]="state.x"
+    [style.top.px]="state.y" [style.width.px]="state.width" [style.height.px]="state.height"
+    [style.borderWidth.px]="state.borderWidth" [style.borderRadius.px]="state.radius"
+    [style.background]="'transparent'"
+    [style.borderColor]="'transparent'"
+    >
   <div class="instruction-panel__content" [style.left.px]="-state.borderWidth" [style.width.px]="state.width"
     [style.top.px]="state.contentTop - state.borderWidth"
     [style.flexDirection]="state.borderWidth === 0 ? 'row' : 'column'"
@@ -221,7 +230,7 @@
 }
 
 @if (mahjongWinResult(); as result) {
-<div class="mahjong-win-popup" aria-hidden="false" [style.display]="'flex'" (pointerup)="onDismissMahjongWinPopup()">
+<div class="mahjong-win-popup" aria-hidden="false" [style.display]="'flex'">
   @for (confetti of mahjongConfetti(); track $index) {
   <div class="mahjong-win-popup__confetti" [style.left]="confetti.left" [style.top]="confetti.top"
     [style.width]="confetti.width" [style.height]="confetti.height" [style.background]="confetti.background"
@@ -229,10 +238,13 @@
     [style.--start-rotate]="confetti.startRotate" [style.--end-rotate]="confetti.endRotate"
     [style.--fall-distance]="confetti.fallDistance"></div>
   }
-  <div class="mahjong-win-popup__card">
-    <div class="mahjong-win-popup__title">MAH JONGG!</div>
-    <div class="mahjong-win-popup__winner">{{ result.winner === 'bottom' ? 'YOU WIN!' : (result.winner.toUpperCase() + ' WINS!') }}</div>
-    <div class="mahjong-win-popup__dismiss">TAP TO CONTINUE</div>
+  <div class="mahjong-win-content" style="z-index: 1001; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; font-family: Poppins, Arial, sans-serif;">
+    <div class="mahjong-win-popup__title" style="color: #ffffff; text-shadow: 2px 4px 6px rgba(0,0,0,0.5); -webkit-text-stroke: 0px; font-size: clamp(48px, 10vw, 84px);">MAH JONGG!</div>
+    <div class="mahjong-win-popup__winner" style="color: #ffffff; text-shadow: 1px 2px 4px rgba(0,0,0,0.5); font-size: clamp(20px, 4vw, 36px);">{{ result.winner === 'bottom' ? 'YOU WIN!' : (result.winner.toUpperCase() + ' WINS!') }}</div>
+    <div class="mahjong-win-popup__actions" style="display: flex; gap: 16px; margin-top: 24px; justify-content: center;">
+      <button type="button" class="popup-button-active" (pointerup)="$event.stopPropagation(); onStartNewGame()">Play Again</button>
+      <button type="button" class="popup-button-secondary" (pointerup)="$event.stopPropagation(); onExitGame()">Exit</button>
+    </div>
   </div>
 </div>
 }

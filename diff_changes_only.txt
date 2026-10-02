@@ -1,0 +1,591 @@
+--- a/src/app/module/business/game/phaser/scenes/scene.ts
++++ b/src/app/module/business/game/phaser/scenes/scene.ts
+-import { ExposurePanelMode, PassAnimationItem, PassDirection, Point, Rect, SafeAreaInsets, TableLayout } from "../type";
++//import { ExposurePanelMode, PassAnimationItem, PassDirection, Point, Rect, SafeAreaInsets, TableLayout } from "../type"; // OLDCODE
++import { ExposurePanelMode, GameTableConfig, PassAnimationItem, PassDirection, Point, Rect, SafeAreaInsets, TableLayout } from "../type";
+-  private readonly config = GAME_TABLE_CONFIG;
++  //   private readonly config = GAME_TABLE_CONFIG; // OLDCODE
++  private config: GameTableConfig & { mobilePortraitRackOffset?: number } = { ...GAME_TABLE_CONFIG };
++  private isScrollingDiscard: boolean = false;
++  private discardScrollStartY: number = 0;
++  private discardScrollStartOffsetY: number = 0;
++  private discardScrollY: number = 0;
++
++  private sliderLeftButton?: Phaser.GameObjects.Text;
++  private sliderRightButton?: Phaser.GameObjects.Text;
++  private discardMaskGraphics!: Phaser.GameObjects.Graphics;
++  private discardMask!: Phaser.Display.Masks.GeometryMask;
++  private discardContainer!: Phaser.GameObjects.Container;
++  private discardDebugGraphics!: Phaser.GameObjects.Graphics;
++
++  private instructionPanelBg?: Phaser.GameObjects.Graphics;
+-    this.tableBgMaskGraphics = this.add.graphics().setVisible(false);
++    // this.tableBgMaskGraphics = this.add.graphics().setVisible(false); // OLDCODE
++    this.tableBgMaskGraphics = this.make.graphics({});
++
++    this.discardMaskGraphics = this.add.graphics({}).setVisible(false);
++    this.discardMask = this.discardMaskGraphics.createGeometryMask();
++    this.discardContainer = this.add.container(0, 0);
++    this.discardContainer.setDepth(this.discardTileDepth());
++    this.discardContainer.setMask(this.discardMask);
++    this.discardDebugGraphics = this.add.graphics().setDepth(200);
++
++
++    const isPointerInDiscardArea = (pointer: Phaser.Input.Pointer): boolean => {
++      if (!this.layout || !this.layout.discardArea) return false;
++      const area = this.layout.discardArea;
++      return (
++        pointer.x >= area.x &&
++        pointer.x <= area.x + area.width &&
++        pointer.y >= area.y &&
++        pointer.y <= area.y + area.height
++      );
++    };
++
++    this.input.on('wheel', (pointer: Phaser.Input.Pointer, gameObjects: any[], deltaX: number, deltaY: number, deltaZ: number) => {
++      if (this.tablePhase === GamePhaseEnum.LOBBY || this.tableOverlayBlockLevel !== "none") return;
++      if (isPointerInDiscardArea(pointer)) {
++        this.discardScrollY = Phaser.Math.Clamp(this.discardScrollY + deltaY, 0, Math.max(0, this.discardMaxScroll));
++        this.updateDiscardTilePositions();
++      }
++    });
++
++    this.input.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
++      if (this.tablePhase === GamePhaseEnum.LOBBY || this.tableOverlayBlockLevel !== "none") return;
++      if (isPointerInDiscardArea(pointer)) {
++        this.isScrollingDiscard = true;
++        this.discardScrollStartY = pointer.y;
++        this.discardScrollStartOffsetY = this.discardScrollY;
++      }
++    });
++
++    this.input.on('pointermove', (pointer: Phaser.Input.Pointer) => {
++      if (this.isScrollingDiscard && pointer.isDown) {
++        const deltaY = this.discardScrollStartY - pointer.y;
++        this.discardScrollY = Phaser.Math.Clamp(this.discardScrollStartOffsetY + deltaY, 0, Math.max(0, this.discardMaxScroll));
++        this.updateDiscardTilePositions();
++      }
++    });
++
++    this.input.on('pointerup', () => {
++      this.isScrollingDiscard = false;
++    });
++
+-           // We apply the order, but only for tiles currently in rackOrder
+-           // The new order might contain tiles that are in exposures, etc.
+-           const newRackOrder = [];
+-           for (const id of order) {
+-             if (this.rackOrder.includes(id)) {
+-               newRackOrder.push(id);
+-             }
+-           }
+-           // Add any tiles that were in rackOrder but missing from the server order
+-           for (const id of this.rackOrder) {
+-             if (!newRackOrder.includes(id)) {
+-               newRackOrder.push(id);
+-             }
+-           }
+-           this.rackOrder = newRackOrder;
+-           this.reindexRackRuntimeSlots();
+-           this.layoutRackTiles(true);
++          // We apply the order, but only for tiles currently in rackOrder
++          // The new order might contain tiles that are in exposures, etc.
++          const newRackOrder = [];
++          for (const id of order) {
++            if (this.rackOrder.includes(id)) {
++              newRackOrder.push(id);
++            }
++          }
++          // Add any tiles that were in rackOrder but missing from the server order
++          for (const id of this.rackOrder) {
++            if (!newRackOrder.includes(id)) {
++              newRackOrder.push(id);
++            }
++          }
++          this.rackOrder = newRackOrder;
++          this.reindexRackRuntimeSlots();
++          this.layoutRackTiles(true);
+-    } else if (this.tablePhase === GamePhaseEnum.PLAYING) {
++    } else if (this.tablePhase === GamePhaseEnum.PLAYING || this.tablePhase === GamePhaseEnum.CLAIM) {
+-      if (!this.canPickFromWall()) return;
++      if (!this.canPickFromWall(true)) return;
+-  private canPickFromWall(): boolean {
+-    if (!this.stateManager.isPersonalTurn) return true;
++  private canPickFromWall(forUi: boolean = false): boolean {
++    if (!this.stateManager.isPersonalTurn) {
++      // The UI button should only be enabled when it's the personal player's turn.
++      // But test controls need this to return true.
++      return !forUi;
++    }
++    if (action === "slider-left" as any) {
++      this.config.mobilePortraitRackOffset = Math.max(0, (this.config.mobilePortraitRackOffset || 0) - 1);
++      if (this.layout) {
++        this.resize(this.layout.canvas.width, this.layout.canvas.height, false);
++      }
++      return;
++    }
++
++    if (action === "slider-right" as any) {
++      const maxOffset = Math.max(0, this.rackOrder.length - 8); // 8 tiles fit on screen
++      this.config.mobilePortraitRackOffset = Math.min(maxOffset, (this.config.mobilePortraitRackOffset || 0) + 1);
++      if (this.layout) {
++        this.resize(this.layout.canvas.width, this.layout.canvas.height, false);
++      }
++      return;
++    }
++
+-    if (phase !== GamePhaseEnum.PLAYING) {
++    if (phase !== GamePhaseEnum.PLAYING && phase !== GamePhaseEnum.CLAIM) {
+-    const tileWidth = Math.round(this.layout.bottomTileLayout.width);
++      const tileSize = this.calledOpponentExposureTileSize(seat);
++      const seatTileWidth = Math.round(tileSize.width);
+-          const texture = this.gameService.resolve(fullTile as any, tileWidth);
++          const texture = this.gameService.resolve(fullTile as any, seatTileWidth);
++    const discardArea = this.layout.discardArea;
++    this.discardMaskGraphics.clear();
++    this.discardMaskGraphics.fillStyle(0xffffff);
++    this.discardMaskGraphics.fillRect(discardArea.x, discardArea.y, discardArea.width, Math.max(0, discardArea.height));
++    this.drawDiscardDebugArea();
++
++    const isMobilePortrait = this.layout.metrics.isMobile && this.layout.metrics.isPortrait;
++    if (isMobilePortrait) {
++      if (!this.sliderLeftButton) {
++        this.sliderLeftButton = this.add.text(0, 0, "<", {
++          fontFamily: FONT_FAMILY,
++          fontSize: '60px',
++          fontStyle: 'bold',
++          color: COLOR_BLUE
++        }).setInteractive().setOrigin(0.5);
++        this.sliderLeftButton.on('pointerdown', () => {
++          this.callbacks.onHudAction?.("slider-left" as any);
++        });
++      }
++      if (!this.sliderRightButton) {
++        this.sliderRightButton = this.add.text(0, 0, ">", {
++          fontFamily: FONT_FAMILY,
++          fontSize: '60px',
++          fontStyle: 'bold',
++          color: COLOR_BLUE
++        }).setInteractive().setOrigin(0.5);
++        this.sliderRightButton.on('pointerdown', () => {
++          this.callbacks.onHudAction?.("slider-right" as any);
++        });
++      }
++
++      this.sliderLeftButton.setVisible(true);
++      this.sliderRightButton.setVisible(true);
++
++      const rack = this.layout.bottomRack;
++      const rackTopPadding = Phaser.Math.Clamp(rack.height * 0.025, 1, 6);
++      const rackBottomPadding = Phaser.Math.Clamp(rack.height * 0.025, 1, 8);
++      const fitByHeight = rack.height - rackTopPadding - rackBottomPadding;
++      const arrowScale = fitByHeight / 80;
++
++      this.sliderLeftButton.setScale(arrowScale);
++      this.sliderRightButton.setScale(arrowScale);
++      this.sliderLeftButton.setDepth(200);
++      this.sliderRightButton.setDepth(200);
++
++      this.sliderLeftButton.setPosition(
++        rack.x + this.sliderLeftButton.displayWidth * 0.1,
++        rack.y + rackTopPadding + (fitByHeight / 2)
++      );
++
++      this.sliderRightButton.setPosition(
++        rack.x + rack.width - this.sliderRightButton.displayWidth * 0.1,
++        rack.y + rackTopPadding + (fitByHeight / 2)
++      );
++
++    } else {
++      if (this.sliderLeftButton) this.sliderLeftButton.setVisible(false);
++      if (this.sliderRightButton) this.sliderRightButton.setVisible(false);
++    }
++
+-    const lipRatio = this.gameLayout.exposureLipRatio(modeKey);
++    const isBottom = mode === "bottom";
++    const lipRatio = isBottom ? this.gameLayout.bottomExposureLipRatio(modeKey) : this.gameLayout.exposureLipRatio(modeKey);
+-    const isBottom = mode === "bottom";
+-    if (isBottom) {
+-      stripY = y;
+-      dividerY = y + nameStripH;
+-      contentH = h - topLipH - nameStripH - dividerH;
+-      contentY = dividerY + dividerH;
+-      lipY = contentY + contentH;
+-    } else {
+-      lipY = y;
+-      contentY = y + topLipH;
+-      contentH = h - topLipH - nameStripH - dividerH;
+-      dividerY = contentY + contentH;
+-      stripY = dividerY + dividerH;
+-    }
++    lipY = y;
++    contentY = y + topLipH;
++    contentH = h - topLipH - nameStripH - dividerH;
++    dividerY = contentY + contentH;
++    stripY = dividerY + dividerH;
+-    const stripFill = active ? 0xd7d33a : 0x22488f;
+-    const stripHighlight = active ? 0xf0eb78 : 0x3c63bb;
+-    const dividerFill = active ? 0x9b9722 : 0x8ea4d0;
++    const stripFill = (active && !isBottom) ? 0xd7d33a : 0x22488f;
++    const stripHighlight = (active && !isBottom) ? 0xf0eb78 : 0x3c63bb;
++    const dividerFill = (active && !isBottom) ? 0x9b9722 : 0x8ea4d0;
++
++    const isPassing = this.tablePhase === GamePhaseEnum.PASSING;
++    const isActiveBottomLip = active && isBottom && !isPassing;
++    const lipFill = isActiveBottomLip ? 0xd7d33a : 0x3159aa;
++    const lipHighlight = isActiveBottomLip ? 0xf0eb78 : 0x5e82d5;
+-    g.fillStyle(0x3159aa, 1);
+-    g.fillRect(x, isBottom ? lipY : y, w, topLipH);
++    g.fillStyle(lipFill, 1);
++    g.fillRect(x, lipY, w, topLipH);
+-    g.fillStyle(0x5e82d5, 0.42);
++    g.fillStyle(lipHighlight, (active && isBottom) ? 1 : 0.42);
+-      y + Math.max(2, Math.round(topLipH * 0.18)),
++      lipY + Math.max(2, Math.round(topLipH * 0.18)),
++    this.game.events.on(
++      "instruction-panel:mahjong",
++      () => this.handleHtmlMahjongAction(),
++    );
++    this.instructionPanelBg = this.add.graphics().setDepth(50);
++    this.game.events.on("instruction-panel:sync", (state: any) => {
++      this.instructionPanelBg?.clear();
++      if (state && state.visible) {
++        this.instructionPanelBg?.fillStyle(state.borderWidth === 0 ? 0xc7c22e : 0xf4f2ec);
++        this.instructionPanelBg?.fillRoundedRect(state.x, state.y, state.width, state.height, state.radius);
++        if (state.borderWidth > 0) {
++          this.instructionPanelBg?.lineStyle(state.borderWidth, 0xc7c22e);
++          this.instructionPanelBg?.strokeRoundedRect(state.x, state.y, state.width, state.height, state.radius);
++        }
++      }
++    });
++
++  private handleHtmlMahjongAction(): void {
++    if (this.turnStage === GameTurnStageEnum.NEED_EXPOSURE && this.activeExposureBuildTileIds.length > 0) {
++      this.callbacks.onLocalPlayerExposureCreate?.([...this.activeExposureBuildTileIds]);
++      this.activeExposureBuildTileIds = [];
++      for (const button of this.exposureCloseButtons.values()) {
++        button.destroy();
++      }
++      this.exposureCloseButtons.clear();
++
++      // Delay the mahjong declare slightly to ensure backend processes the exposure first
++      setTimeout(() => {
++        this.callbacks.onMahjongDeclare?.();
++      }, 500);
++    } else {
++      this.callbacks.onMahjongDeclare?.();
++    }
++  }
++
+-      canPickFromWall: this.canPickFromWall(),
++      canPickFromWall: this.canPickFromWall(true),
++    if (!dataUrl) {
++      setTimeout(() => this.showClaimWindow(tile), 200);
++      return;
++    }
++
+-    
++
+-          const texture = this.gameService.resolve(fullTile as any, Math.round(this.layout.bottomTileLayout.width));
++          const tileSize = this.calledBottomExposureTileSize();
++          const texture = this.gameService.resolve(fullTile as any, Math.round(tileSize.width));
+-        // GamePlayActionEnum.CALL is 15
+-        if (meld.kind === GamePlayActionEnumAddon.CALL) {
++        let meldAsset: string | undefined;
++        for (const t of tilesToProcess) {
++          if (t && t.tile_id != null && !this.isJoker(t.tile_id)) {
++            meldAsset = this.gameService.assetBaseName(this.allTiles[t.tile_id]);
++            break;
++          }
++        }
++
++        // Recover incomplete CALL melds (active claims) during the exposure turn stage.
++        // Completed exposures will have length >= 3 and should not be recovered.
++        if (meld.kind === 15 /* CALL */ && tilesToProcess.length < 3 && this.turnStage === GameTurnStageEnum.NEED_EXPOSURE) {
+-            this.exposureBuildAsset = this.gameService.assetBaseName(this.allTiles[tile.tile_id]);
+-            // console.log(`[PhaserScene] Set exposureBuildAsset to ${this.exposureBuildAsset}`);
++            this.exposureBuildAsset = meldAsset || this.gameService.assetBaseName(this.allTiles[tile.tile_id]);
+-            // console.log(`[PhaserScene] Recovered pending claim tile ${tile.tile_id} into activeExposureBuildTileIds`);
+-        runtime.image.setData("exposure-asset", this.exposureBuildAsset);
++        runtime.image.setData("exposure-asset", meldAsset);
+-          // Use bottom layout width to pick correct atlas
+-          const tileWidth = Math.round(this.layout.bottomTileLayout.width);
++          // Use the specific opponent exposure tile width to pick the correct atlas
++          const tileSize = this.calledOpponentExposureTileSize(seat);
++          const tileWidth = Math.round(tileSize.width);
+-      1 - this.gameLayout.exposureLipRatio(mode) - this.gameLayout.exposureNameStripRatio(mode)
++      1 - this.gameLayout.bottomExposureLipRatio(mode) - this.gameLayout.exposureNameStripRatio(mode)
+-    const topLipHeight = exposure.height * this.gameLayout.exposureLipRatio(mode);
++    const topLipHeight = exposure.height * this.gameLayout.bottomExposureLipRatio(mode);
+-      1 - this.gameLayout.exposureLipRatio(mode) - this.gameLayout.exposureNameStripRatio(mode)
++      1 - this.gameLayout.bottomExposureLipRatio(mode) - this.gameLayout.exposureNameStripRatio(mode)
++      if (image.parentContainer !== this.discardContainer) {
++        this.discardContainer.add(image);
++      }
++
++      image.setVisible(slot.y > this.layout.discardArea.y && slot.y < this.layout.discardArea.y + this.layout.discardArea.height);
+-      .setDisplaySize(grid.tileWidth, grid.tileHeight)
+-      .setDepth(this.discardTileDepth() + 2);
++      .setDisplaySize(grid.tileWidth, grid.tileHeight);
++    this.discardContainer.add(image);
++
++    setTimeout(() => {
++      this.scrollToBottomDiscard(true);
++    }, ANIMATION_SPEED);
+-        .setDisplaySize(grid.tileWidth, grid.tileHeight)
+-        .setDepth(this.discardTileDepth() + 2);
++        .setDisplaySize(grid.tileWidth, grid.tileHeight);
++
++
++      // OLDCODE
++      //.setDisplaySize(grid.tileWidth, grid.tileHeight)
++      //.setDepth(this.discardTileDepth() + 2);
++
++      this.discardContainer.add(image);
++
++    this.scrollToBottomDiscard(false);
+-
++    const startY = grid.y + grid.paddingY + grid.tileHeight / 2 - this.discardScrollY;
++
+-      y: Math.round(
+-        grid.y +
+-        grid.paddingY +
+-        grid.tileHeight / 2 +
+-        row * (grid.tileHeight + grid.gapY),
+-      ),
++      y: Math.round(startY + row * (grid.tileHeight + grid.gapY)),
++  private get discardMaxScroll(): number {
++    const grid = this.discardGrid();
++    const contentHeight = grid.contentHeight ?? 0;
++    return Math.max(0, contentHeight - this.layout.discardArea.height);
++  }
++
++  private scrollToBottomDiscard(animate: boolean = true): void {
++    const maxScroll = this.discardMaxScroll;
++    if (animate && Math.abs(this.discardScrollY - maxScroll) > 1) {
++      this.tweens.addCounter({
++        from: this.discardScrollY,
++        to: maxScroll,
++        duration: 200,
++        ease: "Cubic.Out",
++        onUpdate: (tween) => {
++          this.discardScrollY = tween.getValue() ?? maxScroll;
++          this.updateDiscardTilePositions();
++        },
++      });
++    } else {
++      this.discardScrollY = maxScroll;
++      this.updateDiscardTilePositions();
++    }
++  }
++
++  private updateDiscardTilePositions(): void {
++    const grid = this.discardGrid();
++
++    // Scroll opponent discards
++    for (const image of this.opponentDiscardTiles) {
++      const id = image.getData("discard-id");
++      if (id != null) {
++        const slot = this.discardSlotFor(this.discardSlotIndex(id, this.opponentDiscardTiles.length), grid);
++        image.setPosition(slot.x, slot.y);
++      }
++    }
++
++    // Scroll personal discards
++    this.discardedTileIds.forEach((id, index) => {
++      const runtime = this.tileMap.get(id);
++      if (!runtime) return;
++      const slot = this.discardSlotFor(this.discardSlotIndex(id, index), grid);
++      this.tweens.killTweensOf(runtime.image);
++      runtime.image.setPosition(Math.round(slot.x), Math.round(slot.y));
++    });
++
++    // Manually toggle visibility for tiles outside the discard area
++    const area = this.layout.discardArea;
++
++    for (const image of this.opponentDiscardTiles) {
++      if (!image.active) continue;
++      const tileTop = image.y - grid.tileHeight / 2;
++      const tileBottom = image.y + grid.tileHeight / 2;
++      image.setVisible(tileTop >= area.y && tileBottom <= area.y + area.height);
++    }
++
++    this.discardedTileIds.forEach((id) => {
++      const runtime = this.tileMap.get(id);
++      if (!runtime) return;
++      const tileTop = runtime.image.y - grid.tileHeight / 2;
++      const tileBottom = runtime.image.y + grid.tileHeight / 2;
++      runtime.image.setVisible(tileTop >= area.y && tileBottom <= area.y + area.height);
++    });
++
++    this.drawDiscardDebugArea();
++    this.game.events.emit("discard:update", grid);
++  }
++
++  private drawDiscardDebugArea(): void {
++    // Hidden as per final layout requirements
++  }
++
+-
+-    if (isPhonePortrait) {
+-      const preferredColumns = Phaser.Math.Clamp(
+-        Math.ceil(Math.sqrt(count * (area.width / Math.max(1, area.height)) * aspect)),
+-        7,
+-        10,
+-      );
+-
+-      const rows = Math.max(1, Math.ceil(count / preferredColumns));
+-
+-      const widthByColumns =
+-        (area.width - paddingX * 2 - gapX * (preferredColumns - 1)) /
+-        preferredColumns;
+-
+-      const widthByRows =
+-        (area.height - paddingY * 2 - gapY * (rows - 1)) /
+-        rows /
+-        aspect;
+-
+-
+-      const tileWidth = Math.round(
+-        Phaser.Math.Clamp(
+-          Math.min(widthByColumns, widthByRows, rackTile.width * 0.66),
+-          22,
+-          42,
+-        ),
+-      );
+-
+-      const tileHeight = Math.round(tileWidth * aspect);
+-
+-      const columns = Math.max(
+-        1,
+-        Math.floor((area.width - paddingX * 2 + gapX) / (tileWidth + gapX)),
+-      );
+-
+-      return {
+-        x: area.x,
+-        y: area.y,
+-        width: area.width,
+-        height: area.height,
+-        tileWidth,
+-        tileHeight,
+-        paddingX,
+-        paddingY,
+-        gapX,
+-        gapY,
+-        columns,
+-      };
+-    }
+-
+-
+-    if (isPhoneLandscape) {
+-      const preferredColumns = Phaser.Math.Clamp(
+-        Math.ceil(Math.sqrt(count * 1.9)),
+-        10,
+-        18,
+-      );
+-
+-      const rows = Math.max(1, Math.ceil(count / preferredColumns));
+-
+-      const widthByColumns =
+-        (area.width - paddingX * 2 - gapX * (preferredColumns - 1)) /
+-        preferredColumns;
+-
+-      const widthByRows =
+-        (area.height - paddingY * 2 - gapY * (rows - 1)) /
+-        rows /
+-        aspect;
+-
+-
+-
+-      const tileWidth = Math.round(
+-        Phaser.Math.Clamp(
+-          Math.min(widthByColumns, widthByRows, rackTile.width * 0.56),
+-          17,
+-          30,
+-        ),
+-      );
+-
+-      const tileHeight = Math.round(tileWidth * aspect);
+-
+-      const columns = Math.max(
+-        1,
+-        Math.floor((area.width - paddingX * 2 + gapX) / (tileWidth + gapX)),
+-      );
+-
+-      return {
+-        x: area.x,
+-        y: area.y,
+-        width: area.width,
+-        height: area.height,
+-        tileWidth,
+-        tileHeight,
+-        paddingX,
+-        paddingY,
+-        gapX,
+-        gapY,
+-        columns,
+-      };
+-    }
+-
+-
+-    const targetColumns = isTablet ? 14 : 18;
+-    const targetRows = isTablet ? 5 : 5;
+-
+-    const widthFromColumns =
+-      (area.width - paddingX * 2 - gapX * (targetColumns - 1)) /
+-      targetColumns;
+-
+-    const widthFromRows =
+-      (area.height - paddingY * 2 - gapY * (targetRows - 1)) /
+-      targetRows /
+-      aspect;
+-
+-    const tileWidth = Math.round(
+-      Phaser.Math.Clamp(
+-        Math.min(widthFromColumns, widthFromRows, rackTile.width * 0.58),
+-        isTablet ? 22 : 26,
+-        isTablet ? 38 : 46,
+-      ),
+-    );
+-
+-    const tileHeight = Math.round(tileWidth * aspect);
++    const scale = 1;
++    const tileWidth = Math.round(rackTile.width * scale);
++    const tileHeight = Math.round(rackTile.height * scale);
++    const rows = Math.ceil(count / columns);
++    const contentHeight = paddingY * 2 + rows * tileHeight + gapY * (rows - 1);
++
++      contentHeight,
++    // Always clear the exposure build state on discard, as the turn is over
++    this.activeExposureBuildTileIds = [];
++    this.exposureBuildAsset = undefined;
++
+-    runtime.image.setDepth(this.discardTileDepth());
++    if (runtime.image.parentContainer !== this.discardContainer) {
++      this.discardContainer.add(runtime.image);
++    }
+-    this.layoutRackTiles(true);
++    setTimeout(() => {
++      this.layoutRackTiles(true);
++      this.scrollToBottomDiscard(true);
++    }, duration);
+-      runtime.image.setDepth(this.discardTileDepth());
++      if (runtime.image.parentContainer !== this.discardContainer) {
++        this.discardContainer.add(runtime.image);
++      }
++
++
++    this.layoutOpponentDiscardTiles();
++    this.scrollToBottomDiscard(animate);
++
++    // Apply visibility clipping
++    this.discardedTileIds.forEach((id, index) => {
++      const runtime = this.tileMap.get(id);
++      if (!runtime) return;
++      const slot = this.discardSlotFor(this.discardSlotIndex(id, index), grid);
++      runtime.image.setVisible(slot.y > this.layout.discardArea.y && slot.y < this.layout.discardArea.y + this.layout.discardArea.height);
++    });
+-      canPickFromWall: this.canPickFromWall(),
++      canPickFromWall: this.canPickFromWall(true),
+-      canPickFromWall: this.canPickFromWall(),
++      canPickFromWall: this.canPickFromWall(true),

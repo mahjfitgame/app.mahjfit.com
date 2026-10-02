@@ -1,0 +1,142 @@
+  private discardGrid(): DiscardGrid {
+    const area = this.layout.discardArea;
+    const rackTile = this.layout.bottomTileLayout;
+    const aspect = rackTile.height / rackTile.width;
+
+    const isPhonePortrait =
+      this.layout.canvas.height >= this.layout.canvas.width &&
+      this.layout.canvas.width <= 520;
+
+    const isPhoneLandscape =
+      this.layout.canvas.width > this.layout.canvas.height &&
+      this.layout.canvas.height <= 520 &&
+      this.layout.canvas.width <= 980;
+
+    const isTablet =
+      this.layout.metrics.isTablet;
+
+    const count = Math.max(1, this.discardSlotOrder.length);
+
+    const paddingX = isPhonePortrait ? 5 : isPhoneLandscape ? 6 : isTablet ? 10 : 12;
+    const paddingY = isPhonePortrait ? 5 : isPhoneLandscape ? 6 : isTablet ? 10 : 12;
+
+    const gapX = isPhonePortrait ? 2 : isPhoneLandscape ? 3 : isTablet ? 5 : 6;
+    const gapY = isPhonePortrait ? 2 : isPhoneLandscape ? 3 : isTablet ? 5 : 6;
+
+    const scale = 1;
+    const tileWidth = Math.round(rackTile.width * scale);
+    const tileHeight = Math.round(rackTile.height * scale);
+
+      const columns = Math.max(
+        1,
+        Math.floor((area.width - paddingX * 2 + gapX) / (tileWidth + gapX)),
+      );
+
+      return {
+        x: area.x,
+        y: area.y,
+        width: area.width,
+        height: area.height,
+        tileWidth,
+        tileHeight,
+        paddingX,
+        paddingY,
+        gapX,
+        gapY,
+        columns,
+      };
+    }
+
+
+    if (isPhoneLandscape) {
+      const preferredColumns = Phaser.Math.Clamp(
+        Math.ceil(Math.sqrt(count * 1.9)),
+        10,
+        18,
+      );
+
+      const rows = Math.max(1, Math.ceil(count / preferredColumns));
+
+      const widthByColumns =
+        (area.width - paddingX * 2 - gapX * (preferredColumns - 1)) /
+        preferredColumns;
+
+      const widthByRows =
+        (area.height - paddingY * 2 - gapY * (rows - 1)) /
+        rows /
+        aspect;
+
+
+
+      const tileWidth = Math.round(
+        Phaser.Math.Clamp(
+          Math.min(widthByColumns, widthByRows, rackTile.width),
+          17,
+          rackTile.width,
+        ),
+      );
+
+      const tileHeight = Math.round(tileWidth * aspect);
+
+      const columns = Math.max(
+        1,
+        Math.floor((area.width - paddingX * 2 + gapX) / (tileWidth + gapX)),
+      );
+
+      return {
+        x: area.x,
+        y: area.y,
+        width: area.width,
+        height: area.height,
+        tileWidth,
+        tileHeight,
+        paddingX,
+        paddingY,
+        gapX,
+        gapY,
+        columns,
+      };
+    }
+
+
+    const targetColumns = isTablet ? 14 : 18;
+    const targetRows = isTablet ? 5 : 5;
+
+    const widthFromColumns =
+      (area.width - paddingX * 2 - gapX * (targetColumns - 1)) /
+      targetColumns;
+
+    const widthFromRows =
+      (area.height - paddingY * 2 - gapY * (targetRows - 1)) /
+      targetRows /
+      aspect;
+
+    const tileWidth = Math.round(
+      Phaser.Math.Clamp(
+        Math.min(widthFromColumns, widthFromRows, rackTile.width),
+        isTablet ? 22 : 26,
+        rackTile.width,
+      ),
+    );
+
+    const tileHeight = Math.round(tileWidth * aspect);
+
+    const columns = Math.max(
+      1,
+      Math.floor((area.width - paddingX * 2 + gapX) / (tileWidth + gapX)),
+    );
+
+    return {
+      x: area.x,
+      y: area.y,
+      width: area.width,
+      height: area.height,
+      tileWidth,
+      tileHeight,
+      paddingX,
+      paddingY,
+      gapX,
+      gapY,
+      columns,
+    };
+  }

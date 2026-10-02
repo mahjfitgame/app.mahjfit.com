@@ -157,7 +157,7 @@ export class PhaserLayoutGame {
     // Base inset + a slight increase (10px) to make the bottom gap a bit larger as requested,
     // and applied equally to all sides for perfect symmetry.
     const uniformPadding = tableEdgeInset + 10;
-    
+
     const innerLeft = tableOuter.x + uniformPadding;
     const innerTop = tableOuter.y + uniformPadding;
     const innerRight = tableOuter.x + tableOuter.width - uniformPadding;
@@ -243,7 +243,7 @@ export class PhaserLayoutGame {
     const dummyTileLayout = this.computeTileLayout(unshiftedBottomRack, count, width, config);
     const rackTopPadding = this.clamp(rackHeight * 0.025, 1, 6);
     const tileBottomOffset = rackHeight - (rackTopPadding + dummyTileLayout.height * 0.96);
-    
+
     const bottomRack: Rect = {
       x: unshiftedBottomRack.x,
       y: unshiftedBottomRack.y + tileBottomOffset,
@@ -407,19 +407,19 @@ export class PhaserLayoutGame {
       width: tableOuter.width * 0.890,
       height: rackHeight,
     };
-    
+
     // Shift bottomRack down dynamically based on tile height to perfectly align with side exposures
     const dummyTileLayoutPortrait = this.computeTileLayout(unshiftedBottomRack, count, width, config);
     const rackTopPaddingPortrait = this.clamp(rackHeight * 0.025, 1, 6);
     const tileBottomOffsetPortrait = rackHeight - (rackTopPaddingPortrait + dummyTileLayoutPortrait.height * 0.96);
-    
+
     const bottomRack: Rect = {
       x: unshiftedBottomRack.x,
       y: unshiftedBottomRack.y + tileBottomOffsetPortrait,
       width: unshiftedBottomRack.width,
       height: rackHeight,
     };
-    
+
     const bottomTileLayout = this.computeTileLayout(bottomRack, count, width, config);
     const bottomPanelRatios =
       this.bottomExposureLipRatio("tablet") + this.exposureNameStripRatio("tablet");
@@ -688,19 +688,19 @@ export class PhaserLayoutGame {
       ),
       height: rackHeight,
     };
-    
+
     // Shift bottomRack down dynamically based on tile height to perfectly align with side exposures
     const dummyTileLayoutLandscape = this.computeTileLayout(unshiftedBottomRack, count, width, config);
     const rackTopPaddingLandscape = this.clamp(rackHeight * 0.025, 1, 6);
     const tileBottomOffsetLandscape = rackHeight - (rackTopPaddingLandscape + dummyTileLayoutLandscape.height * 0.96);
-    
+
     const bottomRack: Rect = {
       x: unshiftedBottomRack.x,
       y: unshiftedBottomRack.y + tileBottomOffsetLandscape,
       width: unshiftedBottomRack.width,
       height: rackHeight,
     };
-    
+
     const bottomTileLayout = this.computeTileLayout(bottomRack, count, width, config);
     const bottomPanelRatios =
       this.bottomExposureLipRatio("tablet") + this.exposureNameStripRatio("tablet");
@@ -800,7 +800,7 @@ export class PhaserLayoutGame {
      * Remaining center area, protected from panels.
      */
     const discardPanelGap = this.discardPanelGap(tableOuter);
-    const discardAreaTop = topExposure.y + topExposure.height + discardPanelGap;
+    const discardAreaTop = topExposure.y + topExposure.height + discardPanelGap + 35;
 
     const discardAreaBottom = bottomExposure.y - discardPanelGap;
 
@@ -963,14 +963,17 @@ export class PhaserLayoutGame {
     const tablePadBottom = tablePadX;
     const mobileRackBottomInset = Math.max(4, tablePadBottom - 4);
 
-    const rackHeight = this.clamp(safeHeight * 0.135, 44, 58);
+    //const rackHeight = this.clamp(safeHeight * 0.135, 44, 58); //OLDCODE
+    const rackHeight = this.clamp(safeHeight * 0.16, 54, 70);
     const bottomRack: Rect = {
-      x: tableOuter.x + tableOuter.width * 0.180,
+      //x: tableOuter.x + tableOuter.width * 0.180, //OLDCODE
+      x: tableOuter.x + tableOuter.width * 0.15,
       y: tableOuter.y + tableOuter.height - rackHeight - mobileRackBottomInset,
-      width: tableOuter.width * 0.640,
+      //width: tableOuter.width * 0.640, //OLDCODE
+      width: tableOuter.width * 0.70,
       height: rackHeight,
     };
-    
+
     const bottomTileLayout = this.computeTileLayout(bottomRack, count, width, config);
     const bottomPanelRatios =
       this.bottomExposureLipRatio("mobile-landscape") +
@@ -1617,21 +1620,21 @@ export class PhaserLayoutGame {
         (
           isMobile
             ? isPortrait
-              ? 0.095
-              : 0.20
+              ? 0.135 //0.95 OLDCODE
+              : 0.40 //0.20 OLDCODE
             : isTablet
               ? 0.02
               : 0.20
         ),
         isMobile
           ? isPortrait
-            ? 82
-            : 62
+            ? 105 // 82 OLDCODE
+            : 125 // 62 OLDCODE
           : 92,
         isMobile
           ? isPortrait
-            ? 112
-            : 138
+            ? 145 // 112 OLDCODE
+            : 210 // 138 OLDCODE
           : 190,
       ),
 
@@ -1671,6 +1674,7 @@ export class PhaserLayoutGame {
   ): TileLayout {
     const isMobile = canvasWidth < 640;
     const isTablet = canvasWidth >= 640 && canvasWidth < 1024;
+    const isPortrait = canvasWidth < 500;
 
     // Mobile rack tiles touch edge-to-edge. Their width is calculated from
     // the available rack width, so no tile sits behind its neighbour.
@@ -1682,7 +1686,7 @@ export class PhaserLayoutGame {
         : this.clamp(canvasWidth * 0.0045, 3, 7);
 
     const maxTileWidth = isMobile
-      ? config.rack.maxTileWidthMobile * 2.35
+      ? config.rack.maxTileWidthMobile * 3.5
       : isTablet
         ? config.rack.maxTileWidthTablet * 1.7
         : config.rack.maxTileWidthDesktop * 1.55;
@@ -1690,8 +1694,9 @@ export class PhaserLayoutGame {
     const rackTopPadding = this.clamp(rack.height * 0.025, 1, 6);
     const rackBottomPadding = this.clamp(rack.height * 0.025, 1, 8);
 
+    const visibleCount = isMobile ? Math.min(count, isPortrait ? 9.5 : 7.5) : count;
     const fitByWidth = isMobile
-      ? (rack.width - mobileGap * (count - 1)) / count
+      ? (rack.width - mobileGap * (visibleCount - 1)) / visibleCount
       : (rack.width - gap * (count - 1)) / count;
 
     const fitByHeight =

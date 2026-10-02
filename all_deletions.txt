@@ -1,0 +1,203 @@
+--- a/src/app/module/business/game/phaser/scenes/scene.ts
+-import { ExposurePanelMode, PassAnimationItem, PassDirection, Point, Rect, SafeAreaInsets, TableLayout } from "../type";
+-  private readonly config = GAME_TABLE_CONFIG;
+-    this.tableBgMaskGraphics = this.add.graphics().setVisible(false);
+-           // We apply the order, but only for tiles currently in rackOrder
+-           // The new order might contain tiles that are in exposures, etc.
+-           const newRackOrder = [];
+-           for (const id of order) {
+-             if (this.rackOrder.includes(id)) {
+-               newRackOrder.push(id);
+-             }
+-           }
+-           // Add any tiles that were in rackOrder but missing from the server order
+-           for (const id of this.rackOrder) {
+-             if (!newRackOrder.includes(id)) {
+-               newRackOrder.push(id);
+-             }
+-           }
+-           this.rackOrder = newRackOrder;
+-           this.reindexRackRuntimeSlots();
+-           this.layoutRackTiles(true);
+-    } else if (this.tablePhase === GamePhaseEnum.PLAYING) {
+-      if (!this.canPickFromWall()) return;
+-  private canPickFromWall(): boolean {
+-    if (!this.stateManager.isPersonalTurn) return true;
+-    if (phase !== GamePhaseEnum.PLAYING) {
+-    const tileWidth = Math.round(this.layout.bottomTileLayout.width);
+-          const texture = this.gameService.resolve(fullTile as any, tileWidth);
+-    const lipRatio = this.gameLayout.exposureLipRatio(modeKey);
+-    const isBottom = mode === "bottom";
+-    if (isBottom) {
+-      stripY = y;
+-      dividerY = y + nameStripH;
+-      contentH = h - topLipH - nameStripH - dividerH;
+-      contentY = dividerY + dividerH;
+-      lipY = contentY + contentH;
+-    } else {
+-      lipY = y;
+-      contentY = y + topLipH;
+-      contentH = h - topLipH - nameStripH - dividerH;
+-      dividerY = contentY + contentH;
+-      stripY = dividerY + dividerH;
+-    }
+-    const stripFill = active ? 0xd7d33a : 0x22488f;
+-    const stripHighlight = active ? 0xf0eb78 : 0x3c63bb;
+-    const dividerFill = active ? 0x9b9722 : 0x8ea4d0;
+-    g.fillStyle(0x3159aa, 1);
+-    g.fillRect(x, isBottom ? lipY : y, w, topLipH);
+-    g.fillStyle(0x5e82d5, 0.42);
+-      y + Math.max(2, Math.round(topLipH * 0.18)),
+-      canPickFromWall: this.canPickFromWall(),
+-    
+-          const texture = this.gameService.resolve(fullTile as any, Math.round(this.layout.bottomTileLayout.width));
+-        // GamePlayActionEnum.CALL is 15
+-        if (meld.kind === GamePlayActionEnumAddon.CALL) {
+-            this.exposureBuildAsset = this.gameService.assetBaseName(this.allTiles[tile.tile_id]);
+-            // console.log(`[PhaserScene] Set exposureBuildAsset to ${this.exposureBuildAsset}`);
+-            // console.log(`[PhaserScene] Recovered pending claim tile ${tile.tile_id} into activeExposureBuildTileIds`);
+-        runtime.image.setData("exposure-asset", this.exposureBuildAsset);
+-          // Use bottom layout width to pick correct atlas
+-          const tileWidth = Math.round(this.layout.bottomTileLayout.width);
+-      1 - this.gameLayout.exposureLipRatio(mode) - this.gameLayout.exposureNameStripRatio(mode)
+-    const topLipHeight = exposure.height * this.gameLayout.exposureLipRatio(mode);
+-      1 - this.gameLayout.exposureLipRatio(mode) - this.gameLayout.exposureNameStripRatio(mode)
+-      .setDisplaySize(grid.tileWidth, grid.tileHeight)
+-      .setDepth(this.discardTileDepth() + 2);
+-        .setDisplaySize(grid.tileWidth, grid.tileHeight)
+-        .setDepth(this.discardTileDepth() + 2);
+-
+-      y: Math.round(
+-        grid.y +
+-        grid.paddingY +
+-        grid.tileHeight / 2 +
+-        row * (grid.tileHeight + grid.gapY),
+-      ),
+-
+-    if (isPhonePortrait) {
+-      const preferredColumns = Phaser.Math.Clamp(
+-        Math.ceil(Math.sqrt(count * (area.width / Math.max(1, area.height)) * aspect)),
+-        7,
+-        10,
+-      );
+-
+-      const rows = Math.max(1, Math.ceil(count / preferredColumns));
+-
+-      const widthByColumns =
+-        (area.width - paddingX * 2 - gapX * (preferredColumns - 1)) /
+-        preferredColumns;
+-
+-      const widthByRows =
+-        (area.height - paddingY * 2 - gapY * (rows - 1)) /
+-        rows /
+-        aspect;
+-
+-
+-      const tileWidth = Math.round(
+-        Phaser.Math.Clamp(
+-          Math.min(widthByColumns, widthByRows, rackTile.width * 0.66),
+-          22,
+-          42,
+-        ),
+-      );
+-
+-      const tileHeight = Math.round(tileWidth * aspect);
+-
+-      const columns = Math.max(
+-        1,
+-        Math.floor((area.width - paddingX * 2 + gapX) / (tileWidth + gapX)),
+-      );
+-
+-      return {
+-        x: area.x,
+-        y: area.y,
+-        width: area.width,
+-        height: area.height,
+-        tileWidth,
+-        tileHeight,
+-        paddingX,
+-        paddingY,
+-        gapX,
+-        gapY,
+-        columns,
+-      };
+-    }
+-
+-
+-    if (isPhoneLandscape) {
+-      const preferredColumns = Phaser.Math.Clamp(
+-        Math.ceil(Math.sqrt(count * 1.9)),
+-        10,
+-        18,
+-      );
+-
+-      const rows = Math.max(1, Math.ceil(count / preferredColumns));
+-
+-      const widthByColumns =
+-        (area.width - paddingX * 2 - gapX * (preferredColumns - 1)) /
+-        preferredColumns;
+-
+-      const widthByRows =
+-        (area.height - paddingY * 2 - gapY * (rows - 1)) /
+-        rows /
+-        aspect;
+-
+-
+-
+-      const tileWidth = Math.round(
+-        Phaser.Math.Clamp(
+-          Math.min(widthByColumns, widthByRows, rackTile.width * 0.56),
+-          17,
+-          30,
+-        ),
+-      );
+-
+-      const tileHeight = Math.round(tileWidth * aspect);
+-
+-      const columns = Math.max(
+-        1,
+-        Math.floor((area.width - paddingX * 2 + gapX) / (tileWidth + gapX)),
+-      );
+-
+-      return {
+-        x: area.x,
+-        y: area.y,
+-        width: area.width,
+-        height: area.height,
+-        tileWidth,
+-        tileHeight,
+-        paddingX,
+-        paddingY,
+-        gapX,
+-        gapY,
+-        columns,
+-      };
+-    }
+-
+-
+-    const targetColumns = isTablet ? 14 : 18;
+-    const targetRows = isTablet ? 5 : 5;
+-
+-    const widthFromColumns =
+-      (area.width - paddingX * 2 - gapX * (targetColumns - 1)) /
+-      targetColumns;
+-
+-    const widthFromRows =
+-      (area.height - paddingY * 2 - gapY * (targetRows - 1)) /
+-      targetRows /
+-      aspect;
+-
+-    const tileWidth = Math.round(
+-      Phaser.Math.Clamp(
+-        Math.min(widthFromColumns, widthFromRows, rackTile.width * 0.58),
+-        isTablet ? 22 : 26,
+-        isTablet ? 38 : 46,
+-      ),
+-    );
+-
+-    const tileHeight = Math.round(tileWidth * aspect);
+-    runtime.image.setDepth(this.discardTileDepth());
+-    this.layoutRackTiles(true);
+-      runtime.image.setDepth(this.discardTileDepth());
+-      canPickFromWall: this.canPickFromWall(),
+-      canPickFromWall: this.canPickFromWall(),

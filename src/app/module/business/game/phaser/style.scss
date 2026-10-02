@@ -498,29 +498,12 @@
     overflow: hidden;
 }
 
-::ng-deep .mahjong-win-popup__card {
-    position: relative;
-    z-index: 1001;
-    width: clamp(250px, 58vw, 540px);
-    min-height: clamp(140px, 26vh, 215px);
-    background: rgba(38, 64, 137, 0.98);
-    border: 3px solid #f6c542;
-    border-radius: 18px;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    text-align: center;
-    font-family: Poppins, Arial, sans-serif;
-    box-sizing: border-box;
-    padding: 24px 16px;
-}
+
 
 ::ng-deep .mahjong-win-popup__title {
-    color: #f6c542;
+    color: #ffffff;
     font-weight: 700;
     font-size: clamp(28px, 7vw, 58px);
-    -webkit-text-stroke: max(1px, 2px) #ffffff;
     margin: 0 0 12px 0;
     animation: mahjong-title-pop 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards,
                mahjong-title-pulse 2s ease-in-out 0.5s infinite alternate;

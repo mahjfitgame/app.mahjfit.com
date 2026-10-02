@@ -35,6 +35,7 @@ export interface DemoDiscardRequest {
 export interface MahjongWinCelebration {
   readonly winner: TableSeat;
   readonly requestId: number;
+  readonly opponentHands?: Record<string, number[]>;
 }
 
 /** Server-supplied away state for the local moderation prompt. */
@@ -109,6 +110,8 @@ export interface TableSceneCallbacks {
   /** Discard a tile from the local player's rack. */
   readonly onLocalPlayerDiscard: (tileId: number) => void;
   readonly onLocalPlayerExposureCreate?: (tileIds: number[]) => Promise<void>;
+  /** Exchanges a joker with a tile from the player's rack */
+  readonly onLocalPlayerJokerExchange?: (targetJokerTileId: number, rackReplacementTileId: number, targetSeat: TableSeat) => Promise<void>;
   readonly onLocalPlayerPick: () => void;
   /** Updates the crisp HTML wall-count label when its value or layout changes. */
   readonly onWallCountOverlay: (state: WallCountOverlayState) => void;
@@ -160,6 +163,8 @@ export interface DiscardGrid {
   readonly gapX: number;
   readonly gapY: number;
   readonly columns: number;
+  // NEWCODE
+  readonly contentHeight?: number;
 }
 
 export interface CharlestonVisualTransfer {
@@ -350,7 +355,7 @@ export interface ClaimPanelOverlayState {
   readonly borderWidth: number;
   readonly shadowY: number;
   readonly shadowBlur: number;
-  
+
   // Coordinates for the Tile image
   readonly tileX: number;
   readonly tileY: number;

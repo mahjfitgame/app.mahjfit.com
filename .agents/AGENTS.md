@@ -1,3 +1,2 @@
-
 - Do not read or follow the file `todo/Frontend Development.txt`. It is strictly for the user's personal reference.
-
+- Do not remove the existing code just comment out the code and add comment "OLDCODE", and with the new code add the comment "NEWCODE"

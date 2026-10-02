@@ -7,14 +7,298 @@ The direction is just for the directions of animation.
 
 Current:
 [tech][Frontend][D1] Play game and do required upgradtion found while play for Pick, Discard, and Cliam tile
-
-
-
 [tech][Frontend Development][D1] Converting static design data to real-time Gameplay data - submit second round charleston vote
 [tech][Frontend Development][D1] Converting static design data to real-time Gameplay data - Discard tile and Claim window, cross check with backend bot auto decision
 [tech][Frontend][D1] Integreate discard and calim tile with bot auto turn
 [tech][Frontend][D1] Integreate discard and calim tile with bot auto turn - preparing exposure tiles and display
 [tech][Frontend][D1] Integreate discard and calim tile with bot auto turn - preparing exposure tiles and display
+
+============= POINTS =============
+1]
+Analysed the proper joker exchange logic and upgrade it as below.
+How joker exachange should work, so also make sure this work as mentioned below:
+To trade your natural tile for an exposed joker on a computer, tablet, or phone, use one of these two methods:
+• The Double-Click Method (Recommended): Simply double-click or double-tap on the specific joker you want to claim from an opponent's rack (or your own). The app will automatically verify that you have the matching natural tile, make the swap, and move the joker straight to your rack.
+• The Drag-and-Drop Method: Manually click/tap your natural tile from your rack, drag it directly over the exposed joker, and release it.
+
+Strict Rule Requirements:
+1. It must be your turn: You cannot swap a joker out-of-turn.
+2. You must draw or call a tile first: Your turn must actively start before you can swap. You have to either draw a tile from the wall or successfully call a discarded tile to complete a brand-new exposure before you execute the swap.
+3. The joker must be in an exposure: You can only swap tiles for jokers that are sitting in an open, face-up grouping (a Pung, Kong, or Quint) on a player's rack. You cannot swap for jokers hidden in someone's private, concealed hand.
+4. No discarded tiles for swaps: You cannot pick up a freshly discarded tile from the table just to use it for a joker exchange. You must already hold the natural tile in your possession.
+
+2]
+Found an issue with the exposure tray.
+Currently, the system has a limit that prevents players from adding a 13th tile to their exposure. 
+For example, if a player already has 10 tiles exposed (such as two Quints), claims a tile to make 11, and then tries to add another tile from their rack to make 12, the system blocks any further additions.
+Updgrade the exposure limit to allow up to 14 tiles, so players can form the required melds without being blocked.
+
+3]
+Solved the issue with flower tiles when creating a PUNG or KONG using different types of flowers. All flower tiles are now treated as the same flower category.
+
+
+
+
+
+============= TODO ===============
+#]
+Tile flip animation not works while Joker exchange. Need the flip animation when joker exchange.
+
+#]
+When pass tile, need to add some animation as when tile goes to the rack disappear tile with some animation like flad or somthing. 
+
+#]
+After claimed the 3 tiles, I firstly moved the one joker and after that I tried to move 3 crak tile to the exposure to make the pung but it not take the tile and get back again to the rack,
+I tried  mamny time but it still behave same,
+I also faced one unwanted issue that when I tried to move tile to exposure at one time it call joker exchange. 
+The situation is I am trying to make PUNG then why it call joker exchange call. This is so ennonoing behaviour from the frontend side. 
+While clain it should not exachange the joker for the claimed tile groupn, for other group we can tried this. But how to handle this both situation need proper planing with the proper understanding or need some alternate ways to handle this
+Or we can not allow the joker exachange while claim process. 
+
+Let me explain, how exact this two things work.
+1] 
+Joker exchange
+When we drag and drop matching tile to specific exposure, it exchange the joker with that spacific tile and Joker tile will be added to the active seat rack.
+OR 
+Double tap to the any seat exposure and have matching tile in the rack it will exchange the joker. 
+
+
+2]
+Claim window.
+While claim window open, should we disallow the joker exchange? OR allow the joker exachange? 
+Don't know how exactly this work or this will happens or not.
+I think we while claim, the joker exchange will allow only with the other racks. and with current active seat exposure we can exchange joker with the already created PUNG, KONG, QUINT etc ... (group), becuase those are already created and locked, and if group have joker then only joker can be exchange. 
+
+
+Check the realmahjongg.com and give the detaild explaination. 
+I dont't exactly know how this functionality will hande.
+Supposue, I have already 3 exposure group.
+
+
+The current issue is not about the joker exchange but its about the claim and this arrise when we already have 10 tiles in the exposure group. and make new group that add one more tile from the claim and we move one tile that means total 12 tiles are in the exposure and when tried to add one more tile of the current active claim to make the PUNG, KONG it didn't allow to add the 13th tile to the exposure meald. Even that current group required that tile.
+But also have to consider the above point as well. Becuase it also related with the current feature.
+
+
+
+++++++++++++++++++++++++++++++
+The current issue is not about the joker exchange but its about the claim and this arrise when we already have 10 tiles in the exposure group. and make new group that add one more tile from the claim and we move one tile that means total 12 tiles are in the exposure and when tried to add one more tile of the current active claim to make the PUNG, KONG it didn't allow to add the 13th tile to the exposure meald. Even that current group required that tile.
+Joker exchanges are strictly disallowed while the claim window is open
+
+How joker exachange should work, so also make sure this work as mentioned below:
+To trade your natural tile for an exposed joker on a computer, tablet, or phone, use one of these two methods:
+• The Double-Click Method (Recommended): Simply double-click or double-tap on the specific joker you want to claim from an opponent's rack (or your own). The app will automatically verify that you have the matching natural tile, make the swap, and move the joker straight to your rack.
+• The Drag-and-Drop Method: Manually click/tap your natural tile from your rack, drag it directly over the exposed joker, and release it.
+
+Strict Rule Requirements (Why it might not let you swap)
+1. It must be your turn: You cannot swap a joker out-of-turn.
+2. You must draw or call a tile first: Your turn must actively start before you can swap. You have to either draw a tile from the wall or successfully call a discarded tile to complete a brand-new exposure before you execute the swap.
+3. The joker must be in an exposure: You can only swap tiles for jokers that are sitting in an open, face-up grouping (a Pung, Kong, or Quint) on a player's rack. You cannot swap for jokers hidden in someone's private, concealed hand.
+4. No discarded tiles for swaps: You cannot pick up a freshly discarded tile from the table just to use it for a joker exchange. You must already hold the natural tile in your possession.
+
+
+#]
+While game play I realside that when claim available and if claim the tile time move to the exposure panle but sometime that tile is not removed from the discard area. It must be remove from the discard area if I claim.
+
+#]
+For mobile device,
+Check the required size for tile to load all 14 tiles in rack.
+Then ake the same size of tile atlas and load 100% image in phaser.
+Remove shadow from tiles only in the mobile device. 
+
+#]
+I have 4 KONG of 9 crack, which have group of 9 crack (3) and one joker. So here one joker is exachangeable.
+I picked new 9 crack file and trying to exachange the joker with new 9 crack from the current active seat rack to current active seat exposure.
+It added the 9 crack tile to the exposure but didn't come joker to the rack. As 9 crack is already KONG the group is locked we can just exchange the joker, there is no possibility to make QUINT or SEXTIN.
+Now, after this happen I discarded the tile and game is continue, after that it will swap the tile in the current exposure while the game play multiple time, I dont know why its happening.
+
+Expected Result:
+When joker exchange with the current active seat rack and current active seat exposure.
+The new tile added to the current active seat exposure and the joker will be move to the current active seat rack.
+
+
+
+
+
+
+It make API call as below
+Object
+event: "game.subscribe.action.exchange.joker"
+payload: 
+input: 
+from_gseat_id: 3905
+from_tile_id: 95
+game_id: 797
+gpaction_id: 47
+id: 3905
+joker_tile_id: 151
+keyid: "01a0f5f2-7efd-78a8-b702-aedc38539473"
+rack_id: 1
+to_gseat_id: 3905
+to_rack_id: 1
+u_id: 65
+[[Prototype]]: Object selections: {play: {…}, personal: {…}, game: {…}}[[Prototype]]: Object[[Prototype]]: Objectindex.js:22 
+
+============= REPLY ==============
+FOR CLIENT]
+Today, I continued working on the Joker exchange implementation and completed it. Testing on multiple devices is still pending.
+While implementing the Joker exchange, I found a conflict between the Joker exchange and claim windows when double-tapping to discard or exchange a Joker. I updated the implementation and resolved this conflict.
+I also updated the flower claim logic for creating a PUNG or KONG using different types of flowers. All flower tiles are now treated as the same flower category.
+
+I will keep you posted on the work progress.
+Thank you!
+
+
+============= FROM CLIENT =============
+
+
+
+#]
+New comments.
+SUB: Card upload to game
+PFA: Card_upload_to_game
+
+https://www.icloud.com/attachment/?u=https%3A%2F%2Fcvws.icloud-content.com%2FB%2FAQZ6tuWxrgYkKKD8vj874KY-g3KcAaBfkNXnLx4kxHeyo3dXpFRzoo4n%2F%24%7Bf%7D%3Fo%3DAm6k-5OtoEN5iHhXsAjhPGmsPqG-zpcKkjcfhHNhocWE%26v%3D1%26x%3D3%26a%3DCAogkd5_eqXld2GYnDxRaCyQyUdNo65n4z4hEuQJGJtKsBoSdhD50IqojzQY-eCF_Jg0IgEAKgkC6AMA_wRcJ5tSBD6DcpxaBHOijidqJQ-ngfNS1yZd5Qh0zaUbGnZ6CH58sLri7DgpWSOyL8anq_HwIn5yJXpLutIbmM4u2W6eoFiEXfOW4Tgv10wlEwOUp4UC0joaPrYCarw%26e%3D1793408987%26fl%3D%26r%3D4B8F35CB-6A79-4BFA-B457-C252B87DE8FA-1%26k%3D%24%7Buk%7D%26ckc%3Dcom.apple.largeattachment%26ckz%3D6E4FD770-A69C-43BE-8693-CAE35D688A59%26p%3D134%26s%3DTwih_2jSqBPLls_v0_E3o3qqkxY&uk=iIi3aArAVPRTN07omgq23g&f=ScreenRecording_09-30-2026%2018-03-03_1.mov&sz=62435276
+
+#]
+Jennifer REPLY
+
+https://www.instagram.com/reel/Dd41iJVyre4/?stkn=MWIyNmozeml6aWY4dQ==
+
+Spencer REPLY
+@raj watch this for card upload feature. The user would take a photo of their card with their iPhone and it uploaded to the game. Then they can swipe within the game to view the card
+PFA: WhatsApp Video 2026-10-01 at 6.36.31 AM
+
+REPLY]
+Thanks for the providing the reference video. 
+
+We got the idea about the card upload to game. And I am considering this feature and will implement.
+
+What I understand is as follows:
+- The player will click on the “Upload Card” icon and upload photos of the rule book.
+- During gameplay, if the player swipes right, all the uploaded photos will be displayed.
+- This will allow the player to check the rule book and verify the winning hand they are following before making a decision.
+- Based on the rules, the player can decide whether to change the tiles in their hand.
+
+In short, the player can refer to the uploaded rule book, cross-check the winning hand, and then decide whether to change their tiles.
+
+Just want to make sure that we are on the same page. Please give your confirm on this feature.
+
+Thank you!
+
+============ Meeting =================
+Progress meeting: 30 SEP 2026 5 PM PDT
+https://meet.google.com/ynn-vgxr-qzc
+
+#]
+UPDATED DEMO server URL
+https://mahjfit-com.thatsend.dev/
+Username: test1ak56
+Password: test1@AK56
+
+UP TO PREVIOUS MEETING BELOW ARE Pending work with game play area:
+Joker Swap
+Dead hand
+UI related changes
+Menu wiring on game play area
+Mobile device developer side functionlity checking
+
+1]
+During previous week worked on 3 major points
+- Mobile device developer side functionlity checking
+- UI related changes (including mobile)
+- Joker Swap (testing pending)
+
+Now, game works perfectly in mobile device also.
+During this week we will also realse the Mobile app version IOS and Android for testing.
+
+
+2]
+1st major work was with Tile appereance on all devices
+Desktop, Tablet and Mobile + Landscape and Portrait mode
+So, total 6 combinations. 
+
+As all devices have different screen size and resolution tiles behave differently and we need to adjust as it become blurry and also loose alignment. 
+
+This has 2 areas
+Rack tiles (the player who is at bottom side)
+Exposure tiles (all players)
+
+We also increased the tile size as you requested and now its scrollable when it require more space.
+
+3]
+Tile in discard area.
+Here we increase the tiles size as requested and we added the smooth scroll when discard area have no space. This will adjust automaticly. Scroll is invisible by default the scroll will work when scroll on the discard area. When there is no space and required to start new row the scroll will align tiles row  automatically at bottom as next line.
+
+This allow us to keep the tile size bigger as we want. If you need previous behaviour with no scroll, let me know we will switch to that version.
+
+4]
+The whole game play is working fine in mobile and tablet device now.
+We have played full game on mobile and tablet for function and UI related adjustments. All 6 combinations. Some issues still left but those will get fixed during final testing as use cases are not clear.
+In this week we will relase the 2nd version of mobile app so we can play the game on mobile and also perform testing.
+
+So, what we have discussed during previous meeting now works perfectly on mobile device also.
+Performed all corrections and bug fix required to adjust mobile and tablet devices.
+
+5]
+Worked on the Joker exchnage implementation.
+This was a functional development pending from last update.
+Set up the 2 options to exchange the joker with tile.
+After picking up the the tile, the tile is availble to exchange with the joker.
+- Plyer can drag and drop the joker to the tile they want to exchange with
+OR 
+- Player can double click on the joker and select
+
+6]
+In this week we will work with
+Few things in mobile UI
+Dead hand
+Menu wiring on game play area
+Game on Mobile device
+Release test app on App Store and Play Store
+we will finish the 95% of game play functionlity
+
+7]
+After game play area we will move on with below without design.
+Wehave decided to finish functional part, so when we will have design we need to just to design wiring. 
+
+Signin
+Signup
+Forgot Password
+User my account area
+Join player
+Send request to join
+On going active game screen, where user can search and join manually
+Leader board
+
+-- END OF UPDATE --
+
+1]
+for easy mode
+we do not need to show the tile in exposer very fast (need to do it in future) we need to provide algorithm text for all game mode.
+
+2]
+For bots we have to make sure exposer only allow real hand so match with rule book and only add those to exposure.
+In case of human they will do it by self.
+
+We do not allow out of rule hand in rack in easy in case of huma but bot won't be.
+
+3]
+check the small bug, 
+
+DONE - 4]
+Flowe - all flowers are same - during play blue and yellow flower should make a hand. - at this moent its not
+
+5]
+some time game hangs and do not respond
+i guess when mahjong button click it's not reponding
+
+6]
+in case of mahjong we need to check with pick tile also - so expouser little different. user will click on mahjong.
+
+7]
+custom tiles features check the email and understand
+we have a link in whats app need to check and we will also have in email.
+need to understand it and see if we can add that feature.
 
 
 
@@ -29,6 +313,81 @@ Analysis How sort tiles work, sort by rank and sort by suit.
 Also how client side know and get the updated state that game is ended. And is there anything we have to upgrade.
 Now, analysis the Mahjong and Wall game logic how it works. And how it manage through the websocket.
 
+
+============= POINTS =============   
+1]
+Tried multiple atlast to load the proper tile images for the all devices. 
+Tried with the 1x, 2x and also with the newly generated 3x.
+But it still looks blurry so increased the bottom rack tiles images size and add scroll where needed as per the devices.
+Test with the multiple simulator to make sure tiles looks proper.
+For the discard area, as we increase the tiles size I added the verticle scroll when discard area have no space. Implement the verticle scroll.
+Scroll is invisible by default the scroll is work when scroll on the discard area. 
+When there is no space and start new row the scroll will be automatically at bottom.
+
+
+2]
+Make the same tile size for the exposure and the rack.
+Added the scroll in the all opponent seat exposure when tiles are go out side the exposure panel.
+
+3]
+Working on the Joker exchnage implementation. 
+Set up the 2 options to exchange the joker with tile.
+After pick up the the tile the tile is availble to exchange with the joker.
+Plyer can drag and drop the joker to the tile they want to exchange with.
+OR 
+Player can double click on the joker and select the tile they want to exchange with.
+
+
+================ MEETING ==================
+
+================ REPLY ==================
+
+Well, no problem about that thanks for update. I will align the development. 
+Once you ready with the design I will convert it to HTML and after will integrate. 
+Let me know if you need any help.
+
+FOR CLIENT]
+Today, I worked to adjust the apponet seat exposure panel as per the tile size for the all devices. Also started work on JOKER exchange implementation. 
+
+I will keep you posted on the work progress.
+Thank you!
+
+
+FOR CLIENT]
+Today, I upgratade the UI for the game board layout discard tile and bottom seat rack tile size for the all devices so the tiles images show clear and properly visible, I checked with some simulatores of mobile and ipad device, still required the proper testing with the real devices. As per this changes also need to adjust the apponet seat exposure panel tile size for the all devices. Once I done this changes I will start the JOKER exchange implementation. 
+
+I will keep you posted on the work progress.
+Thank you!
+
+============= PROMPT =============   
+Do not remove the existing code just comment out the code and add comment "OLDCODE",
+
+
+#############################
+==================================================
+I rejected the changes because it now created one another issue which is working properly before. Check the attached screenshot the tiles are not invisible.
+
+Still you are doing many mistakes.
+So first analys the current code properly.
+And what I want is as below
+
+1]
+I want the tile size same as the rack tile size for discard area.
+2]
+The discard ares should be scrollble when more tiles.
+3]
+The current scroll bar is just for testing purpose, once we achieved the desire result we will invisible the scroll bar but scroll works smoothly scrolling on that area that time it scrollble when there is more tile then the discard area. No need to display scroll bar.
+4]
+Auto scroll to down when new tile discard and scroll enable 
+5]
+The red border of the discard area is temporary just for the tesing purpuse once we achieved the desire result we will remove it.
+6]
+When new row started the tile should properly align with the other tiles row, because right now when new row started the disacard tile is going down instead of it starat proper from the bottom of the last row. 
+As I mentione in last 3 crack is going to down. 
+And when I scroll or click somewher it works fine, but when first discard with new row that time it only goes slight down.
+
+
+THIS IS HOW WE MANAGE THE CLEAR AND PROPERLY VISIBLE TILES IMAGE OF THE DISCARD AREA. WE WANT TO SHOW THE CLEAR AND SHARPEN TILE IMAGES.
 
 
 ============ REPSONCE FOR ABOVE HOW IT WOROKS ==============
@@ -278,6 +637,20 @@ Would you like to start planning out how we could build this smart pattern-match
 
 
 ============= TODO =============
+#]
+Mobile portrait, increase the height of left and right exposur panel that cover the blank space. from top and bottom, make sure this changes not overlap on any other UI. So upgrade it care fully.
+
+#]
+Dead Hand
+Yes, you can call a player 'dead' if it's impossible for them to get the tiles they need for Mah Jongg. 
+Simply press on the 'gear' icon on the top-right of the screen, then the 'Call Dead...' option.
+If a player exposes the wrong number of tiles, thus forming an invalid hand, they will be called dead by the computer.
+
+#]
+Also the icons have some opacity and when hover or tap on the icon, it show the active.
+
+#]
+When bot claimed and discard tile and there is another bot also claimed it not show the animation of the first bot discarded tile to the discard area instead it directly move to the another seat claim exposure. And some time the sound also not play properly. For the call tile and the discarded tile.
 
 #]
 While playing the game, there is my turn and wall have last tile to PICK when I pick it directly show the WALL GAME, so in that case, I don't have option to make Mahjong or pass the turn. It should be same as the normal turn. Show the option to make mahjong, pick, call, skip, pass. And on discard I think the gaame is end. if that tile no onec claim.
