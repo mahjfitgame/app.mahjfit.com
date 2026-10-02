@@ -3770,7 +3770,15 @@ export class PhaserScene extends Phaser.Scene {
     const { from_tile_id, joker_tile_id, from_seat, to_seat } = payload;
     
     const jokerTile = this.tileMap.get(joker_tile_id);
-    if (jokerTile) jokerTile.zone = "rack";
+    if (jokerTile) {
+       jokerTile.zone = "rack";
+       if (to_seat === "bottom") {
+           const index = this.calledBottomExposureTiles.indexOf(jokerTile.image);
+           if (index !== -1) {
+               this.calledBottomExposureTiles.splice(index, 1);
+           }
+       }
+    }
     let oldJokerPos = { x: this.layout.tableOuter.x, y: this.layout.tableOuter.y, scale: 1 };
     let jokerKey = "tiles";
     let jokerFrame = "1-bam";

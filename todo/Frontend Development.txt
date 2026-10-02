@@ -48,27 +48,6 @@ From mobile remove the bottom seat rack arrow and show the full tiles in one rac
 Create a clean, accurate UI interaction demo showing the intended Joker tile swap animation in the existing tile game. 
 The attached screenshot is the current issue .
 
-Show the expected behavior clearly so it can be reviewed and approved before implementation. 
-Do not show code, code editors, or implementation steps.
-
-Shot 1 — Establish the board (about 2 seconds): Show the game board from a steady, near-overhead view. Keep both exposures and all seat racks visible. Make the bottom seat rack easy to identify. The top exposure contains the tile to be swapped, including the Joker.
-
-Shot 2 — Swap from the bottom seat (about 4 seconds): A human player drags one actual tile from the bottom seat rack and drops it onto the top exposure. Animate the dragged tile smoothly into the exposure. At the moment it lands, show the actual tile replacing the Joker in the exposure. Then animate the Joker directly and smoothly from its position in the top exposure to the specific receiving rack: the bottom seat rack. The Joker must follow a short, natural, continuous path from the exposure to that rack, with consistent scale and orientation. Do not make it zoom in from the left corner, teleport, jump, or travel from off-screen. Make the swap and the Joker’s destination unmistakable.
-
-Shot 3 — Swap by another seat (about 3 seconds): Demonstrate the same interaction initiated by another seat, using a second actual tile. After the tile is dropped onto the relevant exposure and the Joker is swapped out, animate the Joker smoothly from that exposure to the rack belonging to the seat that performed the swap. This seat may be represented as a human or computer-controlled player; the destination must still be the correct seat rack. Keep the motion direct, fluid, and consistent with the first demonstration.
-
-Continuity and motion: Maintain the board layout, exposure positions, tile identities, and seat assignments throughout. Tiles must remain crisp and readable. Use one continuous animation per movement, with gentle easing at takeoff and landing, no sudden scale changes, no corner-origin zoom, and no unintended movement of other tiles. Clearly show that the dropped actual tile occupies the exposure and the Joker ends in the correct player’s rack.
-
-Camera and presentation: Use a fixed overhead camera with no cuts during each drag-and-drop sequence. Keep all relevant board areas in frame; use only a subtle, brief emphasis on the exposure and destination rack if needed. Present the result as a polished product-review prototype, not a cinematic scene.
-
-Timing: Approximately 9 seconds total, with a brief pause after each completed swap so the final tile positions can be inspected.
-
-Lighting and style: Match the reference screenshot’s visual style and colors. Keep lighting even and neutral, with no dramatic effects or distracting background elements.
-
-Audio: No narration or music. Use only quiet, restrained interface sounds for the drag, drop, and completed swap; keep them secondary to the visual demonstration.
-
-Delivery: One 16:9 video, 1080p or higher, with smooth, legible motion and no added explanatory text unless a small opening title is needed. If a title is used, show only: “Joker Swap — Intended Animation (Review Before Implementation).”
-+++++++++++++++++++++++++++++++++
 I review the changes and tryed the joker swap with drag and drop. The recent I tried with two exposures the left seat exposure and as per the attached screenshot the top exposure. 
 
 Now the issue is when I moved the tile to the top exposure. It move the spacific tile to the exposure and Joker is removed from the exposure, but here the joker animation is going wrong, the joker is Zoom from the left corner and then it placed to the specific rack. But it should be simple and smooth animation as when I drag the actual tile to the exposure, the joker tile swap with the actual tile and once I drop the actual tile, the joker will be smoothly comes from the exposure to the specific seat rack, in our case its bottom seat rack. If the joker swap is performed by the another seat then that animation work accordingly and joker tile smoothly animated to the specific seat wether it is human or bot (computer) player.

@@ -45,7 +45,7 @@ import { fileURLToPath } from 'node:url';
  *   SSL_CERTIFICATE_NAME="Mahjfit API" node tools/openssl-localhost.mjs
  */
 const PROJECT_CERTIFICATE_NAME =
-  process.env.SSL_CERTIFICATE_NAME?.trim() || 'BFW PWA';
+  process.env.SSL_CERTIFICATE_NAME?.trim() || 'Mahjfit PWA';
 
 function normalizeProjectDisplayName(value) {
   const displayName = String(value || '').trim().replace(/\s+/g, ' ');
