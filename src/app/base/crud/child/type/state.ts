@@ -17,6 +17,7 @@ export interface CrudChildStateType {
     VIEW_OPTION_FIELD_OBJ?: CrudStateViewOptionFieldObjType;
 
     MUTATION_FIELD_OBJ?: CrudStateMutationFieldObjType;
+    UPLOAD_FIELD_OBJ?: CrudStateMutationFieldObjType;
 
     VIEW_FIELD_OBJ?: CrudStateViewFieldObjType;
 }

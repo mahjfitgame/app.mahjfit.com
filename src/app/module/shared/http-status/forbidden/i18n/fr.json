@@ -1,0 +1,8 @@
+{
+  "HTTP_STATUS_FORBIDDEN": {
+    "MODULE": {
+      "TITLE": "Accès refusé",
+      "HINT": "Vous n’avez pas l’autorisation d’accéder à cette page. Connectez-vous avec un compte valide."
+    }
+  }
+}

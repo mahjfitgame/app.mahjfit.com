@@ -22,7 +22,7 @@ export class CrudViewPageComponent {
   private readonly printAreaRef = viewChild.required<ElementRef<HTMLElement>>('printArea');
 
   constructor() {
-    // The /print/:keyid route prints without anyone clicking a button, so the
+    // The /print/:index route prints without anyone clicking a button, so the
     // service has no element to work from — hand it this host's wrapper. This
     // host is the one the print route renders (see component/view/template.html).
     afterNextRender(() => {

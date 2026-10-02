@@ -15,6 +15,16 @@
     [privateAreaLayoutLabel]="service.CrudEndSideBarTabEnum.VIEW"
 >
     <div class="bfw-safe-area-pe">
+        @if (service.state.getRecordLabelFieldValue(service.state.actionListingRecord()); as label) {
+        <div class="tw:flex tw:items-center tw:gap-3 tw:min-w-0 tw:p-3 tw:pb-0">
+            <mat-icon class="material-symbols-rounded tw:shrink-0">{{ service.view.getViewIcon() }}</mat-icon>
+            <div class="tw:min-w-0">
+                <h2 class="tw:text-base! tw:font-semibold tw:m-0 tw:leading-tight tw:truncate">
+                    {{ label }}
+                </h2>
+            </div>
+        </div>
+        }
         <div #printArea class="tw:flex tw:min-w-0 tw:flex-col tw:gap-4 tw:p-3">
             <ng-container *ngComponentOutlet="service.view.getViewRecordComponent(); injector: service.getComponentInjector()"></ng-container>
         </div>

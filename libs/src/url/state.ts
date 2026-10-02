@@ -411,7 +411,7 @@ export class UrlState extends SignalStateService implements FoundationModuleStat
      * UrlState supplies the URL half and delegates the session half.
      */
     public readonly isRouteParamPublicidValid = computed<boolean>(
-        () => this.ctxp.state.validatePublicid(this.routeParamPublicid()),
+        () => this.ctxp.state.validateSessionPublicId(this.routeParamPublicid()),
     );
 
     // ████ HOST INFO ███████████████████████████████████████████████████

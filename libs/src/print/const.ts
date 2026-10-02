@@ -7,7 +7,7 @@ export const PRINT_IFRAME_ID = 'bfw-print-frame' as const;
 /**
  * id of the detached copy the native path mounts on <body>. Native printing
  * renders the LIVE document, so the content has to be isolated there —
- * see `src/theme/active/_print.scss`.
+ * see `src/theme/private/_print.scss`.
  */
 export const PRINT_ROOT_ID = 'bfw-print-root' as const;
 

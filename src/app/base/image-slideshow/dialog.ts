@@ -82,7 +82,7 @@ export class ImageSlideshowDialog {
              */
             /**
              * ⚠ only the SIZE class. There is no marker class for styling any
-             * more - theme/active/_component.scss reaches the pane's surface
+             * more - theme/private/_component.scss reaches the pane's surface
              * with :has(> image-slideshow-component) instead, so the selector
              * names the component itself and cannot go stale.
              */

@@ -1,13 +1,13 @@
 // file: libs/src/context-profile/state.ts
 
-import { computed, effect, inject, resource, Service, signal } from "@angular/core";
-import { ContextProfile, Session } from "@bfw/api-sdk/graphql/endpoints/shared";
+import { computed, effect, inject, linkedSignal, resource, Service, signal } from "@angular/core";
+import { ContextProfile, Session, UserAuthentication } from "@bfw/api-sdk/graphql/endpoints/shared";
 import { ConfService } from "@libs/conf/service";
 import { LogService } from "@libs/log/service";
 import { SignalStateService } from "@libs/signal-state/service";
 import { BfwApiService } from "@libs/third-party-apis/bfw-api/service";
 import { ContextProfileStateFieldEnum } from "./enum";
-import type { ContextProfileSessionPayload, ContextProfileStatefulInfo } from "./type";
+import type { ContextProfilePrivilegePayload, ContextProfileStatefulPayload, ContextProfileStatefulInfo, ContextProfileUauthorisation } from "./type";
 import { jwtDecode } from "jwt-decode";
 import { SignatureService } from "@libs/signature/service";
 import { GlobalProgressBarService } from "src/app/base/global-progress-bar/service";
@@ -42,13 +42,71 @@ export class ContextProfileState extends SignalStateService {
     // ████ CLASS PROPERTIES ████████████████████████████████████████████
     public override readonly storeKey = CONTEXT_PROFILE_STATE_STORE_KEY;
 
-    // ████ SIGNAL FORM PROPERTIES ██████████████████████████████████████
-    // n/a
+    constructor() {
+        super();
 
+        // Signal-state fields must be initialized before the base service is initialized.
+        this.initializeSignalState();
 
-    // ████ SIGNAL PROPERTIES ███████████████████████████████████████████
+        // load api service
+        this.api.sdk.graphql.initialize(ContextProfile);
+        this.api.sdk.graphql.initialize(Session);
+        this.api.sdk.graphql.initialize(UserAuthentication);
+
+    }
     
-    // ▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬
+    // ██████████████████████████████████████████████████████████████████
+    // ████ LISTENERS ███████████████████████████████████████████████████
+    // ██████████████████████████████████████████████████████████████████
+    public override onActivate(): void {
+        // setHostToken/setCtxs/setCsrfToken/setSessionToken push their own header the
+        // moment they are called, so this effect is not needed for that path. It exists
+        // for the changes those setters never see: hydration on boot and a cross-tab
+        // update from another tab, both of which write straight into the signal.
+        const registerEffect = effect(() => {
+            if (!this.ready()) {
+                return;
+            }
+
+            this.configureBfwApiHeaders();
+        });
+
+        this.registerDeactivationCleanup(() => registerEffect.destroy());
+
+        // The _privilegeSwitch loader stays pure (see its own comment) and never
+        // writes state directly — this effect reconciles its result into state,
+        // always through setPrivilegeToken()/setPrivilegeKeyid(), never the raw
+        // _privilegeToken/_privilegeKeyid signals directly. Two cases:
+        //
+        // 1. Resolved a real token → persist it. This is also what feeds the
+        //    header (setPrivilegeToken() pushes it, same as every other setter).
+        //
+        // 2. Resolved 'null' from an ACTUAL switch attempt (status 'resolved', not
+        //    'idle') → the switch failed and the loader swallowed it.
+        //    Roll the keyid back to whatever the CURRENT live token actually says.
+        const privilegeSyncEffect = effect(() => {
+            const token = this._privilegeSwitch.value();
+
+            if (typeof token === 'string' && token !== '') {
+                this.setPrivilegeToken(token);
+            } else if (
+                this._privilegeSwitch.status() === 'resolved' &&
+                this.privilegeKeyid() !== (this.privilegeTokenPayload()?.sub ?? null)
+            ) {
+                this.setPrivilegeKeyid(this.privilegeTokenPayload()?.sub ?? null);
+            }
+        });
+
+        this.registerDeactivationCleanup(() => privilegeSyncEffect.destroy());
+    }
+    public override onDeactivate(): void {
+        
+    }
+
+    // ██████████████████████████████████████████████████████████████████
+    // ████ _redirectAfterAuth ██████████████████████████████████████████  
+    // ██████████████████████████████████████████████████████████████████
+    // signal ▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬
     private readonly _redirectAfterAuth = this.localStoragePersistSignal<string | null>(
         ContextProfileStateFieldEnum.REDIRECT_AFTER_AUTH,
         null,
@@ -60,7 +118,37 @@ export class ContextProfileState extends SignalStateService {
     );
     public readonly redirectAfterAuth = this._redirectAfterAuth.asReadonly();
 
-    // ▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬
+    // methods ▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬
+    public validateRedirectAfterAuth(value: unknown): value is string | null {
+        return (
+            value === null ||
+            (
+                typeof value === 'string' &&
+                value.startsWith('/') &&
+                !value.startsWith('//')
+            )
+        );
+    }
+    public setRedirectAfterAuth(url: string | null): void {
+        // need to check if url is again with auth/ then we need to make it to home
+        // so check of url has SLUG_AUTH_AREA
+        if(url?.includes(SLUG_AUTH_AREA)) {
+            url = null;
+        }
+        this._redirectAfterAuth.set(url);
+    }
+
+    public useRedirectAfterAuth(): string | null {
+        const url = this.redirectAfterAuth();
+        // must reset when used, only one time use
+        this.setRedirectAfterAuth(null);
+        return url;
+    }
+
+    // ██████████████████████████████████████████████████████████████████
+    // ████ _handshaked █████████████████████████████████████████████████
+    // ██████████████████████████████████████████████████████████████████
+    // signal ▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬
     /**
      * The client/server handshake is what mints the host token, the ctxs and the stateful token,
      * so it must be the first request the app makes. Any state driven request that leaves before
@@ -71,7 +159,15 @@ export class ContextProfileState extends SignalStateService {
     private readonly _handshaked = signal<boolean>(false);
     public readonly handshaked = this._handshaked.asReadonly();
 
-    // ▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬
+    // methods ▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬
+    public setHandshaked(value: boolean): void {
+        this._handshaked.set(value);
+    }
+
+    // ██████████████████████████████████████████████████████████████████
+    // ████ _csrfToken ██████████████████████████████████████████████████
+    // ██████████████████████████████████████████████████████████████████
+    // signal ▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬
     private readonly _csrfToken = this.cookiePersistSignal<string | null>(
         ContextProfileStateFieldEnum.CSRF_TOKEN,
         null,
@@ -87,7 +183,24 @@ export class ContextProfileState extends SignalStateService {
     );
     public readonly csrfToken = this._csrfToken.asReadonly();
 
-    // ▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬
+    // methods ▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬
+    public validateCsrft(value: unknown): value is string | null {
+        return typeof value === 'string' || value === null;
+    }
+    public setCsrfToken(value: string | null): void {
+        this._csrfToken.set(value);
+
+        // set BfwApiSdk header
+        this.setBfwApiHeaderCsrfToken();
+    }
+    public clearCsrfToken(): void {
+        this.setCsrfToken(null);
+    }
+
+    // ██████████████████████████████████████████████████████████████████
+    // ████ _hostToken ██████████████████████████████████████████████████
+    // ██████████████████████████████████████████████████████████████████
+    // signal ▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬
     private readonly _hostToken = this.localStoragePersistSignal<string | null>(
         ContextProfileStateFieldEnum.HOST_TOKEN, // context profile host authorization
         null,
@@ -98,9 +211,24 @@ export class ContextProfileState extends SignalStateService {
         }
         );
     public readonly hostToken = this._hostToken.asReadonly();
+
+    // methods ▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬
+    public setHostToken(value: string | null): void {
+        this._hostToken.set(value);
+
+        // set BfwApiSdk header
+        this.setBfwApiHeaderHostAuthorization();
+    }
+    public clearHostToken(): void {
+        this.setHostToken(null);
+    }
     
-    // ▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬
+    // ██████████████████████████████████████████████████████████████████
+    // ████ _ctxs ███████████████████████████████████████████████████████
+    // ██████████████████████████████████████████████████████████████████
+    // signal ▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬
     // for persistent storage params, for security reasons, keep names unpredictable obfuscated, such as keyid becomes id
+    // this is session keyid only used for verification checking with server side ctxs
     private readonly _ctxs = this.localStoragePersistSignal<string | null>(
         ContextProfileStateFieldEnum.CTXS, // context profile keyid (sid): this actually session keyid not id, keep the name annonymous for security
         null,
@@ -112,72 +240,87 @@ export class ContextProfileState extends SignalStateService {
     )
     public readonly ctxs = this._ctxs.asReadonly();
 
-    // ▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬
-    private readonly _statefulToken_ck = this.cookiePersistSignal<string | null>(
+    // methods ▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬
+    public setCtxs(ctxs: string | null): void {
+        // this is session keyid
+        this._ctxs.set(ctxs);
+
+        // set BfwApiSdk header
+        this.setBfwApiHeaderCtxs();
+    }
+    public clearCtxs(): void {
+        this.setCtxs(null);
+    }
+
+    // ██████████████████████████████████████████████████████████████████
+    // ████ _statefulToken ██████████████████████████████████████████████
+    // ██████████████████████████████████████████████████████████████████
+    // signal ▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬
+    private readonly _statefulToken = this.cookiePersistSignal<string | null>(
         ContextProfileStateFieldEnum.STATEFUL_TOKEN, // context stateful authorization: cookie, keep name same as source is different
         null,
         {
             debounceMs: 0,
             crossTab: true,
-            validate: this.validateSessionToken,
+            validate: this.validateStatefulToken,
             deleteOnNull: true,
             source: {
                 path: '/',
             }
         },
     );
-    private readonly statefulToken_ck = this._statefulToken_ck.asReadonly();
+    public readonly statefulToken = this._statefulToken.asReadonly();
 
-    // ▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬
-    // _statefulToken_ls is not in use only for reference
-    /*private readonly _statefulToken_ls = this.localStoragePersistSignal<string | null>(
-        ContextProfileStateFieldEnum.STATEFUL_TOKEN, // context profile stateful authorization: local storage, keep name same as source is different
-        null,
-        {
-            debounceMs: 0,
-            crossTab: true,
-            validate: this.validateSessionToken,
-            deleteOnNull: true,
-        },
-    );*/
-    private readonly statefulToken_ls = 
-        () => null;
-        //this._statefulToken_ls.asReadonly();
+    private readonly statefulTokenPayload = computed<ContextProfileStatefulPayload | null>(() => {
+        return this.decodeStatefulToken(this.statefulToken());
+    });
 
-    // ▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬
-    // _statefulToken_ss is not in use, only for reference
-    /*private readonly _statefulToken_ss = this.sessionStoragePersistSignal<string | null>(
-        ContextProfileStateFieldEnum.STATEFUL_TOKEN, // context stateful authorization: session storage, keep name same as source is different
-        null,
-        {
-            debounceMs: 0,
-            crossTab: true,
-            validate: this.validateSessionToken,
-            deleteOnNull: true,
-        },
-    );*/
-    private readonly statefulToken_ss = 
-        () => null;
-        //this._statefulToken_ss.asReadonly();
+    // methods ▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬
+    public validateStatefulToken(value: unknown): value is string | null {
+        return typeof value === 'string' || value === null;
+    }
+    public setStatefulToken(token: string | null): void {
+        // Angular memoizes this decoded payload until the token changes again.
+        const payload = this.decodeStatefulToken(token);
+        const exp = payload?.exp;
 
-    // ▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬
-    // _statefulToken_ldb is not in use, only for reference
-    /*private readonly _statefulToken_ldb = this.localDbPersistSignal<string | null>(
-        ContextProfileStateFieldEnum.STATEFUL_TOKEN, // context stateful authorization: local db, keep name same as source is different
-        null,
-        {
-            debounceMs: 0,
-            crossTab: true,
-            validate: this.validateSessionToken,
-            deleteOnNull: true,
-        },
-    );*/
-    private readonly statefulToken_ldb = 
-        () => null;
-        //this._statefulToken_ldb.asReadonly();
+        if (
+            payload?.kl &&
+            typeof exp === 'number' &&
+            Number.isFinite(exp)
+        ) {
+            this.setNextCookiePersistSignalExpiry(
+                ContextProfileStateFieldEnum.STATEFUL_TOKEN,
+                new Date(exp * 1000),
+            );
+        }
 
+        // Updating the source token invalidates all derived session signals.
+        this._statefulToken.set(token);
 
-    // ▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬
+        // set BfwApiSdk header
+        this.setBfwApiHeaderStatefulAuthorization();
+    }
+    private decodeStatefulToken(token: string | null): ContextProfileStatefulPayload | null {
+        if (!token) {
+            return null;
+        }
+
+        try {
+            return jwtDecode<ContextProfileStatefulPayload>(token);
+        } catch {
+            return null;
+        }
+    }
+    private clearStatefulToken(): void {
+        // sessionPayload, sessionExpiry, and authenticated reset from this source signal.
+        this.setStatefulToken(null);
+    }
+
+    // ██████████████████████████████████████████████████████████████████
+    // ████ _statefulInfo ███████████████████████████████████████████████
+    // ██████████████████████████████████████████████████████████████████
+    // signal ▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬
     private readonly _statefulInfo = this.cookiePersistSignal<ContextProfileStatefulInfo | null>(
         ContextProfileStateFieldEnum.STATEFUL_INFO,
         null,
@@ -193,237 +336,17 @@ export class ContextProfileState extends SignalStateService {
     );
     public readonly statefulInfo = this._statefulInfo.asReadonly();
 
-    // ▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬
-    /**
-     * This is readonly state
-     */
-    private readonly _serverContextAuthenticated = resource({
-        // undefined keeps the resource idle, so nothing is fetched before the state is ready.
-        // ready() alone is not enough, hydration releases this loader and the handshake at the
-        // same moment and this loader wins the race, so the handshake gate is required here too.
-        // any change of this value re-runs the loader, that is what resyncs the flag.
-        params: () => this.ready() && this.handshaked()
-            ? this.localContextAuthenticated()
-            : undefined,
-        defaultValue: false,
-        loader: async ({ params, abortSignal, previous }): Promise<boolean> => {
-            if (!params) {
-                return false;
-            }
-
-            // a session change needs the server to settle its session store first,
-            // otherwise this reads back the state from before the change.
-            // previous is idle only on the very first load, that one is not delayed.
-            if (previous.status !== 'idle') {
-                await new Promise((resolve) => setTimeout(resolve, 400));
-            }
-
-            try {
-                const http = await this.api.sdk.graphql.contextProfile.authenticated({
-                    signal: abortSignal,
-                });
-
-                // the api owns this value, so it is still validated before it reaches the signal
-                return this.validateServerContextAuthenticated(http.data) ? http.data : false;
-            } catch(e: any | BfwApiSdkError) {
-                return false;
-            }
-        },
-    });
-    public readonly serverContextAuthenticated = this._serverContextAuthenticated.value.asReadonly();
-
-    // ▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬
-    public readonly localContextAuthenticated = computed<boolean>(() => {
-        return this.isLocalContextAuthenticated();
-    });
-
-    // ▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬
-    /** session = stateful */
-    public readonly sessionToken = computed<string | null>(() => {
-        return this.getSessionToken();
-    });
-
-    // ▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬
-    /** session = stateful */
-    private readonly sessionPayload = computed<ContextProfileSessionPayload | null>(() => {
-        return this.decodeSessionToken(this.sessionToken());
-    });
-
-    // ▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬
-    /** session = stateful */
-    private readonly sessionExpiry = computed<number>(() => {
-        return this.getSessionExpiry();
-    });
-
-    // ▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬
-    /** session = stateful */
-    private readonly sessionKeepLogged = computed<boolean>(() => {
-        return this.getSessionKeepLogged();
-    });
-
-    // ▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬
-    /**
-     * session = stateful
-     * 
-     * Presence, not validity.
-     *
-     * A tampered or expired token answers true here, which is the only question
-     * signout actually has: is there a credential in this browser that has to go.
-     * localContextAuthenticated() cannot answer it, a token that fails to decode
-     * reports expiry 0 and reads as no session at all.
-     *
-     * statefulInfo is included because deleting one of the two cookies is just as
-     * easy as editing the other, and either remnant still needs clearing.
-     */
-    public readonly sessionRemnant = computed<boolean>(() => {
-        const token = this.sessionToken();
-
-        return (typeof token === 'string' && token !== '') || this.statefulInfo() !== null;
-    });
-
-    /**
-     * @authenticated
-     * signal to check if user is authenticated using sign in or not
-     * based on available staeful authorization token  and its expiry it decides
-     * 
-     * @returns {boolean}
-     */
-    public readonly authenticated = computed<boolean>(() => {
-        // the local token is the fast source, it decides on its own first
-        if (!this.localContextAuthenticated()) {
-            return false;
-        }
-
-        // the server check is async, it is idle before ready() and in flight right after a
-        // sign in. collapsing to false in those windows logs the user back out mid navigation,
-        // so the signed local token is trusted until the server actually answers.
-        const status = this._serverContextAuthenticated.status();
-        if (status !== 'resolved' && status !== 'error') {
-            return true;
-        }
-
-        return this.serverContextAuthenticated();
-    });
-
-    // ▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬
-    public readonly publicid = computed<string | null>(() => {
-        return this.getPublicid();
-    })
-
-    // ████ STATE DEBUGGER ██████████████████████████████████████████████
-
-    public readonly debugState = computed(() => ({
-        hostToken: this.hostToken(),
-        ctxs: this.ctxs(),
-        statefulToken_ls: this.statefulToken_ls(), // long storage
-        statefulToken_ck: this.statefulToken_ck(), // until browser is closed or expiry provided
-        statefulToken_ss: this.statefulToken_ss(), // until browser tab is closed, only tab specific
-        statefulToken_ldb: this.statefulToken_ldb(), // long storage out of end user control, most secure but also most expensive as it might not be available in all browsers
-        sessionToken: this.sessionToken(),
-        sessionPayload: this.sessionPayload(),
-        sessionExpiry: this.sessionExpiry(),
-        sessionKeepLogged: this.sessionKeepLogged(),
-        handshaked: this.handshaked(),
-        localContextAuthenticated: this.localContextAuthenticated(),
-        serverContextAuthenticated: this.serverContextAuthenticated(),
-        authenticated: this.authenticated(),
-        redirectAfterAuth: this.redirectAfterAuth(),
-    }));    
-
-    constructor() {
-        super();
-
-        // Signal-state fields must be initialized before the base service is initialized.
-        this.initializeSignalState();
-
-        // load api service
-        this.api.sdk.graphql.initialize(ContextProfile);
-        this.api.sdk.graphql.initialize(Session);
-
-    }
-    
-    // ████ LISTENERS ███████████████████████████████████████████████████
-    public override onActivate(): void {
-        // setHostToken/setCtxs/setCsrfToken/setSessionToken push their own header the
-        // moment they are called, so this effect is not needed for that path. It exists
-        // for the changes those setters never see: hydration on boot and a cross-tab
-        // update from another tab, both of which write straight into the signal.
-        const registerEffect = effect(() => {
-            if (!this.ready()) {
-                return;
-            }
-
-            this.configureBfwApiHeaders();
-        });
-
-        this.registerDeactivationCleanup(() => registerEffect.destroy());
-    }
-    public override onDeactivate(): void {
-        
-    }
-
-    // ████ SIGNAL METHODS ██████████████████████████████████████████████
-    
-    // SIGNAL SETTERS ▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬
-    public setRedirectAfterAuth(url: string | null): void {
-        // need to check if url is again with auth/ then we need to make it to home
-        // so check of url has SLUG_AUTH_AREA
-        if(url?.includes(SLUG_AUTH_AREA)) {
-            url = null;
-        }
-        this._redirectAfterAuth.set(url);
-    }
-    public setHandshaked(value: boolean): void {
-        this._handshaked.set(value);
-    }
-    public useRedirectAfterAuth(): string | null {
-        const url = this.redirectAfterAuth();
-        // must reset when used, only one time use
-        this.setRedirectAfterAuth(null);
-        return url;
-    }
-    public setCsrfToken(value: string | null): void {
-        this._csrfToken.set(value);
-
-        // set BfwApiSdk header
-        this.setBfwApiHeaderCsrfToken();
-    }
-    public clearCsrfToken(): void {
-        this.setCsrfToken(null);
-    }
-    public setHostToken(value: string | null): void {
-        this._hostToken.set(value);
-
-        // set BfwApiSdk header
-        this.setBfwApiHeaderHostAuthorization();
-    }
-    public clearHostToken(): void {
-        this.setHostToken(null);
-    }
-    public setCtxs(ctxs: string | null): void {
-        // this is session keyid
-        this._ctxs.set(ctxs);
-
-        // set BfwApiSdk header
-        this.setBfwApiHeaderCtxs();
-    }
-    public clearCtxs(): void {
-        this.setCtxs(null);
-    }
-    private setStatefulTokenCk(token: string | null): void {
-        this._statefulToken_ck.set(token);
-    }
-    private setStatefulTokenLs(token: string | null): void {
-        // not in use
-        //this._statefulToken_ls.set(token);
-    }
-    private setStatefulTokenSs(token: string | null): void {
-        // not in use
-        //this._statefulToken_ss.set(token);
-    }
-    private setStatefulTokenLdb(token: string | null): void {
-        // not in use
-        //this._statefulToken_ldb.set(token);
+    // methods ▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬
+    public validateStatefulInfo(value: unknown): value is ContextProfileStatefulInfo | null {
+        return (
+            value === null ||
+            (
+                typeof value === 'object' &&
+                (value as any)?.user?.username !== '' &&
+                (value as any)?.udevice?.keyid !== '' &&
+                (value as any)?.session?.keyid !== ''
+            )
+        );
     }
     public setStatefulInfo(info: ContextProfileStatefulInfo | null): void {
         // set the expiry for stateful info
@@ -440,123 +363,7 @@ export class ContextProfileState extends SignalStateService {
     private clearStatefulInfo(): void {
         this.setStatefulInfo(null);
     }
-    // SESSION METHODS ▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬
-    /** session = stateful */
-    public clearSession(): void {
-        // main session token
-        this.clearSessionToken();
 
-        // other required info to clear
-        this.clearStatefulInfo();
-    }
-    /** session = stateful */
-    public setSessionToken(token: string | null): void {
-        // Angular memoizes this decoded payload until the token changes again.
-        const payload = this.decodeSessionToken(token);
-        const exp = payload?.exp;
-
-        if (
-            payload?.kl &&
-            typeof exp === 'number' &&
-            Number.isFinite(exp)
-        ) {
-            this.setNextCookiePersistSignalExpiry(
-                ContextProfileStateFieldEnum.STATEFUL_TOKEN,
-                new Date(exp * 1000),
-            );
-        }
-
-        // Updating the source token invalidates all derived session signals.
-        this.setStatefulTokenCk(token);
-
-        // we are not using below states, just for reference
-        /*
-        this.setStatefulTokenLs(null);
-        this.setStatefulTokenSs(null);
-        this.setStatefulTokenLdb(null);
-        */
-
-        // set BfwApiSdk header
-        this.setBfwApiHeaderStatefulAuthorization();
-    }
-    /** session = stateful */
-    private clearSessionToken(): void {
-        // sessionPayload, sessionExpiry, and authenticated reset from this source signal.
-        this.setSessionToken(null);
-    }
-    /** session = stateful */
-    private decodeSessionToken(token: string | null): ContextProfileSessionPayload | null {
-        if (!token) {
-            return null;
-        }
-
-        try {
-            return jwtDecode<ContextProfileSessionPayload>(token);
-        } catch {
-            return null;
-        }
-    }
-    /** session = stateful */
-    private getSessionToken(): string | null {
-        // session means stateful
-
-        return this.statefulToken_ck();
-        /*
-        const sft_ss = this.statefulToken_ss();
-        const sft_ck = this.statefulToken_ck();
-        const sft_ls = this.statefulToken_ls();
-        const sft_ldb = this.statefulToken_ldb();
-
-        if (sft_ss !== null) {
-            return sft_ss;
-        }
-        if (sft_ck && sft_ck !== null) {
-            return sft_ck;
-        }
-        if (sft_ls && sft_ls !== null) {
-            return sft_ls;
-        }
-        if (sft_ldb && sft_ldb !== null) {
-            return sft_ldb;
-        }
-
-        return null;
-        */
-    }
-    /** session = stateful */
-    private getSessionExpiry(): number {
-        const exp = this.sessionPayload()?.exp;
-
-        return typeof exp === 'number' && Number.isFinite(exp)
-            ? exp * 1000
-            : 0;
-    }
-    /** session = stateful */
-    private getSessionKeepLogged(): boolean {
-        return this.sessionPayload()?.kl ?? false;
-    }
-    private isLocalContextAuthenticated(): boolean {
-        const token = this.sessionToken();
-        const expiry = this.sessionExpiry();
-
-        return (
-            typeof token === 'string' &&
-            token !== '' &&
-            expiry !== 0 &&
-            Date.now() < expiry
-        );
-    }
-    private getPublicid(): string | null {
-        const ctxs = this.ctxs();
-
-        if(ctxs){
-            const pid = this.sign.toBase64(ctxs);
-            return pid;
-        }
-        return null;
-    }
-    // ████ STATEFUL INFO HELPER METHODS ██████████████████████████████████████
-    
     // user
     public get user_fullname(): string | null {
         const user = this.statefulInfo()?.user;
@@ -624,11 +431,6 @@ export class ContextProfileState extends SignalStateService {
         const udevice = this.statefulInfo()?.udevice;
         return udevice?.user_defined_name ?? null;
     }
-    // authorisation
-    public get authorisation_role_title(): string | null {
-        const authorisation = this.statefulInfo()?.authorisation;
-        return authorisation?.role_title ?? null;
-    }
     // device
     public get device_name(): string | null {
         const device = this.statefulInfo()?.device;
@@ -643,52 +445,359 @@ export class ContextProfileState extends SignalStateService {
         return device?.os ?? null;
     }
 
+    // ██████████████████████████████████████████████████████████████████
+    // ████ _uauthorisation █████████████████████████████████████████████
+    // ██████████████████████████████████████████████████████████████████
+    // signal ▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬
+    private readonly _uauthorisation = this.cookiePersistSignal<ContextProfileUauthorisation[] | null>(
+        ContextProfileStateFieldEnum.UAUTHORISATION,
+        null,
+        {
+            debounceMs: 0,
+            crossTab: true,
+            validate: this.validateUauthorisation,
+            deleteOnNull: true,
+            source: {
+                path: '/',
+            }
+        }
+    );
+    public readonly uauthorisation = this._uauthorisation.asReadonly();
+    public readonly uauthorisationKeyVal = computed<Record<string, string>>(() => this.getUauthorisationKeyVal());
 
-    
+    // methods ▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬
+    public validateUauthorisation(value: unknown): value is ContextProfileUauthorisation[] | null {
+        return (
+            value === null ||
+            Array.isArray(value) ||
+            (
+                // must have 1 key of authorisation
+                (value as any)[0]?.keyid !== '' &&
+                (value as any)[0]?.arole_id !== ''
+            )
+        );
+    }
+    public setUauthorisation(uauthorisation: ContextProfileUauthorisation[] | null): void {
+        const exp = this.sessionExpiry();
+        if(this.sessionKeepLogged() && exp && exp > 0) {
+            this.setNextCookiePersistSignalExpiry(
+                ContextProfileStateFieldEnum.UAUTHORISATION,
+                new Date(exp),
+            );
+        }
 
-    // ████ SIGNAL DATA VALIDATORS ██████████████████████████████████████
-    
-    /** session = stateful */
-    public validateSessionToken(value: unknown): value is string | null {
+        this._uauthorisation.set(uauthorisation);
+    }
+    public clearUauthorisation(): void {
+        this.setUauthorisation(null);
+    }
+    public getUauthorisationKeyVal(): Record<string, string> {
+        return Object.fromEntries(
+            this.uauthorisation()
+                ?.filter((a) => typeof a.keyid === 'string' && a.keyid !== '')
+                .map((a) => [a.keyid as string, a.fr_authorisation_role?.role_title ?? '']) ?? []
+        );
+    }
+
+    // ██████████████████████████████████████████████████████████████████
+    // ████ _privilegeToken █████████████████████████████████████████████
+    // ██████████████████████████████████████████████████████████████████
+    // signal ▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬
+    private readonly _privilegeToken = this.cookiePersistSignal<string | null>(
+        ContextProfileStateFieldEnum.PRIVILEGE_TOKEN, // context profile privilege authorization
+        null,
+        {
+            debounceMs: 0,
+            crossTab: true,
+            validate: this.validatePrivilegeToken,
+            deleteOnNull: true,
+            source: {
+                path: '/',
+            }
+        },
+    );
+    public readonly privilegeToken = this._privilegeToken.asReadonly();
+
+    private readonly privilegeTokenPayload = computed<ContextProfilePrivilegePayload | null>(() => {
+        return this.decodePrivilegeToken(this.privilegeToken());
+    });
+
+    private readonly _privilegeKeyid = linkedSignal<string | null>(() => this.privilegeTokenPayload()?.sub ?? null);
+    public readonly privilegeKeyid = this._privilegeKeyid.asReadonly();
+
+    public readonly privilegeRoleTitle = computed<string | null>(() => this.privilegeTokenPayload()?.rt ?? null);
+
+    private readonly _privilegeSwitch = resource({
+        params: () => (this.ready() && this.handshaked() && this.privilegeKeyid())
+            ? this.privilegeKeyid()
+            : undefined,
+        defaultValue: null,
+        loader: async ({ params, abortSignal }): Promise<string | null> => {
+            if (!params) {
+                return null;
+            }
+
+            try {
+                const http = await this.api.sdk.graphql.userAuthentication.switchPrivilegeAuthorisation({
+                    selection: {
+                        ptoken: true,
+                    },
+                    input: {
+                        keyid: params,
+                    },
+                    signal: abortSignal,
+                });
+
+                return http.data?.ptoken ?? null;
+            } catch (e: any | BfwApiSdkError) {
+                this.log.error('[CTXP] Privilege switch failed.', e);
+                return null;
+            }
+        },
+    });
+    public readonly privilegeSwitch = this._privilegeSwitch.value.asReadonly();
+
+    // methods ▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬
+    public validatePrivilegeToken(value: unknown): value is string | null {
         return typeof value === 'string' || value === null;
     }
-    public validateRedirectAfterAuth(value: unknown): value is string | null {
-        return (
-            value === null ||
-            (
-                typeof value === 'string' &&
-                value.startsWith('/') &&
-                !value.startsWith('//')
-            )
-        );
+    public setPrivilegeToken(value: string | null): void {
+        const exp = this.sessionExpiry();
+        if(this.sessionKeepLogged() && exp && exp > 0) {
+            this.setNextCookiePersistSignalExpiry(
+                ContextProfileStateFieldEnum.PRIVILEGE_TOKEN,
+                new Date(exp),
+            );
+        }
+
+        this._privilegeToken.set(value);
+
+        // set BfwApiSdk header — same as every other setter in this file
+        this.setBfwApiHeaderPrivilegeAuthorization();
     }
-    public validateStatefulInfo(value: unknown): value is ContextProfileStatefulInfo | null {
-        return (
-            value === null ||
-            (
-                typeof value === 'object' &&
-                (value as any)?.user?.username !== '' &&
-                (value as any)?.authorisation?.role_title !== ''
-            )
-        );
+    public decodePrivilegeToken(token: string | null): ContextProfilePrivilegePayload | null {
+        if (!token) {
+            return null;
+        }
+
+        try {
+            const payload = jwtDecode<ContextProfilePrivilegePayload>(token);
+
+            // sub/rt come back from jwtDecode() as ciphertext — the server encrypts them
+            // with the same static-key scheme as SignatureService.sme() before embedding them as claims.
+            // smd() is the matching static decrypt.
+            return {
+                ...payload,
+                sub: payload.sub ? SignatureService.smd(payload.sub) : payload.sub,
+                rt: payload.rt ? SignatureService.smd(payload.rt) : payload.rt,
+            };
+        } catch {
+            return null;
+        }
     }
+    public clearPrivilegeToken(): void {
+        this.setPrivilegeToken(null);
+    }
+    public setPrivilegeKeyid(keyid: string | null): void {
+        this._privilegeKeyid.set(keyid);
+    }
+    public clearPrivilegeKeyid(): void {
+        this.setPrivilegeKeyid(null);
+    }
+    public reloadPrivilege(): boolean {
+        if (!this.privilegeKeyid()) {
+            return false;
+        }
+
+        return this._privilegeSwitch.reload();
+    }
+
+    // ██████████████████████████████████████████████████████████████████
+    // ████ authenticated ███████████████████████████████████████████████
+    // ██████████████████████████████████████████████████████████████████
+    // signal ▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬
+    public readonly localContextAuthenticated = computed<boolean>(() => {
+        const token = this.statefulToken();
+        const expiry = this.sessionExpiry();
+
+        return (
+            typeof token === 'string' &&
+            token !== '' &&
+            expiry !== 0 &&
+            Date.now() < expiry
+        );
+    });
+
+    private readonly _serverContextAuthenticated = resource({
+        // undefined keeps the resource idle, so nothing is fetched before the state is ready.
+        // ready() alone is not enough, hydration releases this loader and the handshake at the
+        // same moment and this loader wins the race, so the handshake gate is required here too.
+        // any change of this value re-runs the loader, that is what resyncs the flag.
+        params: () => this.ready() && this.handshaked()
+            ? this.localContextAuthenticated()
+            : undefined,
+        defaultValue: false,
+        loader: async ({ params, abortSignal, previous }): Promise<boolean> => {
+            if (!params) {
+                return false;
+            }
+
+            // a session change needs the server to settle its session store first,
+            // otherwise this reads back the state from before the change.
+            // previous is idle only on the very first load, that one is not delayed.
+            if (previous.status !== 'idle') {
+                await new Promise((resolve) => setTimeout(resolve, 400));
+            }
+
+            try {
+                const http = await this.api.sdk.graphql.contextProfile.authenticated({
+                    signal: abortSignal,
+                });
+
+                // the api owns this value, so it is still validated before it reaches the signal
+                return this.validateServerContextAuthenticated(http.data) ? http.data : false;
+            } catch(e: any | BfwApiSdkError) {
+                return false;
+            }
+        },
+    });
+    public readonly serverContextAuthenticated = this._serverContextAuthenticated.value.asReadonly();
+
+    /**
+     * @authenticated
+     * signal to check if user is authenticated using sign in or not
+     * based on available staeful authorization token  and its expiry it decides
+     * 
+     * @returns {boolean}
+     */
+    public readonly authenticated = computed<boolean>(() => {
+        // the local token is the fast source, it decides on its own first
+        if (!this.localContextAuthenticated()) {
+            return false;
+        }
+
+        // the server check is async, it is idle before ready() and in flight right after a
+        // sign in. collapsing to false in those windows logs the user back out mid navigation,
+        // so the signed local token is trusted until the server actually answers.
+        const status = this._serverContextAuthenticated.status();
+        if (status !== 'resolved' && status !== 'error') {
+            return true;
+        }
+
+        return this.serverContextAuthenticated();
+    });
+
+    // methods ▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬
     public validateServerContextAuthenticated(value: unknown): value is boolean {
         return typeof value === 'boolean';
     }
-    public validatePublicid(id: string | null): boolean {
-        const pid = this.publicid();
+
+    // ██████████████████████████████████████████████████████████████████
+    // ████ session █████████████████████████████████████████████████████
+    // ██████████████████████████████████████████████████████████████████
+    // signal ▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬
+    private readonly sessionExpiry = computed<number>(() => {
+        return this.getSessionExpiry();
+    });
+
+    private readonly sessionKeepLogged = computed<boolean>(() => {
+        return this.getSessionKeepLogged();
+    });
+
+    /**
+     * Presence, not validity.
+     *
+     * A tampered or expired token answers true here, which is the only question
+     * signout actually has: is there a credential in this browser that has to go.
+     * localContextAuthenticated() cannot answer it, a token that fails to decode
+     * reports expiry 0 and reads as no session at all.
+     *
+     * statefulInfo is included because deleting one of the two cookies is just as
+     * easy as editing the other, and either remnant still needs clearing.
+     */
+    public readonly sessionRemnant = computed<boolean>(() => {
+        const token = this.statefulToken();
+
+        return (typeof token === 'string' && token !== '') || this.statefulInfo() !== null;
+    });
+    
+    public readonly sessionPublicId = computed<string | null>(() => {
+        const ctxs = this.ctxs();
+
+        if(ctxs){
+            const pid = this.sign.toBase64(ctxs);
+            return pid;
+        }
+        return null;
+    });
+
+    // methods ▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬
+    public validateSessionPublicId(id: string | null): boolean {
+        const pid = this.sessionPublicId();
         
         if(!id || !pid) return false;
 
         return pid === id;
     }
-    public validateCsrft(value: unknown): value is string | null {
-        return typeof value === 'string' || value === null;
+    public clearSession(): void {
+        // main session token
+        this.clearStatefulToken();
+
+        // other required info to clear
+        this.clearStatefulInfo();
+
+        // clear uauthorisation
+        this.clearUauthorisation();
+
+        // clear privilege keyid and token explicitly
+        this.clearPrivilegeKeyid();
+        this.clearPrivilegeToken();
     }
+    private getSessionExpiry(): number {
+        // use main signin token to determine session expiry
+        const exp = this.statefulTokenPayload()?.exp;
+
+        return typeof exp === 'number' && Number.isFinite(exp)
+            ? exp * 1000
+            : 0;
+    }
+    private getSessionKeepLogged(): boolean {
+        return this.statefulTokenPayload()?.kl ?? false;
+    }
+
+    // ██████████████████████████████████████████████████████████████████
+    // ████ debugState ██████████████████████████████████████████████████
+    // ██████████████████████████████████████████████████████████████████
+    // signal ▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬
+    public readonly debugState = computed(() => ({
+        hostToken: this.hostToken(),
+        ctxs: this.ctxs(),
+        statefulToken_ck: this.statefulToken(), // until browser is closed or expiry provided
+        sessionToken: this.statefulToken(),
+        sessionPayload: this.statefulTokenPayload(),
+        sessionExpiry: this.sessionExpiry(),
+        sessionKeepLogged: this.sessionKeepLogged(),
+        uauthorisation: this.uauthorisation(),
+        privilegeToken: this.privilegeToken(),
+        privilegeTokenPayload: this.privilegeTokenPayload(),
+        privilegeKeyid: this.privilegeKeyid(),
+        privilegeRoleTitle: this.privilegeRoleTitle(),
+        privilegeStatus: this._privilegeSwitch.status(),
+        privilegeLoading: this._privilegeSwitch.isLoading(),
+        handshaked: this.handshaked(),
+        localContextAuthenticated: this.localContextAuthenticated(),
+        serverContextAuthenticated: this.serverContextAuthenticated(),
+        authenticated: this.authenticated(),
+        redirectAfterAuth: this.redirectAfterAuth(),
+    }));
+
+    // methods ▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬
+
     
 
+    // ██████████████████████████████████████████████████████████████████
     // ████ REGISTRATION AND CALLBACKS ██████████████████████████████████
-
+    // ██████████████████████████████████████████████████████████████████
     /**
      * A reload builds a brand new BfwApiSdk instance with empty in-memory headers,
      * while these signals still carry whatever was persisted from before the reload.
@@ -701,19 +810,20 @@ export class ContextProfileState extends SignalStateService {
         this.setBfwApiHeaderCtxs();
         this.setBfwApiHeaderCsrfToken();
         this.setBfwApiHeaderStatefulAuthorization();
+        this.setBfwApiHeaderPrivilegeAuthorization();
     }
     public setBfwApiHeaderHostAuthorization(): void {
         const token = this.hostToken();
         if(typeof token === 'string' && token !== '') {
             //this.log.info('[CTXP] Setting host token in BfwApiService');
             
-            this.api.sdk.graphql.jwtHostAuthorization.setToken(token);
-            this.api.sdk.rest.jwtHostAuthorization.setToken(token);
+            this.api.sdk.graphql.btHostAuthorization.setToken(token);
+            this.api.sdk.rest.btHostAuthorization.setToken(token);
         } else {
             //this.log.info('[CTXP] Clearing host token from BfwApiService');
             
-            this.api.sdk.graphql.jwtHostAuthorization.clear();
-            this.api.sdk.rest.jwtHostAuthorization.clear();
+            this.api.sdk.graphql.btHostAuthorization.clear();
+            this.api.sdk.rest.btHostAuthorization.clear();
         }
     }
     public setBfwApiHeaderCtxs(): void {
@@ -741,17 +851,27 @@ export class ContextProfileState extends SignalStateService {
         }
     }
     public setBfwApiHeaderStatefulAuthorization(): void {
-        const token = this.sessionToken();
+        const token = this.statefulToken();
         if(typeof token === 'string' && token !== '') {
             //this.log.info('[CTXP] Setting stateful token in BfwApiService');
             
-            this.api.sdk.graphql.jwtStatefulAuthorization.setToken(token);
-            this.api.sdk.rest.jwtStatefulAuthorization.setToken(token);
+            this.api.sdk.graphql.btStatefulAuthorization.setToken(token);
+            this.api.sdk.rest.btStatefulAuthorization.setToken(token);
         } else {
             //this.log.info('[CTXP] Clearing stateful token from BfwApiService');
             
-            this.api.sdk.graphql.jwtStatefulAuthorization.clear();
-            this.api.sdk.rest.jwtStatefulAuthorization.clear();
+            this.api.sdk.graphql.btStatefulAuthorization.clear();
+            this.api.sdk.rest.btStatefulAuthorization.clear();
+        }
+    }
+    public setBfwApiHeaderPrivilegeAuthorization(): void {
+        const token = this.privilegeToken();
+        if(typeof token === 'string' && token !== '') {
+            this.api.sdk.graphql.btPrivilegeAuthorization.setToken(token);
+            this.api.sdk.rest.btPrivilegeAuthorization.setToken(token);
+        } else {
+            this.api.sdk.graphql.btPrivilegeAuthorization.clear();
+            this.api.sdk.rest.btPrivilegeAuthorization.clear();
         }
     }
 

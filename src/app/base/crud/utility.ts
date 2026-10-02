@@ -15,11 +15,13 @@ import type { CrudAffectedDto, FindOperatorDto } from "@bfw/api-sdk/graphql/libs
 import { MatchScalarExpressionEnum } from "@bfw/api-sdk/graphql/libs/crud.enum";
 import { SignatureService } from "@libs/signature/service";
 import { UrlService } from "@libs/url/service";
+import { FormFieldFileUtility } from "@base/form-fields/file/utility";
 
 @Service({ autoProvided: false })
 export class CrudUtility {
     private readonly sign = inject(SignatureService);
     private readonly ump = inject(UrlService);
+    private readonly fileUtility = inject(FormFieldFileUtility);
 
     constructor() {}
 
@@ -43,24 +45,24 @@ export class CrudUtility {
      */
 
     public encPrimaryKey(
-        id: string,
+        pk: string,
         context: CrudModuleContextType
     ): string {
         // checking with signature character
-        if(this.sign.isEndStableShortAlias(id)) {
-            return id;
+        if(this.sign.isEndStableShortAlias(pk)) {
+            return pk;
         }
 
         const primaryKey = context.primaryKey ?? '';
         const prefix = primaryKey + '~crud';
 
         const salt = this.ump.getRouteBasedModuleAlias(prefix);
-        return this.sign.createStableShortAlias(`${salt}~${id}`);
+        return this.sign.createStableShortAlias(`${salt}~${pk}`);
     }
     public descPrimaryKey(
         alias: string,
         context: CrudModuleContextType,
-        rowIdKey?: string,
+        rowPkField?: string,
     ): string | null {
         const normalizedAlias = String(alias ?? '').trim();
 
@@ -69,35 +71,35 @@ export class CrudUtility {
         }
 
         const matchedRow = context.rows.find((row) => {
-            const rowId = context.getRecordPrimaryKeyValue(row, rowIdKey);
+            const rowPk = context.getRecordPrimaryKeyValue(row, rowPkField);
 
-            if (!rowId) {
+            if (!rowPk) {
                 return false;
             }
 
-            return this.encPrimaryKey(rowId, context) === normalizedAlias;
+            return this.encPrimaryKey(rowPk, context) === normalizedAlias;
         });
 
         return matchedRow
-            ? context.getRecordPrimaryKeyValue(matchedRow, rowIdKey)
+            ? context.getRecordPrimaryKeyValue(matchedRow, rowPkField)
             : null;
     }
     public descPrimaryKeys(
         aliases: string[] | null | undefined,
         context: CrudModuleContextType,
-        rowIdKey?: string,
+        rowPkField?: string,
     ): string[] | null {
         if (!aliases || aliases.length === 0) {
             return null;
         }
 
-        const ids = aliases
-            .map((alias) => this.descPrimaryKey(alias, context, rowIdKey))
-            .filter((id): id is string => !!id);
+        const pks = aliases
+            .map((alias) => this.descPrimaryKey(alias, context, rowPkField))
+            .filter((pk): pk is string => !!pk);
 
-        const uniqueIds = [...new Set(ids)];
+        const uniquePks = [...new Set(pks)];
 
-        return uniqueIds.length > 0 ? uniqueIds : null;
+        return uniquePks.length > 0 ? uniquePks : null;
     }
 
     // █████ FIND OPERATOR GETTER ████████████████████████████████████████████████
@@ -357,16 +359,7 @@ export class CrudUtility {
             this.getByPath(row, finfo.file?.monogram_field),
         ).trim();
 
-        if (!source) {
-            return '';
-        }
-
-        const parts = source.split(/[\s._@-]+/).filter(Boolean);
-        const initials = parts.length > 1
-            ? parts[0][0] + parts[1][0]
-            : source.slice(0, 2);
-
-        return initials.toUpperCase();
+        return this.fileUtility.getInitialsMonogram(source);
     }
     /**
      * Middle-truncated file name for a FILE download cell.
@@ -378,19 +371,9 @@ export class CrudUtility {
      */
     public truncateFileName(value: unknown): string {
         const name = this.toStringValue(value).trim();
-
-        if (!name) {
-            return '';
-        }
-
-        const dot = name.lastIndexOf('.');
-        const ext = dot > 0 ? name.slice(dot) : '';
-        const base = dot > 0 ? name.slice(0, dot) : name;
         const { head, tail } = CRUD_FIELD_FILE_NAME_TRUNCATE;
 
-        return base.length > head + tail + 1
-            ? `${base.slice(0, head)}…${base.slice(-tail)}${ext}`
-            : name;
+        return this.fileUtility.truncateFileName(name, head, tail);
     }
     public escapeHtml(value: unknown): string {
         return String(value ?? '')

@@ -1,0 +1,67 @@
+// file: src/theme/open/_utility.scss
+@use '../breakpoint' as *;
+@use './variable' as *;
+
+// ███ BRAND GRADIENT █████████████████████████████████████████████
+/*
+brand guide p3, "gradient - elements": progress bar and tagline, "to stand out and draw
+attention to, but NOT clickable". keep these off buttons and links.
+*/
+.bfw-brand-gradient-text {
+  background-image: var(--bfw-element-gradient);
+  background-clip: text;
+  -webkit-background-clip: text;
+  color: transparent;
+
+  // transparent text vanishes entirely under forced colors, fall back to system ink
+  @media (forced-colors: active) {
+    background-image: none;
+    color: CanvasText;
+  }
+}
+
+.bfw-brand-gradient-bar {
+  background-image: var(--bfw-element-gradient);
+}
+
+// ███ BRAND LOGO █████████████████████████████████████████████████
+// brand guide p1: 180px min width desktop / 120px mobile, 32px clear space, never distorted
+.bfw-brand-logo {
+  display: inline-flex;
+  padding: var(--bfw-brand-logo-clear-space);
+
+  img,
+  svg {
+    display: block;
+    width: var(--bfw-brand-logo-min-width);
+    height: auto;
+    // pinned so the logo can never be stretched, per the usage rules on p1
+    aspect-ratio: var(--bfw-brand-logo-ratio);
+  }
+}
+
+// ███ DECORATIVE MOTIFS ██████████████████████████████████████████
+// the dragon / peacock / blossom artwork behind the home page comp
+.bfw-brand-motif {
+  position: absolute;
+  pointer-events: none;
+  user-select: none;
+  z-index: 0;
+}
+
+// ███ KEYFRAMES ██████████████████████████████████████████████████
+/*
+⚠ referenced by _layout.scss #L3 (end sidebar tab bodies). the private theme references
+this same animation name at private/_layout.scss:404 but NEVER defines the keyframe
+anywhere in src/, so that animation has always been dead there. defined here so the
+ported rule actually runs.
+*/
+@keyframes bfw-tab-appear {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}

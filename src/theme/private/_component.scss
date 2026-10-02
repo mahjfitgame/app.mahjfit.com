@@ -1,0 +1,312 @@
+// file: src/theme/private/_component.scss
+@use '../breakpoint' as *;
+@use './variable' as *;
+@use '../safe-area' as *;
+
+@use 'ngx-toastr/toastr';
+@use '@danielmoncada/angular-datetime-picker/assets/style/picker.min.css';
+
+
+// ███ mat-progress-bar [src/app/base/progress-bar]███████████████████████████████████████
+mat-progress-bar {
+    /* 1. Set the overall height */
+    height: 2px !important;
+    border-radius: 2px !important;
+    overflow: hidden;
+
+    /* 2. Target Material MDC internal variables */
+    --mat-progress-bar-track-height: 2px;
+    --mat-progress-bar-active-indicator-height: 2px;
+    --mat-progress-bar-track-shape: 2px;
+    --mdc-linear-progress-track-height: 2px;
+    --mdc-linear-progress-active-indicator-height: 2px;
+    
+    /* 3. Round the internal track shape */
+    --mdc-linear-progress-track-shape: 2px;
+
+    /* 4. Fix for the internal 'bar' and 'track' positioning */
+    .mdc-linear-progress__bar-inner,
+    .mdc-linear-progress__track {
+        border-radius: 2px !important;
+    }
+}
+
+// ███ pagination-component [src/app/base/pagination] ██████████████████████
+/* compact field styling */
+pagination-component .bfw-jump-field {
+  .mat-mdc-form-field-subscript-wrapper {
+    display: none !important;
+  }
+
+  .mat-mdc-text-field-wrapper {
+    height: 40px !important;
+  }
+
+  .mat-mdc-form-field-flex {
+    height: 40px !important;
+    align-items: center !important;
+  }
+
+  .mat-mdc-form-field-infix {
+    min-height: 40px !important;
+    padding-top: 8px !important;
+    padding-bottom: 8px !important;
+  }
+}
+
+pagination-component .mat-mdc-paginator {
+  background-color: transparent;
+}
+
+pagination-component .mat-mdc-paginator-container {
+  padding: 0 !important;
+}
+
+html[dir='rtl'] pagination-component .mat-mdc-paginator-range-label {
+  direction: ltr !important;
+  unicode-bidi: isolate !important;
+  display: inline-block !important;
+}
+
+@include bfw-sm-and-down {
+    pagination-component .mat-mdc-paginator-container {
+        justify-content: center !important;
+        flex-wrap: wrap !important;
+        row-gap: 8px !important;
+    }
+    pagination-component .mat-mdc-paginator-page-size {
+        justify-content: center !important;
+    }
+}
+
+// ███ mat-mdc-snack-bar [src/app/base/snack-bar/style.scss]███████████████████████████████████████
+.mat-mdc-snack-bar-container {
+    .mat-mdc-snackbar-surface {
+        background-color: transparent !important;
+        padding: 0px !important;
+        box-shadow: none !important;
+    }
+}
+// ███ mat-menu [no override component, using material default]███████████████████████████████████
+/* compact menu items from lg and up: pointer devices need smaller touch targets than mobile */
+@include bfw-lg-and-up {
+    .mat-mdc-menu-item {
+        min-height: 2rem !important;
+        padding-inline: 0.75rem !important;
+    }
+}
+
+// ███ .mat-bottom-sheet [no override component, using material default]███████████████████████████
+.cdk-overlay-container {
+  .mat-bottom-sheet-container,
+  .mat-mdc-bottom-sheet-container,
+  .mat-bottom-sheet-container-xlarge,
+  .mat-bottom-sheet-container-large,
+  .mat-bottom-sheet-container-medium {
+    padding: 0 !important;
+    overflow: hidden !important;
+  }
+}
+
+// ███ ngx-toastr [src/app/base/notify] ██████████████████████████████████
+.toast-container {
+    // must have to handle safe area
+    padding-top: var(--bfw-safe-area-top) !important;
+    padding-inline-start: var(--bfw-safe-area-inline-start) !important;
+    padding-inline-end: var(--bfw-safe-area-inline-end) !important;
+}
+.toast-container .ngx-toastr {
+    // ⚠ ngx-toastr's own toastr.css pins this to 300px. our notify-component template
+    // renders its own card at tw:w-full / tw:md:w-96 (384px desktop), so the fixed
+    // 300px host clips 84px off - and since overflow is visible below, that overflow
+    // isn't hidden, it just renders past the container's right edge, off the viewport.
+    // auto lets the host size to its actual (wider) content instead of fighting it.
+    width: auto !important;
+    padding: 0 !important;
+    background-image: none !important;
+    background-color: transparent !important;
+    box-shadow: none !important;
+    overflow: visible !important;
+}
+
+.toast-container .ngx-toastr.toast-success,
+.toast-container .ngx-toastr.toast-error,
+.toast-container .ngx-toastr.toast-info,
+.toast-container .ngx-toastr.toast-warning {
+    background-image: none !important;
+    background-color: transparent !important;
+}
+/* -------------------------------------------------------
+* RTL position flip
+* LTR default = toast-top-right
+* RTL becomes visually top-left
+* ----------------------------------------------------- */
+
+html[dir='rtl'] .toast-top-right,
+[dir='rtl'] .toast-top-right {
+    right: auto !important;
+    left: 12px !important;
+}
+
+html[dir='rtl'] .toast-bottom-right,
+[dir='rtl'] .toast-bottom-right {
+    right: auto !important;
+    left: 12px !important;
+}
+
+// ███ own-datetime-picker [@danielmoncada/angular-datetime-picker]███████████████████████████████████████
+.owl-dt-container, .owl-dt-popup-container {
+    border-radius: var(--mat-sys-corner-large) !important;
+    overflow: hidden !important;
+    .owl-dt-calendar-control button {
+        border: 0;
+        outline: 0;
+        cursor: pointer;
+        border-radius: var(--mat-button-toggle-shape, 999px);
+        background-color: transparent;
+        color: var(--mat-sys-on-surface);
+        transition:
+            background-color 150ms ease,
+            color 150ms ease,
+            box-shadow 150ms ease;
+
+        &:hover {
+            background-color: color-mix(
+            in srgb,
+            var(--mat-sys-on-surface) 8%,
+            transparent
+            );
+        }
+
+        &:focus-visible {
+            outline: 2px solid var(--mat-sys-primary);
+            outline-offset: 2px;
+        }
+        
+        &:active {
+            background-color: color-mix(
+            in srgb,
+            var(--mat-sys-on-surface) 12%,
+            transparent
+            );
+        }
+
+        &:disabled {
+            cursor: default;
+            opacity: 0.38;
+            background-color: transparent;
+        }
+        span {
+            &:hover{
+                background-color: transparent;
+            }
+        }
+    }
+}
+
+// ███ image-slideshow-component [src/app/base/image-slideshow] ████████████
+image-slideshow-component swiper-container {
+    // drives the arrow's box AND swiper's own centring math
+    // (margin-top: calc(0px - size/2)), so overriding width/height in ::part()
+    // instead would knock the arrows off centre by the difference.
+    --swiper-navigation-size: 3rem;
+    --swiper-navigation-sides-offset: 1rem;
+
+    // plain dots, no numbers - the active one is the theme's primary so it
+    // reads against either palette without a hardcoded colour.
+    --swiper-pagination-color: var(--mat-sys-primary);
+    --swiper-pagination-bullet-inactive-color: var(--mat-sys-on-surface);
+    --swiper-pagination-bullet-inactive-opacity: 0.35;
+    --swiper-pagination-bullet-opacity: 1;
+    --swiper-pagination-bullet-width: 0.5rem;
+    --swiper-pagination-bullet-height: 0.5rem;
+    --swiper-pagination-bullet-border-radius: 9999px;
+    --swiper-pagination-bullet-horizontal-gap: 0.25rem;
+    --swiper-pagination-bottom: 0.75rem;
+}
+
+/*
+The THUMB strip's own arrows. Scoped by class, because the 3rem arrows above
+would cover most of a 64px-tall strip. Same border-box + padding trick.
+*/
+image-slideshow-component swiper-container.bfw-image-slideshow-thumbs {
+    --swiper-navigation-size: 1.75rem;
+    --swiper-navigation-sides-offset: 0.25rem;
+}
+
+/*
+The arrow CHIP rests at a hint of a shade and fills in to its full surface on
+hover - the picture is the subject, not the controls.
+
+⚠ the GLYPH keeps full opacity at both states. Fading that with the chip left
+nothing to aim at, which is a different problem from a chip that competes with
+the image.
+
+⚠ the blur stays at rest, and matters MORE now than it did at full opacity: it
+is what keeps the arrow legible where the image behind it happens to be busy.
+*/
+image-slideshow-component swiper-container::part(button-next),
+image-slideshow-component swiper-container::part(button-prev) {
+    // theme tokens, so the arrows invert with light/dark like every other
+    // surface in the app. color-mix keeps them translucent over the image.
+    color: var(--mat-sys-on-surface);
+    border-radius: 9999px;
+    background: color-mix(in srgb, var(--mat-sys-surface-container) 5%, transparent);
+    backdrop-filter: blur(4px);
+    transition: background 150ms ease, box-shadow 150ms ease;
+    box-sizing: border-box;
+    padding: 0.85rem;
+}
+
+/*
+⚠ :not() rather than nesting this in the rule above, which matches the thumbs
+strip too: that one resolves to a shade HIGHER, so inheriting this hover would
+make it change colour rather than just gain weight.
+*/
+image-slideshow-component swiper-container:not(.bfw-image-slideshow-thumbs)::part(button-next):hover,
+image-slideshow-component swiper-container:not(.bfw-image-slideshow-thumbs)::part(button-prev):hover {
+    background: color-mix(in srgb, var(--mat-sys-surface-container) 40%, transparent);
+}
+
+image-slideshow-component swiper-container.bfw-image-slideshow-thumbs::part(button-next),
+image-slideshow-component swiper-container.bfw-image-slideshow-thumbs::part(button-prev) {
+    padding: 0.5rem;
+    /*
+     * ⚠ this USED to be opaque with a shadow, so a thumb scrolling under the
+     * arrow stayed hidden. That is given up on purpose: at rest the strip now
+     * reads as the subject and a thumb does show through. The blur and the
+     * hover state below are what pay for it.
+     */
+    background: color-mix(in srgb, var(--mat-sys-surface-container-high) 15%, transparent);
+    box-shadow: none;
+}
+
+image-slideshow-component swiper-container.bfw-image-slideshow-thumbs::part(button-next):hover,
+image-slideshow-component swiper-container.bfw-image-slideshow-thumbs::part(button-prev):hover {
+    // the opaque chip the strip used to wear all the time
+    background: var(--mat-sys-surface-container-high);
+    box-shadow: 0 1px 4px rgb(0 0 0 / 0.35);
+}
+
+image-slideshow-component .bfw-image-slideshow-ring::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: 9999px;
+    background: conic-gradient(
+        currentColor calc(var(--bfw-slideshow-autoplay, 0) * 360deg),
+        transparent 0
+    );
+    mask: radial-gradient(
+        farthest-side,
+        transparent calc(100% - 2px),
+        #000 calc(100% - 2px)
+    );
+}
+
+// the overlay pane is a sibling of the app root, outside the component's
+// emulated encapsulation, so this one was ALREADY here - see coding-rules.md
+.mat-mdc-dialog-surface:has(> image-slideshow-component) {
+    padding: 0;
+    overflow: hidden;
+}

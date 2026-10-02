@@ -7,6 +7,7 @@ import { PrivateAreaLayoutDirective } from '@area/private/directive';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { TranslocoModule } from '@jsverse/transloco';
+import { MatDividerModule } from '@angular/material/divider';
 
 @Component({
   selector: 'crud-mutation-end-side-bar-component',

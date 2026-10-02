@@ -286,7 +286,7 @@ export class PrintService {
     // ████████████████████████████████████████████████████████████████████
     /**
      * printWebView prints the LIVE document, so the content has to sit directly
-     * on <body> for the isolation in `src/theme/active/_print.scss` to work: the
+     * on <body> for the isolation in `src/theme/private/_print.scss` to work: the
      * real element can be nested inside a drawer / dialog / bottom-sheet (cdk
      * overlay), and a transformed, fixed or scroll-clipped ancestor makes both
      * WebKit and the Android WebView clip the printed output to a single page.

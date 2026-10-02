@@ -1,0 +1,84 @@
+<!-- file: src/app/base/form-fields/file/template.html -->
+<mat-form-field appearance="outline" subscriptSizing="dynamic" class="tw:w-full">
+    <mat-label>{{ label() }}</mat-label>
+
+    <input
+        matInput
+        readonly
+        [errorStateMatcher]="errorMatcher"
+        [ngModel]="service.state.fileNamesLabel()"
+        [ngModelOptions]="{ standalone: true }"
+        [attr.name]="name()"
+        [attr.id]="inputId() || name()"
+        [required]="required()"
+        [disabled]="disabled()"
+        (click)="!disabled() && fileInput.click()"
+    >
+    <input
+        #fileInput
+        type="file"
+        class="tw:hidden"
+        [multiple]="multiple()"
+        [disabled]="disabled()"
+        (change)="service.onFileChange($event, multiple())"
+    >
+
+    <div matSuffix class="tw:flex tw:items-center tw:gap-1">
+        @if (clearable() && !disabled() && service.state.hasValue()) {
+            <button mat-icon-button type="button"
+                [attr.aria-label]="'GL.FIELD.COMMON.CLEAR' | transloco"
+                (click)="service.onClear($event)">
+                <mat-icon class="material-symbols-rounded">close</mat-icon>
+            </button>
+        }
+        <button mat-icon-button type="button"
+            [disabled]="disabled()"
+            [attr.aria-label]="'GL.FIELD.FILE.CHOOSE' | transloco"
+            (click)="fileInput.click()">
+            <mat-icon class="material-symbols-rounded">upload</mat-icon>
+        </button>
+    </div>
+
+    @if (error()) {
+        <mat-error class="tw:flex! tw:items-center tw:gap-1">
+            <mat-icon class="material-symbols-rounded tw:text-xs! tw:h-4! tw:w-4! tw:shrink-0">error</mat-icon>
+            <span>{{ error() }}</span>
+        </mat-error>
+    } @else if (hint()) {
+        <mat-hint class="tw:flex tw:items-start tw:gap-1">
+            <mat-icon class="material-symbols-rounded tw:text-xs! tw:h-4! tw:w-4! tw:shrink-0">info</mat-icon>
+            <span>{{ hint() }}</span>
+        </mat-hint>
+    }
+</mat-form-field>
+@if (!service.state.hasValue() && value() && (fileValue()?.direct || fileValue()?.thumb)) {
+    @if (isImage()) {
+        <div class="tw:relative tw:my-2 tw:inline-block">
+            <img class="tw:size-32 tw:rounded-xl tw:border tw:border-outline/20 tw:object-cover tw:shadow-md" [src]="fileValue()!.direct || fileValue()!.thumb" alt="">
+            @if (canDeleteExisting() && !disabled()) {
+                <button mat-icon-button
+                    type="button"
+                    class="tw:absolute! tw:-top-2 tw:-right-2 tw:flex! tw:items-center! tw:justify-center! tw:size-6! tw:p-0! tw:bg-error! tw:text-on-error!"
+                    [attr.aria-label]="'GL.ACTION.UPLOAD_DELETE' | transloco"
+                    (click)="onUploadDeleteClick($event)">
+                    <mat-icon class="material-symbols-rounded tw:text-sm! tw:size-auto! tw:leading-none">delete</mat-icon>
+                </button>
+            }
+        </div>
+    } @else {
+        <div class="tw:mb-2 tw:flex tw:items-center tw:gap-3 tw:rounded-xl tw:border tw:border-outline/30 tw:bg-surface-container/50 tw:p-2">
+            <a class="tw:min-w-0 tw:flex-1 tw:truncate tw:text-sm" [href]="fileValue()!.direct" [download]="value()" target="_blank" rel="noopener">
+                {{ value() }}
+            </a>
+            @if (canDeleteExisting() && !disabled()) {
+                <button mat-icon-button
+                    type="button"
+                    class="tw:leading-0 tw:text-error!"
+                    [attr.aria-label]="'GL.ACTION.UPLOAD_DELETE' | transloco"
+                    (click)="onUploadDeleteClick($event)">
+                    <mat-icon class="material-symbols-rounded">delete</mat-icon>
+                </button>
+            }
+        </div>
+    }
+}

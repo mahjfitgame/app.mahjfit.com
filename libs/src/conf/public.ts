@@ -73,49 +73,83 @@ export class ConfPublic {
   // Pagination
   public NUM_OF_RECORDS_PER_PAGE: number = 25;
 
-  // File Format
-  public FILE_FORMAT_IMAGE: string[] = ['jpeg', 'jpg', 'png', 'svg', 'gif'];
-  public FILE_FORMAT_DOC: string[] = ['csv', 'doc', 'docx', 'pdf', 'xsl', 'xslx', 'odt', 'ods', 'txt', 'ppt', 'pptx', 'keynote', 'number'];
-  public FILE_FORMAT_AUDIO: string[] = ['mp3', 'wav', 'ogg'];
-  public FILE_FORMAT_VIDEO: string[] = ['mp4', 'mkv', 'avi', 'mov', 'wmv', 'flv'];
-  public FILE_FORMAT_OTHER: string[] = ['csv', 'json', 'xml', 'number', 'zip', 'rar', '7z', 'apk', 'ipa', 'exe'];
-  public VALID_FILE_MIME_TYPE: string[] = [
-      'image/jpeg',         // jpeg, jpg
-      'image/jpg',         // jpeg, jpg
-      'image/png',          // png
-      'image/svg+xml',      // svg
-      'image/gif',          // gif
-      'application/msword', // doc
-      'application/vnd.openxmlformats-officedocument.wordprocessingml.document', // docx
-      'application/pdf',    // pdf
-      'application/vnd.ms-excel', // xls
-      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', // xlsx
-      'application/vnd.oasis.opendocument.text', // odt
-      'application/vnd.oasis.opendocument.spreadsheet', // ods
-      'text/plain',         // txt
-      'text/csv',           // csv
-      'application/json',   // json
-      'application/xml',    // xml
-      'application/octet-stream', // number (generic binary file)
-      'application/vnd.ms-powerpoint', // ppt
-      'application/vnd.openxmlformats-officedocument.presentationml.presentation', // pptx
-      'application/vnd.apple.keynote', // keynote
-      'application/zip',    // zip
-      'application/x-rar-compressed', // rar
-      'application/x-7z-compressed',  // 7z
-      'video/mp4',          // mp4
-      'video/x-matroska',   // mkv
-      'video/x-msvideo',    // avi
-      'video/quicktime',    // mov
-      'video/x-ms-wmv',     // wmv
-      'video/x-flv',        // flv
-      'audio/mpeg',         // mp3
-      'audio/wav',          // wav
-      'audio/ogg',          // ogg
-      'application/vnd.android.package-archive', // apk
-      'application/vnd.iphone', // ipa
-      'application/x-msdownload' // exe
-  ];
+  // File Format ({ extension: mime type })
+  public FILE_FORMAT_IMAGE: Record<string, string> = {
+    jpeg: 'image/jpeg',
+    jpg: 'image/jpeg',
+    png: 'image/png',
+    svg: 'image/svg+xml',
+    gif: 'image/gif',
+    webp: 'image/webp',
+    tif: 'image/tiff',
+    tiff: 'image/tiff',
+  };
+  public FILE_FORMAT_DOC: Record<string, string> = {
+    csv: 'text/csv',
+    doc: 'application/msword',
+    docx: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    pdf: 'application/pdf',
+    xls: 'application/vnd.ms-excel',
+    xlsx: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    odt: 'application/vnd.oasis.opendocument.text',
+    ods: 'application/vnd.oasis.opendocument.spreadsheet',
+    txt: 'text/plain',
+    ppt: 'application/vnd.ms-powerpoint',
+    pptx: 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+    keynote: 'application/vnd.apple.keynote',
+    number: 'application/octet-stream',
+    pages: 'application/vnd.apple.pages',
+  };
+  public FILE_FORMAT_AUDIO: Record<string, string> = {
+    mp3: 'audio/mpeg',
+    wav: 'audio/wav',
+    ogg: 'audio/ogg',
+  };
+  public FILE_FORMAT_VIDEO: Record<string, string> = {
+    mp4: 'video/mp4',
+    mkv: 'video/x-matroska',
+    avi: 'video/x-msvideo',
+    mov: 'video/quicktime',
+    wmv: 'video/x-ms-wmv',
+    flv: 'video/x-flv',
+  };
+  public FILE_FORMAT_CODE: Record<string, string> = {
+    json: 'application/json',
+    xml: 'application/xml',
+  };
+  public FILE_FORMAT_EXECUTABLE: Record<string, string> = {
+    apk: 'application/vnd.android.package-archive',
+    ipa: 'application/vnd.iphone',
+    exe: 'application/x-msdownload',
+    dmg: 'application/x-apple-diskimage',
+    msi: 'application/x-msi',
+    zip: 'application/zip',
+    rar: 'application/x-rar-compressed',
+    '7z': 'application/x-7z-compressed',
+    'tar.gz': 'application/gzip',
+    dll: 'application/x-msdownload',
+    sys: 'application/octet-stream',
+    ini: 'text/plain',
+    inf: 'text/plain',
+    sh: 'application/x-sh',
+    bat: 'application/x-bat',
+    cmd: 'application/x-bat',
+  };
+  public FILE_FORMAT_GRAPHICS: Record<string, string> = {
+    psd: 'image/vnd.adobe.photoshop',
+    ai: 'application/postscript',
+    eps: 'application/postscript',
+    indd: 'application/x-indesign',
+    cdr: 'application/x-cdr',
+  };
+  public FILE_FORMAT_CAD: Record<string, string> = {
+    stl: 'model/stl',
+    obj: 'model/obj',
+    fbx: 'application/octet-stream',
+    gltf: 'model/gltf+json',
+    step: 'model/step',
+    dwg: 'image/vnd.dwg',
+  };
 
   
   // ████ PUBLIC █ INDEPENDENT █ env variables for this web app █████████████████████████████████████████████

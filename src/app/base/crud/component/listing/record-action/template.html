@@ -1,5 +1,11 @@
 <!-- file: src/app/base/crud/default/listing/record-action/template.html -->
-@if (service.state.action.hasRecordAction()) {
+@let index = service.state.getRecordIndexColumnValue(row());
+<!--
+  No index, no url and no action: hide the WHOLE menu, not just its items.
+  The gate used to sit inside matMenuContent, so the button still rendered
+  and opened an empty menu.
+-->
+@if (service.state.action.hasRecordAction() && index !== null) {
 <button mat-icon-button
     [matMenuTriggerFor]="menu" 
     [attr.aria-label]="'GL.COMMON.ACTIONS_MENU' | transloco"
@@ -9,9 +15,6 @@
 <mat-menu #menu="matMenu" xPosition="before">
 <!-- lazily render menu contents using [matMenuContent] -->
 <ng-template matMenuContent>
-    @let keyid = service.state.getRecordSecondaryKeyValue(row());
-    <!-- any action must require a keyid -->
-    @if(keyid !== null) {
         <!-- ████ SUB_MODULE -->
         @if (service.state.action.hasSubModule()) {
             
@@ -21,7 +24,7 @@
         @if (service.state.action.hasUpdate()) {
             <a
                 mat-menu-item
-                [routerLink]="service.url.getUpdateActionUrlBySecondaryKey(keyid)"
+                [routerLink]="service.url.getUpdateActionUrl(index)"
                 [state]="service.url.getCrudActionNavigationState()"
             >
                 <mat-icon class="material-symbols-rounded tw:lg:text-lg! tw:lg:h-6! tw:lg:w-6! tw:lg:flex! tw:lg:items-center! tw:lg:justify-center!">edit</mat-icon>
@@ -29,11 +32,23 @@
             </a>
         }
 
+        <!-- ████ UPLOAD -->
+        @if (service.state.action.hasUpload() && service.state.upload.hasUploadableField()) {
+            <a
+                mat-menu-item
+                [routerLink]="service.url.getUploadActionUrl(index)"
+                [state]="service.url.getCrudActionNavigationState()"
+            >
+                <mat-icon class="material-symbols-rounded tw:lg:text-lg! tw:lg:h-6! tw:lg:w-6! tw:lg:flex! tw:lg:items-center! tw:lg:justify-center!">upload</mat-icon>
+                <span>{{ 'GL.ACTION.UPLOAD' | transloco }}</span>
+            </a>
+        }
+
         <!-- ████ VIEW -->
         @if (service.state.action.hasView()) {
             <a
                 mat-menu-item
-                [routerLink]="service.url.getViewActionUrlBySecondaryKey(keyid)"
+                [routerLink]="service.url.getViewActionUrl(index)"
                 [state]="service.url.getCrudActionNavigationState()"
             >
                 <mat-icon class="material-symbols-rounded tw:lg:text-lg! tw:lg:h-6! tw:lg:w-6! tw:lg:flex! tw:lg:items-center! tw:lg:justify-center!">visibility</mat-icon>
@@ -49,7 +64,7 @@
                 @if(active === null) {
                     @if (service.state.action.hasInactive()) {
                         <!-- record is already active so show INACTIVE -->
-                        <button mat-menu-item (click)="service.action.runInactive(keyid)">
+                        <button mat-menu-item (click)="service.action.runInactive(index)">
                             <mat-icon class="material-symbols-rounded tw:lg:text-lg! tw:lg:h-6! tw:lg:w-6! tw:lg:flex! tw:lg:items-center! tw:lg:justify-center!">do_not_disturb_on</mat-icon>
                             <span>{{ 'GL.ACTION.INACTIVE' | transloco }}</span>
                         </button>
@@ -57,7 +72,7 @@
                 } @else {
                     @if (service.state.action.hasActive()) {
                         <!-- record is inactive so show ACTIVE -->
-                        <button mat-menu-item (click)="service.action.runActive(keyid)">
+                        <button mat-menu-item (click)="service.action.runActive(index)">
                             <mat-icon class="material-symbols-rounded tw:lg:text-lg! tw:lg:h-6! tw:lg:w-6! tw:lg:flex! tw:lg:items-center! tw:lg:justify-center!">check_circle_unread</mat-icon>
                             <span>{{ 'GL.ACTION.ACTIVE' | transloco }}</span>
                         </button>
@@ -72,9 +87,9 @@
             @let isMain = row()[isMainField];
             <!-- the api has no un-mark path, so only a NOT-main row offers the action -->
             @if(isMain === null && service.state.action.hasMarkAsMain()) {
-                <!-- the group value is read off THIS row, exactly like keyid above -->
+                <!-- the group value is read off THIS row, exactly like index above -->
                 @let refGroupRelationFieldValue = service.state.getIsMainFieldRefGroupRelationFieldValue(row());
-                <button mat-menu-item (click)="service.action.runMarkAsMain(keyid, isMainField, refGroupRelationFieldValue)">
+                <button mat-menu-item (click)="service.action.runMarkAsMain(index, isMainField, refGroupRelationFieldValue)">
                     <mat-icon class="material-symbols-rounded tw:lg:text-lg! tw:lg:h-6! tw:lg:w-6! tw:lg:flex! tw:lg:items-center! tw:lg:justify-center!">flag</mat-icon>
                     <span>{{ 'GL.ACTION.MARK_AS_MAIN' | transloco }}</span>
                 </button>
@@ -85,7 +100,7 @@
         @if (service.state.action.hasDuplicate()) {
             <a
                 mat-menu-item
-                [routerLink]="service.url.getDuplicateActionUrlBySecondaryKey(keyid)"
+                [routerLink]="service.url.getDuplicateActionUrl(index)"
                 [state]="service.url.getCrudActionNavigationState()"
             >
                 <mat-icon class="material-symbols-rounded tw:lg:text-lg! tw:lg:h-6! tw:lg:w-6! tw:lg:flex! tw:lg:items-center! tw:lg:justify-center!">content_copy</mat-icon>
@@ -97,7 +112,7 @@
         @if (service.state.action.hasPrint()) {
             <a
                 mat-menu-item
-                [routerLink]="service.url.getPrintActionUrlBySecondaryKey(keyid)"
+                [routerLink]="service.url.getPrintActionUrl(index)"
                 [state]="service.url.getCrudActionNavigationState()"
             >
                 <mat-icon class="material-symbols-rounded tw:lg:text-lg! tw:lg:h-6! tw:lg:w-6! tw:lg:flex! tw:lg:items-center! tw:lg:justify-center!">print</mat-icon>
@@ -121,7 +136,7 @@
                         <button
                             mat-menu-item
                             class="tw:text-yellow-600!"
-                            (click)="service.action.runSoftDelete(keyid)"
+                            (click)="service.action.runSoftDelete(index)"
                         >
                             <mat-icon class="material-symbols-rounded tw:text-yellow-600! tw:lg:text-lg! tw:lg:h-6! tw:lg:w-6! tw:lg:flex! tw:lg:items-center! tw:lg:justify-center!">delete</mat-icon>
                             <span>{{ 'GL.ACTION.SOFT_DELETE' | transloco }}</span>
@@ -133,7 +148,7 @@
                     }
                     <!-- record is in the bin so show RESTORE and permanent DELETE -->
                     @if (service.state.action.hasRestore()) {
-                        <button mat-menu-item (click)="service.action.runRestore(keyid)">
+                        <button mat-menu-item (click)="service.action.runRestore(index)">
                             <mat-icon class="material-symbols-rounded tw:lg:text-lg! tw:lg:h-6! tw:lg:w-6! tw:lg:flex! tw:lg:items-center! tw:lg:justify-center!">restore_from_trash</mat-icon>
                             <span>{{ 'GL.ACTION.RESTORE' | transloco }}</span>
                         </button>
@@ -142,7 +157,7 @@
                         <button
                             mat-menu-item
                             class="tw:text-red-700!"
-                            (click)="service.action.runDelete(keyid)"
+                            (click)="service.action.runDelete(index)"
                         >
                             <mat-icon class="material-symbols-rounded tw:text-red-700! tw:lg:text-lg! tw:lg:h-6! tw:lg:w-6! tw:lg:flex! tw:lg:items-center! tw:lg:justify-center!">delete_forever</mat-icon>
                             <span>{{ 'GL.ACTION.DELETE' | transloco }}</span>
@@ -151,7 +166,6 @@
                 }
             }
         }
-    }
 </ng-template>
 </mat-menu>
 }

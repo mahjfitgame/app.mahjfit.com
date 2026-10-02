@@ -2,10 +2,17 @@
 <div class="bfw-safe-area-px tw:flex tw:flex-col tw:overflow-scroll tw:max-h-[80vh] tw:z-20">
     <mat-toolbar class="tw:flex tw:sticky tw:top-0 tw:z-20 tw:w-full tw:bg-transparent! tw:backdrop-blur-md tw:p-3!">
         <div class="tw:flex tw:w-full tw:py-3 tw:items-center tw:justify-between">
-            <h2 class="tw:text-xl! tw:font-semibold tw:m-0 tw:flex tw:items-center tw:gap-2">
-                <mat-icon class="material-symbols-rounded">{{ service.mutation.getMutationIcon() }}</mat-icon>
-                {{ service.mutation.getMutationTitle() | transloco }}
-            </h2>
+            <div class="tw:flex tw:items-center tw:gap-3 tw:min-w-0">
+                <mat-icon class="material-symbols-rounded tw:shrink-0">{{ service.mutation.getMutationIcon() }}</mat-icon>
+                <div class="tw:min-w-0">
+                    <h2 class="tw:text-xl! tw:font-semibold tw:m-0 tw:leading-tight tw:truncate">
+                        {{ service.mutation.getMutationTitle() | transloco }}
+                    </h2>
+                    @if (service.state.getRecordLabelFieldValue(service.state.actionListingRecord()); as label) {
+                        <p class="tw:text-sm tw:font-normal tw:m-0 tw:leading-tight tw:opacity-70 tw:truncate">{{ label }}</p>
+                    }
+                </div>
+            </div>
             <button mat-icon-button (click)="service.mutation.closeMutationAction()" [attr.aria-label]="'GL.COMMON.CLOSE' | transloco">
                 <mat-icon class="material-symbols-rounded">close</mat-icon>
             </button>

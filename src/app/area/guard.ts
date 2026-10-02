@@ -112,7 +112,7 @@ export class AreaGuard {
         
     const publicid = currentSnapshot.paramMap.get(SLUG_FOUNDATION_PARAM_PUBLICID)?.trim();
         if(publicid){
-            const check = ctxp.state.validatePublicid(publicid);
+            const check = ctxp.state.validateSessionPublicId(publicid);
             return check;
         }
         return false;

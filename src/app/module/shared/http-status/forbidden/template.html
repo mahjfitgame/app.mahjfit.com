@@ -1,0 +1,45 @@
+<!-- file: src/app/module/shared/http-status/forbidden/template.html -->
+
+<main class="bfw-safe-area-p tw:relative tw:grid tw:min-h-screen tw:place-items-center tw:overflow-hidden tw:px-4 tw:py-8 tw:text-white">
+    <div class="tw:fixed tw:inset-0 tw:z-0 tw:bg-[#080b18]" aria-hidden="true">
+        <img src="assets/space.webp" alt="" class="tw:size-full tw:object-cover" />
+        <div class="tw:absolute tw:inset-0 tw:bg-[#050814]/60"></div>
+    </div>
+
+    <section class="tw:relative tw:z-10 tw:w-full tw:max-w-3xl tw:text-center" aria-labelledby="forbidden-title">
+        <p class="tw:m-0 tw:text-[clamp(6rem,24vw,13rem)] tw:font-extrabold tw:leading-[0.85] tw:tracking-[-0.06em]">
+            {{ service.state.statusCode }}
+        </p>
+        <!-- module i18n loads after first render, defer keeps its raw keys off screen -->
+        @defer (on idle) {
+            <h1 id="forbidden-title" class="tw:mt-6 tw:mb-3 tw:text-[clamp(2rem,6vw,3.5rem)] tw:font-bold tw:leading-tight">
+                {{ 'HTTP_STATUS_FORBIDDEN.MODULE.TITLE' | transloco }}
+            </h1>
+            <p class="tw:mx-auto tw:my-0 tw:max-w-xl tw:text-lg tw:leading-relaxed">
+                {{ 'HTTP_STATUS_FORBIDDEN.MODULE.HINT' | transloco }}
+            </p>
+
+            <nav class="tw:mt-8 tw:flex tw:flex-wrap tw:justify-center tw:gap-3" aria-label="Access forbidden actions">
+                @for (action of service.navigationActions; track action.routerLink.join('/')) {
+                    <a matButton="filled" [routerLink]="action.routerLink" class="tw:min-w-32">
+                        <mat-icon class="material-symbols-rounded">{{ action.icon }}</mat-icon>
+                        {{ action.label | transloco }}
+                    </a>
+                }
+            </nav>
+        } @placeholder (minimum 200ms) {
+            <!-- same box as the h1 / p above: h1 = font clamp x leading-tight 1.25, p = text-lg x leading-relaxed 1.625 per line -->
+            <div class="tw:animate-pulse" aria-hidden="true">
+                <div class="tw:mt-6 tw:mb-3 tw:flex tw:h-[clamp(2.5rem,7.5vw,4.375rem)] tw:items-center">
+                    <div class="tw:mx-auto tw:h-3/4 tw:w-2/3 tw:max-w-md tw:rounded-lg tw:bg-white/15"></div>
+                </div>
+                <div class="tw:mx-auto tw:flex tw:h-[3.656rem] tw:max-w-xl tw:flex-col tw:justify-around">
+                    <div class="tw:h-4 tw:w-full tw:rounded tw:bg-white/15"></div>
+                    <div class="tw:mx-auto tw:h-4 tw:w-3/4 tw:rounded tw:bg-white/15"></div>
+                </div>
+                <!-- single button pill -->
+                <div class="tw:mx-auto tw:mt-8 tw:h-10 tw:w-32 tw:rounded-full tw:bg-white/15"></div>
+            </div>
+        }
+    </section>
+</main>

@@ -17,7 +17,6 @@ import { TranslocoModule } from "@jsverse/transloco";
 import { NotifyBannerComponent } from "@base/notify-banner/component";
 import { SignoutService } from "./service";
 import { MatDivider } from "@angular/material/divider";
-import { SIGNOUT_PROVIDER } from "./provider";
 
 @Component({
   selector: 'signout-component',
@@ -43,9 +42,8 @@ import { SIGNOUT_PROVIDER } from "./provider";
     NotifyBannerComponent,
     MatDivider
 ],
-  providers: [
-    SIGNOUT_PROVIDER,
-  ],
+  // SignoutRoute / SignoutState / SignoutService are root @Service(), see provider.ts
+  providers: [],
 })
 export class SignoutComponent implements OnInit, AfterViewInit, AfterViewChecked, OnDestroy {
     protected readonly service = inject(SignoutService);

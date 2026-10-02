@@ -1,0 +1,323 @@
+<!-- file: src/app/area/open/design-html/template.html -->
+<!-- HEADER -->
+<header class="tw:sticky tw:top-0 tw:z-30 tw:w-full tw:bg-transparent tw:backdrop-blur-md tw:transition-all tw:duration-300">
+  <div class="tw:max-w-7xl tw:mx-auto tw:flex tw:items-center tw:justify-between tw:px-6 tw:py-2">
+    <!-- Left: Hamburger Menu -->
+    <div class="tw:flex-1 tw:flex tw:items-center">
+      <button 
+        mat-icon-button 
+        [matMenuTriggerFor]="appNavMenu"
+        aria-label="Navigation Menu"
+        class="tw:inline-flex! tw:items-center! tw:justify-center! tw:w-12! tw:h-12! tw:p-0! tw:text-primary!"
+      >
+        <mat-icon class="material-symbols-rounded tw:flex! tw:items-center! tw:justify-center! tw:text-3xl! tw:leading-none!">menu</mat-icon>
+      </button>
+
+      <!-- Navigation Dropdown Menu -->
+      <mat-menu #appNavMenu="matMenu" xPosition="after" class="tw:min-w-64!">
+        <div class="tw:px-4 tw:py-2.5 tw:border-b tw:border-black/5 tw:dark:border-white/10 tw:mb-1">
+          <span class="tw:block tw:text-xs tw:font-bold tw:uppercase tw:tracking-wider tw:text-secondary">Mahjfit Menu</span>
+        </div>
+
+        <a mat-menu-item href="#">
+          <mat-icon class="material-symbols-rounded tw:text-primary!">play_circle</mat-icon>
+          <span class="tw:font-medium">Start New Game</span>
+        </a>
+        <a mat-menu-item href="#">
+          <mat-icon class="material-symbols-rounded tw:text-amber-500!">bolt</mat-icon>
+          <span class="tw:font-medium">Daily Workout</span>
+        </a>
+        <a mat-menu-item href="#">
+          <mat-icon class="material-symbols-rounded tw:text-primary!">leaderboard</mat-icon>
+          <span class="tw:font-medium">Leaderboard</span>
+        </a>
+        <a mat-menu-item href="#">
+          <mat-icon class="material-symbols-rounded tw:text-primary!">diamond</mat-icon>
+          <span class="tw:font-medium">Premium Membership</span>
+        </a>
+
+        <mat-divider class="tw:my-1!"></mat-divider>
+
+        <a mat-menu-item href="#">
+          <mat-icon class="material-symbols-rounded">person</mat-icon>
+          <span>My Account</span>
+        </a>
+        <a mat-menu-item href="#">
+          <mat-icon class="material-symbols-rounded">group</mat-icon>
+          <span>My Friends</span>
+        </a>
+
+        <mat-divider class="tw:my-1!"></mat-divider>
+
+        <a mat-menu-item href="#">
+          <mat-icon class="material-symbols-rounded">menu_book</mat-icon>
+          <span>How to Play</span>
+        </a>
+        <a mat-menu-item href="#">
+          <mat-icon class="material-symbols-rounded">help_outline</mat-icon>
+          <span>FAQs & Support</span>
+        </a>
+        <a mat-menu-item href="#">
+          <mat-icon class="material-symbols-rounded">settings</mat-icon>
+          <span>Settings</span>
+        </a>
+      </mat-menu>
+    </div>
+
+    <!-- Center: Logo -->
+    <div class="tw:flex-1 tw:flex tw:justify-center">
+      <a href="#" class="tw:inline-block tw:w-fit tw:no-underline tw:hover:opacity-90 tw:transition-opacity">
+        <img src="/open/assets/brand/logo/logo-primary.svg" alt="MAHJFIT" class="tw:h-12" />
+      </a>
+    </div>
+
+    <!-- Right: Sign Up, Returning Player & Login / User Info -->
+    <div class="tw:flex-1 tw:flex tw:items-center tw:justify-end tw:gap-4">
+      @if (true) {
+        <!-- Logged-in User Profile -->
+        <div class="tw:flex tw:items-center tw:gap-3 tw:sm:gap-4">
+          <!-- User Profile Link (Avatar + Details) -->
+          <a href="#" class="tw:flex tw:items-center tw:gap-3 tw:sm:gap-4 tw:no-underline tw:hover:opacity-90 tw:transition-opacity tw:group">
+            <!-- User Avatar -->
+            <div class="tw:flex tw:items-center tw:justify-center tw:w-11 tw:h-11 tw:sm:w-12 tw:sm:h-12 tw:rounded-full tw:bg-primary tw:text-white tw:font-bold tw:text-xl tw:shadow-md tw:shrink-0 tw:group-hover:scale-105 tw:transition-transform">
+              C
+            </div>
+
+            <!-- User Details -->
+            <div class="tw:hidden tw:md:flex tw:flex-col tw:text-left">
+              <span class="tw:text-xs tw:font-medium tw:text-on-surface/80 tw:leading-none">Welcome back,</span>
+              <span class="tw:text-lg tw:sm:text-xl tw:font-bold tw:text-secondary tw:leading-tight">Carolyn!</span>
+              <div class="tw:flex tw:items-center tw:gap-1.5 tw:text-[10px] tw:sm:text-xs tw:font-bold tw:tracking-wider tw:uppercase tw:mt-0.5">
+                <span class="tw:text-secondary">LEVEL 1: WARM UP</span>
+              </div>
+            </div>
+          </a>
+
+          <!-- Quick Nav Actions: My Account & My Friends -->
+          <div class="tw:hidden tw:lg:flex tw:items-center tw:gap-2.5 tw:ml-2">
+            <a href="#" class="tw:flex tw:flex-col tw:items-center tw:gap-0.5 tw:no-underline tw:group">
+              <div class="tw:flex tw:items-center tw:justify-center tw:w-9 tw:h-9 tw:rounded-lg tw:bg-white tw:dark:bg-white/10 tw:text-secondary tw:shadow-sm tw:border tw:border-black/5 tw:dark:border-white/10 tw:group-hover:shadow-md tw:group-hover:scale-105 tw:transition-all">
+                <mat-icon class="material-symbols-rounded tw:text-lg!">person</mat-icon>
+              </div>
+              <span class="tw:text-[10px] tw:font-semibold tw:text-secondary tw:transition-colors">My Account</span>
+            </a>
+            <a href="#" class="tw:flex tw:flex-col tw:items-center tw:gap-0.5 tw:no-underline tw:group">
+              <div class="tw:flex tw:items-center tw:justify-center tw:w-9 tw:h-9 tw:rounded-lg tw:bg-white tw:dark:bg-white/10 tw:text-secondary tw:shadow-sm tw:border tw:border-black/5 tw:dark:border-white/10 tw:group-hover:shadow-md tw:group-hover:scale-105 tw:transition-all">
+                <mat-icon class="material-symbols-rounded tw:text-lg!">group</mat-icon>
+              </div>
+              <span class="tw:text-[10px] tw:font-semibold tw:text-secondary tw:transition-colors">My Friends</span>
+            </a>
+          </div>
+        </div>
+      } @else {
+        <!-- Logged-out State -->
+        <a href="#" class="tw:text-primary tw:hover:text-secondary tw:font-bold tw:text-sm tw:uppercase tw:tracking-wider tw:no-underline tw:hover:underline tw:transition-colors">Sign In</a>
+        <span class="tw:text-primary/20">|</span>
+        <a href="#" class="tw:text-primary tw:hover:text-secondary tw:font-bold tw:text-sm tw:uppercase tw:tracking-wider tw:no-underline tw:hover:underline tw:transition-colors">Sign Up</a>
+      }
+    </div>
+  </div>
+</header>
+
+<!-- MAIN BODY -->
+<main class="tw:flex-1 tw:flex tw:flex-col tw:w-full">
+  
+  <!-- Hero Section -->
+  <section class="tw:flex tw:items-center tw:justify-center tw:w-full tw:py-6 tw:sm:py-8 tw:md:py-10">
+    <div class="tw:relative tw:w-full tw:max-w-5xl tw:mx-auto">
+      <!-- Board Artwork Background -->
+      <img 
+        src="/assets/start-new-game-bg.png" 
+        alt="Mahjfit Game Board" 
+        class="tw:block tw:w-full tw:h-auto tw:select-none tw:pointer-events-none" 
+      />
+
+      <!-- Content Overlay: Left side text, button & workout challenge -->
+      <div class="tw:absolute tw:inset-y-0 tw:left-0 tw:w-[45%] tw:flex tw:flex-col tw:justify-between tw:py-[6%] tw:lg:py-[7%] tw:pl-[7%] tw:pr-3">
+        
+        <!-- Heading & Subtitle Block -->
+        <div class="tw:hidden tw:md:flex tw:flex-col tw:gap-2 tw:md:gap-4">
+          <h1 class="tw:text-xl tw:sm:text-2xl tw:md:text-4xl tw:font-medium tw:uppercase tw:tracking-tight tw:text-secondary tw:leading-tight">
+            Train your BRAIN.<br />Elevate your GAME.
+          </h1>
+          
+          <p class="tw:hidden tw:sm:block tw:text-xs tw:md:text-xl tw:xl:text-2xl tw:font-medium tw:text-secondary/85 tw:leading-snug tw:mt-1 tw:md:mt-3 tw:max-w-xs tw:md:max-w-sm tw:lg:max-w-md">
+            Jump into a new game, improve your skills, and stay active while you climb the leaderboard.
+          </p>
+        </div>
+
+        <!-- CTA Button -->
+        <div class="tw:w-fit tw:my-5 tw:md:my-2">
+          <button 
+            mat-flat-button 
+            color="primary"
+            class="tw:h-auto! tw:px-3.5! tw:py-2! tw:sm:px-5! tw:sm:py-2.5! tw:md:px-6! tw:md:py-3! tw:lg:px-8! tw:lg:py-3! tw:rounded-lg! tw:shadow-lg tw:hover:scale-[1.02] tw:active:scale-[0.98] tw:transition-all"
+          >
+            <div class="tw:flex tw:items-center tw:gap-1.5 tw:sm:gap-2 tw:md:gap-2.5 tw:lg:gap-3">
+              <svg class="tw:w-3.5 tw:h-3.5 tw:sm:w-4 tw:sm:h-4 tw:md:w-5 tw:md:h-5 tw:lg:w-6 tw:lg:h-6 tw:fill-white tw:shrink-0" viewBox="0 0 24 24">
+                <path d="M8 5v14l11-7z" />
+              </svg>
+              <span class="tw:text-xs tw:sm:text-sm tw:md:text-base tw:lg:text-lg tw:xl:text-xl tw:font-bold tw:whitespace-nowrap">Start New Game</span>
+            </div>
+          </button>
+        </div>
+
+        <!-- Workout Challenge -->
+        <a href="#" class="tw:flex tw:flex-col tw:text-secondary tw:no-underline tw:hover:opacity-90 tw:transition-opacity tw:group tw:w-fit">
+          <div class="tw:flex tw:items-center tw:gap-1.5 tw:md:gap-2 tw:text-xs tw:sm:text-sm tw:md:text-sm tw:lg:text-base tw:xl:text-xl tw:font-bold">
+            <span class="tw:text-xs tw:sm:text-sm tw:md:text-base tw:lg:text-xl tw:leading-none">⚡</span>
+            <span class="tw:whitespace-nowrap">Workout Challenge</span>
+          </div>
+          <p class="tw:text-[10px] tw:sm:text-xs tw:md:text-xs tw:lg:text-sm tw:xl:text-base tw:text-secondary/85 tw:leading-tight tw:mt-0.5 tw:whitespace-nowrap">
+            Win a 2026 hand, earn 25 points.
+          </p>
+        </a>
+
+      </div>
+    </div>
+  </section>
+  <section class="tw:flex tw:items-center tw:justify-center tw:w-full tw:py-6 tw:sm:py-8 tw:md:py-10">
+    <div class="tw:relative tw:w-full tw:max-w-5xl tw:mx-auto">
+      <p>Some more content will come here. This is basic idea of home page. Here we can do corrections as per our choice. This is just a standard prototype.</p>
+      <div>
+        This prototype include
+        <ul>
+          <li>
+            Header
+            <ol class="tw:ml-5">
+              <li>Menu bar</li>
+              <li>Brand logo</li>
+              <li>Signin /Signup link</li>
+              <li>If user already signed in my acocunt link (in preset)</li>
+            </ol>
+          </li>
+          <li>
+            Main Body
+            <ol class="tw:ml-5">
+              <li>Hero section with offer and slider or anything</li>
+              <li>We can add as many section as we need</li>
+              <li>This is just proto type</li>
+            </ol>
+          </li>
+          <li>
+            Footer
+            <ol class="tw:ml-5">
+              <li>Brand info</li>
+              <li>Useful links section</li>
+              <li>Subscribe or any feature we can add</li>
+              <li>Get the mobile app links</li>
+              <li>Copy rights and social links</li>
+            </ol>
+          </li>
+        </ul>
+        So, basicly this is some overview to have home page as per your provided assets.
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<!-- FOOTER -->
+<footer class="bfw-footer tw:w-full tw:mt-auto tw:border-t tw:border-black/5 tw:dark:border-white/10">
+  
+  <!-- Main Footer Content (Responsive Grid Layout: 2 cols on mobile/sm, 12 on md/lg) -->
+  <div class="tw:max-w-7xl tw:mx-auto tw:px-6 tw:py-3 tw:grid tw:grid-cols-2 tw:md:grid-cols-12 tw:gap-8 tw:lg:gap-10">
+    
+    <!-- 1st Column: Brand Icon Logo, Description & Get The App (2 cols on mobile/sm, 4 on md, 3 on lg) -->
+    <div class="tw:col-span-2 tw:md:col-span-4 tw:lg:col-span-3 tw:flex tw:flex-col tw:items-center tw:text-center tw:md:items-start tw:md:text-left tw:gap-2">
+      <a href="#" class="tw:inline-flex tw:items-center tw:gap-3.5 tw:w-fit tw:no-underline tw:hover:opacity-90 tw:transition-opacity">
+        <img src="/open/assets/brand/icons/app-icon-flower.png" alt="MAHJFIT ICON" class="tw:h-14 tw:w-auto tw:object-contain" />
+        <img src="/open/assets/brand/logo/logo-tagline.svg" alt="MAHJFIT LOGO" class="tw:h-14 tw:w-auto tw:object-contain" />
+      </a>
+      <p class="tw:text-sm tw:sm:text-base tw:leading-relaxed tw:font-medium tw:text-on-surface/80">
+        Elevate your Mahjong experience with MAHJFIT. Play, compete, and track your progress all in one unified platform.
+      </p>
+    </div>
+
+    <!-- 2nd Column: Game Menu (1 col on mobile/sm, 4 on md, 2 on lg) -->
+    <div class="tw:col-span-1 tw:md:col-span-4 tw:lg:col-span-2 tw:flex tw:flex-col tw:gap-2 tw:sm:gap-4">
+      <h4 class="tw:text-lg tw:font-bold tw:uppercase tw:tracking-widest">Game</h4>
+      <nav class="tw:flex tw:flex-col tw:gap-3">
+        <a href="#" class="tw:text-sm tw:sm:text-base tw:font-medium tw:text-on-surface/80 tw:hover:text-primary tw:no-underline tw:transition-colors">Play For Free</a>
+        <a href="#" class="tw:text-sm tw:sm:text-base tw:font-medium tw:text-on-surface/80 tw:hover:text-primary tw:no-underline tw:transition-colors">Premium Plan</a>
+        <a href="#" class="tw:text-sm tw:sm:text-base tw:font-medium tw:text-on-surface/80 tw:hover:text-primary tw:no-underline tw:transition-colors">Leaderboards</a>
+        <a href="#" class="tw:text-sm tw:sm:text-base tw:font-medium tw:text-on-surface/80 tw:hover:text-primary tw:no-underline tw:transition-colors">Challenges</a>
+      </nav>
+    </div>
+
+    <!-- 3rd Column: Support Menu (1 col on mobile/sm, 4 on md, 2 on lg) -->
+    <div class="tw:col-span-1 tw:md:col-span-4 tw:lg:col-span-2 tw:flex tw:flex-col tw:gap-2 tw:sm:gap-4">
+      <h4 class="tw:text-lg tw:font-bold tw:uppercase tw:tracking-widest">Support</h4>
+      <nav class="tw:flex tw:flex-col tw:gap-3">
+        <a href="#" class="tw:text-sm tw:sm:text-base tw:font-medium tw:text-on-surface/80 tw:hover:text-primary tw:no-underline tw:transition-colors">FAQs</a>
+        <a href="#" class="tw:text-sm tw:sm:text-base tw:font-medium tw:text-on-surface/80 tw:hover:text-primary tw:no-underline tw:transition-colors">Contact Us</a>
+        <a href="#" class="tw:text-sm tw:sm:text-base tw:font-medium tw:text-on-surface/80 tw:hover:text-primary tw:no-underline tw:transition-colors">Privacy Policy</a>
+        <a href="#" class="tw:text-sm tw:sm:text-base tw:font-medium tw:text-on-surface/80 tw:hover:text-primary tw:no-underline tw:transition-colors">Terms of Service</a>
+      </nav>
+    </div>
+
+    <!-- 4th Column: Subscribe Form (2 cols on mobile/sm, 12 on md, 5 on lg) -->
+    <div class="tw:col-span-2 tw:md:col-span-12 tw:lg:col-span-5 tw:flex tw:flex-col tw:items-center tw:text-center tw:lg:items-start tw:lg:text-left tw:gap-2">
+      <h3 class="tw:text-xl tw:sm:text-2xl tw:font-black tw:uppercase tw:tracking-tight">Stay in the Game</h3>
+      <p class="tw:text-sm tw:sm:text-base tw:leading-relaxed tw:font-medium tw:text-on-surface/80">
+        Subscribe for exclusive Mahjong tips, early access, and premium rewards.
+      </p>
+      <form class="tw:w-full tw:max-w-md tw:lg:max-w-none tw:flex tw:flex-col tw:sm:flex-row tw:lg:flex-col tw:xl:flex-row tw:gap-3 tw:mt-1" (submit)="$event.preventDefault()">
+        <input 
+          type="email" 
+          placeholder="Enter your email address" 
+          class="tw:w-full tw:min-w-0 tw:flex-1 tw:rounded-md tw:px-4 tw:py-3 tw:text-sm tw:bg-white/80 tw:dark:bg-white/10 tw:border tw:border-black/15 tw:dark:border-white/20 tw:dark:text-white tw:dark:placeholder:text-white/50 tw:outline-none tw:focus:border-primary tw:focus:ring-2 tw:focus:ring-primary/20 tw:transition-all" 
+        />
+        <button 
+          mat-flat-button 
+          color="primary" 
+          class="tw:h-12! tw:rounded-md! tw:px-7! tw:uppercase tw:font-bold tw:text-xs tw:sm:text-sm tw:tracking-wider tw:shrink-0 tw:shadow-md tw:hover:shadow-lg tw:transition-shadow"
+        >
+          Subscribe
+        </button>
+      </form>
+    </div>
+
+    <!-- Get The App -->
+    <div class="tw:col-span-2 tw:md:col-span-12 tw:flex tw:flex-col tw:items-center tw:text-center tw:gap-2">
+      <h4 class="bfw-blink tw:text-sm tw:font-bold tw:uppercase tw:tracking-widest">Get The App</h4>
+      <div class="tw:flex tw:flex-wrap tw:items-center tw:justify-center tw:gap-3">
+        <a href="#" class="bfw-app-button tw:block tw:hover:-translate-y-0.5 tw:transition-transform">
+          <img src="/assets/app-store-button.png" alt="Download on App Store" class="tw:h-10 tw:sm:h-11 tw:object-contain tw:object-left" />
+        </a>
+        <a href="#" class="bfw-app-button tw:block tw:hover:-translate-y-0.5 tw:transition-transform">
+          <img src="/assets/google-play-store-button.png" alt="Get it on Google Play" class="tw:h-10 tw:sm:h-11 tw:object-contain tw:object-left" />
+        </a>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Bottom Divider & Copyright -->
+  <div class="bfw-footer-bottom tw:border-t tw:border-black/10 tw:dark:border-white/10">
+    <div class="tw:max-w-7xl tw:mx-auto tw:px-6 tw:py-2 tw:flex tw:flex-col tw:md:flex-row tw:justify-between tw:items-center tw:gap-2 tw:md:gap-4">
+      <div class="tw:text-sm tw:font-medium tw:tracking-wide tw:text-on-surface/70">
+        &copy; 2026 MAHJFIT. All rights reserved.
+      </div>
+      <div class="tw:flex tw:items-center tw:gap-2">
+        <!-- Instagram -->
+        <a href="#" aria-label="Instagram" class="bfw-social-link tw:flex tw:items-center tw:justify-center tw:w-10 tw:h-10 tw:rounded-full tw:text-on-surface/70 tw:hover:text-primary tw:hover:bg-primary/10 tw:hover:-translate-y-0.5 tw:transition-all tw:no-underline">
+          <svg class="tw:w-5 tw:h-5" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+            <path fill-rule="evenodd" d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z" clip-rule="evenodd" />
+          </svg>
+        </a>
+        <!-- Facebook -->
+        <a href="#" aria-label="Facebook" class="bfw-social-link tw:flex tw:items-center tw:justify-center tw:w-10 tw:h-10 tw:rounded-full tw:text-on-surface/70 tw:hover:text-primary tw:hover:bg-primary/10 tw:hover:-translate-y-0.5 tw:transition-all tw:no-underline">
+          <svg class="tw:w-5 tw:h-5" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+            <path fill-rule="evenodd" d="M22 12c0-5.523-4.477-10-10-10S2 6.477 2 12c0 4.991 3.657 9.128 8.438 9.878v-6.987h-2.54V12h2.54V9.797c0-2.506 1.492-3.89 3.777-3.89 1.094 0 2.238.195 2.238.195v2.46h-1.26c-1.243 0-1.63.771-1.63 1.562V12h2.773l-.443 2.89h-2.33v6.988C18.343 21.128 22 16.991 22 12z" clip-rule="evenodd" />
+          </svg>
+        </a>
+        <!-- X (formerly Twitter) -->
+        <a href="#" aria-label="X (Twitter)" class="bfw-social-link tw:flex tw:items-center tw:justify-center tw:w-10 tw:h-10 tw:rounded-full tw:text-on-surface/70 tw:hover:text-primary tw:hover:bg-primary/10 tw:hover:-translate-y-0.5 tw:transition-all tw:no-underline">
+          <svg class="tw:w-4.5 tw:h-4.5" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
+          </svg>
+        </a>
+      </div>
+    </div>
+  </div>
+</footer>

@@ -3,9 +3,17 @@
     [privateAreaLayout]="service.PrivateAreaLayoutSlotEnum.SLOT_MAIN_HEADER_TOOLBAR_EXTENSION"
 >
     <div class="tw:flex tw:min-w-0 tw:items-center tw:gap-2">
-        <h1 class="tw:truncate tw:text-base tw:font-semibold">
-            {{ service.view.getViewTitle() | transloco }}
-        </h1>
+        <div class="tw:flex tw:items-center tw:gap-2 tw:min-w-0">
+            <mat-icon class="material-symbols-rounded tw:shrink-0">{{ service.view.getViewIcon() }}</mat-icon>
+            <div class="tw:min-w-0 tw:leading-tight">
+                <h1 class="tw:truncate tw:text-base tw:font-semibold tw:m-0 tw:leading-tight">
+                    {{ service.view.getViewTitle() | transloco }}
+                </h1>
+                @if (service.state.getRecordLabelFieldValue(service.state.actionListingRecord()); as label) {
+                    <p class="tw:truncate tw:text-xs tw:font-normal tw:m-0 tw:leading-tight tw:opacity-70">{{ label }}</p>
+                }
+            </div>
+        </div>
 
         <mat-divider [vertical]="true" class="tw:mx-1 tw:h-6!"></mat-divider>
 

@@ -73,49 +73,91 @@ export const defaultEnvironment: any = {
   // Pagination
   NUM_OF_RECORDS_PER_PAGE: 5,
 
-  // File Format
-  FILE_FORMAT_IMAGE: ['jpeg', 'jpg', 'png', 'svg', 'gif'],
-  FILE_FORMAT_DOC: ['csv', 'doc', 'docx', 'pdf', 'xsl', 'xslx', 'odt', 'ods', 'txt', 'ppt', 'pptx', 'keynote', 'number'],
-  FILE_FORMAT_AUDIO: ['mp3', 'wav', 'ogg'],
-  FILE_FORMAT_VIDEO: ['mp4', 'mkv', 'avi', 'mov', 'wmv', 'flv'],
-  FILE_FORMAT_OTHER: ['json', 'xml', 'zip', 'rar', '7z', 'apk', 'ipa', 'exe'],
-  VALID_FILE_MIME_TYPE: [
-    'image/jpeg',         // jpeg, jpg
-    'image/jpg',         // jpeg, jpg
-    'image/png',          // png
-    'image/svg+xml',      // svg
-    'image/gif',          // gif
-    'application/msword', // doc
-    'application/vnd.openxmlformats-officedocument.wordprocessingml.document', // docx
-    'application/pdf',    // pdf
-    'application/vnd.ms-excel', // xls
-    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', // xlsx
-    'application/vnd.oasis.opendocument.text', // odt
-    'application/vnd.oasis.opendocument.spreadsheet', // ods
-    'text/plain',         // txt
-    'text/csv',           // csv
-    'application/json',   // json
-    'application/xml',    // xml
-    'application/octet-stream', // number (generic binary file)
-    'application/vnd.ms-powerpoint', // ppt
-    'application/vnd.openxmlformats-officedocument.presentationml.presentation', // pptx
-    'application/vnd.apple.keynote', // keynote
-    'application/zip',    // zip
-    'application/x-rar-compressed', // rar
-    'application/x-7z-compressed',  // 7z
-    'video/mp4',          // mp4
-    'video/x-matroska',   // mkv
-    'video/x-msvideo',    // avi
-    'video/quicktime',    // mov
-    'video/x-ms-wmv',     // wmv
-    'video/x-flv',        // flv
-    'audio/mpeg',         // mp3
-    'audio/wav',          // wav
-    'audio/ogg',          // ogg
-    'application/vnd.android.package-archive', // apk
-    'application/vnd.iphone', // ipa
-    'application/x-msdownload' // exe
-  ],
+  // File Format ({ extension: mime type })
+  FILE_FORMAT_IMAGE: {
+    jpeg: 'image/jpeg',
+    jpg: 'image/jpeg',
+    png: 'image/png',
+    svg: 'image/svg+xml',
+    gif: 'image/gif',
+    webp: 'image/webp',
+    tif: 'image/tiff',
+    tiff: 'image/tiff',
+    ico: 'image/vnd.microsoft.icon',
+    bmp: 'image/bmp',
+    apng: 'image/apng',
+    avif: 'image/avif',
+    heic: 'image/heic',
+    heics: 'image/heic-sequence',
+    heif: 'image/heif',
+    heifs: 'image/heif-sequence',
+  },
+  FILE_FORMAT_DOC: {
+    csv: 'text/csv',
+    doc: 'application/msword',
+    docx: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    pdf: 'application/pdf',
+    xls: 'application/vnd.ms-excel',
+    xlsx: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    odt: 'application/vnd.oasis.opendocument.text',
+    ods: 'application/vnd.oasis.opendocument.spreadsheet',
+    txt: 'text/plain',
+    ppt: 'application/vnd.ms-powerpoint',
+    pptx: 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+    keynote: 'application/vnd.apple.keynote',
+    number: 'application/octet-stream',
+    pages: 'application/vnd.apple.pages',
+  },
+  FILE_FORMAT_AUDIO: {
+    mp3: 'audio/mpeg',
+    wav: 'audio/wav',
+    ogg: 'audio/ogg',
+  },
+  FILE_FORMAT_VIDEO: {
+    mp4: 'video/mp4',
+    mkv: 'video/x-matroska',
+    avi: 'video/x-msvideo',
+    mov: 'video/quicktime',
+    wmv: 'video/x-ms-wmv',
+    flv: 'video/x-flv',
+  },
+  FILE_FORMAT_CODE: {
+    json: 'application/json',
+    xml: 'application/xml',
+  },
+  FILE_FORMAT_EXECUTABLE: {
+    apk: 'application/vnd.android.package-archive',
+    ipa: 'application/vnd.iphone',
+    exe: 'application/x-msdownload',
+    dmg: 'application/x-apple-diskimage',
+    msi: 'application/x-msi',
+    zip: 'application/zip',
+    rar: 'application/x-rar-compressed',
+    '7z': 'application/x-7z-compressed',
+    'tar.gz': 'application/gzip',
+    dll: 'application/x-msdownload',
+    sys: 'application/octet-stream',
+    ini: 'text/plain',
+    inf: 'text/plain',
+    sh: 'application/x-sh',
+    bat: 'application/x-bat',
+    cmd: 'application/x-bat',
+  },
+  FILE_FORMAT_GRAPHICS: {
+    psd: 'image/vnd.adobe.photoshop',
+    ai: 'application/postscript',
+    eps: 'application/postscript',
+    indd: 'application/x-indesign',
+    cdr: 'application/x-cdr',
+  },
+  FILE_FORMAT_CAD: {
+    stl: 'model/stl',
+    obj: 'model/obj',
+    fbx: 'application/octet-stream',
+    gltf: 'model/gltf+json',
+    step: 'model/step',
+    dwg: 'image/vnd.dwg',
+  },
 
   // ████ INDEPENDENT env variables for this web app ████████████████████████████████████████████████████████
 

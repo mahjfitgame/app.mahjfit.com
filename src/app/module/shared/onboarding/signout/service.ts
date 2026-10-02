@@ -17,8 +17,9 @@ import { FoundationModuleServiceType } from "@libs/foundation/module/type";
 import { BfwApiService } from "@libs/third-party-apis/bfw-api/service";
 import { UserAuthentication } from "@bfw/api-sdk/graphql/endpoints/shared";
 import { BfwApiSdkError } from "@bfw/api-sdk/core";
+import { HttpStatusForbiddenRoute } from "@module/shared/http-status/forbidden/route";
 
-@Service({ autoProvided: false })
+@Service()
 export class SignoutService implements FoundationModuleServiceType {
     public readonly heading = 'ONBOARDING_SIGNOUT.HEADING';
     public readonly subHeading = 'ONBOARDING_SIGNOUT.SUBHEADING';
@@ -78,8 +79,11 @@ export class SignoutService implements FoundationModuleServiceType {
         this.gpbs.start();
         let ctxs: string | undefined = undefined;
 
+        // root singleton state: drop the previous visit's error before a new attempt
+        this.state.setError(null);
+
         try{
-            if(this.ctxp.state.ctxs() === null || this.ctxp.state.sessionToken() === null) {
+            if(this.ctxp.state.ctxs() === null || this.ctxp.state.statefulToken() === null) {
                 throw new Error('You have been already signed out.');
             }
             this.gpbs.stream = 10;
@@ -88,7 +92,7 @@ export class SignoutService implements FoundationModuleServiceType {
             const http = await this.api.sdk.graphql.userAuthentication.signOut({
                 input: {
                     ctxs: this.ctxp.state.ctxs() as string,
-                    stoken: this.ctxp.state.sessionToken() as string,
+                    stoken: this.ctxp.state.statefulToken() as string,
                 },
                 selection: {
                     htoken: true,
@@ -146,5 +150,50 @@ export class SignoutService implements FoundationModuleServiceType {
         this.gpbs.stop();
 
         return ctxs ?? false;
+    }
+    /**
+     * Used by signin when the user holds no role this app can auto-pick.
+     * Fail closed: revoke the server session, wipe local state, rotate ctxs, go to 403.
+     * Reads ctxs and the stateful token from state, like signout() — the caller must
+     * setStatefulToken() first, since that is also what puts the stateful header on the SDK.
+     * ⚠ deliberately does NOT touch gpbs, state.error or redirectAfterAuth —
+     * the caller owns the progress bar, and the user never reached their target page.
+     */
+    public async signoutAndForbid(): Promise<void> {
+        const ctxs = this.ctxp.state.ctxs();
+        const stoken = this.ctxp.state.statefulToken();
+
+        try {
+            if (ctxs && stoken) {
+                const http = await this.api.sdk.graphql.userAuthentication.signOut({
+                    input: {
+                        ctxs: ctxs,
+                        stoken: stoken,
+                    },
+                    selection: {
+                        htoken: true,
+                        ctxs: true,
+                        stoken: true,
+                        logged_in: true,
+                        keep_logged: true,
+                    }
+                });
+
+                const newCtxs = http.data.ctxs;
+                const headerCtxs = http.getResHeaderCtxs();
+                if (newCtxs && headerCtxs && newCtxs === headerCtxs) {
+                    this.ctxp.state.setCtxs(newCtxs);
+                }
+            }
+        } catch (e: any | BfwApiSdkError) {
+            // revoke failed, the local wipe below still runs
+        } finally {
+            // never keep a credential for a session with no usable role
+            this.ctxp.state.clearSession();
+        }
+
+        await this.route.router.navigateByUrl(HttpStatusForbiddenRoute.absolutePath(), {
+            replaceUrl: true,
+        });
     }
 }

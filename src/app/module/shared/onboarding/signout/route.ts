@@ -12,7 +12,7 @@ import { AreaGuard } from '@area/guard';
 import { AuthAreaRoute } from '@area/auth/route';
 import { SLUG_SIGNOUT } from '@module/shared/onboarding/signout/slug';
 
-@Service({ autoProvided: false })
+@Service()
 export class SignoutRoute extends FoundationModuleRoute {
     // CLASS PROPERTIES ▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬
     public static override readonly registryKey = 'ONBOARDING_SIGNOUT';

@@ -38,10 +38,10 @@
               }}</mat-icon>
             </button>
             <span
-              class="bfw-brand-logo tw:max-w-55 tw:opacity-100 tw:mbs-4 tw:mbe-4 tw:ms-2 tw:inline-flex tw:items-center tw:overflow-hidden tw:whitespace-nowrap tw:transition-all tw:duration-200 tw:group-hover:tw:max-w-[220px] tw:group-hover:tw:opacity-100"
+              class="tw:max-w-55 tw:opacity-100 tw:mbs-4 tw:mbe-4 tw:ms-2 tw:inline-flex tw:items-center tw:overflow-hidden tw:whitespace-nowrap tw:transition-all tw:duration-200 tw:group-hover:tw:max-w-[220px] tw:group-hover:tw:opacity-100"
             >
               <img
-                src="assets/logo.png"
+                [src]="service.brandLogoSrc"
                 [alt]="'GL.APP.BRAND_LOGO_ALT' | transloco"
                 class="tw:h-10 tw:w-10 tw:inline-block tw:align-middle"
               />
@@ -100,7 +100,7 @@
                     {{ service.ctxp.state.user_fullname }}
                   </span>
                   <span class="tw:block tw:truncate tw:text-xs tw:text-on-primary-container/70 tw:transition-colors tw:group-hover:text-on-primary-container">
-                    {{ service.ctxp.state.authorisation_role_title }}
+                    {{ service.ctxp.state.privilegeRoleTitle() }}
                   </span>
                 </span>
               </button>
@@ -140,7 +140,7 @@
               <mat-icon class="material-symbols-rounded">menu</mat-icon>
             </button>
             <div class="tw:ms-2 tw:me-2 tw:inline-flex tw:items-center tw:gap-3 tw:min-w-0">
-              @defer {
+              @defer(on idle) {
                 @if (
                   (service.state.moduleInfo() && service.state.moduleInfo()?.title) ||
                   service.state.moduleInfo()?.i18n?.title
@@ -186,7 +186,7 @@
                     </span>
                   </a>
                 }
-              } @placeholder {
+              } @placeholder (minimum 200ms) {
                 <div class="tw:inline-flex tw:items-center tw:gap-3 tw:min-w-0 tw:animate-pulse">
                   <span class="tw:h-10 tw:w-10 tw:shrink-0 tw:rounded-lg tw:bg-primary/15"></span>
                   <span class="tw:flex tw:min-w-0 tw:flex-col tw:gap-2">

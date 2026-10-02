@@ -16,9 +16,12 @@
                         <mat-icon class="material-symbols-rounded tw:h-6! tw:w-6! tw:text-2xl! tw:leading-none!">{{ service.view.getViewIcon() }}</mat-icon>
                     </span>
                     <div class="tw:min-w-0">
-                        <h2 class="tw:m-0 tw:text-xl! tw:leading-none tw:font-bold tw:truncate">
+                        <h2 class="tw:m-0 tw:text-xl! tw:leading-tight tw:font-bold tw:truncate">
                             <span>{{ service.view.getViewTitle() | transloco }}</span>
                         </h2>
+                        @if (service.state.getRecordLabelFieldValue(service.state.actionListingRecord()); as label) {
+                            <p class="tw:text-sm tw:font-normal tw:m-0 tw:leading-tight tw:opacity-70 tw:truncate">{{ label }}</p>
+                        }
                     </div>
                 </div>
                 <div class="tw:flex tw:gap-2 tw:items-center tw:shrink-0">

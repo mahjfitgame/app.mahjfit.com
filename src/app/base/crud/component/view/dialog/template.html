@@ -3,12 +3,19 @@
 <div class="tw:flex tw:flex-col tw:overflow-y-auto tw:z-20" [class]="fullscreen ? 'tw:h-full' : 'tw:max-h-[90dvh]'">
     <mat-toolbar class="tw:h-auto! tw:sticky tw:top-0 tw:z-20 tw:w-full tw:bg-transparent! tw:backdrop-blur-md tw:shrink-0">
         <div [class.bfw-safe-area-pt]="fullscreen" [class.bfw-safe-area-px]="fullscreen" class="tw:w-full">
-            <div class="tw:flex tw:w-full tw:items-center tw:justify-between tw:py-3">
-                <h2 class="tw:m-0 tw:flex tw:items-center tw:gap-2 tw:text-xl! tw:font-semibold">
-                    <mat-icon class="material-symbols-rounded">{{ service.view.getViewIcon() }}</mat-icon>
-                    {{ service.view.getViewTitle() | transloco }}
-                </h2>
-                <div class="tw:flex tw:gap-2 tw:items-center">
+            <div class="tw:flex tw:w-full tw:items-center tw:justify-between tw:gap-3 tw:py-3">
+                <div class="tw:flex tw:items-center tw:gap-3 tw:min-w-0">
+                    <mat-icon class="material-symbols-rounded tw:shrink-0">{{ service.view.getViewIcon() }}</mat-icon>
+                    <div class="tw:min-w-0">
+                        <h2 class="tw:text-xl! tw:font-semibold tw:m-0 tw:leading-tight tw:truncate">
+                            {{ service.view.getViewTitle() | transloco }}
+                        </h2>
+                        @if (service.state.getRecordLabelFieldValue(service.state.actionListingRecord()); as label) {
+                            <p class="tw:text-sm tw:font-normal tw:m-0 tw:leading-tight tw:opacity-70 tw:truncate">{{ label }}</p>
+                        }
+                    </div>
+                </div>
+                <div class="tw:flex tw:gap-2 tw:items-center tw:shrink-0">
                     @if (service.state.action.hasPrint()) {
                         <button
                             mat-icon-button

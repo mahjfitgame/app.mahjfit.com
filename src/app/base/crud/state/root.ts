@@ -1,7 +1,7 @@
 // file: src/app/base/crud/state/root.ts
 
 import { computed, inject, Injector, linkedSignal, signal } from "@angular/core";
-import { CrudActionRecordPrimaryKeyValueType, CrudActionRecordSecondaryKeyValueType, CrudModuleActionRouteType, CrudSlotFieldPortalType, CrudSlotFieldsType, CrudUniqueKeyType } from "@base/crud/type";
+import { CrudActionRecordIndexType, CrudModuleActionRouteType, CrudRecordTargetType, CrudRecordType, CrudSlotFieldPortalType, CrudSlotFieldsType, CrudUniqueKeyType } from "@base/crud/type";
 import { ConfService } from "@libs/conf/service";
 import { LogService } from "@libs/log/service";
 import { SignalStateService } from "@libs/signal-state/service";
@@ -13,7 +13,7 @@ import { CRUD_STATE_STORE_KEY } from "../const";
 import { UrlService } from "@libs/url/service";
 import { CrudRoute } from "@base/crud/route";
 import { FoundationActionEnum } from "@libs/foundation/action/enum";
-import { FoundationFieldDefaultNameEnum } from "@libs/foundation/field/enum";
+import { FoundationRouteDefaultParamEnum } from "@libs/foundation/route/enum";
 import { CrudValidation } from "../validation";
 
 export abstract class CrudRootState extends SignalStateService implements FoundationModuleStateType {
@@ -127,23 +127,36 @@ export abstract class CrudRootState extends SignalStateService implements Founda
     );
     public readonly crudAction = this._crudAction.asReadonly();
 
-    private readonly crudActionRecordPrimaryKeyFromRoute = computed<CrudActionRecordPrimaryKeyValueType>(
-        () => this.route.toCrudActionRecordPrimaryKey(this.url.state.routeParams()[FoundationFieldDefaultNameEnum.ID] ?? null),
+    /**
+     * The ':index' segment, parsed into the comma-separated multi-record shape.
+     *
+     * ONE chain where there were two. The pk and sk readings existed so a
+     * shape classifier could route a url value to one finder or the other;
+     * with a single addressing column there is nothing to classify and nothing
+     * to route, so there is nothing for two chains to drift apart over.
+     */
+    private readonly crudActionRecordIndexFromRoute = computed<CrudActionRecordIndexType>(
+        () => this.route.toCrudActionRecordIndex(
+            this.url.state.routeParams()[FoundationRouteDefaultParamEnum.INDEX] ?? null,
+        ),
     );
 
-    private readonly crudActionRecordSecondaryKeyFromRoute = computed<CrudActionRecordSecondaryKeyValueType>(
-        () => this.route.toCrudActionRecordSecondaryKey(this.url.state.routeParams()[FoundationFieldDefaultNameEnum.KEYID] ?? null),
+    private readonly _crudActionRecordIndex = linkedSignal<CrudActionRecordIndexType>(
+        () => this.crudActionRecordIndexFromRoute(),
     );
+    public readonly crudActionRecordIndex = this._crudActionRecordIndex.asReadonly();
 
-    private readonly _crudActionRecordPrimaryKey = linkedSignal<CrudActionRecordPrimaryKeyValueType>(
-        () => this.crudActionRecordPrimaryKeyFromRoute(),
-    );
-    public readonly crudActionRecordPrimaryKey = this._crudActionRecordPrimaryKey.asReadonly();
-
-    private readonly _crudActionRecordSecondaryKey = linkedSignal<CrudActionRecordSecondaryKeyValueType>(
-        () => this.crudActionRecordSecondaryKeyFromRoute(),
-    );
-    public readonly crudActionRecordSecondaryKey = this._crudActionRecordSecondaryKey.asReadonly();
+    /**
+     * The ROW the menu item was clicked on, straight off listingDataSource -
+     * no re-fetch, no re-derivation. Set by the record-action menu at click
+     * time (before the routerLink navigates), read by whichever dialog/sheet
+     * the action opens (upload title, mutation title, view, ...) for anything
+     * it needs off the record - labelField() first, more later. Cleared
+     * alongside the action itself, so it never outlives the action it was
+     * captured for.
+     */
+    private readonly _actionListingRecord = signal<CrudRecordType | null>(null);
+    public readonly actionListingRecord = this._actionListingRecord.asReadonly();
 
     // method ▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬
     public setCrudAction(action: FoundationActionEnum | null): void {
@@ -152,27 +165,22 @@ export abstract class CrudRootState extends SignalStateService implements Founda
     public clearCrudAction(): void {
         this._crudAction.set(null);
     }
-    public setCrudActionRecordPrimaryKey(key: CrudActionRecordPrimaryKeyValueType): void {
-        this._crudActionRecordPrimaryKey.set(key);
+    public setCrudActionRecordIndex(index: CrudActionRecordIndexType): void {
+        this._crudActionRecordIndex.set(index);
     }
-    public clearCrudActionRecordPrimaryKey(): void {
-        this._crudActionRecordPrimaryKey.set(null);
+    public clearCrudActionRecordIndex(): void {
+        this._crudActionRecordIndex.set(null);
     }
-    public setCrudActionRecordSecondaryKey(key: CrudActionRecordSecondaryKeyValueType): void {
-        this._crudActionRecordSecondaryKey.set(key);
+    public setActionListingRecord(record: CrudRecordType | null): void {
+        this._actionListingRecord.set(record);
     }
-    public clearCrudActionRecordSecondaryKey(): void {
-        this._crudActionRecordSecondaryKey.set(null);
+    public clearActionListingRecord(): void {
+        this._actionListingRecord.set(null);
     }
-    /**
-     * Clears BOTH key readings, not just the live one. Leaving the parked
-     * primary signal holding a stale value after an action closes is how the
-     * two chains would drift the day someone switches back.
-     */
-    public clearCrudActionAndRecordKey(): void {
+    public clearCrudActionAndRecordIndex(): void {
         this.clearCrudAction();
-        this.clearCrudActionRecordPrimaryKey();
-        this.clearCrudActionRecordSecondaryKey();
+        this.clearCrudActionRecordIndex();
+        this.clearActionListingRecord();
     }
 
     // ███████████████████████████████████████████████████████████████████
@@ -212,6 +220,41 @@ export abstract class CrudRootState extends SignalStateService implements Founda
     private readonly _deletedField = signal<string | null>(null);
     public readonly deletedField = this._deletedField.asReadonly();
 
+    private readonly _labelField = signal<string | null>(null);
+    public readonly labelField = this._labelField.asReadonly();
+
+    /**
+     * The COLUMN this module ADDRESSES records by.
+     *
+     * Any column that is unique in the table and exists on the sdk's DTOs:
+     * keyid, id, url_slug, a short code. The framework never restricts it — it
+     * hands the name to the child's findRecordsBy() and to every record
+     * mutation's where clause.
+     *
+     * ⚠ DECLARED LAST, after every other column above, because it NAMES one of
+     * them (or any other unique column). setIndexColumn() sits last in the
+     * child's standard-fields block for the same reason.
+     *
+     * ⚠ CHOOSE A NOT NULL COLUMN. A row whose index column is null cannot be
+     * addressed — no url can point at it and no where can name it. The listing
+     * shows no record menu and no checkbox for such a row rather than
+     * half-working (see CrudListingState.indexedListingRows).
+     *
+     * ⚠ ADDRESSING ONLY. It decides what travels in the record route param,
+     * what the row menu emits, which column the listing matches on, and the
+     * where key for the seven record mutations. It does NOT decide everything a
+     * child queries with: the target carries pk, sk AND the row, because upload
+     * keys on UploadInputDto.ref_id — the entity primary key — whatever
+     * addresses the record.
+     *
+     * Falls back to secondaryKey() so a module that never sets it behaves
+     * exactly as it did before this existed.
+     */
+    private readonly _indexColumn = signal<string | null>(null);
+    public readonly indexColumn = computed<string | null>(
+        () => this._indexColumn() ?? this.secondaryKey(),
+    );
+
     // method ▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬
     public setPrimaryKey(key: string): void {
         this._primaryKey.set(key);
@@ -239,6 +282,31 @@ export abstract class CrudRootState extends SignalStateService implements Founda
     }
     public setDeletedField(field: string | null): void {
         this._deletedField.set(field);
+    }
+    public setLabelField(field: string | null): void {
+        this._labelField.set(field);
+    }
+    public setIndexColumn(field: string | null): void {
+        this._indexColumn.set(field);
+
+        /**
+         * ⚠ this check is only meaningful because crudInit() calls this LAST,
+         * after every other column setter (see CrudChildServiceType). By now
+         * primaryKey and secondaryKey are set, so a null here genuinely means
+         * "this module can address no record at all" rather than "not
+         * configured yet".
+         *
+         * Worth shouting about: hasRecordAction() and hasRecordSelectionAction()
+         * both go false, so the listing silently loses its whole action column
+         * AND its checkbox column with no other symptom.
+         */
+        if (!this.indexColumn()) {
+            this.log.error(
+                '[CRUD NO INDEX COLUMN] no record can be addressed - setIndexColumn() '
+                + 'resolved null and no secondary key is set. The listing will show '
+                + 'no record actions and no checkboxes.',
+            );
+        }
     }
 
     // ███████████████████████████████████████████████████████████████████
@@ -285,6 +353,53 @@ export abstract class CrudRootState extends SignalStateService implements Founda
         }
 
         return this.getRecordFieldValue(row, rowSkField);
+    }
+    /**
+     * The index off ONE ROW — the value of indexColumn() — or null when this
+     * row carries none.
+     *
+     * Third wrapper over getRecordFieldValue(), exactly like its two siblings
+     * above; it just supplies indexColumn() as the field name. No branch: that
+     * is the whole point of the config holding a COLUMN NAME rather than a
+     * pk/sk flag.
+     */
+    public getRecordIndexColumnValue(row: any, rowIndexField?: string): string | null {
+        return this.getRecordFieldValue(row, rowIndexField ?? this.indexColumn());
+    }
+    /**
+     * The label off ONE ROW — labelField()'s value, or null when this row
+     * carries none (or the module never set labelField() at all). Fourth
+     * wrapper over getRecordFieldValue(), same shape as its siblings above.
+     *
+     * The shared consumer: upload/mutation/view titles all read this off
+     * actionListingRecord() to name which record their dialog/sheet/page is
+     * acting on ("personalised" per-record heading) - one wrapper here
+     * instead of the same `row ? getRecordFieldValue(row, labelField()) :
+     * null` repeated in each service.
+     */
+    public getRecordLabelFieldValue(row: any, rowLabelField?: string | null): string | null {
+        return this.getRecordFieldValue(row, rowLabelField ?? this.labelField());
+    }
+    /** Does this row have an index? False means no url, no action, no selection. */
+    public hasRecordIndex(row: any): boolean {
+        return this.getRecordIndexColumnValue(row) !== null;
+    }
+    /**
+     * BOTH key readings plus the row itself — what every record action hands a
+     * child, so the child picks whichever its api keys on without a second fetch.
+     *
+     * This is the cheap path: the caller already HOLDS the row (a listing row
+     * menu, a bulk selection), so nothing is looked up. The url-sourced path,
+     * where only a string is in hand, goes through
+     * CrudActionService.resolveActionProcessingRecords() instead.
+     */
+    public getRecordTarget(row: any): CrudRecordTargetType {
+        return {
+            index: this.getRecordIndexColumnValue(row),
+            pk: this.getRecordPrimaryKeyValue(row),
+            sk: this.getRecordSecondaryKeyValue(row),
+            record: row ?? null,
+        };
     }
     /** Value of the column that scopes is_main's uniqueness group, off ONE row. */
     public getIsMainFieldRefGroupRelationFieldValue(row: any, rowRefField?: string): string | null {

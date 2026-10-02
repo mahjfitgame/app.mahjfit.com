@@ -72,6 +72,20 @@
       "global": false
     },
     {
+      "key": "app.module.shared.http-status.forbidden",
+      "source": "src/app/module/shared/http-status/forbidden/i18n",
+      "path": "/i18n-runtime/app/module/shared/http-status/forbidden",
+      "langs": [
+        "ar",
+        "en",
+        "es",
+        "fr",
+        "gu",
+        "hi"
+      ],
+      "global": false
+    },
+    {
       "key": "app.module.shared.http-status.not-found",
       "source": "src/app/module/shared/http-status/not-found/i18n",
       "path": "/i18n-runtime/app/module/shared/http-status/not-found",

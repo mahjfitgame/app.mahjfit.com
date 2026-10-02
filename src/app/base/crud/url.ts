@@ -6,14 +6,14 @@ import { CrudFieldNormalizeModeEnum, CrudFieldUiTypeEnum, CrudUrlFieldFlagValueE
 import { LogService } from "@libs/log/service";
 import { FoundationActionEnum } from "@libs/foundation/action/enum";
 import { CrudState } from "src/app/base/crud/state/entry";
-import { CrudStateFormFieldUpdaterType, CrudStateFormFieldObjType, CrudActionRecordPrimaryKeyValueType, CrudActionRecordSecondaryKeyValueType, CrudFormFieldInfoType } from "@base/crud/type";
+import { CrudStateFormFieldUpdaterType, CrudStateFormFieldObjType, CrudActionRecordIndexType, CrudFormFieldInfoType } from "@base/crud/type";
 import { CrudUtility } from "@base/crud/utility";
 import { CrudValidation } from "@base/crud/validation";
 import { NavigationEnd, Router } from "@angular/router";
 import { Location } from '@angular/common';
 import { catchError, filter, firstValueFrom, map, of, take, timeout } from "rxjs";
 import { CrudRoute } from "@base/crud/route";
-import { FoundationFieldDefaultNameEnum } from "@libs/foundation/field/enum";
+import { FoundationRouteDefaultParamEnum } from "@libs/foundation/route/enum";
 
 @Service({ autoProvided: false })
 export class CrudUrl {
@@ -700,70 +700,39 @@ export class CrudUrl {
     public getCreateActionUrl(): string {
         return this.state.getModuleRoute().absolutePathCreate();
     }
-    /** LIVE — secondary-key addressed read-only record url. */
-    public getViewActionUrlBySecondaryKey(key: CrudActionRecordSecondaryKeyValueType): string {
-        return this.state.getModuleRoute().absolutePathView(this.getActionRouteKey(key));
-    }
-    /** LIVE — secondary-key addressed print url. */
-    public getPrintActionUrlBySecondaryKey(key: CrudActionRecordSecondaryKeyValueType): string {
-        return this.state.getModuleRoute().absolutePathPrint(this.getActionRouteKey(key));
-    }
     /**
-     * PARKED — primary-key addressed update url.
+     * Record-addressed read-only url — fills :index with this module's index.
      *
-     * Fills ':id', the param the parked CrudState/CrudRoute primary chain reads
-     * back. The UPDATE route currently declares ':keyid', so the central path
-     * builder drops that unmatched placeholder until a primary-key addressed
-     * action slug exists. That remains parked rather than silently becoming a
-     * duplicate of the secondary builder.
-     *
-     * Use getUpdateActionUrlBySecondaryKey() for anything real.
+     * ONE builder per action, not the ByPrimaryKey/BySecondaryKey pair this
+     * replaced. Those differed only in which key they were handed, and under a
+     * single addressing column that distinction is gone — keeping
+     * "BySecondaryKey" on a method that may carry any column would be
+     * actively misleading. The pk half also had no call site anywhere.
      */
-    public getUpdateActionUrlByPrimaryKey(id: CrudActionRecordPrimaryKeyValueType): string {
-        return this.getCrudActionUrl(FoundationActionEnum.UPDATE, {
-            [`:${FoundationFieldDefaultNameEnum.ID}`]: this.getActionRouteKey(id),
-        });
+    public getViewActionUrl(index: CrudActionRecordIndexType): string {
+        return this.state.getModuleRoute().absolutePathView(this.getActionRouteIndex(index));
+    }
+    /** Record-addressed print url — see getViewActionUrl(). */
+    public getPrintActionUrl(index: CrudActionRecordIndexType): string {
+        return this.state.getModuleRoute().absolutePathPrint(this.getActionRouteIndex(index));
+    }
+    /** Record-addressed update url — see getViewActionUrl(). */
+    public getUpdateActionUrl(index: CrudActionRecordIndexType): string {
+        return this.state.getModuleRoute().absolutePathUpdate(this.getActionRouteIndex(index));
+    }
+    /** Record-addressed upload url — see getViewActionUrl(). */
+    public getUploadActionUrl(index: CrudActionRecordIndexType): string {
+        return this.state.getModuleRoute().absolutePathUpload(this.getActionRouteIndex(index));
+    }
+    /** Record-addressed duplicate url — see getViewActionUrl(). */
+    public getDuplicateActionUrl(index: CrudActionRecordIndexType): string {
+        return this.state.getModuleRoute().absolutePathDuplicate(this.getActionRouteIndex(index));
     }
 
-    /**
-     * LIVE — secondary-key addressed update url.
-     *
-     * Fills ':keyid', which is what the UPDATE action route declares and what
-     * CrudState.crudActionRecordSecondaryKey reads back, so the builder and the
-     * reader cannot drift.
-     */
-    public getUpdateActionUrlBySecondaryKey(key: CrudActionRecordSecondaryKeyValueType): string {
-        return this.state.getModuleRoute().absolutePathUpdate(this.getActionRouteKey(key));
-    }
-
-    /**
-     * PARKED — primary-key addressed duplicate url. The DUPLICATE route currently
-     * declares ':keyid', so this follows the same parked contract as UPDATE above
-     * until a primary-key addressed action slug exists.
-     */
-    public getDuplicateActionUrlByPrimaryKey(id: CrudActionRecordPrimaryKeyValueType): string {
-        return this.getCrudActionUrl(FoundationActionEnum.DUPLICATE, {
-            [`:${FoundationFieldDefaultNameEnum.ID}`]: this.getActionRouteKey(id),
-        });
-    }
-
-    /** LIVE — secondary-key addressed duplicate url. */
-    public getDuplicateActionUrlBySecondaryKey(key: CrudActionRecordSecondaryKeyValueType): string {
-        return this.state.getModuleRoute().absolutePathDuplicate(this.getActionRouteKey(key));
-    }
-
-    private getActionRouteKey(
-        value: CrudActionRecordPrimaryKeyValueType | CrudActionRecordSecondaryKeyValueType,
+    private getActionRouteIndex(
+        index: CrudActionRecordIndexType,
     ): string | number {
-        return Array.isArray(value) ? value.join(',') : value ?? '';
-    }
-
-    /** Only parked action URLs use this generic path API. */
-    private getCrudActionUrl(
-        action: FoundationActionEnum,
-        params: Record<string, string | number> = {},
-    ): string {
-        return this.state.getModuleRoute().absolutePathAction(action, params);
+        return Array.isArray(index) ? index.join(',') : index ?? '';
     }
     public async navigateAwayFromCrudAction(): Promise<boolean> {
         const returnUrl = history.state?.crudReturnUrl;

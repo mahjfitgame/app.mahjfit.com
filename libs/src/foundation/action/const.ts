@@ -1,5 +1,5 @@
 // file: libs/src/foundation/action/const.ts
-import { FoundationFieldDefaultNameEnum } from '../field/enum';
+import { FoundationRouteDefaultParamEnum } from '../route/enum';
 import { FoundationActionEnum } from './enum';
 import { FoundationActionRouteConfigType } from './type';
 
@@ -15,10 +15,15 @@ import { FoundationActionRouteConfigType } from './type';
  * params on the module's own route (listing, quick-search, column-position, ...)
  * or a record mutation with no url surface of its own (soft-delete, delete, ...)
  *
- * ⚠ `slug` is DERIVED from FoundationActionEnum + FoundationFieldDefaultNameEnum,
+ * ⚠ `slug` is DERIVED from FoundationActionEnum + FoundationRouteDefaultParamEnum,
  * never a hand typed literal. that is what FoundationActionSlugEnum used to
  * guarantee — rename FoundationActionEnum.UPDATE and every consumer here moves
  * with it, no literal string left behind to drift
+ *
+ * ⚠ the record-scoped slugs declare :index, a PARAM name, not a column name.
+ * what travels in it is whatever the module passed to setSecondaryKey() (or
+ * setPrimaryKey(), where the module opts into pk addressing) — CrudState
+ * decides which by shape. see libs/src/foundation/route/enum.ts
  */
 /**
  * @FOUNDATION_MODULE_ACTION / @FOUNDATION_RECORD_ACTION / @FOUNDATION_LISTING_ACTION
@@ -75,15 +80,15 @@ export const FOUNDATION_LISTING_ACTION: FoundationActionEnum[] = [
 
 export const FOUNDATION_ACTION_ROUTE_CONFIG: Partial<Record<FoundationActionEnum, FoundationActionRouteConfigType>> = {
     [FoundationActionEnum.CREATE]:          { slug: FoundationActionEnum.CREATE,                                                          labelKey: 'GL.ACTION.CREATE',          aliasSuffix: 'Create' },
-    [FoundationActionEnum.UPDATE]:          { slug: `${FoundationActionEnum.UPDATE}/:${FoundationFieldDefaultNameEnum.KEYID}`,             labelKey: 'GL.ACTION.UPDATE',          aliasSuffix: 'Update' },
-    [FoundationActionEnum.VIEW]:            { slug: `${FoundationActionEnum.VIEW}/:${FoundationFieldDefaultNameEnum.KEYID}`,               labelKey: 'GL.ACTION.VIEW',            aliasSuffix: 'View' },
-    [FoundationActionEnum.UPLOAD]:          { slug: FoundationActionEnum.UPLOAD,                                                          labelKey: 'GL.ACTION.UPLOAD',          aliasSuffix: 'Upload' },
-    [FoundationActionEnum.UPLOAD_DELETE]:   { slug: `${FoundationActionEnum.UPLOAD_DELETE}/:${FoundationFieldDefaultNameEnum.KEYID}`,      labelKey: 'GL.ACTION.UPLOAD_DELETE',   aliasSuffix: 'UploadDelete' },
-    [FoundationActionEnum.FILE_RELOCATION]: { slug: `${FoundationActionEnum.FILE_RELOCATION}/:${FoundationFieldDefaultNameEnum.KEYID}`,    labelKey: 'GL.ACTION.FILE_RELOCATION', aliasSuffix: 'FileRelocation' },
+    [FoundationActionEnum.UPDATE]:          { slug: `${FoundationActionEnum.UPDATE}/:${FoundationRouteDefaultParamEnum.INDEX}`,             labelKey: 'GL.ACTION.UPDATE',          aliasSuffix: 'Update' },
+    [FoundationActionEnum.VIEW]:            { slug: `${FoundationActionEnum.VIEW}/:${FoundationRouteDefaultParamEnum.INDEX}`,               labelKey: 'GL.ACTION.VIEW',            aliasSuffix: 'View' },
+    [FoundationActionEnum.UPLOAD]:          { slug: `${FoundationActionEnum.UPLOAD}/:${FoundationRouteDefaultParamEnum.INDEX}`,             labelKey: 'GL.ACTION.UPLOAD',          aliasSuffix: 'Upload' },
+    [FoundationActionEnum.UPLOAD_DELETE]:   { slug: `${FoundationActionEnum.UPLOAD_DELETE}/:${FoundationRouteDefaultParamEnum.INDEX}`,      labelKey: 'GL.ACTION.UPLOAD_DELETE',   aliasSuffix: 'UploadDelete' },
+    [FoundationActionEnum.FILE_RELOCATION]: { slug: `${FoundationActionEnum.FILE_RELOCATION}/:${FoundationRouteDefaultParamEnum.INDEX}`,    labelKey: 'GL.ACTION.FILE_RELOCATION', aliasSuffix: 'FileRelocation' },
     [FoundationActionEnum.IMPORT]:          { slug: FoundationActionEnum.IMPORT,                                                          labelKey: 'GL.ACTION.IMPORT',          aliasSuffix: 'Import' },
     [FoundationActionEnum.EXPORT]:          { slug: FoundationActionEnum.EXPORT,                                                          labelKey: 'GL.ACTION.EXPORT',          aliasSuffix: 'Export' },
     [FoundationActionEnum.INSIGHT]:         { slug: FoundationActionEnum.INSIGHT,                                                         labelKey: 'GL.ACTION.INSIGHT',         aliasSuffix: 'Insight' },
-    [FoundationActionEnum.PRINT]:           { slug: `${FoundationActionEnum.PRINT}/:${FoundationFieldDefaultNameEnum.KEYID}`,              labelKey: 'GL.ACTION.PRINT',           aliasSuffix: 'Print' },
-    [FoundationActionEnum.SHARE]:           { slug: `${FoundationActionEnum.SHARE}/:${FoundationFieldDefaultNameEnum.KEYID}`,              labelKey: 'GL.ACTION.SHARE',           aliasSuffix: 'Share' },
-    [FoundationActionEnum.DUPLICATE]:       { slug: `${FoundationActionEnum.DUPLICATE}/:${FoundationFieldDefaultNameEnum.KEYID}`,          labelKey: 'GL.ACTION.DUPLICATE',       aliasSuffix: 'Duplicate' },
+    [FoundationActionEnum.PRINT]:           { slug: `${FoundationActionEnum.PRINT}/:${FoundationRouteDefaultParamEnum.INDEX}`,              labelKey: 'GL.ACTION.PRINT',           aliasSuffix: 'Print' },
+    [FoundationActionEnum.SHARE]:           { slug: `${FoundationActionEnum.SHARE}/:${FoundationRouteDefaultParamEnum.INDEX}`,              labelKey: 'GL.ACTION.SHARE',           aliasSuffix: 'Share' },
+    [FoundationActionEnum.DUPLICATE]:       { slug: `${FoundationActionEnum.DUPLICATE}/:${FoundationRouteDefaultParamEnum.INDEX}`,          labelKey: 'GL.ACTION.DUPLICATE',       aliasSuffix: 'Duplicate' },
 };

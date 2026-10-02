@@ -11,6 +11,9 @@ import { UtilityService } from "@libs/utility/service";
 @Service({ autoProvided: false })
 export class AuthAreaLayoutService {
 
+    public readonly brandLogoSrc = 'open/assets/brand/icons/icon-128x128.png';
+    //public readonly brandLogoSrc = 'private/assets/brand/logo/logo.png';
+
     public FoundationNavPositionEnum = FoundationNavPositionEnum;
 
     public readonly state = inject(AuthAreaLayoutState);

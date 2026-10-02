@@ -2,13 +2,13 @@
 /*
 To use any variable from below 2 files
 @use './variable' as *;
-@use './color' as *;
 we need to export values as css variable/token and use here
 at run time it will readable by code
 
 So, to make this code du=ynamic and sync with variable changes
 need to define css variable not SCSS variable and use in this file
 */
+/* 1. Core Tailwind v4 with your global 'tw:' prefix */
 @import "tailwindcss" prefix(tw);
 
 /* This maps the 'dark:' prefix to the '.dark' CSS class, we have attribute selector */

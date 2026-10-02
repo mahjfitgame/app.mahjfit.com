@@ -1,0 +1,9 @@
+// file: src/theme/open/_thirdparty_override.scss
+/*
+Loaded LAST before print, so anything written here wins over the theme's own layout and
+component rules. Empty for now — the open theme has no third-party template to override
+(see _thirdparty.scss). Package-level fixes belong in _component.scss unless they need to
+beat a rule this theme itself wrote.
+*/
+@use '../breakpoint' as *;
+@use './variable' as *;

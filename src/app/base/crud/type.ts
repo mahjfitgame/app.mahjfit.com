@@ -1,5 +1,6 @@
 // file: src/app/base/crud/type.ts
 import { Signal, WritableSignal } from "@angular/core";
+import { FileAccessUrlType, FileMediaDimensionResultType } from '@base/form-fields/file/type';
 import type { ScrollStrategy } from "@angular/cdk/overlay";
 import { CrudDataLoadTypeEnum, CrudFieldUiTypeEnum, CrudFieldValidationEnum, CrudListOperationFieldsEnum, CrudViewOptionFieldsEnum, CrudFieldNormalizeModeEnum } from "@base/crud/enum";
 import { Portal } from "@angular/cdk/portal";
@@ -534,10 +535,29 @@ export interface CrudFieldValidationInfoType {
      * 
      * If (type=match) then value should be a string name of field that need to look up for value as argument
      * value: id (field name)
+     *
+     * If (type=media_dimension) then value is an object describing the allowed pixel size
+     * of an image or video: { width?, height?, width_from?, width_to?, height_from?, height_to? }
+     * Per axis (width/height): set the plain field for an exact size, set `*_from`/`*_to`
+     * for a range (either one alone is a min-only / max-only bound), or omit the axis
+     * entirely to leave it unchecked. Whether a picked file is an image or a video is
+     * determined independently from this.conf.fileFormatImage / this.conf.fileFormatVideo,
+     * not from this field's own file_extension rule.
+     *
+     * If (type=max_files) then value is a positive whole number - the max count of files
+     * picked at once. Meaningful only with file.multiple; a single value always counts as 1.
      */
     value: any | ((value: any, finfo: CrudFormFieldInfoType, record: any) => CrudFieldValidationResultType);
 }
 export type CrudFieldValidationType = Partial<Record<CrudFieldValidationEnum, CrudFieldValidationInfoType>>;
+
+/**
+ * Outcome of decoding one file for the MEDIA_DIMENSION rule:
+ * - 'unsupported': the file's extension isn't in this.conf.fileFormatImage or this.conf.fileFormatVideo
+ * - 'undecodable': it looked like an image/video but the browser couldn't read its dimensions
+ * - 'ok': dimensions were read successfully
+ */
+export type CrudMediaDimensionValidationResult = FileMediaDimensionResultType;
 
 export interface CrudFieldFlagLabelType {
     /**
@@ -572,16 +592,7 @@ export interface CrudFieldFlagType {
  * UploadFileAccessUrlDto returns. An api that spells its variants differently
  * is a framework edit (that const), not a per-field option.
  */
-export interface CrudFieldFileShapeType {
-    /** Small, listing-sized image. The listing draws this one, always. */
-    thumb: string;
-
-    /** Full-size public url. */
-    direct: string;
-
-    /** Full-size signed / access-controlled url. */
-    secure: string;
-}
+export type CrudFieldFileShapeType = FileAccessUrlType;
 
 /** FILE display metadata - how a file column resolves its url and what it draws. */
 export interface CrudFieldFileType {
@@ -639,6 +650,15 @@ export interface CrudFieldFileType {
      * ⚠ read only when [slideshow] is true.
      */
     slideshow_size?: BreakpointSizeEnum;
+
+    /**
+     * multiple: boolean (default false)
+     * OPT-IN, same stance as [is_image]/[slideshow]. true adds the `multiple`
+     * attribute to the underlying <input type="file"> once the form-fields FILE
+     * control exists (Phase 2) - the value carried by this field then becomes
+     * File[] instead of File.
+     */
+    multiple?: boolean;
 }
 
 export interface CrudFieldRangeType {
@@ -1039,6 +1059,22 @@ export type CrudStateViewOptionFieldObjType = Partial<Record<CrudViewOptionField
 export type CrudStateListOperationFieldObjType = Record<CrudListOperationFieldsEnum, CrudFormFieldInfoType>;
 export type CrudStateListingSearchFieldObjType = CrudStateFormFieldObjType;
 
+/**
+ * Options bag for {@link CrudService.setFieldObj}. Every key is optional so a
+ * module wires only the concerns it actually has (an upload-only module skips
+ * mutation, a mutation-only module skips upload, etc.) - each key is applied
+ * only when present, nothing is cleared when a key is left out.
+ */
+export interface CrudSetFieldObjType {
+    listing?: CrudStateListingFieldObjType;
+    searchFilter?: CrudStateSearchFilterFieldObjType;
+    mutation?: CrudStateMutationFieldObjType;
+    upload?: CrudStateMutationFieldObjType;
+    view?: CrudStateViewFieldObjType;
+    listOperation?: CrudStateListOperationFieldObjType;
+    viewOption?: CrudStateViewOptionFieldObjType;
+}
+
 
 
 
@@ -1080,8 +1116,16 @@ export interface CrudModuleContextType {
 export type CrudUniqueKeyType = (string | string[])[];
 export type CrudSlotFieldPortalType = Portal<any>;
 export type CrudSlotFieldsType = Record<string, CrudSlotFieldPortalType>;
-export type CrudActionRecordPrimaryKeyValueType = string | number | string[] | number[] | null;
-export type CrudActionRecordSecondaryKeyValueType = string | number | string[] | number[] | null;
+/**
+ * The ':index' route segment's parsed value — scalar, or an array for the
+ * comma-separated multi-record form.
+ *
+ * ONE type where there were two identical ones (…PrimaryKeyValueType /
+ * …SecondaryKeyValueType). They existed so a shape classifier could route a
+ * url value to one finder or the other; with a single addressing column there
+ * is nothing to classify.
+ */
+export type CrudActionRecordIndexType = string | number | string[] | number[] | null;
 
 /**
  * The explicit route API every CRUD child supplies.
@@ -1101,16 +1145,9 @@ export interface CrudModuleActionRouteType extends FoundationModuleRouteType {
     absolutePathViewArr(keyid: string | number): string[];
     absolutePathPrint(keyid: string | number): string;
     absolutePathPrintArr(keyid: string | number): string[];
+    absolutePathUpload(keyid: string | number): string;
+    absolutePathUploadArr(keyid: string | number): string[];
 }
-/** Record mutations that use the shared confirm/notify/listing-update flow. */
-export type CrudRecordActionType =
-    FoundationActionEnum.ACTIVE
-    | FoundationActionEnum.INACTIVE
-    | FoundationActionEnum.MARK_AS_MAIN
-    | FoundationActionEnum.SOFT_DELETE
-    | FoundationActionEnum.RESTORE
-    | FoundationActionEnum.DELETE;
-
 export type CrudEndDrawerOnCloseType = Record<string, (() => void) | null> | null;
 
 export type CrudSearchFilterInputType = Partial<Record<keyof CrudStateSearchFilterFieldObjType, any>>;
@@ -1151,6 +1188,8 @@ export interface CrudMutationResultType {
     success: boolean;
     message?: string;
     fieldErrors?: CrudMutationFieldErrorType;
+    /** Optional payload a handler hands back for the caller to patch local state with. */
+    data?: Record<string, unknown>;
 }
 
 export type CrudCreateHandlerType = (
@@ -1158,8 +1197,28 @@ export type CrudCreateHandlerType = (
 ) => Promise<CrudMutationResultType>;
 
 export type CrudUpdateHandlerType = (
-    keyid: string | number,
+    target: CrudRecordTargetType,
     input: CrudMutationInputType,
+) => Promise<CrudMutationResultType>;
+
+/**
+ * Upload is where addressing and querying visibly disagree: the slug carries
+ * :index, whatever column setIndexColumn() names, while an upload mutation
+ * keys on the entity PRIMARY key (UploadInputDto.ref_id). It reads target.pk,
+ * which is why the target carries pk and sk alongside the index.
+ *
+ * It used to take pk/sk/record as three positional arguments while every other
+ * handler took a bare key — the shape this whole contract generalised FROM.
+ */
+export type CrudUploadHandlerType = (
+    target: CrudRecordTargetType,
+    input: CrudMutationInputType,
+) => Promise<CrudMutationResultType>;
+
+/** Same shape, same reasons — see CrudUploadHandlerType. */
+export type CrudUploadDeleteHandlerType = (
+    target: CrudRecordTargetType,
+    fkey: string,
 ) => Promise<CrudMutationResultType>;
 
 export type CrudRecordKeyType = string | number;
@@ -1171,26 +1230,78 @@ export type CrudRecordKeyInputType =
 export type CrudRecordType = Record<string, unknown>;
 
 /**
- * Module-owned record lookup. CRUD normalizes scalar/array input into a
- * non-empty, de-duplicated key array and supplies the action's required
- * record-field schema before invoking the handler.
+ * What an action resolved about ONE record before handing it to a child.
+ *
+ * Every record carries two identifiers — sk (public, a string, what travels in
+ * urls) and pk (internal, a number, what the sdk's upload mutations key on) —
+ * so every handler receives both plus the row, and the child reads whichever
+ * its api wants. Today's children use sk for update/active/delete/restore/
+ * markAsMain and pk for upload, but that is a default, not a constraint.
+ *
+ * pk and sk are both NULLABLE because they are read off the ROW: an unresolved
+ * record must reach the child as null so it can refuse with its own message,
+ * rather than posting the literal "null" to the api.
  */
-export type CrudFindByKeyHandlerType = (
-    keys: readonly CrudRecordKeyType[],
+export type CrudRecordTargetType = {
+    /**
+     * The value this module ADDRESSED the record by — the contents of
+     * CrudState.indexColumn() for this row. What the seven record mutations
+     * key their where clause on.
+     *
+     * Unlike pk and sk it also carries the URL value as a fallback when no row
+     * resolved, because it is the identifier the action was actually invoked
+     * with. Still nullable: a row with a null index column has none.
+     */
+    index: CrudRecordKeyType | null;
+    pk: CrudRecordKeyType | null;
+    sk: CrudRecordKeyType | null;
+    record: CrudRecordType | null;
+};
+
+/**
+ * Scalar or array, mirroring CrudRecordKeyType / CrudRecordKeyInputType.
+ *
+ * ⚠ NOT always-array. isBulk is ARITY-based — `Array.isArray(targets)` — and a
+ * bulk action on a SINGLE row is still bulk: it suppresses the per-record
+ * message via toAffectedResult(data, isBulk) AND drops the
+ * `deleted: { nulls: true }` clause from the where. Deriving isBulk from
+ * `length > 1` would silently change both.
+ */
+export type CrudRecordTargetInputType =
+    | CrudRecordTargetType
+    | CrudRecordTargetType[];
+
+/**
+ * Module-owned record lookup, BY COLUMN. CRUD normalizes scalar/array input
+ * into a non-empty, de-duplicated value array and supplies the action's
+ * required record-field schema before invoking the handler.
+ *
+ * `field` is normally CrudState.indexColumn(), but the handler must not assume
+ * that: it is any unique column on the entity, and the child's implementation
+ * puts it straight into the where clause rather than mapping it.
+ *
+ * ONE handler, not the find-by-primary/find-by-secondary pair this replaced.
+ * Both children's findRecordsBy() already took a column name, so that pair was
+ * two thin wrappers feeding one column-parameterised method — and its only
+ * consumer was the pk/sk dispatch that indexColumn() removes.
+ */
+export type CrudFindByIndexColumnHandlerType = (
+    field: string,
+    indexes: readonly CrudRecordKeyType[],
     fieldObj: CrudStateRecordFieldObjType,
 ) => Promise<CrudRecordType[]>;
 
 export type CrudActiveHandlerType = (
-    keyid: CrudRecordKeyInputType,
+    targets: CrudRecordTargetInputType,
 ) => Promise<CrudMutationResultType>;
 
 export type CrudInactiveHandlerType = (
-    keyid: CrudRecordKeyInputType,
+    targets: CrudRecordTargetInputType,
 ) => Promise<CrudMutationResultType>;
 
 /**
- * SINGLE record only — hence CrudRecordKeyType, not CrudRecordKeyInputType like
- * every other record-action handler. The api marks exactly one row main per
+ * SINGLE record only — hence CrudRecordTargetType, not CrudRecordTargetInputType
+ * like every other record-action handler. The api marks exactly one row main per
  * group, so there is no bulk form of this action and no
  * GL.CRUD.SELECTED_RECORD_ACTION.MARK_AS_MAIN message set to reach.
  *
@@ -1200,21 +1311,21 @@ export type CrudInactiveHandlerType = (
  * the api ignores it.
  */
 export type CrudMarkAsMainHandlerType = (
-    keyid: CrudRecordKeyType,
+    target: CrudRecordTargetType,
     markAsMainField: string,
     refGroupRelationFieldValue: string | null,
 ) => Promise<CrudMutationResultType>;
 
 export type CrudSoftDeleteHandlerType = (
-    keyid: CrudRecordKeyInputType,
+    targets: CrudRecordTargetInputType,
 ) => Promise<CrudMutationResultType>;
 
 export type CrudRestoreHandlerType = (
-    keyid: CrudRecordKeyInputType,
+    targets: CrudRecordTargetInputType,
 ) => Promise<CrudMutationResultType>;
 
 export type CrudDeleteHandlerType = (
-    keyid: CrudRecordKeyInputType,
+    targets: CrudRecordTargetInputType,
 ) => Promise<CrudMutationResultType>;
 
 export type CrudFieldObj = Record<string, any>;
@@ -1226,6 +1337,8 @@ export type CrudFieldObjInput = CrudFieldObj | CrudFieldObj[] | null | undefined
  * █ CRUD STATE ████████████████████████████████████████████████████████
  * █████████████████████████████████████████████████████████████████████
  */
+
+export type CrudReloadListingAfterActionType = Partial<Record<FoundationActionEnum, boolean>>;
 
 /** Runtime contract implemented by {@link CrudListingState}. */
 export interface CrudListingStateType {
@@ -1280,6 +1393,48 @@ export interface CrudMutationStateType {
     setMutationFormProcessing(processing: boolean): void;
     setMutationFormValues(input?: Record<string, any>): void;
     resetMutationForm(): void;
+}
+
+/**
+ * Runtime contract implemented by {@link CrudUploadState}.
+ *
+ * Same as CrudMutationStateType: the UI-config signals (size, custom form
+ * component) are implementation details of the concrete class, not part of
+ * this contract - CrudMutationStateType leaves its own layout/size/custom
+ * component signals out for the same reason.
+ */
+export interface CrudUploadStateType {
+    _uploadFieldObj: WritableSignal<CrudStateMutationFieldObjType>;
+    uploadFieldObj: Signal<CrudStateMutationFieldObjType>;
+
+    _uploadFormError: WritableSignal<CrudMutationFormErrorType>;
+    uploadFormError: Signal<CrudMutationFormErrorType>;
+
+    _uploadFormModel: WritableSignal<Record<string, any>>;
+    uploadFormModel: Signal<Record<string, any>>;
+
+    _uploadFormProcessing: WritableSignal<boolean>;
+    uploadFormProcessing: Signal<boolean>;
+
+    uploadForm: FieldTree<Record<string, any>>;
+
+    setUploadFieldObj(fieldObj: CrudStateMutationFieldObjType): void;
+    setUploadFormError(error: CrudMutationFormErrorType): void;
+    updateUploadFormError(error: Partial<CrudMutationFormErrorType>): void;
+    clearUploadFormError(): void;
+    setUploadFormModel(input: Record<string, any>): void;
+    updateUploadFormModel(input: Partial<Record<string, any>>): void;
+    clearUploadFormModel(): void;
+    setUploadFormProcessing(processing: boolean): void;
+    setUploadFormValues(input?: Record<string, any>): void;
+    resetUploadForm(): void;
+
+    _uploadRecord: WritableSignal<CrudRecordType | null>;
+    uploadRecord: Signal<CrudRecordType | null>;
+    setUploadRecord(record: CrudRecordType | null): void;
+
+    /** at least one FILE field is actually wired (fr_field set) to read/preview an existing file */
+    hasUploadableField: Signal<boolean>;
 }
 
 /** Runtime contract implemented by {@link CrudSearchFilterState}. */

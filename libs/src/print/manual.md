@@ -287,7 +287,7 @@ Page-level rules that apply to every print (white background, `@page` margins, f
 You do not need to branch on platform; `element()` and `html()` already do. It is worth knowing why:
 
 - **Web** — the content is cloned into an offscreen iframe that gets its own document: `<html lang/dir>` copied (RTL prints correctly), the head's `<style>`/`<link>` nodes imported, `<body>`'s classes and theme attributes copied (this is what makes CSS custom properties resolve). Then it waits for those stylesheets — on a warm cache that is no wait at all — and prints.
-- **Native (iOS/Android)** — a Capacitor WebView ignores `window.print()`, so there is no iframe to print. The OS prints the **live** document instead: the clone is mounted as `#bfw-print-root` on `<body>` and [`src/theme/active/_print.scss`](../../../src/theme/active/_print.scss) hides everything else, then `Printer.printWebView()` runs. The clone stays mounted until the print sheet closes, because both platforms render it lazily.
+- **Native (iOS/Android)** — a Capacitor WebView ignores `window.print()`, so there is no iframe to print. The OS prints the **live** document instead: the clone is mounted as `#bfw-print-root` on `<body>` and [`src/theme/private/_print.scss`](../../../src/theme/private/_print.scss) hides everything else, then `Printer.printWebView()` runs. The clone stays mounted until the print sheet closes, because both platforms render it lazily.
 
 That second path is also why the printable content must survive being detached from its place in the layout. Keep print areas self-contained: styles that depend on a scrolling ancestor, a drawer, or a dialog wrapper will not be there on paper.
 

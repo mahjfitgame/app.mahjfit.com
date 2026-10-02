@@ -1,0 +1,9 @@
+<!-- file: src/app/base/crud/component/upload/form/template.html -->
+<form id="crudUploadForm" enctype="multipart/form-data" (submit)="$event.preventDefault(); service.upload.submitUploadForm()" novalidate>
+      <crud-form-field-component
+         [formFieldObj]="[service.state.upload.uploadFieldObj()]"
+         [formState]="service.state.upload.uploadForm"
+         [slotPrefix]="service.CrudFieldSlotPortalKeyPrefixEnum.MUTATION"
+      >
+      </crud-form-field-component>
+</form>

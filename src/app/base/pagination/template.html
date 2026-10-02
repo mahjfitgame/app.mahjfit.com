@@ -1,5 +1,7 @@
-<div class="bfw-pagination-container">
-  <div class="bfw-pagination-inline">
+<div class="bfw-pagination-container tw:flex tw:items-center tw:w-full tw:justify-end tw:max-md:justify-center">
+  <div class="bfw-pagination-inline tw:inline-flex tw:items-center tw:flex-wrap tw:gap-2
+              tw:max-md:flex tw:max-md:w-full tw:max-md:flex-col tw:max-md:justify-center tw:max-md:gap-3
+              tw:rtl:flex-row-reverse">
     <mat-paginator
       [length]="totalRecords()"
       [pageIndex]="currentMatPageIndex"
@@ -12,12 +14,12 @@
     </mat-paginator>
 
     @if (showJumpToPage()) {
-      <div class="bfw-jump-container">
+      <div class="bfw-jump-container tw:inline-flex tw:items-center tw:gap-2 tw:rtl:flex-row-reverse">
         <mat-form-field
           appearance="outline"
           subscriptSizing="dynamic"
           floatLabel="always"
-          class="bfw-jump-field">
+          class="bfw-jump-field tw:w-30 tw:m-0">
           <mat-label>{{ pageLabel() }}</mat-label>
           <input
             matInput
@@ -30,7 +32,7 @@
           />
         </mat-form-field>
 
-        <span class="bfw-page-count tw:dark:text-white/50">{{ totalPagesText }}</span>
+        <span class="bfw-page-count tw:text-sm tw:whitespace-nowrap tw:text-(--mat-sys-on-surface-variant) tw:dark:text-white/50">{{ totalPagesText }}</span>
 
         <button
           mat-stroked-button
