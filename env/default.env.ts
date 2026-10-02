@@ -2,6 +2,9 @@
 export const defaultEnvironment: any = {
 
   // ████ SYNC all below with █ main .env █ file located at root █ ./env/.env ███████████████████████████████
+  
+  // App version
+  APP_VERSION: '1.0.0',
 
   // Environment
   NODE_ENV: 'production',
