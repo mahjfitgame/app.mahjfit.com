@@ -154,6 +154,29 @@ export class ImageSlideshowState {
     );
 
     /**
+     * The autoplay toggle, hidden for a single slide - there is nothing to
+     * advance to, and the button was not merely redundant: toggleAutoplay()
+     * would still call swiper.autoplay.start(), flip autoplayOn and animate the
+     * progress ring over a picture that can never change.
+     *
+     * ⚠ unlike showThumbs above this is an ORDINARY live computed, and has to
+     * be: it gates a plain button, not a swiper instance, so there is no
+     * attach-time contract to honour and nothing to destroy if it flips.
+     */
+    public readonly showAutoplay = computed<boolean>(() => this.slideCount() > 1);
+
+    /**
+     * The 'slide 3 of 12' counter, hidden for a single slide - 'slide 1 of 1'
+     * says nothing.
+     *
+     * ⚠ its OWN computed rather than showAutoplay reused: the two agree today
+     * by coincidence, not by rule - this gates a label, that one gates a
+     * control that would otherwise misbehave. A later reason to show one
+     * without the other should not have to untangle them first.
+     */
+    public readonly showCounter = computed<boolean>(() => this.slideCount() > 1);
+
+    /**
      * ⚠ defaults FALSE, unlike every other show* flag here. Handing over the
      * original file is opt-in. Unlike showThumbs it IS a live toggle - it gates
      * one button, not an initialised swiper instance.

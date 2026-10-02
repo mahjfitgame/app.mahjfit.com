@@ -7,6 +7,7 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { TranslocoModule } from '@jsverse/transloco';
+import { FileSlideshowType } from '@base/form-fields/file/type';
 import { FormFieldFileRegularAccessUrlType } from '@base/form-fields/file/regular/type';
 import { FormFieldFileRegularService } from '@base/form-fields/file/regular/service';
 import { FormFieldFileRegularState } from '@base/form-fields/file/regular/state';
@@ -47,6 +48,20 @@ export class FormFieldFileRegularComponent {
     public readonly multiple = input<boolean>(false);
     /** true draws an <img> preview for an existing/persisted value; false draws a download link */
     public readonly isImage = input<boolean>(false);
+    /**
+     * The viewer's options, and its PRESENCE is the opt-in: non-null turns the
+     * existing-file image preview into a <button> that opens the fullscreen
+     * image-slideshow over it. null/absent leaves a plain picture.
+     *
+     * Taken as the OBJECT and not a boolean plus a size, so a consumer passes
+     * the one thing it already holds - @base/crud's CrudFieldSlideshowType
+     * aliases this very type, so `[slideshow]="finfo.slideshow ?? null"` is the
+     * whole binding, with no flag to keep in step with its options.
+     *
+     * ⚠ no is_image guard needed: the preview this governs is already inside
+     * the template's `@if (isImage())`.
+     */
+    public readonly slideshow = input<FileSlideshowType | null>(null);
     /** the persisted file's access-url variants, when [value] is a filename string rather than a picked File */
     public readonly fileValue = input<FormFieldFileRegularAccessUrlType | null>(null);
     /** shows a delete button next to the existing-file preview/link when true */
@@ -56,6 +71,29 @@ export class FormFieldFileRegularComponent {
     public onUploadDeleteClick(event: Event): void {
         event.stopPropagation();
         this.uploadDelete.emit();
+    }
+    /**
+     * Thin, same stance as onUploadDeleteClick - but it does NOT emit. Deleting
+     * an upload is a SERVER mutation the host has to authorize
+     * (hasUploadDelete()); opening a lightbox over a picture this field already
+     * renders is local, unauthorized and side-effect free, so the field owns it
+     * outright and the consumer needs no handler.
+     *
+     * alt is [label] and not initials: this control has no row to read a
+     * monogram field off, and the field's own label describes the picture
+     * better than initials would.
+     */
+    public onSlideshowOpenClick(event: Event): void {
+        event.stopPropagation();
+
+        const url = this.fileValue();
+        if (!url) return;
+
+        this.service.openSlideshow(this.slideshow(), {
+            src: url.direct || url.thumb,
+            thumb: url.thumb || url.direct,
+            alt: this.label(),
+        });
     }
 
     // ████ CHROME ████████████████████████████████████████████████████████

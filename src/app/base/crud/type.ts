@@ -1,10 +1,9 @@
 // file: src/app/base/crud/type.ts
 import { Signal, WritableSignal } from "@angular/core";
-import { FileAccessUrlType, FileMediaDimensionResultType } from '@base/form-fields/file/type';
+import { FileAccessUrlType, FileMediaDimensionResultType, FileSlideshowType } from '@base/form-fields/file/type';
 import type { ScrollStrategy } from "@angular/cdk/overlay";
 import { CrudDataLoadTypeEnum, CrudFieldUiTypeEnum, CrudFieldValidationEnum, CrudListOperationFieldsEnum, CrudViewOptionFieldsEnum, CrudFieldNormalizeModeEnum } from "@base/crud/enum";
 import { Portal } from "@angular/cdk/portal";
-import { BreakpointSizeEnum } from "@libs/breakpoint/enum";
 import { FieldTree, SchemaPathTree } from "@angular/forms/signals";
 import {
     FormFieldAutosuggestCustomAddType,
@@ -618,48 +617,27 @@ export interface CrudFieldFileType {
     monogram_field?: string;
 
     /**
-     * slideshow: boolean
-     * OPT-IN, per field, and FALSE by default - same stance as [is_image]: a
-     * picture is a picture until a module says otherwise.
-     *
-     * true  - the image cell becomes a <button> that opens the fullscreen
-     *         image-slideshow over every VISIBLE row's image in this column,
-     *         starting on the row clicked. Visible means
-     *         listingDataSource().filteredData, so an active quick search
-     *         narrows the slideshow the same way it narrows the table.
-     * false - DEFAULT. The cell is a plain picture, exactly as before.
-     *
-     * ⚠ read only when [is_image] is true - a download cell already does the
-     * useful thing with a click.
-     *
-     * The slide draws the DIRECT variant with a THUMB fallback, the strip draws
-     * THUMB. Both live inside the object [fr_field] already points at, so this
-     * needs NO extra row selection.
-     * @see CrudListingService.openFileFieldSlideshow
-     */
-    slideshow?: boolean;
-
-    /**
-     * slideshow_size: UiSizeEnum
-     * The dialog size this column's slideshow OPENS at. Unset = UiSizeEnum.FULL.
-     *
-     * The viewer's own toolbar menu can still move to any other size afterwards
-     * - this only decides where it starts, so a module showing small avatars can
-     * open at MD instead of taking over the screen.
-     *
-     * ⚠ read only when [slideshow] is true.
-     */
-    slideshow_size?: BreakpointSizeEnum;
-
-    /**
      * multiple: boolean (default false)
-     * OPT-IN, same stance as [is_image]/[slideshow]. true adds the `multiple`
-     * attribute to the underlying <input type="file"> once the form-fields FILE
-     * control exists (Phase 2) - the value carried by this field then becomes
-     * File[] instead of File.
+     * OPT-IN, same stance as [is_image] and the field's own
+     * [CrudFieldInfoType.slideshow]. true adds the `multiple` attribute to the
+     * underlying <input type="file"> once the form-fields FILE control exists
+     * (Phase 2) - the value carried by this field then becomes File[] instead
+     * of File.
      */
     multiple?: boolean;
 }
+
+/**
+ * SLIDESHOW options for a FILE image field - listing cell and upload-form
+ * preview alike. The object's PRESENCE is the opt-in, see
+ * [CrudFieldInfoType.slideshow].
+ *
+ * Aliases the canonical shape from @base/form-fields/file, which sits below both
+ * form-fields and crud - exactly as CrudFieldFileShapeType does above. The FILE
+ * form control takes this object DIRECTLY and opens the viewer itself, so a
+ * second declaration here would be a copy both layers then had to keep in step.
+ */
+export type CrudFieldSlideshowType = FileSlideshowType;
 
 export interface CrudFieldRangeType {
     /**
@@ -819,6 +797,37 @@ export interface CrudFieldInfoType {
 
     /** FILE url shape and monogram fallback, used by the image cell. */
     file?: CrudFieldFileType;
+
+    /**
+     * slideshow: CrudFieldSlideshowType
+     * OPT-IN by PRESENCE, and absent by default - same stance [file.is_image]
+     * takes: a picture is a picture until a module says otherwise. Declaring the
+     * object turns the listing's image cell into a <button> that opens the
+     * fullscreen image-slideshow over every VISIBLE row's image in this column,
+     * starting on the row clicked. Visible means
+     * listingDataSource().filteredData, so an active quick search narrows the
+     * slideshow the same way it narrows the table.
+     *
+     * `slideshow: {}` is on at the default size; absent is off, and the cell
+     * stays a plain picture.
+     *
+     * ⚠ read only when [file.is_image] is true - a download cell already does
+     * the useful thing with a click. It sits beside [file] rather than inside it
+     * because it configures the VIEWER, not the url the cell resolves.
+     *
+     * The slide draws the DIRECT variant with a THUMB fallback, the strip draws
+     * THUMB. Both live inside the object [fr_field] already points at, so this
+     * needs NO extra row selection.
+     *
+     * ONE declaration, TWO readers, and only the GROUP differs. In an UPLOAD
+     * field object the same object is handed STRAIGHT to the FILE form control
+     * (CRUD_FT_FILE passes it through untouched), which opens a one-item viewer
+     * over its own existing-file preview - there is no row group to gather, and
+     * so no crud opener for that half at all.
+     * @see CrudListingService.openImageFileFieldSlideshow
+     * @see FormFieldFileRegularService.openSlideshow
+     */
+    slideshow?: CrudFieldSlideshowType;
 
     /**
      * range_field: CrudFieldRangeType

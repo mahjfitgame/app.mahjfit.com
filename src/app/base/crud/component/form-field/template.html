@@ -843,6 +843,7 @@
     [hint]="(finfo.hint | transloco) || ''"
     [error]="hasError ? (fstate.errors?.()?.[0]?.message | transloco: service.validation.validationMessageParams(finfo, fstate.value())) : ''"
     [isImage]="finfo.file?.is_image ?? false"
+    [slideshow]="finfo.slideshow ?? null"
     [fileValue]="finfo.fr_field ? $any(service.utility.getByPath(service.state.upload.uploadRecord(), finfo.fr_field)) : null"
     [canDeleteExisting]="service.state.action.hasUploadDelete()"
     (uploadDelete)="service.upload.uploadDelete(fkey)"

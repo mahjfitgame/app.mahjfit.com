@@ -131,6 +131,24 @@ export class ImageSlideshowService {
             ...DEF_IMAGE_SLIDESHOW_SWIPER,
             ...this.state.swiperOverride(),
             initialSlide: this.state.startIndex(),
+
+            /**
+             * A one-slide group cannot loop, and DEF has loop: true. Swiper
+             * warns on every init - `slides.length < slidesPerView +
+             * loopedSlides` (swiper-core.mjs) - so this only silences noise: it
+             * already LOCKS itself for a single slide (isLocked =
+             * snapGrid.length === 1), which hides the arrows through
+             * .swiper-button-lock, hides the lone bullet through
+             * .swiper-pagination-bullet:only-child, and makes slideNext/Prev
+             * early-return.
+             *
+             * ⚠ runtime, so it beats a caller's swiperOverride - the stance
+             * [initialSlide] and [thumbs] already take. Both one-item callers
+             * are real: a quick search narrowed to one row, and a file field's
+             * single-preview viewer. Mirrors state.showThumbs' slideCount() > 1.
+             */
+            ...(this.state.slideCount() < 2 ? { loop: false } : {}),
+
             ...(this.thumbsEl?.swiper ? { thumbs: { swiper: this.thumbsEl.swiper } } : {}),
 
             /**

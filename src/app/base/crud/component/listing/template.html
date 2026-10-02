@@ -185,8 +185,8 @@
             @let monogram = service.utility.getFileFieldMonogram(row, finfo);
             @let imgClass = 'tw:h-10 tw:w-10 tw:shrink-0 tw:rounded-full tw:object-cover';
             @if (fileUrl) {
-                @if (finfo.file?.slideshow) {
-                    <!-- [file.slideshow] opt-in: a real <button>, so Enter/Space
+                @if (finfo.slideshow) {
+                    <!-- [slideshow] opt-in by presence: a real <button>, so Enter/Space
                          and the focus ring come for free - an <img tabindex>
                          would give neither. The group it opens is every VISIBLE
                          row, see CrudListingService.openImageFileFieldSlideshow().

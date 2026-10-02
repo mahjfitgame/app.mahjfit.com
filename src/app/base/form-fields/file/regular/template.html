@@ -53,8 +53,27 @@
 </mat-form-field>
 @if (!service.state.hasValue() && value() && (fileValue()?.direct || fileValue()?.thumb)) {
     @if (isImage()) {
+        @let previewSrc = fileValue()!.direct || fileValue()!.thumb;
+        @let previewClass = 'tw:size-32 tw:rounded-xl tw:border tw:border-outline/20 tw:object-cover tw:shadow-md';
         <div class="tw:relative tw:my-2 tw:inline-block">
-            <img class="tw:size-32 tw:rounded-xl tw:border tw:border-outline/20 tw:object-cover tw:shadow-md" [src]="fileValue()!.direct || fileValue()!.thumb" alt="">
+            @if (slideshow()) {
+                <!-- [slideshow] opt-in by PRESENCE: a real <button>, so
+                     Enter/Space and the focus ring come for free - an
+                     <img tabindex> would give neither, the same reason the crud
+                     listing cell is a button. tw:block because an inline button
+                     would add a baseline gap under the 128px preview that the
+                     bare <img> never had. -->
+                <button
+                    type="button"
+                    class="tw:block tw:cursor-zoom-in tw:rounded-xl tw:border-0 tw:bg-transparent tw:p-0 tw:focus-visible:outline-2 tw:focus-visible:outline-primary"
+                    [attr.aria-label]="'GL.SLIDESHOW.OPEN' | transloco"
+                    (click)="onSlideshowOpenClick($event)"
+                >
+                    <img [class]="previewClass" [src]="previewSrc" alt="">
+                </button>
+            } @else {
+                <img [class]="previewClass" [src]="previewSrc" alt="">
+            }
             @if (canDeleteExisting() && !disabled()) {
                 <button mat-icon-button
                     type="button"

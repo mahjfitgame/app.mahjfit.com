@@ -25,36 +25,48 @@
                 class="tw:sticky tw:top-0 tw:z-20 tw:flex tw:w-full tw:shrink-0 tw:items-center tw:gap-1
                     tw:bg-transparent! tw:backdrop-blur-md"
             >
-                <span class="tw:ps-2 tw:text-sm tw:tabular-nums">
-                    {{ 'GL.SLIDESHOW.COUNTER' | transloco: service.state.counterParams() }}
-                </span>
+                <!-- ████ COUNTER ████ 'slide 1 of 1' says nothing - see
+                     state.showCounter -->
+                @if (service.state.showCounter()) {
+                    <span class="tw:ps-2 tw:text-sm tw:tabular-nums">
+                        {{ 'GL.SLIDESHOW.COUNTER' | transloco: service.state.counterParams() }}
+                    </span>
+                }
 
+                <!-- ⚠ stays OUTSIDE the @if above: it is what right-aligns the
+                     buttons, and a single-slide toolbar still needs them there
+                     rather than jumping to the left edge. -->
                 <span class="tw:grow"></span>
 
-                @let playing = service.state.autoplayOn();
-                @let playLabel = (playing ? 'GL.SLIDESHOW.PAUSE' : 'GL.SLIDESHOW.PLAY') | transloco;
-                <button
-                    mat-icon-button
-                    type="button"
-                    [attr.aria-label]="playLabel"
-                    [matTooltip]="playLabel"
-                    matTooltipPosition="below"
-                    (click)="service.toggleAutoplay()"
-                >
-                    <!-- ⚠ the ring is an absolute OVERLAY, never a wrapper around
-                        the icon. As a wrapper it was a 32px inline grid box where
-                        mat-icon-button expects a 24px icon, which pushed the glyph
-                        off the ripple circle's centre and dragged the rest of the
-                        row out of line with it. Out of flow, the icon is an
-                        ordinary child again and centres like every other button. -->
-                    <span
-                        #autoplayRing
-                        class="bfw-image-slideshow-ring tw:pointer-events-none tw:absolute tw:inset-1"
-                    ></span>
-                    <mat-icon class="material-symbols-rounded">
-                        {{ playing ? 'pause' : 'play_arrow' }}
-                    </mat-icon>
-                </button>
+                <!-- ████ AUTOPLAY ████ one slide has nothing to advance to -
+                     see state.showAutoplay. Zoom is NOT gated the same way: a
+                     single picture is still worth magnifying. -->
+                @if (service.state.showAutoplay()) {
+                    @let playing = service.state.autoplayOn();
+                    @let playLabel = (playing ? 'GL.SLIDESHOW.PAUSE' : 'GL.SLIDESHOW.PLAY') | transloco;
+                    <button
+                        mat-icon-button
+                        type="button"
+                        [attr.aria-label]="playLabel"
+                        [matTooltip]="playLabel"
+                        matTooltipPosition="below"
+                        (click)="service.toggleAutoplay()"
+                    >
+                        <!-- ⚠ the ring is an absolute OVERLAY, never a wrapper around
+                            the icon. As a wrapper it was a 32px inline grid box where
+                            mat-icon-button expects a 24px icon, which pushed the glyph
+                            off the ripple circle's centre and dragged the rest of the
+                            row out of line with it. Out of flow, the icon is an
+                            ordinary child again and centres like every other button. -->
+                        <span
+                            #autoplayRing
+                            class="bfw-image-slideshow-ring tw:pointer-events-none tw:absolute tw:inset-1"
+                        ></span>
+                        <mat-icon class="material-symbols-rounded">
+                            {{ playing ? 'pause' : 'play_arrow' }}
+                        </mat-icon>
+                    </button>
+                }
 
                 @let zoomLabel = (service.state.zoomed() ? 'GL.SLIDESHOW.ZOOM_OUT' : 'GL.SLIDESHOW.ZOOM_IN') | transloco;
                 <button

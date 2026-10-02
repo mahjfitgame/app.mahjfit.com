@@ -68,7 +68,7 @@ export class CrudListingService {
         row: Record<string, any>,
         finfo: CrudFieldInfoType,
     ): void {
-        if (!finfo.file?.is_image || !finfo.file?.slideshow) return;
+        if (!finfo.file?.is_image || !finfo.slideshow) return;
 
         const rows = this.root.state.listing.listingDataSource().filteredData ?? [];
         const items: ImageSlideshowItemType[] = [];
@@ -100,7 +100,7 @@ export class CrudListingService {
         // chunk, which rejects offline or against a hash that a deploy has
         // moved. void leaves that as an unhandled rejection.
         this.imageSlideshowDialog
-            .open({ items, startIndex, size: finfo.file.slideshow_size })
+            .open({ items, startIndex, size: finfo.slideshow.size })
             .catch((error) => this.root.log.error?.('image slideshow open failed', error));
     }
 
