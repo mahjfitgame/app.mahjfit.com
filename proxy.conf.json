@@ -1,21 +1,21 @@
 [
     {
         "context": ["/graphql"],
-        "target": "http://192.168.0.230:20147",
+        "target": "http://192.168.0.200:20178",
         "secure": false,
         "changeOrigin": true,
         "logLevel": "debug"
     },
     {
         "context": ["/rest"],
-        "target": "http://192.168.0.230:20147",
+        "target": "http://192.168.0.200:20178",
         "secure": false,
         "changeOrigin": true,
         "logLevel": "debug"
     },
     {
         "context": ["/socket.io"],
-        "target": "http://192.168.0.230:20150",
+        "target": "http://192.168.0.200:20179",
         "secure": false,
         "changeOrigin": true,
         "ws": true,
