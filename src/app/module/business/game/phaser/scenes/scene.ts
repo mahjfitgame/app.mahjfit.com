@@ -1835,85 +1835,8 @@ export class PhaserScene extends Phaser.Scene {
     this.discardMaskGraphics.fillRect(discardArea.x, discardArea.y, discardArea.width, Math.max(0, discardArea.height));
     this.drawDiscardDebugArea();
 
-    const isMobilePortrait = this.layout.metrics.isMobile && this.layout.metrics.isPortrait;
-    if (isMobilePortrait) {
-      if (!this.sliderLeftButton) {
-        // NEWCODE
-        this.sliderLeftButton = this.add.text(0, 0, "chevron_left", {
-          fontFamily: '"Material Symbols Rounded"',
-          fontSize: '60px',
-          color: COLOR_BLUE
-        }).setInteractive().setOrigin(0.5);
-        this.sliderLeftButton.on('pointerdown', () => {
-          if (!this.layout || !this.layout.bottomTileLayout) return;
-          const shift = this.layout.bottomTileLayout.width * 2; // scroll 2 tiles
-          this.rackScrollX = Math.max(0, this.rackScrollX - shift);
-          this.layoutRackTiles(true);
-        });
-        // OLDCODE
-        // this.sliderLeftButton = this.add.text(0, 0, "<", {
-        //   fontFamily: FONT_FAMILY,
-        //   fontSize: '60px',
-        //   fontStyle: 'bold',
-        //   color: COLOR_BLUE
-        // }).setInteractive().setOrigin(0.5);
-        // this.sliderLeftButton.on('pointerdown', () => {
-        //   this.callbacks.onHudAction?.("slider-left" as any);
-        // });
-      }
-      if (!this.sliderRightButton) {
-        // NEWCODE
-        this.sliderRightButton = this.add.text(0, 0, "chevron_right", {
-          fontFamily: '"Material Symbols Rounded"',
-          fontSize: '60px',
-          color: COLOR_BLUE
-        }).setInteractive().setOrigin(0.5);
-        this.sliderRightButton.on('pointerdown', () => {
-          if (!this.layout || !this.layout.bottomTileLayout) return;
-          const shift = this.layout.bottomTileLayout.width * 2; // scroll 2 tiles
-          this.rackScrollX = Math.min(this.maxRackScroll(), this.rackScrollX + shift);
-          this.layoutRackTiles(true);
-        });
-        // OLDCODE
-        // this.sliderRightButton = this.add.text(0, 0, ">", {
-        //   fontFamily: FONT_FAMILY,
-        //   fontSize: '60px',
-        //   fontStyle: 'bold',
-        //   color: COLOR_BLUE
-        // }).setInteractive().setOrigin(0.5);
-        // this.sliderRightButton.on('pointerdown', () => {
-        //   this.callbacks.onHudAction?.("slider-right" as any);
-        // });
-      }
-
-      this.sliderLeftButton.setVisible(true);
-      this.sliderRightButton.setVisible(true);
-
-      const rack = this.layout.bottomRack;
-      const rackTopPadding = Phaser.Math.Clamp(rack.height * 0.025, 1, 6);
-      const rackBottomPadding = Phaser.Math.Clamp(rack.height * 0.025, 1, 8);
-      const fitByHeight = rack.height - rackTopPadding - rackBottomPadding;
-      const arrowScale = fitByHeight / 80;
-
-      this.sliderLeftButton.setScale(arrowScale);
-      this.sliderRightButton.setScale(arrowScale);
-      this.sliderLeftButton.setDepth(200);
-      this.sliderRightButton.setDepth(200);
-
-      this.sliderLeftButton.setPosition(
-        rack.x + this.sliderLeftButton.displayWidth * 0.5,
-        rack.y + rack.height * 0.5
-      );
-
-      this.sliderRightButton.setPosition(
-        rack.x + rack.width - this.sliderRightButton.displayWidth * 0.5,
-        rack.y + rack.height * 0.5
-      );
-
-    } else {
-      if (this.sliderLeftButton) this.sliderLeftButton.setVisible(false);
-      if (this.sliderRightButton) this.sliderRightButton.setVisible(false);
-    }
+    if (this.sliderLeftButton) this.sliderLeftButton.setVisible(false);
+    if (this.sliderRightButton) this.sliderRightButton.setVisible(false);
 
     // The instruction card is drawn as native HTML by PhaserBoardComponent so
     // its copy stays sharp at any device pixel ratio. UiLayoutManager publishes
@@ -3857,6 +3780,26 @@ export class PhaserScene extends Phaser.Scene {
        jokerKey = (jokerTile.image.texture as any)?.key || jokerKey;
        jokerFrame = jokerTile.image.frame?.name || jokerFrame;
     } else {
+       let found = false;
+       if (to_seat && to_seat !== "bottom") {
+           const opponentImages = this.calledOpponentExposureTiles[to_seat as Exclude<TableSeat, "bottom">];
+           if (opponentImages) {
+               const jokerImg = opponentImages.find((img: Phaser.GameObjects.Image) => img.getData("joker-tile-id") === joker_tile_id);
+               if (jokerImg && jokerImg.active) {
+                  oldJokerPos = { x: jokerImg.x, y: jokerImg.y, scale: jokerImg.scaleX };
+                  jokerKey = (jokerImg.texture as any)?.key || jokerKey;
+                  jokerFrame = jokerImg.frame?.name || jokerFrame;
+                  jokerImg.setAlpha(0);
+                  found = true;
+               }
+           }
+           if (!found) {
+               const rect = (this.layout as any)[`${to_seat}Exposure`];
+               if (rect) {
+                   oldJokerPos = { x: rect.x + rect.width / 2, y: rect.y + rect.height / 2, scale: 0.5 };
+               }
+           }
+       }
        const fullTile = this.allTiles[joker_tile_id];
        if (fullTile) {
            const texture = this.gameService.resolve(fullTile as any, 50);
@@ -3865,7 +3808,7 @@ export class PhaserScene extends Phaser.Scene {
     }
 
     const naturalTile = this.tileMap.get(from_tile_id);
-    if (naturalTile) naturalTile.zone = "exposure";
+    if (naturalTile && to_seat === "bottom") naturalTile.zone = "exposure";
     let oldNaturalPos = { x: this.layout.tableOuter.x, y: this.layout.tableOuter.y, scale: 1 };
     let naturalKey = "tiles";
     let naturalFrame = "1-bam";
@@ -3897,18 +3840,24 @@ export class PhaserScene extends Phaser.Scene {
     setTimeout(() => {
       if (!this.sys || !this.layout) return;
 
-      const newNaturalTile = this.tileMap.get(from_tile_id);
-      let newNaturalPos = oldNaturalPos;
-      if (newNaturalTile && newNaturalTile.image && newNaturalTile.image.active) {
-         newNaturalPos = { x: newNaturalTile.image.x, y: newNaturalTile.image.y, scale: newNaturalTile.image.scaleX };
-         newNaturalTile.image.setAlpha(0);
+      let newNaturalPos = { ...oldJokerPos };
+      if (to_seat === "bottom") {
+          const newNaturalTile = this.tileMap.get(from_tile_id);
+          if (newNaturalTile && newNaturalTile.image && newNaturalTile.image.active) {
+             newNaturalPos = { x: newNaturalTile.image.x, y: newNaturalTile.image.y, scale: newNaturalTile.image.scaleX };
+             newNaturalTile.image.setAlpha(0);
+          }
       }
 
-      const newJokerTile = this.tileMap.get(joker_tile_id);
-      let newJokerPos = oldJokerPos;
-      if (newJokerTile && newJokerTile.image && newJokerTile.image.active && from_seat === "bottom") {
-         newJokerPos = { x: newJokerTile.image.x, y: newJokerTile.image.y, scale: newJokerTile.image.scaleX };
-         newJokerTile.image.setAlpha(0);
+      let newJokerPos = { ...oldNaturalPos };
+      if (from_seat === "bottom") {
+          const newJokerTile = this.tileMap.get(joker_tile_id);
+          if (newJokerTile && newJokerTile.image && newJokerTile.image.active) {
+             newJokerPos = { x: newJokerTile.image.x, y: newJokerTile.image.y, scale: newJokerTile.image.scaleX };
+             newJokerTile.image.setAlpha(0);
+          } else {
+             newJokerPos = { x: this.layout.bottomRack.x + this.layout.bottomRack.width / 2, y: this.layout.bottomRack.y + this.layout.bottomRack.height / 2, scale: 1 };
+          }
       } else {
          if (from_seat) {
             const targetPoint = this.pickTargetPointForSeat(from_seat as TableSeat);
@@ -3921,10 +3870,23 @@ export class PhaserScene extends Phaser.Scene {
         naturalClone,
         newJokerPos,
         newNaturalPos,
-        450,
+        260,
         () => {
-          if (newNaturalTile && newNaturalTile.image && newNaturalTile.image.active) newNaturalTile.image.setAlpha(1);
-          if (newJokerTile && newJokerTile.image && newJokerTile.image.active) newJokerTile.image.setAlpha(1);
+          const finalNaturalTile = this.tileMap.get(from_tile_id);
+          if (finalNaturalTile && finalNaturalTile.image && finalNaturalTile.image.active) {
+            finalNaturalTile.image.setAlpha(1);
+          }
+          const finalJokerTile = this.tileMap.get(joker_tile_id);
+          if (finalJokerTile && finalJokerTile.image && finalJokerTile.image.active) {
+            finalJokerTile.image.setAlpha(1);
+          }
+          if (to_seat && to_seat !== "bottom") {
+             const opponentImages = this.calledOpponentExposureTiles[to_seat as Exclude<TableSeat, "bottom">];
+             if (opponentImages) {
+                 const jokerImg = opponentImages.find((img: Phaser.GameObjects.Image) => img.getData("joker-tile-id") === joker_tile_id);
+                 if (jokerImg && jokerImg.active) jokerImg.setAlpha(1);
+             }
+          }
         }
       );
     }, 50);

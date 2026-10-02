@@ -1694,10 +1694,7 @@ export class PhaserLayoutGame {
     const rackTopPadding = this.clamp(rack.height * 0.025, 1, 6);
     const rackBottomPadding = this.clamp(rack.height * 0.025, 1, 8);
 
-    const visibleCount = isMobile ? Math.min(count, isPortrait ? 9.5 : 7.5) : count;
-    const fitByWidth = isMobile
-      ? (rack.width - mobileGap * (visibleCount - 1)) / visibleCount
-      : (rack.width - gap * (count - 1)) / count;
+    const fitByWidth = (rack.width - gap * (count - 1)) / count;
 
     const fitByHeight =
       (rack.height - rackTopPadding - rackBottomPadding) /

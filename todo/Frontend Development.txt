@@ -42,6 +42,142 @@ Solved the issue with flower tiles when creating a PUNG or KONG using different 
 
 ============= TODO ===============
 #]
+From mobile remove the bottom seat rack arrow and show the full tiles in one rack, No need horizontal animation to view all tiles.
+
+#]
+Create a clean, accurate UI interaction demo showing the intended Joker tile swap animation in the existing tile game. 
+The attached screenshot is the current issue .
+
+Show the expected behavior clearly so it can be reviewed and approved before implementation. 
+Do not show code, code editors, or implementation steps.
+
+Shot 1 — Establish the board (about 2 seconds): Show the game board from a steady, near-overhead view. Keep both exposures and all seat racks visible. Make the bottom seat rack easy to identify. The top exposure contains the tile to be swapped, including the Joker.
+
+Shot 2 — Swap from the bottom seat (about 4 seconds): A human player drags one actual tile from the bottom seat rack and drops it onto the top exposure. Animate the dragged tile smoothly into the exposure. At the moment it lands, show the actual tile replacing the Joker in the exposure. Then animate the Joker directly and smoothly from its position in the top exposure to the specific receiving rack: the bottom seat rack. The Joker must follow a short, natural, continuous path from the exposure to that rack, with consistent scale and orientation. Do not make it zoom in from the left corner, teleport, jump, or travel from off-screen. Make the swap and the Joker’s destination unmistakable.
+
+Shot 3 — Swap by another seat (about 3 seconds): Demonstrate the same interaction initiated by another seat, using a second actual tile. After the tile is dropped onto the relevant exposure and the Joker is swapped out, animate the Joker smoothly from that exposure to the rack belonging to the seat that performed the swap. This seat may be represented as a human or computer-controlled player; the destination must still be the correct seat rack. Keep the motion direct, fluid, and consistent with the first demonstration.
+
+Continuity and motion: Maintain the board layout, exposure positions, tile identities, and seat assignments throughout. Tiles must remain crisp and readable. Use one continuous animation per movement, with gentle easing at takeoff and landing, no sudden scale changes, no corner-origin zoom, and no unintended movement of other tiles. Clearly show that the dropped actual tile occupies the exposure and the Joker ends in the correct player’s rack.
+
+Camera and presentation: Use a fixed overhead camera with no cuts during each drag-and-drop sequence. Keep all relevant board areas in frame; use only a subtle, brief emphasis on the exposure and destination rack if needed. Present the result as a polished product-review prototype, not a cinematic scene.
+
+Timing: Approximately 9 seconds total, with a brief pause after each completed swap so the final tile positions can be inspected.
+
+Lighting and style: Match the reference screenshot’s visual style and colors. Keep lighting even and neutral, with no dramatic effects or distracting background elements.
+
+Audio: No narration or music. Use only quiet, restrained interface sounds for the drag, drop, and completed swap; keep them secondary to the visual demonstration.
+
+Delivery: One 16:9 video, 1080p or higher, with smooth, legible motion and no added explanatory text unless a small opening title is needed. If a title is used, show only: “Joker Swap — Intended Animation (Review Before Implementation).”
++++++++++++++++++++++++++++++++++
+I review the changes and tryed the joker swap with drag and drop. The recent I tried with two exposures the left seat exposure and as per the attached screenshot the top exposure. 
+
+Now the issue is when I moved the tile to the top exposure. It move the spacific tile to the exposure and Joker is removed from the exposure, but here the joker animation is going wrong, the joker is Zoom from the left corner and then it placed to the specific rack. But it should be simple and smooth animation as when I drag the actual tile to the exposure, the joker tile swap with the actual tile and once I drop the actual tile, the joker will be smoothly comes from the exposure to the specific seat rack, in our case its bottom seat rack. If the joker swap is performed by the another seat then that animation work accordingly and joker tile smoothly animated to the specific seat wether it is human or bot (computer) player.
+
+Do not change in the code first make the proper planing so I can cross check and give the confirmation before updating the code. 
+
+#]
+Listed directory mahjfit.com
+Listed directory web
+Listed directory api.mahjfit.com
+
+Here is a step-by-step verification guide detailing how the backend logic you implemented integrates with the frontend workflow when someone calls **Mahjong** or when the game finishes.
+
+---
+
+## 1. End-to-End Game Flow Verification
+
+```
++-----------------------------------------------------------------------------------+
+| 1. ACTIVE PLAYING PHASE (phase: "PLAYING" / "CLAIM")                              |
+| - Server sends `game.publish.play` via WS or GraphQL                              |
+| - Opponent seats (Seats 2, 3, 4) in `play.seats`:                                |
+|     * `exposures_meld`: Included (Public Pungs/Kongs)                             |
+|     * `hand` & `hand_order`: UNDEFINED / STRIPPED (Security protected)             |
+| - Local player sees their own hand via `game.publish.personal`                    |
++-----------------------------------------------------------------------------------+
+                                        |
+                                        v
++-----------------------------------------------------------------------------------+
+| 2. MAHJONG DECLARED (`game.subscribe.action.call.mahjong`)                        |
+| - Player calls Mahjong or wall runs out of tiles                                  |
+| - Server sets `state.play.phase = "FINISHED"`                                     |
+| - Server calls `derivePlaySeats(state.personal.seats, true)` with `isFinished=true` |
+| - Server broadcasts `game.publish.play` to group room `game:group:${keyid}`       |
++-----------------------------------------------------------------------------------+
+                                        |
+                                        v
++-----------------------------------------------------------------------------------+
+| 3. FINISHED PHASE (phase: "FINISHED")                                             |
+| - All active player seats (Seats 1, 2, 3, 4) in `play.seats`:                     |
+|     * `hand`: Record<number, GameTileEntity> (FULL HAND TILES INCLUDED!)          |
+|     * `hand_order`: number[] (FULL DISPLAY ORDER INCLUDED!)                       |
+|     * `exposures_meld`: Included                                                  |
+|     * `is_mahjong`: true for winning seat                                         |
+| - Wall seat (`WL`, Seat 6): `hand` & `hand_order` REMAIN STRIPPED                 |
+| - Discard area seat (`DA`, Seat 5): `hand` & `hand_order` INCLUDED                |
++-----------------------------------------------------------------------------------+
+```
+
+---
+
+## 2. Frontend Implementation Checklist & Verification
+
+To verify that the frontend correctly handles and displays all opponents' tiles upon Mahjong:
+
+### Checklist for Frontend Developers
+
+1. **WebSocket Listener (`game.publish.play`):**
+   * Ensure the frontend listens for `game.publish.play` broadcasts.
+   * When `data.play.phase === "FINISHED"`, trigger the **End-of-Game Reveal View**.
+
+2. **Rendering Opponent Hands:**
+   * During active gameplay:
+     * Opponent racks render only `exposures_meld` + face-down placeholder tiles representing unexposed hand count.
+   * When `phase === "FINISHED"`:
+     * Iterate over all seats in `play.seats` (excluding seat types `DA` and `WL`).
+     * Extract `racks[1].hand_order` (array of tile IDs) and `racks[1].hand` (dictionary mapping tile ID to tile object).
+     * Render face-up tiles for **all opponents** using `hand_order` to maintain identical rack sorting.
+
+3. **Highlighting the Winner & Winning Tile:**
+   * Check `seat.racks[1].is_mahjong === true` to identify the winning seat.
+   * Display Mahjong banners, score summary, or victory animations for that seat.
+
+4. **Excluding Wall Seat (`WL`):**
+   * Confirm the frontend does **not** attempt to render `hand` or `hand_order` for seat type `GameSeatTypeEnum.WL` (Seat 6). The backend intentionally keeps un-drawn wall tiles stripped even after game completion.
+
+---
+
+## 3. How to Test & Validate in the Browser
+
+1. **Open DevTools Console / WS Network Tab:**
+   - Filter for WebSocket frames matching `game.publish.play`.
+
+2. **Verify Active Turn Frame (Before Mahjong):**
+   - Inspect `data.play.seats["2"].racks["1"]`.
+   - **Expected:** `hand` is `undefined`, `hand_order` is `undefined`.
+
+3. **Trigger Mahjong Action:**
+   - Complete a hand or execute `game.subscribe.action.call.mahjong`.
+
+4. **Verify Final Broadcast Frame (After Mahjong):**
+   - Inspect `data.play.seats["2"].racks["1"]` (and all other opponent seats).
+   - **Expected:**
+     - `data.play.phase` equals `"FINISHED"`.
+     - `data.play.seats["2"].racks["1"].hand` contains all opponent tile objects.
+     - `data.play.seats["2"].racks["1"].hand_order` contains tile ID array `[12, 14, 15, ...]`.
+     - `data.play.seats["6"]` (Wall seat `WL`) has no `hand` or `hand_order`.
+
+
+#]
+See the attached screenshot of the current layout of mahjone layout.
+Do not change in the code, first I need proper planing.
+The all content should be in the center. The bottons are in the center and the buttons follow the same standard as we have other buttons. So follow the common standard for the buttons. The layout should be responsive and properly show in the center of the screen in all devices.
+You also missed the one whole point, which is 
+Opponent Hands Reveal
+This is so simple then why are you not updating it proper, This task we already performed then why its like this.
+
+
+#]
 Tile flip animation not works while Joker exchange. Need the flip animation when joker exchange.
 
 #]
