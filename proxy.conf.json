@@ -1,24 +1,19 @@
 [
     {
-        "context": ["/graphql"],
-        "target": "http://192.168.0.200:20178",
+        "context": ["/graphql", "/rest"],
+        "target": "https://192.168.0.200:20178",
         "secure": false,
         "changeOrigin": true,
-        "logLevel": "debug"
-    },
-    {
-        "context": ["/rest"],
-        "target": "http://192.168.0.200:20178",
-        "secure": false,
-        "changeOrigin": true,
+        "xfwd": true,
         "logLevel": "debug"
     },
     {
         "context": ["/socket.io"],
-        "target": "http://192.168.0.200:20179",
+        "target": "https://192.168.0.200:20179",
         "secure": false,
         "changeOrigin": true,
         "ws": true,
+        "xfwd": true,
         "logLevel": "debug"
     }
 ]

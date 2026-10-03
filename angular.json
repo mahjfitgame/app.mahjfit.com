@@ -125,7 +125,8 @@
             "debug": {
               "buildTarget": "bfw-angular-pwa:build:debug",
               "host": "0.0.0.0",
-              "port": 20180
+              "port": 20180,
+              "proxyConfig": "proxy.conf.json"
             }
           },
           "defaultConfiguration": "production"
