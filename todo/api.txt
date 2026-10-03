@@ -1,0 +1,412 @@
+Listed directory business-app
+Listed directory game-engine
+Searched for "@Resolver|@Query|@Mutation|@Subscription|@WebSocketGateway|@SubscribeMessage"
+
+页
+
+Searched for "Resolver"
+Viewed resolver.ts:1-250
+Viewed ws.ts:1-272
+Viewed slug.ts:1-85
+Viewed dto.ts:1-200
+Searched for "@Query|@Mutation"
+Searched for "@(Query|Mutation)"
+
+# Comprehensive API & WebSocket Technical Specification
+**Module Target:** `apps/app/src/graphql/business-app`  
+**Audience:** Frontend Development & Engineering Teams  
+**System Architecture:** NestJS + GraphQL (Apollo Server) + Real-Time WebSocket PubSub (Socket.io / Redis)
+
+---
+
+## 1. Architectural Overview
+
+The `business-app` module powers the core business logic, user game management, catalog items, and the real-time multiplayer Mahjong game engine. It utilizes a **hybrid protocol stack**:
+
+1. **GraphQL HTTP API (`/graphql`)**: Standard query and mutation endpoints for session setup, configuration, catalog management, and administrative CRUD operations.
+2. **WebSocket PubSub Engine (`GameEngineWs`)**: High-throughput, bi-directional event stream driving live multiplayer gameplay actions (Charleston, Pick, Discard, Claim, Exposure, Joker Exchange, Mahjong declaration, and Disconnect recovery).
+
+```
+ +-------------------------------------------------------------------------+
+ |                               FRONTEND                                  |
+ +-------------------------------------------------------------------------+
+       | HTTP POST (/graphql)                         | WebSocket (WSS)
+       v                                              v
++-------------------------------+             +----------------------------+
+| GraphQL Resolvers             |             | PubSub / Socket.io Gateway |
+| (GameEngineResolver, etc.)    |             | (GameEngineWs)             |
++-------------------------------+             +----------------------------+
+       |                                              |
+       +-----------------------+----------------------+
+                               |
+                               v
+               +-------------------------------+
+               | GameEngineService / Redis Cache |
+               +-------------------------------+
+```
+
+---
+
+## 2. Core Domain Modules
+
+| Module Directory | Primary Responsibility | Key Entities / Components |
+| :--- | :--- | :--- |
+| `game-engine` | Real-time state machine, Charleston stage, turn execution, bot automation, WebSocket gateways. | `GameEngineService`, `GameEngineResolver`, `GameEngineWs`, `GameEngineRule` |
+| `game` | Game sessions, seat assignments, rulepacks, play logs, seat types (Player, Wall, Discard Area). | `GameEntity`, `GameSeatEntity`, `GamePlayEntity` |
+| `user` | User profiles and gameplay preferences (tile style, auto-pick, sound settings). | `UserGamePreferencesEntity` |
+| `bot` | AI bot profiles and difficulty level rulesets. | `BotProfileEntity`, `BotLevelEntity` |
+| `digital` | Digital products, category structures, payment gateway configurations. | `DigitalProductEntity`, `DigitalProductCategoryEntity` |
+| `tile` | Master tile reference datasets and tile imagery metadata. | `TileEntity`, `TileImageEntity` |
+
+---
+
+## 3. GraphQL API Specification (`HTTP POST /graphql`)
+
+All GraphQL requests require `Content-Type: application/json` and standard authorization headers.
+
+### 3.1 Authentication Header
+```http
+Authorization: Bearer <JWT_TOKEN>
+```
+
+---
+
+### 3.2 Game Engine Mutations (`GameEngineResolver`)
+
+#### 1. `GameStatePublicStart` (`start`)
+Sets up a new Mahjong game session, initializes the tile wall, assigns seats, and draws starting hands.
+
+* **GraphQL Mutation Name:** `GameStatePublicStart`
+* **Input Parameter (`input`):** `GameStatePublicStartInputDto`
+  ```json
+  {
+    "input": {
+      "owner_u_id": 101,
+      "grule_id": 1,
+      "mode": "SINGLE_PLAYER",
+      "botlvl_id": 2,
+      "allow_join": true
+    }
+  }
+  ```
+* **Response Payload (`GameStatePublishOutputDto`):**
+  ```json
+  {
+    "data": {
+      "GameStatePublicStart": {
+        "game": {
+          "id": 55,
+          "keyid": "GM-98234-XYZ",
+          "grule_id": 1,
+          "mode": "SINGLE_PLAYER",
+          "owner_u_id": 101,
+          "current_turn_u_id": 101
+        },
+        "play": {
+          "phase": "CHARLESTON",
+          "turn_stage": "NEED_PASS",
+          "current_turn_seat_id": 1,
+          "wall_tiles_remaining": 92
+        }
+      }
+    }
+  }
+  ```
+
+---
+
+#### 2. `GameStatePublicJoin` (`join`)
+Enables a player to join an open game session or takeover an active/bot seat.
+
+* **GraphQL Mutation Name:** `GameStatePublicJoin`
+* **Input Parameter (`input`):** Array or Single `GameStatePublicJoinInputDto`
+  ```json
+  {
+    "input": [
+      {
+        "keyid": "GM-98234-XYZ",
+        "u_id": 102,
+        "gseat_id": 2
+      }
+    ]
+  }
+  ```
+* **Response Payload:** `GameStatePublishOutputDto` containing updated game and seat metadata.
+
+---
+
+#### 3. `GameStatePublicLatest` (`getPublicLatestState`)
+Fetches the current snapshot of the game state for recovery or initial rendering.
+
+* **GraphQL Mutation Name:** `GameStatePublicLatest`
+* **Input Parameter (`input`):** `GameStateGameKeyidInputDto` (`{ "keyid": "GM-98234-XYZ" }`)
+
+---
+
+#### 4. Game Action Mutations Summary
+
+| Mutation Name | Input DTO | Description |
+| :--- | :--- | :--- |
+| `GameStateActionCharlestone` | `GameStateActionCharlestoneInputDto` | Submits 3-tile pass for current Charleston stage. |
+| `GameStateActionCharlestoneSecondVotes` | `GameStateActionCharlestoneSecondVotesInputDto` | Submits vote (proceed/skip) for 2nd Charleston round. |
+| `GameStateActionPickTile` | `GameStateActionPickTileInputDto` | Draws a tile from the wall when it is the player's turn. |
+| `GameStateActionDiscardTile` | `GameStateActionDiscardTileInputDto` | Discards a specific tile ID to the discard area seat (`DA`). |
+| `GameStateActionClaimTile` | `GameStateActionClaimTileInputDto` | Submits claim request for a discarded tile (Pung, Kong, Quint, etc.). |
+| `GameStateActionCreateExposure` | `GameStateActionCreateExposureInputDto` | Formats meld exposure after a tile claim. |
+| `GameStateActionSkipClaim` | `GameStateActionSkipClaimInputDto` | Rejects/skips claiming the active discarded tile. |
+| `GameStateActionSortTile` | `GameStateActionOrderTilesInputDto` | Customizes order of tiles in player's personal hand rack. |
+| `GameStateApplyBotTurn` | `GameStateActionDiscardTileInputDto` | Triggers immediate manual execution of a bot turn. |
+
+---
+
+### 3.3 Administrative & Metadata CRUD Endpoints
+
+Standardized CRUD interfaces across submodules (`game-seat`, `user-game-preferences`, `tile`, `digital-product`):
+
+```graphql
+# Example Query: Search User Game Preferences
+query FindUserPreferences($input: UserGamePreferencesFindInputDto!) {
+  UserGamePreferencesFind(input: $input) {
+    items {
+      id
+      u_id
+      tilest_id
+      auto_pick
+      sound_off
+    }
+    total
+  }
+}
+
+# Example Mutation: Update Tile Image
+mutation UpdateTileImage($input: TileImageUpdateInputDto!) {
+  TileImageUpdate(input: $input) {
+    id
+    tile_id
+    url
+  }
+}
+```
+
+---
+
+## 4. WebSocket Real-Time Protocol Specification (`GameEngineWs`)
+
+### 4.1 Connection & Room Addressing Architecture (`slug.ts`)
+
+WebSockets use PubSub topics with strict channel isolation:
+
+1. **Personal Subject Channel (Private User Room):**
+   * **Topic Format:** `game:subject:${game_keyid}-${user_id}`
+   * **Publish Event Name:** `game.publish.personal` (`WS_GAME_PUBLISH_PERSONAL`)
+   * **Payload (`GameStatePersonalOutputDto`):** Contains private hand tiles (`hand` dictionary and `hand_order` array) strictly for the authenticated recipient.
+
+2. **Play Group Channel (Public Broadcast Room):**
+   * **Topic Format:** `game:group:${game_keyid}`
+   * **Publish Event Name:** `game.publish.play` (`WS_GAME_PUBLISH_PLAY`)
+   * **Payload (`GameStatePlayOutputDto`):** Broadcast to all players in the room. During active gameplay, opponent rack hands are stripped for security. **When `phase === "FINISHED"`, all player seat rack hands are included.**
+
+---
+
+### 4.2 Client Subscribed Event Commands (Client -> Server)
+
+Client messages emitted over WebSocket follow the event subscription map defined in `ws.ts`:
+
+```
+           CLIENT ACTION                        WEBSOCKET COMMAND
++---------------------------------+   --->   +------------------------------------+
+| Discard Tile                    |          | game.subscribe.action.discard.tile |
+| Pick Tile                       |          | game.subscribe.action.pick.tile    |
+| Claim Tile                      |          | game.subscribe.action.claim.tile   |
+| Exchange Joker                  |          | game.subscribe.action.exchange.joker|
+| Call Mahjong                    |          | game.subscribe.action.call.mahjong  |
++---------------------------------+          +------------------------------------+
+```
+
+| Action Event Topic (`slug.ts`) | Input DTO Payload | Server Action & Broadcast Effect |
+| :--- | :--- | :--- |
+| `game.subscribe.start` | `GameStatePublicStartInputDto` | Initializes game session; broadcasts `game.publish.play`. |
+| `game.subscribe.join` | `GameStatePublicJoinInputDto` | Joins seat; broadcasts updated play state. |
+| `game.subscribe.action.charlestone` | `GameStateActionCharlestoneInputDto` | Passes tiles; broadcasts private state to sender & play state to room. |
+| `game.subscribe.action.submit.charlestone.second.round.vote` | `GameStateActionCharlestoneSecondVotesInputDto` | Records 2nd round Charleston vote. |
+| `game.subscribe.action.pick.tile` | `GameStateActionPickTileInputDto` | Draws tile for current turn player. |
+| `game.subscribe.action.discard.tile` | `GameStateActionDiscardTileInputDto` | Discards tile; opens claim window for opponents. |
+| `game.subscribe.action.claim.tile` | `GameStateActionClaimTileInputDto` | Registers claim intention for discarded tile. |
+| `game.subscribe.action.create.exposure` | `GameStateActionCreateExposureInputDto` | Creates exposure meld on rack. |
+| `game.subscribe.action.skipclaim.tile` | `GameStateActionSkipClaimInputDto` | Waives claim right on discarded tile. |
+| `game.subscribe.action.order.tiles` | `GameStateActionOrderTilesInputDto` | Persists custom hand ordering for sender. |
+| `game.subscribe.action.exchange.joker` | `GameStateActionExchangeJokerInputDto` | Replaces Joker in exposure with natural tile. Emits `last_joker_exchange` signal. |
+| `game.subscribe.action.call.mahjong` | `GameStateActionCallMahjongInputDto` | Validates Mahjong win condition. Sets phase to `FINISHED` and exposes all player hands. |
+| `game.subscribe.handledisconnect` | `{ auId: "encoded_base64_u_id" }` | Handles sudden tab close / network disconnection; marks seat disconnected. |
+
+---
+
+### 4.3 WebSocket Event JSON Payload Examples
+
+#### Client Discard Command (`game.subscribe.action.discard.tile`)
+```json
+{
+  "event": "game.subscribe.action.discard.tile",
+  "data": {
+    "input": {
+      "keyid": "GM-98234-XYZ",
+      "game_id": 55,
+      "u_id": 101,
+      "seat_id": 1,
+      "tile_id": 42
+    }
+  }
+}
+```
+
+#### Server Public State Broadcast (`game.publish.play`)
+```json
+{
+  "event": "game.publish.play",
+  "data": {
+    "game": {
+      "id": 55,
+      "keyid": "GM-98234-XYZ",
+      "current_turn_u_id": 102
+    },
+    "play": {
+      "phase": "PLAYING",
+      "turn_stage": "NEED_DISCARD",
+      "current_turn_seat_id": 2,
+      "seats": {
+        "1": {
+          "id": 1,
+          "u_id": 101,
+          "racks": {
+            "1": {
+              "rack_id": 1,
+              "is_mahjong": false,
+              "exposures_meld": []
+            }
+          }
+        },
+        "2": {
+          "id": 2,
+          "u_id": 102,
+          "racks": {
+            "1": {
+              "rack_id": 1,
+              "is_mahjong": false,
+              "exposures_meld": []
+            }
+          }
+        },
+        "5": {
+          "id": 5,
+          "gseattype_id": "DA",
+          "racks": {
+            "1": {
+              "hand": {
+                "42": { "tile_id": 42, "gseat_id": 5 }
+              },
+              "hand_order": [42]
+            }
+          }
+        }
+      }
+    }
+  }
+}
+```
+
+---
+
+## 5. HTTP & Protocol Response Status Codes
+
+| Status Code / Code String | Context | Description & Frontend Strategy |
+| :--- | :--- | :--- |
+| **200 OK** | GraphQL HTTP | Request processed successfully. Frontend must check payload `errors` array for domain-level exceptions. |
+| **400 Bad Request** | REST / GraphQL Validation | Triggered by `DataValidationPipe` when request inputs fail class-validator constraints. |
+| **401 Unauthorized** | GraphQL / WebSocket Handshake | Missing, expired, or invalid JWT token. Prompt user re-authentication or token refresh flow. |
+| **403 Forbidden** | Authorization Guard | User lacks permission to modify targeted seat or execute action out of turn. |
+| **404 Not Found** | Query / Game Key lookup | Specified `keyid` or resource entity does not exist. |
+| **500 Internal Error** | Server Exception | Unhandled runtime exception in service layer. Frontend should trigger retry or graceful error banner. |
+
+### Standard GraphQL Error Body Example
+```json
+{
+  "errors": [
+    {
+      "message": "It is not your turn to discard.",
+      "locations": [{ "line": 2, "column": 3 }],
+      "path": ["GameStateActionDiscardTile"],
+      "extensions": {
+        "code": "FORBIDDEN",
+        "exception": { "status": 403 }
+      }
+    }
+  ],
+  "data": null
+}
+```
+
+---
+
+## 6. Frontend Security Analysis & Implementation Guidelines
+
+### 6.1 Insecure Direct Object References (IDOR) & User Identity Impersonation
+
+* **Vulnerability Analysis:** Input DTOs accept explicit `u_id` parameters (e.g., `GameStateActionDiscardTileInputDto.u_id`). If the backend relies purely on client-provided `u_id` without cross-referencing `ctx.req.user.id` (derived from the validated JWT token), an attacker could spoof another player's seat actions.
+* **Frontend Best Practice:** 
+  - Never allow end-users to edit or supply arbitrary `u_id` values in client payloads.
+  - Bind user IDs strictly to the active session state stored in authenticated memory.
+
+---
+
+### 6.2 Sensitive Data Exposure & State Separation
+
+* **Vulnerability Analysis:** In Mahjong, exposing opponents' concealed rack tiles allows cheating. 
+* **Backend Mitigation & Frontend Enforcement:**
+  - Active Play (`PLAYING`, `CLAIM`, `PASSING`): Hand data (`hand`, `hand_order`) is automatically stripped from the public `game.publish.play` channel for all seats except Discard Area (`DA`). Frontend must render opponent racks using tile count indicators only.
+  - Private State: Individual player hand tiles are delivered **only** via the dedicated user room (`game:subject:${keyid}-${u_id}`).
+  - Wall Seat (`WL`): Wall tiles remain private under all circumstances.
+  - Game End (`FINISHED`): Hand data for all player seats is exposed in `game.publish.play` to render the end-of-game summary overlay.
+
+---
+
+### 6.3 Secure Authentication & JWT Token Management
+
+1. **Storage Recommendations:**
+   * Avoid storing JWT tokens in `localStorage` or `sessionStorage` due to vulnerability to Cross-Site Scripting (XSS).
+   * Store access tokens in-memory (e.g., React Context / Redux state) and use `HttpOnly`, `Secure`, `SameSite=Strict` cookies for refresh tokens.
+2. **WebSocket Authentication:**
+   * Pass authentication tokens securely during the initial WebSocket connection handshake (e.g., `io(URL, { auth: { token: "BEARER_JWT" } })`).
+   * Avoid transmitting raw security tokens in URL query strings where they may be captured in server access logs.
+
+---
+
+### 6.4 Client-Side Input Validation & Output Sanitization
+
+* **Input Validation:** Replicate server-side `class-validator` rules in forms and action handlers (e.g., checking tile ID bounds, array length limits during Charleston selection).
+* **XSS Prevention:** HTML-encode all user-generated strings (e.g., player usernames, match notes) before rendering in the UI.
+
+---
+
+### 6.5 CORS Configuration Guidelines
+
+Ensure server CORS policies are configured explicitly in NestJS:
+```ts
+app.enableCors({
+  origin: ['https://mahjfit.com', 'https://app.mahjfit.com'],
+  credentials: true,
+  methods: ['GET', 'POST', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+});
+```
+
+---
+
+### 6.6 Resilient State Management & Error Handling
+
+1. **Reconnection & State Reconciliation:**
+   - Upon WebSocket disconnection and reconnection, the frontend should immediately execute the `GameStatePublicLatest` query to resynchronize local UI state with the server.
+2. **Optimistic UI Updates & Rollback:**
+   - When a user sorts tiles or selects a discard, perform an optimistic local UI update.
+   - If the server returns a GraphQL error (e.g., action out of order or invalid move), revert the UI state to the last verified server state snapshot.
+3. **Timer Synchronization:**
+   - Turn timers (e.g., claim window, discard countdowns) must be synchronized using server timestamps (`declared_at`, turn stage transition times) rather than relying solely on un-synchronized client system clocks.

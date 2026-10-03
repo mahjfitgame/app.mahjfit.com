@@ -42,6 +42,20 @@ Solved the issue with flower tiles when creating a PUNG or KONG using different 
 
 ============= TODO ===============
 #]
+Need to add close icon on claim tile to undo the claim.
+Also need one more implementation on claim, if claim window appear and user skip the request then and if the next turn is current seat pick then there also need option to claim the tile or pick the tile. 
+
+
+#]
+Need to test the multiple joker exchange multiple time, is it perform well.
+Because we checked the multiple joker exchange it send the same joker id with both request and tile get 13 in the requested seat rack, it should be 14 tiles, so please check it properly.
+
+Also need to check the joker exchange by the bot seat, while playing the game. Is it working or not.
+
+#]
+Need to check the bot will follow the rule and winning hand and how bot take decision, we have some screenshots of game play need to cross check that screenshot with the actual game hand is it all exposure belong to the 
+
+#]
 From mobile remove the bottom seat rack arrow and show the full tiles in one rack, No need horizontal animation to view all tiles.
 
 #]
@@ -254,6 +268,19 @@ u_id: 65
 [[Prototype]]: Object selections: {play: {…}, personal: {…}, game: {…}}[[Prototype]]: Object[[Prototype]]: Objectindex.js:22 
 
 ============= REPLY ==============
+FOR CLIENT]
+Today, I cross-checked the Joker implementation and made the required updates. I also updated the animation when exchanging the Joker.
+
+Additionally, I worked on the Mahjong popup design and upgraded the basic popup with the proper “Mahjong” text and buttons. There is still some work remaining to show the hands of all seats for the specific seat when calling Mahjong, as well as displaying the winning hand at the center.
+
+Just for your information, I am currently working on implementing the remaining functionality. While testing the implemented features, I am also identifying UI-related changes that are required to improve the overall interaction and user experience.
+
+I will work on these UI improvements later, once I have completed all the remaining functionality. For now, my priority is to complete the remaining features, and after that, I will focus on the UI-related changes.
+
+I will keep you posted on the work progress.
+Thank you!
+
+
 FOR CLIENT]
 Today, I continued working on the Joker exchange implementation and completed it. Testing on multiple devices is still pending.
 While implementing the Joker exchange, I found a conflict between the Joker exchange and claim windows when double-tapping to discard or exchange a Joker. I updated the implementation and resolved this conflict.
