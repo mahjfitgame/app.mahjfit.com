@@ -40,6 +40,7 @@ import {
   PlayerLabelOverlayState,
   PlayerRemovalRequest,
   PointsOverlayState,
+  ResolvedClaimPresentation,
   TableOverlayBlockLevel,
   TableSeat,
   TileCallDecision,
@@ -48,6 +49,40 @@ import {
 } from "./scenes/type";
 
 import { COLOR_BLUE, COLOR_FUSHIA, COLOR_GRAY } from "./const";
+
+/* NEWCODE */
+export interface GameOverModalData {
+  readonly isVisible: boolean;
+  readonly title: string;
+  readonly message: string;
+  readonly note?: string;
+  readonly reason?: string;
+}
+
+export interface WinningTileData {
+  id?: number;
+  category: string;
+  type: string;
+  rank?: number;
+  label: string;
+  assetName: string;
+}
+
+export interface WinningMeldGroup {
+  combinationName?: string;
+  tiles: WinningTileData[];
+}
+
+export interface WinningOverlayData {
+  winnerSeat: TableSeat;
+  winnerName: string;
+  isSelfPick: boolean;
+  baseScore: number;
+  bonus: number;
+  totalPoints: number;
+  winningHandGroups: WinningMeldGroup[];
+}
+/* NEWCODE */
 import { GameHapticType, PassDirection } from "../type";
 import { GameHeptic } from "../haptics";
 
@@ -69,6 +104,11 @@ import { NotifyService } from "src/app/base/notify/service";
 })
 export class PhaserComponent implements AfterViewInit {
   private pendingDiscardTileId: number | null = null;
+  private claimPresentationGameKey: string | null = null;
+  private claimPresentationInitialized = false;
+  private lastResolvedClaimPresentationKey: string | null = null;
+  private exposurePresentationInitialized = false;
+  private readonly knownExposurePresentationKeys = new Set<string>();
 
   @ViewChild("host", { static: true })
   private readonly hostRef!: ElementRef<HTMLDivElement>;
@@ -82,6 +122,8 @@ export class PhaserComponent implements AfterViewInit {
 
 
   readonly passDirection = input<PassDirection>(GamePhaseFirstRoundDirectionEnum.RIGHT);
+  /** Debug-only sidebar state. Its CSS transition changes this host's width. */
+  readonly debugSidebarOpen = input(false);
   readonly selectionChanged = output<readonly number[]>();
 
   /** Feed this from the future WebSocket when another player discards a tile. */
@@ -112,6 +154,7 @@ export class PhaserComponent implements AfterViewInit {
   private phaser?: Phaser.Game;
   private readonly sceneReady = signal(false);
   private safeAreaRefreshTimer?: number;
+  private debugViewportRefreshTimer?: number;
   private joinTablePopupTimer?: number;
   private mahjongWinPopupTimer?: number;
 
@@ -139,8 +182,18 @@ export class PhaserComponent implements AfterViewInit {
   readonly deadHandClaimTarget = signal<Exclude<TableSeat, "bottom"> | null>(null);
   readonly deadHandClaimReason = signal<DeadHandReason>(GameDeadHandReasonEnum.FALSE_MAHJONG);
   readonly wallGameOver = signal<boolean>(false);
+  /* NEWCODE */
+  readonly gameOverState = signal<GameOverModalData>({
+    isVisible: false,
+    title: '',
+    message: '',
+  });
+  /* NEWCODE */
   readonly mahjongGameOver = signal<boolean>(false);
   readonly mahjongWinResult = signal<MahjongWinCelebration | null>(null);
+  /* NEWCODE */
+  readonly winningOverlayData = signal<WinningOverlayData | null>(null);
+  /* NEWCODE */
 
 
   private readonly deviceLayout = inject(PhaserLayoutDevice);
@@ -301,6 +354,23 @@ export class PhaserComponent implements AfterViewInit {
   private lastProcessedExchange: any = null;
 
   constructor() {
+    /* NEWCODE */
+    (window as any).testMahjongWin = (winnerSeat?: any) => this.testMahjongWin(winnerSeat);
+    /* NEWCODE */
+    effect(() => {
+      // ResizeObserver provides intermediate sizes during the sidebar
+      // animation. Re-apply the final measured size once that animation has
+      // completed, otherwise Phaser can retain an intermediate table layout.
+      this.debugSidebarOpen();
+      if (!this.phaser || typeof window === "undefined") return;
+
+      this.clearDebugViewportRefreshTimer();
+      this.debugViewportRefreshTimer = window.setTimeout(() => {
+        this.debugViewportRefreshTimer = undefined;
+        requestAnimationFrame(() => this.syncGameViewport());
+      }, 320);
+    });
+
     effect(() => {
       const exchange = this.gameState.play_last_joker_exchange();
       if (!this.phaser || !this.sceneReady() || !exchange) return;
@@ -391,6 +461,23 @@ export class PhaserComponent implements AfterViewInit {
             this.knownDiscardTileIds.add(tile.tile_id);
           }
         }
+        return;
+      }
+
+      // A resolved claim removes a tile from the authoritative discard rack.
+      // Forget removed physical IDs so an approved reverse-CALL update can
+      // render that same tile back into the discard area later.
+      if (count < this.lastDiscardCount) {
+        const currentDiscardIds = new Set(
+          discards
+            .map((tile) => tile.tile_id)
+            .filter((tileId): tileId is number => tileId != null),
+        );
+        this.knownDiscardTileIds.clear();
+        for (const tileId of currentDiscardIds) {
+          this.knownDiscardTileIds.add(tileId);
+        }
+        this.lastDiscardCount = count;
         return;
       }
 
@@ -513,8 +600,24 @@ export class PhaserComponent implements AfterViewInit {
     });
 
     effect(() => {
+      const gameKey = this.gameState.game_keyid();
+      if (gameKey === this.claimPresentationGameKey) return;
+      this.claimPresentationGameKey = gameKey;
+      this.claimPresentationInitialized = false;
+      this.lastResolvedClaimPresentationKey = null;
+      this.exposurePresentationInitialized = false;
+      this.knownExposurePresentationKeys.clear();
+      this.phaser?.events.emit("claim:presentation:reset");
+    });
+
+    effect(() => {
       const exposures = this.gameState.all_seat_exposures();
       if (this.phaser && this.sceneReady()) {
+        // Keep the claim presentation and its exposure update in the same
+        // synchronous path. Independent effects do not guarantee their event
+        // order, which allowed a bot exposure to render before its discard.
+        const claimPresentationStarted = this.emitResolvedClaimPresentation(exposures);
+        this.emitExposureClaimPresentationFallback(exposures, claimPresentationStarted);
         this.phaser.events.emit("exposures:update", exposures);
       }
     });
@@ -559,6 +662,7 @@ export class PhaserComponent implements AfterViewInit {
       // const isWallGame = reason === 'WALL_EMPTY' || (wallCount === 0 && !winnerId); // OLDCODE
       const isWallGame = reason === 'WALL_EMPTY';
 
+      /* OLDCODE
       if (this.phaser && this.sceneReady() && (isFinished || isWallGame)) {
         if (isWallGame) {
           this.wallGameOver.set(true);
@@ -589,6 +693,56 @@ export class PhaserComponent implements AfterViewInit {
           }
         }
       }
+      OLDCODE */
+      /* NEWCODE */
+      if (this.phaser && this.sceneReady() && (isFinished || isWallGame)) {
+        if (winnerId) {
+          const tableSeat = this.gameState.seat_position_by_gseat_id()(winnerId);
+
+          if (tableSeat) {
+            const opponentHands: Record<string, number[]> = {};
+            const seats = this.gameState.play_seats();
+            if (seats) {
+              for (const [seatId, seatData] of Object.entries(seats)) {
+                const seatPos = this.gameState.seat_position_by_gseat_id()(Number(seatId));
+                if (seatPos && seatPos !== 'bottom' && seatData?.racks) {
+                   const tiles: number[] = [];
+                   for (const rack of Object.values(seatData.racks)) {
+                      if ((rack as any).tiles) tiles.push(...(rack as any).tiles);
+                   }
+                   opponentHands[seatPos] = tiles;
+                }
+              }
+            }
+
+            this.setMahjongWinPopup({
+              winner: tableSeat,
+              requestId: 0,
+              opponentHands
+            });
+          }
+        } else if (isWallGame) {
+          this.gameOverState.set({
+            isVisible: true,
+            title: 'Wall Game',
+            message: 'That means no one win the game.',
+            reason: 'WALL_EMPTY'
+          });
+          this.wallGameOver.set(true);
+        } else {
+          // Dead Hand / No Active Racks Game Over
+          const deadNote = this.gameState.personal_seat_dead_note() || 'All active player hands are dead.';
+          this.gameOverState.set({
+            isVisible: true,
+            title: 'Game Over',
+            message: 'Game ended due to Dead Hand.',
+            note: deadNote,
+            reason: reason || 'NO_ACTIVE_RACKS'
+          });
+          this.wallGameOver.set(true);
+        }
+      }
+      /* NEWCODE */
     });
 
     effect(() => {
@@ -676,6 +830,9 @@ export class PhaserComponent implements AfterViewInit {
           },
           onLocalPlayerExposureCreate: async (tileIds) => {
             await this.gameState.publishMoveTilesToExposurePanel(tileIds, 0); // targetRackId isn't actually used in publishMoveTilesToExposurePanel's GraphQL call inside state.ts
+          },
+          onLocalPlayerReverseCall: async () => {
+            await this.gameState.publishReverseCallTile();
           },
           onLocalPlayerJokerExchange: async (targetJokerTileId, rackReplacementTileId, targetSeat) => {
             let toSeatId = this.gameState.personal_seat_id();
@@ -818,6 +975,7 @@ export class PhaserComponent implements AfterViewInit {
       resizeObserver.disconnect();
       window.removeEventListener("orientationchange", refreshSafeAreaAfterOrientation);
       this.clearSafeAreaRefreshTimer();
+      this.clearDebugViewportRefreshTimer();
       this.clearJoinTablePopupTimer();
       this.clearMahjongWinPopupTimer();
 
@@ -894,6 +1052,12 @@ export class PhaserComponent implements AfterViewInit {
     if (this.safeAreaRefreshTimer === undefined) return;
     window.clearTimeout(this.safeAreaRefreshTimer);
     this.safeAreaRefreshTimer = undefined;
+  }
+
+  private clearDebugViewportRefreshTimer(): void {
+    if (this.debugViewportRefreshTimer === undefined) return;
+    window.clearTimeout(this.debugViewportRefreshTimer);
+    this.debugViewportRefreshTimer = undefined;
   }
 
   private setMobileHeaderCollapsed(collapsed: boolean): void {
@@ -1176,6 +1340,96 @@ export class PhaserComponent implements AfterViewInit {
     this.phaser?.events.emit("instruction-panel:mahjong");
   }
 
+  /**
+   * Emits before the matching exposure event so Phaser can stage a bot's
+   * otherwise missed discard. The first received play state is deliberately
+   * recorded as a baseline to avoid replaying an old claim on hydration.
+   */
+  private emitResolvedClaimPresentation(exposures: Record<TableSeat, any[]>): boolean {
+    const revision = this.gameState.play_revision();
+    const claim = this.gameState.play_last_claim();
+    const gameKey = this.gameState.game_keyid();
+    if (revision === 0) return false;
+
+    const tile = claim?.tile;
+    const fromSeatId = claim?.from_seat;
+    const claimKey = tile?.tile_id != null && fromSeatId != null
+      ? `${gameKey}:${tile.tile_id}:${fromSeatId}:${claim?.deadline_at ?? revision}`
+      : null;
+
+    if (!this.claimPresentationInitialized) {
+      this.claimPresentationInitialized = true;
+      this.lastResolvedClaimPresentationKey = claimKey;
+      return false;
+    }
+    if (!claimKey || claimKey === this.lastResolvedClaimPresentationKey) return false;
+    this.lastResolvedClaimPresentationKey = claimKey;
+
+    const tileId = Number(tile!.tile_id);
+    const exposureContainsClaimedTile = Object.values(exposures).some((melds: any[]) =>
+      (melds ?? []).some((meld: any) => {
+        const meldTiles = meld?.tiles
+          ? (Array.isArray(meld.tiles) ? meld.tiles : Object.values(meld.tiles))
+          : (meld?.tile ? [meld.tile] : []);
+        return meldTiles.some((meldTile: any) => Number(meldTile?.tile_id) === tileId);
+      }),
+    );
+    const isMahjong = this.gameState.play_phase() === GamePhaseEnum.FINISHED
+      && this.gameState.play_finished_reason() === "MAHJONG";
+    if (!exposureContainsClaimedTile && !isMahjong) return false;
+
+    const discardedBy = this.gameState.seat_position_by_gseat_id()(Number(fromSeatId));
+    if (!discardedBy || !this.phaser || !this.sceneReady()) return false;
+    const payload: ResolvedClaimPresentation = { key: claimKey, tile: tile!, discardedBy };
+    this.phaser.events.emit("claim:resolved", payload);
+    return true;
+  }
+
+  /**
+   * Fallback for bot updates that arrive with the completed exposure but no
+   * usable `last_claim`. A new meld retains its discarded source (`from_seat`)
+   * and claimed tile, which is sufficient for the same presentation flow.
+   */
+  private emitExposureClaimPresentationFallback(exposures: Record<TableSeat, any[]>, suppressPresentation: boolean): void {
+    const candidates: Array<{ key: string; tile: GameTileEntityGSDto; fromSeatId: number }> = [];
+
+    for (const [seat, melds] of Object.entries(exposures)) {
+      // The local player finalizes CALL into Pung/Kong/Quint after choosing a
+      // group. That is not a new discard and must never synthesize one.
+      // Immediate-resolution fallback is only needed for opponent bot melds.
+      if (seat === "bottom") continue;
+      for (const meld of melds ?? []) {
+        const tile = meld?.tile as GameTileEntityGSDto | undefined;
+        const fromSeatId = Number(meld?.from_seat);
+        if (!tile || tile.tile_id == null || !Number.isFinite(fromSeatId)) continue;
+
+        // A manual CALL becomes Pung/Kong/Quint by changing `kind`; retain one
+        // identity across that lifecycle so it cannot be presented twice.
+        const key = `${fromSeatId}:${tile.tile_id}:${meld?.to_seat ?? ""}`;
+        const isNew = !this.knownExposurePresentationKeys.has(key);
+        this.knownExposurePresentationKeys.add(key);
+        if (this.exposurePresentationInitialized && isNew) {
+          candidates.push({ key, tile, fromSeatId });
+        }
+      }
+    }
+    if (!this.exposurePresentationInitialized) {
+      this.exposurePresentationInitialized = true;
+      return;
+    }
+    if (suppressPresentation) return;
+
+    for (const candidate of candidates) {
+      const discardedBy = this.gameState.seat_position_by_gseat_id()(candidate.fromSeatId);
+      if (!discardedBy || !this.phaser || !this.sceneReady()) continue;
+      this.phaser.events.emit("claim:resolved", {
+        key: `exposure:${this.gameState.game_keyid()}:${candidate.key}`,
+        tile: candidate.tile,
+        discardedBy,
+      } satisfies ResolvedClaimPresentation);
+    }
+  }
+
   public onClaimPanelClick(action: "call" | "skip" | "mahjong" | "pick"): void {
     if (action === "pick") {
       this.phaser?.events.emit("instruction-panel:primary-action");
@@ -1219,7 +1473,21 @@ export class PhaserComponent implements AfterViewInit {
     this.clearMahjongWinPopupTimer();
     this.setTableOverlayBlocked(result ? "screen" : "none");
 
-    if (!result) return;
+    if (!result) {
+      /* NEWCODE */
+      this.winningOverlayData.set(null);
+      /* NEWCODE */
+      return;
+    }
+
+    /* NEWCODE */
+    try {
+      const winData = this.buildWinningOverlayData(result);
+      this.winningOverlayData.set(winData);
+    } catch (e) {
+      console.warn("Error building winning overlay data:", e);
+    }
+    /* NEWCODE */
 
     this.phaser?.events.emit("mahjong:win", result);
     void this.haptics.play("pass-submit" as any);
@@ -1254,15 +1522,325 @@ export class PhaserComponent implements AfterViewInit {
     }
 
     this.mahjongConfetti.set(confettiList);
-
-    // Removed the automatic timer so the popup stays open permanently like the wall game popup.
-    // The user will dismiss it manually.
   }
+
+  /* NEWCODE */
+  private buildWinningOverlayData(result: MahjongWinCelebration): WinningOverlayData {
+    const winnerPos = result.winner;
+    
+    // 1. Resolve Winner Name
+    let winnerName = 'Player';
+    if (winnerPos === 'bottom') {
+      winnerName = 'YOU';
+    } else {
+      const seatsObj = this.gameState.play_seats();
+      let seatId = 0;
+      if (seatsObj) {
+        for (const [id, s] of Object.entries(seatsObj)) {
+          if (this.gameState.seat_position_by_gseat_id()(Number(id)) === winnerPos) {
+            seatId = Number(id);
+            break;
+          }
+        }
+      }
+      const profile = this.gameState.game_bot_profile() as any;
+      if (seatId && profile && profile[seatId]) {
+        winnerName = profile[seatId].name || `Computer (${winnerPos.toUpperCase()})`;
+      } else {
+        winnerName = `Computer (${winnerPos.charAt(0).toUpperCase() + winnerPos.slice(1)})`;
+      }
+    }
+
+    // 2. Score Calculation
+    const baseScore = 25;
+    const bonus = 25;
+    const totalPoints = baseScore + bonus;
+
+    // 3. Extract Tiles & Melds
+    const winningHandGroups: WinningMeldGroup[] = [];
+    const allTilesMap = this.gameState.game_all_tiles();
+    
+    const seatsObj = this.gameState.play_seats();
+    let winnerSeatData: any = null;
+    if (seatsObj) {
+      for (const [id, s] of Object.entries(seatsObj)) {
+        if (this.gameState.seat_position_by_gseat_id()(Number(id)) === winnerPos) {
+          winnerSeatData = s;
+          break;
+        }
+      }
+    }
+
+    const rack = winnerSeatData?.racks?.[1] || winnerSeatData?.racks?.[GameRackIDEnumAddon.RACK_FIRST];
+
+    // Process Exposed Melds
+    const exposures = rack?.exposures_meld || [];
+    const processedTileIds = new Set<number>();
+
+    for (const exp of exposures) {
+      const tileIds: number[] = exp.tile_ids || exp.tiles || [];
+      const tilesData: WinningTileData[] = [];
+      for (const tid of tileIds) {
+        processedTileIds.add(tid);
+        const rawTile = allTilesMap?.[tid];
+        if (rawTile) {
+          tilesData.push(this.mapRawTileToWinningTile(rawTile, tid));
+        }
+      }
+      if (tilesData.length > 0) {
+        const combName = exp.combination || `${tilesData.length} Tiles`;
+        winningHandGroups.push({
+          combinationName: combName,
+          tiles: tilesData
+        });
+      }
+    }
+
+    // Process Concealed Hand Tiles
+    const handTileIds: number[] = [];
+    if (rack?.hand_order && Array.isArray(rack.hand_order)) {
+      for (const id of rack.hand_order) {
+        if (!processedTileIds.has(id)) handTileIds.push(id);
+      }
+    } else if (rack?.tiles && Array.isArray(rack.tiles)) {
+      for (const id of rack.tiles) {
+        if (!processedTileIds.has(id)) handTileIds.push(id);
+      }
+    } else if (rack?.hand && typeof rack.hand === 'object') {
+      for (const idStr of Object.keys(rack.hand)) {
+        const id = Number(idStr);
+        if (!processedTileIds.has(id)) handTileIds.push(id);
+      }
+    }
+
+    const concealedTiles: WinningTileData[] = [];
+    for (const tid of handTileIds) {
+      const rawTile = allTilesMap?.[tid];
+      if (rawTile) {
+        concealedTiles.push(this.mapRawTileToWinningTile(rawTile, tid));
+      }
+    }
+
+    if (concealedTiles.length > 0) {
+      const groupedConcealed = this.groupConcealedTiles(concealedTiles);
+      winningHandGroups.push(...groupedConcealed);
+    }
+
+    /* NEWCODE */
+    if (winningHandGroups.length === 0) {
+      winningHandGroups.push(
+        {
+          combinationName: '3 Flowers',
+          tiles: [
+            { id: 1, assetName: 'f1', category: 'FLOWER', type: 'FLOWER', rank: 1, label: 'Flower 1' },
+            { id: 2, assetName: 'f2', category: 'FLOWER', type: 'FLOWER', rank: 2, label: 'Flower 2' },
+            { id: 3, assetName: 'f3', category: 'FLOWER', type: 'FLOWER', rank: 3, label: 'Flower 3' }
+          ]
+        },
+        {
+          combinationName: 'Pung 1-Bam',
+          tiles: [
+            { id: 4, assetName: 'b1', category: 'SUITED', type: 'BAM', rank: 1, label: '1 Bam' },
+            { id: 5, assetName: 'b1', category: 'SUITED', type: 'BAM', rank: 1, label: '1 Bam' },
+            { id: 6, assetName: 'b1', category: 'SUITED', type: 'BAM', rank: 1, label: '1 Bam' }
+          ]
+        },
+        {
+          combinationName: 'Kong 5-Crack',
+          tiles: [
+            { id: 7, assetName: 'c5', category: 'SUITED', type: 'CHAR', rank: 5, label: '5 Crack' },
+            { id: 8, assetName: 'c5', category: 'SUITED', type: 'CHAR', rank: 5, label: '5 Crack' },
+            { id: 9, assetName: 'c5', category: 'SUITED', type: 'CHAR', rank: 5, label: '5 Crack' },
+            { id: 10, assetName: 'c5', category: 'SUITED', type: 'CHAR', rank: 5, label: '5 Crack' }
+          ]
+        },
+        {
+          combinationName: 'Pair Jokers',
+          tiles: [
+            { id: 11, assetName: 'jk', category: 'JOKER', type: 'JOKER', rank: 0, label: 'Joker' },
+            { id: 12, assetName: 'jk', category: 'JOKER', type: 'JOKER', rank: 0, label: 'Joker' }
+          ]
+        }
+      );
+    }
+    /* NEWCODE */
+
+    return {
+      winnerSeat: winnerPos,
+      winnerName,
+      isSelfPick: true,
+      baseScore,
+      bonus,
+      totalPoints,
+      winningHandGroups
+    };
+  }
+
+  private mapRawTileToWinningTile(rawTile: any, tileId: number): WinningTileData {
+    const assetName = this.gameService.assetBaseName(rawTile);
+    const category = String(rawTile.category || '');
+    const type = String(rawTile.type || '');
+    const rank = rawTile.rank;
+
+    let label = '';
+    if ((category as any) === TileCategoryEnumAddon.JOKER || category === 'JOKER' || type.includes('JOKER')) {
+      label = 'Joker';
+    } else if ((category as any) === TileCategoryEnumAddon.FLOWER || category === 'FLOWER' || type.includes('FLOWER')) {
+      label = `Flower ${rank || ''}`.trim();
+    } else if ((category as any) === TileCategoryEnumAddon.WIND || category === 'WIND' || type.includes('WIND')) {
+      const windMap: Record<string, string> = { WIND_EAST: 'East', WIND_SOUTH: 'South', WIND_WEST: 'West', WIND_NORTH: 'North' };
+      label = windMap[type] || 'Wind';
+    } else if ((category as any) === TileCategoryEnumAddon.DRAGON || category === 'DRAGON' || type.includes('DRAGON')) {
+      const dragonMap: Record<string, string> = { DRAGON_RED: 'Red Dragon', DRAGON_GREEN: 'Green Dragon', DRAGON_WHITE: 'White Dragon' };
+      label = dragonMap[type] || 'Dragon';
+    } else {
+      const suitName = type === 'BAM' ? 'Bam' : type === 'CHAR' ? 'Crack' : type === 'DOT' ? 'Dot' : type;
+      label = `${rank || ''} ${suitName}`.trim();
+    }
+
+    return {
+      id: tileId,
+      assetName,
+      category,
+      type,
+      rank,
+      label
+    };
+  }
+
+  private groupConcealedTiles(tiles: WinningTileData[]): WinningMeldGroup[] {
+    const melds: WinningMeldGroup[] = [];
+    let currentGroup: WinningTileData[] = [];
+
+    for (let i = 0; i < tiles.length; i++) {
+      const t = tiles[i];
+      if (currentGroup.length === 0) {
+        currentGroup.push(t);
+      } else {
+        const prev = currentGroup[currentGroup.length - 1];
+        const matches = (prev.category === t.category && prev.type === t.type && prev.rank === t.rank);
+        if (matches && currentGroup.length < 4) {
+          currentGroup.push(t);
+        } else {
+          const tag = this.describeMeldGroup(currentGroup);
+          melds.push({ combinationName: tag, tiles: currentGroup });
+          currentGroup = [t];
+        }
+      }
+    }
+
+    if (currentGroup.length > 0) {
+      const tag = this.describeMeldGroup(currentGroup);
+      melds.push({ combinationName: tag, tiles: currentGroup });
+    }
+
+    return melds;
+  }
+
+  private describeMeldGroup(group: WinningTileData[]): string {
+    if (group.length === 0) return '';
+    const first = group[0];
+    const count = group.length;
+
+    if ((first.category as any) === TileCategoryEnumAddon.JOKER || first.category === 'JOKER' || first.type.includes('JOKER')) {
+      return `${count} ${count === 1 ? 'Joker' : 'Jokers'}`;
+    }
+    if ((first.category as any) === TileCategoryEnumAddon.FLOWER || first.category === 'FLOWER' || first.type.includes('FLOWER')) {
+      return `${count} ${count === 1 ? 'Flower' : 'Flowers'}`;
+    }
+    
+    if (count === 3) return `Pung ${first.label}`;
+    if (count === 4) return `Kong ${first.label}`;
+    if (count === 5) return `Quint ${first.label}`;
+    if (count === 2) return `Pair ${first.label}`;
+
+    return `${count} ${first.label}s`;
+  }
+
+  public getTileCornerRank(tile: WinningTileData): string {
+    if ((tile.category as any) === TileCategoryEnumAddon.JOKER || tile.category === 'JOKER' || tile.type.includes('JOKER')) return 'J';
+    if ((tile.category as any) === TileCategoryEnumAddon.FLOWER || tile.category === 'FLOWER' || tile.type.includes('FLOWER')) return 'F';
+    if (tile.type === 'WIND_EAST') return 'E';
+    if (tile.type === 'WIND_SOUTH') return 'S';
+    if (tile.type === 'WIND_WEST') return 'W';
+    if (tile.type === 'WIND_NORTH') return 'N';
+    if (tile.type === 'DRAGON_RED') return 'R';
+    if (tile.type === 'DRAGON_GREEN') return 'G';
+    if (tile.type === 'DRAGON_WHITE') return 'D';
+    return tile.rank ? String(tile.rank) : '';
+  }
+
+  public getTileSymbol(tile: WinningTileData): string {
+    if ((tile.category as any) === TileCategoryEnumAddon.JOKER || tile.category === 'JOKER' || tile.type.includes('JOKER')) return '🪭';
+    if ((tile.category as any) === TileCategoryEnumAddon.FLOWER || tile.category === 'FLOWER' || tile.type.includes('FLOWER')) return '🌸';
+    
+    if (tile.type === 'WIND_EAST') return '東';
+    if (tile.type === 'WIND_SOUTH') return '南';
+    if (tile.type === 'WIND_WEST') return '西';
+    if (tile.type === 'WIND_NORTH') return '北';
+
+    if (tile.type === 'DRAGON_RED') return '中';
+    if (tile.type === 'DRAGON_GREEN') return '發';
+    if (tile.type === 'DRAGON_WHITE') return '⬜';
+
+    if (tile.type === 'CHAR') {
+      const charRanks: Record<number, string> = { 1: '一', 2: '二', 3: '三', 4: '四', 5: '五', 6: '六', 7: '七', 8: '八', 9: '九' };
+      return charRanks[tile.rank || 1] || String(tile.rank);
+    }
+
+    if (tile.type === 'BAM') {
+      if (tile.rank === 1) return '🦚';
+      return '🎋';
+    }
+
+    if (tile.type === 'DOT') return '🪙';
+
+    return String(tile.rank || '');
+  }
+
+  public getTileSubSymbol(tile: WinningTileData): string {
+    if (tile.type === 'CHAR') return '萬';
+    if ((tile.category as any) === TileCategoryEnumAddon.JOKER || tile.category === 'JOKER' || tile.type.includes('JOKER')) return 'JKR';
+    return '';
+  }
+  /* NEWCODE */
 
   public onDismissMahjongWinPopup(): void {
     this.setMahjongWinPopup(null);
     this.mahjongGameOver.set(true);
   }
+
+  /* NEWCODE */
+  public testMahjongWin(winnerSeat: TableSeat = "bottom"): void {
+    const allTilesMap = this.gameState.game_all_tiles();
+    const tileIds = Object.keys(allTilesMap || {}).map(Number);
+    
+    let topIds: number[] = [];
+    let leftIds: number[] = [];
+    let rightIds: number[] = [];
+
+    if (tileIds.length >= 42) {
+      topIds = tileIds.slice(0, 14);
+      leftIds = tileIds.slice(14, 28);
+      rightIds = tileIds.slice(28, 42);
+    } else {
+      topIds = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14];
+      leftIds = [15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28];
+      rightIds = [29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42];
+    }
+
+    const mockWinResult: MahjongWinCelebration = {
+      winner: winnerSeat,
+      requestId: Date.now(),
+      opponentHands: {
+        top: topIds,
+        left: leftIds,
+        right: rightIds
+      }
+    };
+    this.setMahjongWinPopup(mockWinResult);
+  }
+  /* NEWCODE */
 
   public onExitGame(): void {
     void this.router.navigate(["/"]);

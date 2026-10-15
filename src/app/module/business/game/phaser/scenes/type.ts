@@ -4,7 +4,7 @@ import { DeviceLayoutState, PassDirection, TableLayout } from "../type";
 import { GameCharlestoneStageEnum, GamePhaseEnum } from "@bfw/api-sdk/graphql/endpoints/business";
 
 
-import { GameDeadHandReasonEnum, GamePlayActionEnum, GameTileEntity } from "@bfw/api-sdk/graphql/endpoints/business";
+import { GameDeadHandReasonEnum, GamePlayActionEnum, GameTileEntity, GameTileEntityGSDto } from "@bfw/api-sdk/graphql/endpoints/business";
 
 export type TableSeat = "top" | "right" | "bottom" | "left";
 
@@ -36,6 +36,13 @@ export interface MahjongWinCelebration {
   readonly winner: TableSeat;
   readonly requestId: number;
   readonly opponentHands?: Record<string, number[]>;
+}
+
+/** A resolved server claim that needs a short, frontend-only discard presentation. */
+export interface ResolvedClaimPresentation {
+  readonly key: string;
+  readonly tile: GameTileEntityGSDto;
+  readonly discardedBy: TableSeat;
 }
 
 /** Server-supplied away state for the local moderation prompt. */
@@ -110,6 +117,8 @@ export interface TableSceneCallbacks {
   /** Discard a tile from the local player's rack. */
   readonly onLocalPlayerDiscard: (tileId: number) => void;
   readonly onLocalPlayerExposureCreate?: (tileIds: number[]) => Promise<void>;
+  /** Reverses a server-authorized pending CALL before extra tiles are exposed. */
+  readonly onLocalPlayerReverseCall?: () => Promise<void>;
   /** Exchanges a joker with a tile from the player's rack */
   readonly onLocalPlayerJokerExchange?: (targetJokerTileId: number, rackReplacementTileId: number, targetSeat: TableSeat) => Promise<void>;
   readonly onLocalPlayerPick: () => void;

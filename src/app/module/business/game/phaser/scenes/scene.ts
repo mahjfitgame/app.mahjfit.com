@@ -10,7 +10,7 @@ import { PhaserState } from "../state";
 import { PhaserInteraction } from "../interaction";
 import { PhaserLayoutUi } from "../layout/ui";
 import { ANIMATION_SPEED, COLOR_BLUE, COLOR_BLUE_NUM, COLOR_FUSHIA, COLOR_FUSHIA_NUM, COLOR_GRAY_NUM, COLOR_LAVENDER_NUM, FONT_FAMILY, GAME_TABLE_CONFIG, ICON_DEADHAND_HOVER, ICON_DEADHAND_NORMAL, ICON_DEADHAND_PRESSED, ICON_HELP_HOVER, ICON_HELP_NORMAL, ICON_HELP_PRESSED, ICON_HINT_HOVER, ICON_HINT_NORMAL, ICON_HINT_PRESSED, ICON_SETTINGS_HOVER, ICON_SETTINGS_NORMAL, ICON_SETTINGS_PRESSED, ICON_SORT_HOVER, ICON_SORT_NORMAL, ICON_SORT_PRESSED } from "../const";
-import { BotPassVisualTile, CharlestonVisualTransfer, DemoDiscardRequest, DiscardGrid, HamburgerMenuActionKey, HudActionKey, MahjongWinCelebration, TableOverlayBlockLevel, TableSceneCallbacks, TableSeat, TileCallOffer, TileRuntime, TableSfxConfig, TableSfxId } from "./type";
+import { BotPassVisualTile, CharlestonVisualTransfer, DemoDiscardRequest, DiscardGrid, HamburgerMenuActionKey, HudActionKey, MahjongWinCelebration, ResolvedClaimPresentation, TableOverlayBlockLevel, TableSceneCallbacks, TableSeat, TileCallOffer, TileRuntime, TableSfxConfig, TableSfxId } from "./type";
 import { PhaserLayoutGame } from "../layout/game";
 import { inject } from "@angular/core";
 import { GameHapticType } from "../../type";
@@ -134,6 +134,16 @@ export class PhaserScene extends Phaser.Scene {
   private pendingTileCallImage?: Phaser.GameObjects.Image;
   private claimTileSprite?: Phaser.GameObjects.Image;
   private readonly opponentDiscardTiles: Phaser.GameObjects.Image[] = [];
+  private activeClaimPresentation?: ResolvedClaimPresentation;
+  private claimPresentationTimer?: Phaser.Time.TimerEvent;
+  private deferredClaimVisualUpdates: Array<
+    | { readonly type: "claim"; readonly payload: ResolvedClaimPresentation }
+    | { readonly type: "exposures"; readonly payload: { bottom: any[], right: any[], top: any[], left: any[] } }
+    | { readonly type: "discards"; readonly payload: GameTileEntityGSDto[] }
+    | { readonly type: "opponent-discard"; readonly payload: { seat: TableSeat, tile: GameTileEntityGSDto } }
+    | { readonly type: "opponent-pick"; readonly payload: { seat: TableSeat } }
+    | { readonly type: "mahjong"; readonly payload: MahjongWinCelebration }
+  > = [];
 
   private readonly discardSlotOrder: number[] = [];
   private readonly calledBottomExposureTiles: Phaser.GameObjects.Image[] = [];
@@ -142,6 +152,10 @@ export class PhaserScene extends Phaser.Scene {
   };
   private readonly calledOpponentExposureTileIds = new Set<number>();
   private activeExposureBuildTileIds: number[] = [];
+  private reverseCallInFlight = false;
+  private pendingReverseCallVisual?: { readonly tileId: number; readonly x: number; readonly y: number };
+  private pendingCallTileId?: number;
+  private pendingCallHasExposedRackTile = false;
   private exposureBuildAsset?: string;
   private jokerSwapWindow?: Phaser.GameObjects.Container;
   private pendingJokerSwap?: {
@@ -459,7 +473,12 @@ export class PhaserScene extends Phaser.Scene {
     this.game.events.on("table:phase", this.setTablePhase, this);
     this.game.events.on("table:turn_stage", (stage: any) => {
       this.turnStage = stage;
+      if (stage !== GameTurnStageEnum.NEED_EXPOSURE) {
+        this.pendingCallTileId = undefined;
+        this.pendingCallHasExposedRackTile = false;
+      }
       setTimeout(() => this.processPendingClaimTile(), 50);
+      this.updateExposureCloseButtonsState();
     }, this);
     this.game.events.on("table:safe-area", this.setSafeAreaInsets, this);
     this.game.events.on("table:active-seat", this.setActiveSeat, this);
@@ -487,6 +506,8 @@ export class PhaserScene extends Phaser.Scene {
     this.game.events.on("exposures:update", this.handleExposuresSet, this);
     this.game.events.on("opponent:pick", this.handleOpponentPick, this);
     this.game.events.on("mahjong:win", this.showMahjongWinCelebration, this);
+    this.game.events.on("claim:resolved", this.handleResolvedClaimPresentation, this);
+    this.game.events.on("claim:presentation:reset", this.resetClaimPresentation, this);
     this.game.events.on("charleston:state", this.setCharlestonState, this);
     this.game.events.on("joker:exchange", this.handleJokerExchange, this);
     this.game.events.on("pass:failed", this.handlePassFailed, this);
@@ -528,7 +549,10 @@ export class PhaserScene extends Phaser.Scene {
       this.game.events.off("joker:exchange", this.handleJokerExchange, this);
       this.game.events.off("opponent:pick", this.handleOpponentPick, this);
       this.game.events.off("mahjong:win", this.showMahjongWinCelebration, this);
+      this.game.events.off("claim:resolved", this.handleResolvedClaimPresentation, this);
+      this.game.events.off("claim:presentation:reset", this.resetClaimPresentation, this);
 
+      this.resetClaimPresentation();
       this.closeTileCallWindow();
       this.closeMahjongWinCelebration();
 
@@ -833,6 +857,7 @@ export class PhaserScene extends Phaser.Scene {
     // Phaser copies so they remain visible outside the drawer after resize.
     this.layoutMobileHeaderToggle();
     this.layoutCalledBottomExposureTiles();
+    this.updateExposureCloseButtonsState();
     for (const seat of ["top", "left", "right"] as const) {
       this.layoutCalledOpponentExposureTiles(seat);
     }
@@ -2478,6 +2503,11 @@ export class PhaserScene extends Phaser.Scene {
 
   private handleExposuresSet(exposures: { bottom: any[], right: any[], top: any[], left: any[] }): void {
     this.latestExposures = exposures;
+    if (this.deferClaimVisualUpdate({ type: "exposures", payload: exposures })) return;
+    this.renderExposuresSet(exposures);
+  }
+
+  private renderExposuresSet(exposures: { bottom: any[], right: any[], top: any[], left: any[] }): void {
 
     const totalExposures = (exposures.bottom?.length || 0) + (exposures.right?.length || 0) + (exposures.top?.length || 0) + (exposures.left?.length || 0);
     if (this.initialExposuresLoaded && totalExposures > this.previousTotalExposures) {
@@ -2486,6 +2516,12 @@ export class PhaserScene extends Phaser.Scene {
     this.previousTotalExposures = totalExposures;
     this.initialExposuresLoaded = true;
     if (!this.layout || Object.keys(this.allTiles).length === 0) return;
+
+    // A successful reverse CALL removes the pending local meld from the
+    // authoritative state. Once we have left NEED_EXPOSURE, discard any local
+    // sprite that no longer belongs to a server exposure so the restored
+    // discard can render exactly once from the WebSocket state.
+    this.reconcileLocalExposureTiles(exposures.bottom);
 
     let discardAreaChanged = false;
 
@@ -2510,11 +2546,14 @@ export class PhaserScene extends Phaser.Scene {
       for (const tile of tilesToProcess) {
         if (!tile || tile.tile_id == null) continue;
 
-        // Prevent rendering tiles that are actually in our rack (compensates for backend sync lag/bugs where swapped jokers remain in exposures)
-        if (this.rackOrder.includes(tile.tile_id)) continue;
-
+        // A claimed tile can still be present in the local rack order while
+        // the server state settles. Remove its discard visual first; otherwise
+        // the early rack guard leaves a stale tile on the table.
         const discardPos = this.removeTileFromDiscardArea(tile.tile_id);
         if (discardPos) discardAreaChanged = true;
+
+        // Prevent rendering tiles that are actually in our rack (compensates for backend sync lag/bugs where swapped jokers remain in exposures)
+        if (this.rackOrder.includes(tile.tile_id)) continue;
 
         // console.log(`[PhaserScene] Processing exposure tile ${tile.tile_id}`);
 
@@ -2575,12 +2614,17 @@ export class PhaserScene extends Phaser.Scene {
         // Recover incomplete CALL melds (active claims) during the exposure turn stage.
         // Completed exposures will have length >= 3 and should not be recovered.
         if (meld.kind === 15 /* CALL */ && tilesToProcess.length < 3 && this.turnStage === GameTurnStageEnum.NEED_EXPOSURE) {
+          if (this.pendingCallTileId !== tile.tile_id) {
+            this.pendingCallTileId = tile.tile_id;
+            this.pendingCallHasExposedRackTile = false;
+          }
           if (!this.exposureBuildAsset) {
             this.exposureBuildAsset = meldAsset || this.gameService.assetBaseName(this.allTiles[tile.tile_id]);
           }
           if (!this.activeExposureBuildTileIds.includes(tile.tile_id)) {
             this.activeExposureBuildTileIds.push(tile.tile_id);
           }
+          this.ensureExposureCloseButton(tile.tile_id);
         }
 
         this.removeTileTextureFilter(runtime.image);
@@ -2594,6 +2638,7 @@ export class PhaserScene extends Phaser.Scene {
     }
 
     this.layoutCalledBottomExposureTiles();
+    this.updateExposureCloseButtonsState();
 
     // Render opponent exposures from the API
     for (const seat of ["top", "left", "right"] as const) {
@@ -2624,11 +2669,13 @@ export class PhaserScene extends Phaser.Scene {
         for (const tile of tilesToProcess) {
           if (!tile || tile.tile_id == null) continue;
 
-          // Prevent rendering tiles that are actually in our rack
-          if (this.rackOrder.includes(tile.tile_id)) continue;
-
+          // Always clear a matching discard before considering rack guards.
+          // The visual discard registry is keyed by physical tile_id.
           const discardPos = this.removeTileFromDiscardArea(tile.tile_id);
           if (discardPos) discardAreaChanged = true;
+
+          // Prevent rendering tiles that are actually in our rack
+          if (this.rackOrder.includes(tile.tile_id)) continue;
 
           const fullTile = this.allTiles[tile.tile_id];
           if (!fullTile) continue;
@@ -2677,6 +2724,33 @@ export class PhaserScene extends Phaser.Scene {
     if (discardAreaChanged) {
       this.layoutDiscardTiles(true);
       this.layoutOpponentDiscardTiles();
+    }
+  }
+
+  private reconcileLocalExposureTiles(melds: any[]): void {
+    if (this.turnStage === GameTurnStageEnum.NEED_EXPOSURE) return;
+
+    const authoritativeTileIds = new Set<number>();
+    for (const meld of melds ?? []) {
+      const tiles = meld?.tiles
+        ? (Array.isArray(meld.tiles) ? meld.tiles : Object.values(meld.tiles))
+        : (meld?.tile ? [meld.tile] : []);
+      for (const tile of tiles as any[]) {
+        if (tile?.tile_id != null) authoritativeTileIds.add(Number(tile.tile_id));
+      }
+    }
+
+    for (const image of [...this.calledBottomExposureTiles]) {
+      const entry = [...this.tileMap.entries()].find(([, runtime]) => runtime.image === image);
+      if (!entry || authoritativeTileIds.has(entry[0])) continue;
+
+      const [tileId] = entry;
+      image.destroy();
+      this.tileMap.delete(tileId);
+      this.calledBottomExposureTiles.splice(this.calledBottomExposureTiles.indexOf(image), 1);
+      this.exposureCloseButtons.get(tileId)?.destroy(true);
+      this.exposureCloseButtons.delete(tileId);
+      this.activeExposureBuildTileIds = this.activeExposureBuildTileIds.filter((id) => id !== tileId);
     }
   }
   /** Receives an opponent discard from the future API/WebSocket. */
@@ -3201,6 +3275,16 @@ export class PhaserScene extends Phaser.Scene {
   private moveRackTileToBottomExposure(runtime: TileRuntime): void {
     if (!this.canAddTileToBottomExposure(runtime.vm)) return;
 
+    // NMJL: once any rack tile has been exposed with a called tile, the call
+    // cannot be reversed—even if that rack tile is later returned in the UI.
+    if (
+      this.turnStage === GameTurnStageEnum.NEED_EXPOSURE
+      && this.pendingCallTileId != null
+      && runtime.vm.tile_id !== this.pendingCallTileId
+    ) {
+      this.pendingCallHasExposedRackTile = true;
+    }
+
     // Use the same clearly noticeable feedback as a discard. `tile-tap`
     // uses native selectionChanged(), which is too subtle on many devices.
     this.playHaptic("tile-discard");
@@ -3316,7 +3400,11 @@ export class PhaserScene extends Phaser.Scene {
     const button = this.add.container(0, 0, [circle, cross]);
     button.setDepth(150);
     button.setInteractive(new Phaser.Geom.Circle(0, 0, radius * 1.5), Phaser.Geom.Circle.Contains);
-    button.on("pointerdown", (pointer: Phaser.Input.Pointer) => {
+    button.on("pointerdown", () => {
+      if (this.isReversiblePendingCall(tileId)) {
+        this.reversePendingCall(tileId);
+        return;
+      }
       this.returnExposureTileToRack(tileId);
     });
 
@@ -3325,12 +3413,17 @@ export class PhaserScene extends Phaser.Scene {
 
   private updateExposureCloseButtonsState(): void {
     const isBuilding = this.tablePhase === GamePhaseEnum.PLAYING && this.turnStage === GameTurnStageEnum.NEED_EXPOSURE;
+    if (!isBuilding) this.reverseCallInFlight = false;
     const lastTileId = this.activeExposureBuildTileIds.length > 0
       ? this.activeExposureBuildTileIds[this.activeExposureBuildTileIds.length - 1]
       : undefined;
 
     for (const [id, button] of this.exposureCloseButtons.entries()) {
-      if (isBuilding && id === lastTileId) {
+      const isClaimedCallTile = id === this.pendingCallTileId;
+      const canRemoveThisTile = isBuilding
+        && id === lastTileId
+        && (!isClaimedCallTile || this.isReversiblePendingCall(id));
+      if (canRemoveThisTile) {
         button.setInteractive(new Phaser.Geom.Circle(0, 0, this.passCloseButtonRadius() * 1.5), Phaser.Geom.Circle.Contains);
         button.setAlpha(1);
         button.setVisible(true);
@@ -3339,6 +3432,34 @@ export class PhaserScene extends Phaser.Scene {
         button.setVisible(false);
       }
     }
+  }
+
+  private isReversiblePendingCall(tileId: number): boolean {
+    return Boolean(
+      this.callbacks.onLocalPlayerReverseCall
+      && this.tablePhase === GamePhaseEnum.PLAYING
+      && this.turnStage === GameTurnStageEnum.NEED_EXPOSURE
+      && this.activeSeat === "bottom"
+      && this.activeExposureBuildTileIds.length === 1
+      && this.activeExposureBuildTileIds[0] === tileId
+      && this.pendingCallTileId === tileId
+      && !this.pendingCallHasExposedRackTile,
+    );
+  }
+
+  private reversePendingCall(tileId: number): void {
+    if (this.reverseCallInFlight || !this.callbacks.onLocalPlayerReverseCall) return;
+    const runtime = this.tileMap.get(tileId);
+    if (runtime?.image.active) {
+      this.pendingReverseCallVisual = { tileId, x: runtime.image.x, y: runtime.image.y };
+    }
+    this.reverseCallInFlight = true;
+    this.exposureCloseButtons.get(tileId)?.disableInteractive().setAlpha(0.55);
+    void this.callbacks.onLocalPlayerReverseCall().catch(() => {
+      this.reverseCallInFlight = false;
+      this.pendingReverseCallVisual = undefined;
+      this.updateExposureCloseButtonsState();
+    });
   }
 
   private positionExposureCloseButton(tileId: number): void {
@@ -3361,7 +3482,9 @@ export class PhaserScene extends Phaser.Scene {
       Math.round(cornerY + (outwardY / length) * (closeRadius * 0.3)),
     );
     // NEWCODE
-    close.setVisible(runtime.image.visible);
+    // Position updates run during tile tweens. Do not let a tween re-show a
+    // close button that the call-reversibility state deliberately hid.
+    close.setVisible(close.visible && runtime.image.visible);
 
     this.resizePassCloseButton(close);
   }
@@ -3546,6 +3669,11 @@ export class PhaserScene extends Phaser.Scene {
 
   /** Closes other windows when the native MAH JONGG popup opens. */
   private showMahjongWinCelebration(result: MahjongWinCelebration): void {
+    if (this.deferClaimVisualUpdate({ type: "mahjong", payload: result })) return;
+    this.renderMahjongWinCelebration(result);
+  }
+
+  private renderMahjongWinCelebration(result: MahjongWinCelebration): void {
     if (!this.layout) return;
 
     this.expireTileCallWindow();
@@ -3567,8 +3695,17 @@ export class PhaserScene extends Phaser.Scene {
       
       let activeIndex = 0;
       for (const tileId of tileIds) {
-        const fullTile = this.allTiles[tileId];
-        if (!fullTile) continue;
+        // OLDCODE
+        // const fullTile = this.allTiles[tileId];
+        // if (!fullTile) continue;
+        // OLDCODE
+        /* NEWCODE */
+        const fullTile = this.allTiles[tileId] || {
+          category: 'SUITED',
+          type: (tileId % 3 === 0 ? 'BAM' : tileId % 3 === 1 ? 'CHAR' : 'DOT'),
+          rank: (tileId % 9) + 1
+        };
+        /* NEWCODE */
 
         const texture = this.gameService.resolve(fullTile as any, Math.round(tileSize.width));
         if (texture) {
@@ -3743,7 +3880,95 @@ export class PhaserScene extends Phaser.Scene {
 
   private lastOpponentPickTime: number = 0;
 
+  /** Begins a purely visual pause only when the resolved claim tile was never drawn as a discard. */
+  private handleResolvedClaimPresentation(payload: ResolvedClaimPresentation): void {
+    if (this.activeClaimPresentation) {
+      this.deferredClaimVisualUpdates.push({ type: "claim", payload });
+      return;
+    }
+    if (!this.layout || payload.tile.tile_id == null || this.isDiscardVisible(payload.tile.tile_id)) return;
+
+    const tile = this.allTiles[payload.tile.tile_id] ?? payload.tile;
+    const grid = this.discardGrid();
+    const texture = this.gameService.resolve(tile as any, grid.tileWidth);
+    if (!texture || !this.textures.exists(texture.atlasKey) || !this.textures.get(texture.atlasKey).has(texture.frameKey)) return;
+
+    this.activeClaimPresentation = payload;
+    const source = this.pickTargetPointForSeat(payload.discardedBy);
+    const discardId = Number(payload.tile.tile_id);
+    this.addDiscardSlot(discardId);
+    const slot = this.discardSlotFor(this.discardSlotIndex(discardId, this.opponentDiscardTiles.length), grid);
+    const image = this.add.image(source.x, source.y, texture.atlasKey, texture.frameKey)
+      .setDisplaySize(grid.tileWidth, grid.tileHeight);
+    this.applyTileTextureFilter(image);
+    image.setData("discard-id", discardId);
+    image.setData("synthetic-claim-discard", true);
+    this.discardContainer.add(image);
+    this.opponentDiscardTiles.push(image);
+
+    this.tweens.add({
+      targets: image,
+      x: Math.round(slot.x),
+      y: Math.round(slot.y),
+      duration: ANIMATION_SPEED,
+      ease: "Cubic.Out",
+      onComplete: () => {
+        if (this.activeClaimPresentation?.key !== payload.key) return;
+        this.scrollToBottomDiscard(true);
+        this.claimPresentationTimer = this.time.delayedCall(1500, () => this.finishClaimPresentation(payload.key));
+      },
+    });
+  }
+
+  private isDiscardVisible(tileId: number): boolean {
+    const numericId = Number(tileId);
+    return this.discardSlotOrder.includes(numericId)
+      || this.opponentDiscardTiles.some((image) => Number(image.getData("discard-id")) === numericId)
+      || this.tileMap.get(numericId)?.zone === "discard";
+  }
+
+  private deferClaimVisualUpdate(update: typeof this.deferredClaimVisualUpdates[number]): boolean {
+    if (!this.activeClaimPresentation) return false;
+    this.deferredClaimVisualUpdates.push(update);
+    return true;
+  }
+
+  private finishClaimPresentation(key: string): void {
+    if (this.activeClaimPresentation?.key !== key) return;
+    this.activeClaimPresentation = undefined;
+    this.claimPresentationTimer = undefined;
+    this.flushDeferredClaimVisualUpdates();
+  }
+
+  private flushDeferredClaimVisualUpdates(): void {
+    while (!this.activeClaimPresentation && this.deferredClaimVisualUpdates.length > 0) {
+      const update = this.deferredClaimVisualUpdates.shift()!;
+      switch (update.type) {
+        case "claim": this.handleResolvedClaimPresentation(update.payload); break;
+        case "exposures": this.renderExposuresSet(update.payload); break;
+        case "discards": this.renderDiscardsSet(update.payload); break;
+        case "opponent-discard": this.processOpponentDiscard(update.payload); break;
+        case "opponent-pick": this.processOpponentPick(update.payload); break;
+        case "mahjong": this.renderMahjongWinCelebration(update.payload); break;
+      }
+    }
+  }
+
+  private resetClaimPresentation(): void {
+    this.claimPresentationTimer?.remove(false);
+    this.claimPresentationTimer = undefined;
+    const tileId = this.activeClaimPresentation?.tile.tile_id;
+    this.activeClaimPresentation = undefined;
+    this.deferredClaimVisualUpdates = [];
+    if (tileId != null) this.removeTileFromDiscardArea(tileId);
+  }
+
   private handleOpponentPick(payload: { seat: TableSeat }): void {
+    if (this.deferClaimVisualUpdate({ type: "opponent-pick", payload })) return;
+    this.processOpponentPick(payload);
+  }
+
+  private processOpponentPick(payload: { seat: TableSeat }): void {
     if (this.tablePhase !== GamePhaseEnum.PLAYING || !this.layout) return;
     this.lastOpponentPickTime = Date.now();
     this.playHaptic("pick");
@@ -3752,6 +3977,7 @@ export class PhaserScene extends Phaser.Scene {
   }
 
   private handleOpponentDiscard(payload: { seat: TableSeat, tile: GameTileEntityGSDto }): void {
+    if (this.deferClaimVisualUpdate({ type: "opponent-discard", payload })) return;
     const timeSincePick = Date.now() - this.lastOpponentPickTime;
     if (timeSincePick < 500) {
       setTimeout(() => {
@@ -3901,6 +4127,7 @@ export class PhaserScene extends Phaser.Scene {
   }
 
   private processOpponentDiscard(payload: { seat: TableSeat, tile: GameTileEntityGSDto }): void {
+    if (this.deferClaimVisualUpdate({ type: "opponent-discard", payload })) return;
     if (this.tablePhase === GamePhaseEnum.PASSING || !this.layout) return;
 
     this.playHaptic("tile-discard");
@@ -3916,9 +4143,16 @@ export class PhaserScene extends Phaser.Scene {
     }
 
     const targetPoint = this.pickTargetPointForSeat(payload.seat);
-    const sourceX = targetPoint.x;
-    const sourceY = targetPoint.y;
-    const discardId = payload.tile.id ?? (9999000 + ++this.demoDiscardSequence);
+    const reverseVisual = payload.tile.tile_id != null
+      && this.pendingReverseCallVisual?.tileId === Number(payload.tile.tile_id)
+      ? this.pendingReverseCallVisual
+      : undefined;
+    const sourceX = reverseVisual?.x ?? targetPoint.x;
+    const sourceY = reverseVisual?.y ?? targetPoint.y;
+    // tile_id is the physical tile identity shared by the discard rack and
+    // exposure meld. `id` is a different game-tile record identifier and
+    // must never be used for discard visual lookup/removal.
+    const discardId = payload.tile.tile_id ?? (9999000 + ++this.demoDiscardSequence);
 
     this.addDiscardSlot(discardId);
     const discardSlot = this.discardSlotFor(
@@ -3936,6 +4170,7 @@ export class PhaserScene extends Phaser.Scene {
     this.discardContainer.add(image);
     this.pendingTileCallImage = image;
     this.opponentDiscardTiles.push(image);
+    if (reverseVisual) this.pendingReverseCallVisual = undefined;
 
     this.tweens.add({
       targets: image,
@@ -3972,6 +4207,11 @@ export class PhaserScene extends Phaser.Scene {
 
   private handleDiscardsSet(tiles: GameTileEntityGSDto[]): void {
     this.latestDiscards = tiles;
+    if (this.deferClaimVisualUpdate({ type: "discards", payload: tiles })) return;
+    this.renderDiscardsSet(tiles);
+  }
+
+  private renderDiscardsSet(tiles: GameTileEntityGSDto[]): void {
     if (!this.layout) return;
     const grid = this.discardGrid();
 

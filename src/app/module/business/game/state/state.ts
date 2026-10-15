@@ -14,6 +14,7 @@ import { GameStateCreated } from "./type";
 import { BfwApiSdkError, BfwApiSdkResponse } from "@bfw/api-sdk/core";
 import { FoundationModuleStateType } from "@libs/foundation/module/type";
 import { Router } from "@angular/router";
+import { environment } from "../../../../../../env/env";
 
 @Service({ autoProvided: false })
 export class GameState extends SignalStateService implements FoundationModuleStateType {
@@ -104,7 +105,12 @@ export class GameState extends SignalStateService implements FoundationModuleSta
     // ▬ ▬ ▬ ▬ ▬ ▬ ▬ ▬ ▬ ▬ ▬ ▬ ▬ ▬ ▬ ▬ ▬ ▬ ▬ ▬ ▬ ▬ ▬ ▬ ▬ ▬ ▬ ▬ ▬
     // ████ [1] _game SIGNAL ███████████████████████████████████████████
     private readonly _game = signal<GameStateGameOutputDto>({} as GameStateGameOutputDto);
+    /* OLDCODE
     private readonly game = this._game.asReadonly();
+    OLDCODE */
+    /* NEWCODE */
+    public readonly game = this._game.asReadonly();
+    /* NEWCODE */
 
     public setGame(value: GameStateGameOutputDto): void {
         this._game.set(value);
@@ -112,21 +118,115 @@ export class GameState extends SignalStateService implements FoundationModuleSta
 
     // ████ [2] _play SIGNAL ███████████████████████████████████████████
     private readonly _play = signal<any>({} as any); // change any with respected type
+    /* OLDCODE
     private readonly play = this._play.asReadonly();
+    OLDCODE */
+    /* NEWCODE */
+    public readonly play = this._play.asReadonly();
+    /* NEWCODE */
+    private readonly _playRevision = signal(0);
+    public readonly play_revision = this._playRevision.asReadonly();
 
     public setPlay(value: GameStatePlayOutputDto): void {
         this._play.set(value);
+        this._playRevision.update((revision) => revision + 1);
     }
 
     // ████ [3] _personal SIGNAL ███████████████████████████████████████████
     private readonly _personal = signal<any>({} as any); // change any with respected type
+    /* OLDCODE
     private readonly personal = this._personal.asReadonly();
+    OLDCODE */
+    /* NEWCODE */
+    public readonly personal = this._personal.asReadonly();
+    /* NEWCODE */
 
     public setPersonal(value: GameStatePersonalOutputDto): void {
         this._personal.set(value);
     }
 
-    // ████ [4] _tileStyle SIGNAL ███████████████████████████████████████████
+    // ████ [4] _development SIGNAL (debug API payload only) ███████████████
+    // This is intentionally separate from gameplay state. It may contain the
+    // complete private hands for every seat and must never drive game UI.
+    private readonly _development = signal<any>(undefined);
+    private readonly development = this._development.asReadonly();
+
+    public setDevelopment(value: unknown): void {
+        if (!environment.DEBUG) return;
+        this._development.set(value);
+    }
+
+    /** Accepts the future debug-only API branch without affecting production. */
+    private captureDevelopmentPayload(payload: unknown): void {
+        if (!environment.DEBUG || !payload || typeof payload !== 'object') return;
+        if (!('development' in payload)) return;
+        this.setDevelopment((payload as { development?: unknown }).development);
+    }
+
+    /**
+     * Adds a debug-only face-code lookup to every private rack hand without
+     * mutating the server payload. Physical tile IDs stay as the keys and the
+     * values are resolved from the authoritative all_tiles catalogue.
+     */
+    public readonly development_with_actual_tiles = computed<any>(() => {
+        if (!environment.DEBUG) return undefined;
+        const development = this.development();
+        if (!development || typeof development !== 'object') return development;
+
+        // The debug API now returns the complete personal-seat object directly
+        // as `development`, rather than nesting it under private/personal.
+        // Keep the two legacy shapes supported while the API rollout settles.
+        const nestedKey = development.private ? 'private' : development.personal ? 'personal' : undefined;
+        const developmentState = nestedKey ? development[nestedKey] : development;
+        const seats = developmentState?.seats;
+        if (!seats || typeof seats !== 'object') return development;
+
+        const allTiles = development.game?.all_tiles ?? this.game_all_tiles();
+        const seatsWithActualTiles = Object.fromEntries(
+            Object.entries(seats).map(([seatId, seat]: [string, any]) => {
+                const racks = seat?.racks;
+                if (!racks || typeof racks !== 'object') return [seatId, seat];
+
+                const racksWithActualTiles = Object.fromEntries(
+                    Object.entries(racks).map(([rackId, rack]: [string, any]) => {
+                        const hand = rack?.hand;
+                        if (!hand || typeof hand !== 'object') return [rackId, rack];
+
+                        const actualTiles: Record<string, string | null> = {};
+                        for (const [handKey, handTile] of Object.entries(hand as Record<string, any>)) {
+                            const tileId = Number(handTile?.tile_id ?? handKey);
+                            if (!Number.isFinite(tileId)) continue;
+                            actualTiles[String(tileId)] = allTiles?.[tileId]?.code ?? null;
+                        }
+
+                        return [rackId, {
+                            ...rack,
+                            hand: {
+                                ...hand,
+                                actual_tiles: actualTiles,
+                            },
+                        }];
+                    }),
+                );
+
+                return [seatId, { ...seat, racks: racksWithActualTiles }];
+            }),
+        );
+
+        if (!nestedKey) {
+            return { ...development, seats: seatsWithActualTiles };
+        }
+
+        return {
+            ...development,
+            [nestedKey]: {
+                ...developmentState,
+                seats: seatsWithActualTiles,
+            },
+        };
+    });
+
+    // ████ [5] _tileStyle SIGNAL ███████████████████████████████████████████
     public readonly tileStyle = signal<any>({} as any);
 
     // ████ _defaultTileStyleKeyid SIGNAL ███████████████████████████████████████████
@@ -199,6 +299,11 @@ export class GameState extends SignalStateService implements FoundationModuleSta
         return this.play().claim as GamePlayClaimGSOutputDto;
     });
 
+    /** The most recently resolved claim. Unlike `claim`, this remains after the claim window closes. */
+    public readonly play_last_claim = computed<GamePlayClaimGSOutputDto | null>(() => {
+        return this.play()?.last_claim as GamePlayClaimGSOutputDto | null;
+    });
+
     // ████ _play_current_turn_seat_id SIGNAL ███████████████████████████████████████████
     public readonly play_claim_target_seat = computed<number[]>(() => {
         const claim = this.play_claim();
@@ -236,7 +341,12 @@ export class GameState extends SignalStateService implements FoundationModuleSta
     // delete this below comment once you done
     // this is not edfined at this moment you need to add in _play
     // before it was in _game but as its changing now its in _play
+    /* OLDCODE
     private readonly play_current_turn_u_id = computed<number>(() => {
+    OLDCODE */
+    /* NEWCODE */
+    public readonly play_current_turn_u_id = computed<number>(() => {
+    /* NEWCODE */
         return this.play().current_turn_u_id;
     });
 
@@ -346,7 +456,12 @@ export class GameState extends SignalStateService implements FoundationModuleSta
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     // ████ play_pass_count SIGNAL ███████████████████████████████████████████
+    /* OLDCODE
     private readonly play_pass_count = computed<number | undefined>(() => {
+    OLDCODE */
+    /* NEWCODE */
+    public readonly play_pass_count = computed<number | undefined>(() => {
+    /* NEWCODE */
         return this.play()?.pass?.count;
     });
 
@@ -639,30 +754,59 @@ export class GameState extends SignalStateService implements FoundationModuleSta
 
     // ████ personal_seat_racks SIGNAL ███████████████████████████████████████████
     // first: is_mahjong
+    /* OLDCODE
     private personal_seat_rack_first_is_mahjong = computed<boolean>(() => {
+    OLDCODE */
+    /* NEWCODE */
+    public readonly personal_seat_rack_first_is_mahjong = computed<boolean>(() => {
+    /* NEWCODE */
         return this.personal_seat()?.racks?.[GameRackIDEnumAddon.RACK_FIRST]?.is_mahjong ?? false;
     });
 
 
 
     // first: is_locked
+    /* OLDCODE
     private personal_seat_rack_first_is_locked = computed<boolean>(() => {
+    OLDCODE */
+    /* NEWCODE */
+    public readonly personal_seat_rack_first_is_locked = computed<boolean>(() => {
+    /* NEWCODE */
         return this.personal_seat()?.racks?.[GameRackIDEnumAddon.RACK_FIRST]?.is_locked ?? false;
     });
 
 
 
     // first: is_dead
+    /* OLDCODE
     private personal_seat_rack_first_is_dead = computed<boolean>(() => {
+    OLDCODE */
+    /* NEWCODE */
+    public readonly personal_seat_rack_first_is_dead = computed<boolean>(() => {
+    /* NEWCODE */
         return this.personal_seat()?.racks?.[GameRackIDEnumAddon.RACK_FIRST]?.is_dead ?? false;
     });
 
 
 
     // first: dead_info
+    /* OLDCODE
     private personal_seat_rack_first_dead_info = computed<GameRackDeadInfoGSOutputDto | undefined | null>(() => {
+    OLDCODE */
+    /* NEWCODE */
+    public readonly personal_seat_rack_first_dead_info = computed<GameRackDeadInfoGSOutputDto | undefined | null>(() => {
+    /* NEWCODE */
         return this.personal_seat()?.racks?.[GameRackIDEnumAddon.RACK_FIRST]?.dead_info || null;
     });
+
+    /* NEWCODE */
+    public readonly personal_seat_dead_note = computed<string | undefined>(() => {
+        const firstNote = this.personal_seat_rack_first_dead_info()?.note;
+        if (firstNote) return firstNote;
+        const secondNote = this.personal_seat_rack_second_dead_info()?.note;
+        return secondNote || undefined;
+    });
+    /* NEWCODE */
 
 
 
@@ -694,28 +838,48 @@ export class GameState extends SignalStateService implements FoundationModuleSta
     // ▬ ▬ ▬ ▬ ▬ ▬ ▬ ▬ ▬ ▬ ▬ ▬ ▬ ▬ ▬ ▬ ▬ ▬ ▬ ▬ ▬ ▬ ▬ ▬ ▬ ▬ ▬ ▬ ▬
     // ████ second Rack SIGNAL ███████████████████████████████████████████
     // second: second_is_mahjong
+    /* OLDCODE
     private personal_seat_rack_second_is_mahjong = computed<boolean>(() => {
+    OLDCODE */
+    /* NEWCODE */
+    public readonly personal_seat_rack_second_is_mahjong = computed<boolean>(() => {
+    /* NEWCODE */
         return this.personal_seat()?.racks?.[GameRackIDEnumAddon.RACK_SECOND]?.is_mahjong ?? false;
     });
 
 
 
     // second: is_locked
+    /* OLDCODE
     private personal_seat_rack_second_is_locked = computed<boolean>(() => {
+    OLDCODE */
+    /* NEWCODE */
+    public readonly personal_seat_rack_second_is_locked = computed<boolean>(() => {
+    /* NEWCODE */
         return this.personal_seat()?.racks?.[GameRackIDEnumAddon.RACK_SECOND]?.is_locked ?? false;
     });
 
 
 
     // second: is_dead
+    /* OLDCODE
     private personal_seat_rack_second_is_dead = computed<boolean>(() => {
+    OLDCODE */
+    /* NEWCODE */
+    public readonly personal_seat_rack_second_is_dead = computed<boolean>(() => {
+    /* NEWCODE */
         return this.personal_seat()?.racks?.[GameRackIDEnumAddon.RACK_SECOND]?.is_dead ?? false;
     });
 
 
 
     // second: dead_info
+    /* OLDCODE
     private personal_seat_rack_second_dead_info = computed<GameRackDeadInfoGSOutputDto | undefined | null>(() => {
+    OLDCODE */
+    /* NEWCODE */
+    public readonly personal_seat_rack_second_dead_info = computed<GameRackDeadInfoGSOutputDto | undefined | null>(() => {
+    /* NEWCODE */
         return this.personal_seat()?.racks?.[GameRackIDEnumAddon.RACK_SECOND]?.dead_info || null;
     });
 
@@ -776,8 +940,79 @@ export class GameState extends SignalStateService implements FoundationModuleSta
 
 
     // ████ STATE DEBUGGER ██████████████████████████████████████████████
+    /* OLDCODE
     public readonly debugState = computed(() => ({
 
+        /* game_id: this.game_id(),
+        game_keyid: this.game_keyid(),
+        game_mode: this.game_mode(),
+        game_botlvl_id: this.game_botlvl_id(),
+        play_current_turn_rack_id: this.play_current_turn_rack_id(),
+        play_current_turn_seat_id: this.play_current_turn_seat_id(),
+        play_current_turn_u_id: this.play_current_turn_u_id(),
+        play_phase: this.play_phase(),
+        play_turn_stage: this.play_turn_stage(),
+        canDiscard: this.canDiscard(),
+        canPickTile: this.canPickTile(),
+        play_round_count: this.play_round_count(),
+        play_action_error: this.play_action_error(),
+        play_wall_count: this.play_wall_count(),
+        play_discards_tiles: this.play_discards_tiles(),
+        play_pass_count: this.play_pass_count(),
+        play_pass_direction: this.play_pass_direction(),
+        play_pass_round: this.play_pass_round(),
+        play_pass_stage: this.play_pass_stage(),
+        charlestonState: this.charlestonState(),
+        play_claim_from_seat: this.play_claim_from_seat(),
+        play_claim_tile: this.play_claim_tile(),
+        active_claim: this.active_claim(),
+        active_table_position: this.active_table_position(),
+        seat_position_by_gseat_id: this.seat_position_by_gseat_id(),
+        all_seat_exposures: this.all_seat_exposures(),
+        all_seat_dead_states: this.all_seat_dead_states(),
+        play_seats: this.play_seats(),
+        ordered_seats: this.ordered_seats(),
+        personal_seat_index: this.personal_seat_index(),
+        seat_mapping: this.seat_mapping(),
+        personal_pass: this.personal_pass(),
+        personal_pass_submissions: this.personal_pass_submissions(),
+        personal_pass_second_votes: this.personal_pass_second_votes(),
+        personal_claim: this.personal_claim(),
+        personal_claim_target_seat: this.personal_claim_target_seat(),
+        personal_claim_submission: this.personal_claim_submission(),
+        personal_seat_id: this.personal_seat_id(),
+        personal_seat: this.personal_seat(),
+        personal_seat_u_id: this.personal_seat_u_id(),
+        personal_seat_rack_first_is_mahjong: this.personal_seat_rack_first_is_mahjong(),
+        personal_seat_rack_first_is_locked: this.personal_seat_rack_first_is_locked(),
+        personal_seat_rack_first_is_dead: this.personal_seat_rack_first_is_dead(),
+        personal_seat_rack_first_dead_info: this.personal_seat_rack_first_dead_info(),
+        personal_seat_rack_first_hand: this.personal_seat_rack_first_hand(),
+        personal_seat_rack_first_hand_order: this.personal_seat_rack_first_hand_order(),
+        personal_seat_rack_first_exposures_meld: this.personal_seat_rack_first_exposures_meld(),
+        personal_seat_rack_second_is_mahjong: this.personal_seat_rack_second_is_mahjong(),
+        personal_seat_rack_second_is_locked: this.personal_seat_rack_second_is_locked(),
+        personal_seat_rack_second_is_dead: this.personal_seat_rack_second_is_dead(),
+        personal_seat_rack_second_dead_info: this.personal_seat_rack_second_dead_info(),
+        personal_seat_rack_second_hand: this.personal_seat_rack_second_hand(),
+        personal_seat_rack_second_hand_order: this.personal_seat_rack_second_hand_order(),
+        personal_seat_rack_second_exposures_meld: this.personal_seat_rack_second_exposures_meld(),
+        _game: this._game(),
+        _play: this._play(),
+        _personal: this._personal(),
+        development: this.development_with_actual_tiles(),
+        tileStyle: this.tileStyle(),
+        defaultTileStyleKeyid: this.defaultTileStyleKeyid(),
+        game_all_tiles: this.game_all_tiles(),
+        game_bot_profile: this.game_bot_profile(), * /
+
+        //userTileStyleKeyid: this.userTileStyleKeyid(),
+        //userTileStyle: this.userTileStyle(),
+    }));
+    OLDCODE */
+
+    /* NEWCODE */
+    public readonly debugState = computed(() => ({
         game_id: this.game_id(),
         game_keyid: this.game_keyid(),
         game_mode: this.game_mode(),
@@ -835,14 +1070,13 @@ export class GameState extends SignalStateService implements FoundationModuleSta
         _game: this._game(),
         _play: this._play(),
         _personal: this._personal(),
+        development: this.development_with_actual_tiles(),
         tileStyle: this.tileStyle(),
         defaultTileStyleKeyid: this.defaultTileStyleKeyid(),
         game_all_tiles: this.game_all_tiles(),
         game_bot_profile: this.game_bot_profile(),
-
-        //userTileStyleKeyid: this.userTileStyleKeyid(),
-        //userTileStyle: this.userTileStyle(),
     }));
+    /* NEWCODE */
     private commonSelectionFields = {};
 
     constructor() {
@@ -903,6 +1137,21 @@ export class GameState extends SignalStateService implements FoundationModuleSta
                     from_seat: true,
                     deadline_at: true,
                     intents: true
+                },
+                last_claim: {
+                    tile: {
+                        id: true,
+                        gseat_id: true,
+                        in_exposer_one: true,
+                        in_exposer_two: true,
+                        in_rack_one: true,
+                        in_rack_two: true,
+                        keyid: true,
+                        tile_id: true
+                    },
+                    from_seat: true,
+                    deadline_at: true,
+                    intents: true
                 }
             },
             personal: {
@@ -945,7 +1194,8 @@ export class GameState extends SignalStateService implements FoundationModuleSta
                     active: true,
                 },
                 all_tiles: true
-            }
+            },
+            development: true
         }
     }
 
@@ -1086,9 +1336,11 @@ export class GameState extends SignalStateService implements FoundationModuleSta
             });
 
             if (startResp?.data) {
-                this.setGame(startResp.data.game as GameStateGameOutputDto);
-                this.setPlay(startResp.data.play as GameStatePlayOutputDto);
-                this.setPersonal(startResp.data.personal as GameStatePersonalOutputDto);
+                const data = startResp.data as GameStateOutputDto & { private?: GameStatePersonalOutputDto; development?: unknown };
+                this.setGame(data.game as GameStateGameOutputDto);
+                this.setPlay(data.play as GameStatePlayOutputDto);
+                this.setPersonal((data.personal ?? data.private) as GameStatePersonalOutputDto);
+                this.captureDevelopmentPayload(data);
                 await this.afterGameStart();
                 return startResp;
             }
@@ -1163,13 +1415,14 @@ export class GameState extends SignalStateService implements FoundationModuleSta
             this.unsubscribePlay = await this.api.sdk.graphql.ws.gameEngine?.subscribePlay({
                 response: (payload: any) => {
                     const data = payload.data;
+                    const play = data?.play ?? data;
 
-                    console.log('[subscribePlay] data: ', data);
+                    console.log('[subscribePlay] data: ', play);
 
-                    if (data && data.seats) {
-                        const firstSeatKey = Object.keys(data.seats)[0];
-                        if (firstSeatKey && data.seats[firstSeatKey]) {
-                            const incomingGameId = data.seats[firstSeatKey].game_id;
+                    if (play && play.seats) {
+                        const firstSeatKey = Object.keys(play.seats)[0];
+                        if (firstSeatKey && play.seats[firstSeatKey]) {
+                            const incomingGameId = play.seats[firstSeatKey].game_id;
                             if (incomingGameId && incomingGameId !== this.game_id()) {
                                 console.warn(`[subscribePlay] Ignoring payload for game_id ${incomingGameId} (current is ${this.game_id()})`);
                                 return;
@@ -1177,7 +1430,8 @@ export class GameState extends SignalStateService implements FoundationModuleSta
                         }
                     }
 
-                    this.setPlay(data)
+                    this.captureDevelopmentPayload(data);
+                    this.setPlay(play)
                 },
             });
 
@@ -1216,13 +1470,14 @@ export class GameState extends SignalStateService implements FoundationModuleSta
             this.unsubscribePersonal = await this.api.sdk.graphql.ws.gameEngine?.subscribePersonal({
                 response: (payload: any) => {
                     const data = payload.data;
+                    const personal = data?.personal ?? data?.private ?? data;
 
-                    console.log('[subscribePersonal] data: ', data);
+                    console.log('[subscribePersonal] data: ', personal);
 
-                    if (data && data.seats) {
-                        const firstSeatKey = Object.keys(data.seats)[0];
-                        if (firstSeatKey && data.seats[firstSeatKey]) {
-                            const incomingGameId = data.seats[firstSeatKey].game_id;
+                    if (personal && personal.seats) {
+                        const firstSeatKey = Object.keys(personal.seats)[0];
+                        if (firstSeatKey && personal.seats[firstSeatKey]) {
+                            const incomingGameId = personal.seats[firstSeatKey].game_id;
                             if (incomingGameId && incomingGameId !== this.game_id()) {
                                 console.warn(`[subscribePersonal] Ignoring payload for game_id ${incomingGameId} (current is ${this.game_id()})`);
                                 return;
@@ -1231,7 +1486,8 @@ export class GameState extends SignalStateService implements FoundationModuleSta
                     }
 
                     // This updates UI whenever server sends data.
-                    this.setPersonal(data)
+                    this.captureDevelopmentPayload(data);
+                    this.setPersonal(personal)
                 },
             });
 
@@ -1453,6 +1709,26 @@ export class GameState extends SignalStateService implements FoundationModuleSta
                 seat_id: this.personal_seat_id(),
                 rack_id: this.personal_seat_rack_first_rack_id(),
                 tile_id: tile_id
+            },
+            selections: this.commonSelectionFields,
+        });
+    }
+
+    /** Reverse only the server-authorized pending CALL; the API remains authoritative. */
+    public async publishReverseCallTile(): Promise<void> {
+        const game_keyid = this.game_keyid();
+        if (!game_keyid) {
+            this.log.error('GAME_KEYID IS NULL');
+            return;
+        }
+
+        await this.api.sdk.graphql.ws.gameEngine?.publishActionReverseCallTile({
+            input: {
+                keyid: game_keyid,
+                game_id: this.game_id(),
+                u_id: this.personal_seat_u_id(),
+                seat_id: this.personal_seat_id(),
+                rack_id: this.personal_seat_rack_first_rack_id(),
             },
             selections: this.commonSelectionFields,
         });

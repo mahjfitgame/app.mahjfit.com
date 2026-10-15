@@ -3,6 +3,19 @@ Next week memo
 KNOW: For now we manage the direction only with the FIRSTROUND enum and based on that write the logic, I think we don't need 2 enum for the direction we can manage it with only one. So it will be like Direction and combine with the stage (FIRST, SECOND_DECISION, SECOND, COURTESY).
 The direction is just for the directions of animation.
 
+Setting
+"python.languageServer": "Default",
+    "update.mode": "manual",
+    "editor.formatOnSave": false
+
+    
+NOTE: Bot decision
+This hand is not a real hand, but when called it dead and I immediately died. So this is a bug. All hands built by bots must
+be legitimate hands. We also need to include explanation messaging for after this happens- see my notes for copy.
+
+Tried multiple tile atlas layouts to make the tiles clearly visible on mobile devices and implemented the Joker exchange feature.
+ 
+
 
 
 Current:
@@ -12,6 +25,591 @@ Current:
 [tech][Frontend][D1] Integreate discard and calim tile with bot auto turn
 [tech][Frontend][D1] Integreate discard and calim tile with bot auto turn - preparing exposure tiles and display
 [tech][Frontend][D1] Integreate discard and calim tile with bot auto turn - preparing exposure tiles and display
+
+
+[tech][Frontend development][D1] Game Play - Developer testing Dead Hand, Mahjong, Wall Game, Bot Decision
+
+[tech][Frontend development][D1] Game Play - UI UX and animation upgradation
+
+
+ Developer testing Dead Hand, Mahjong, Wall Game, Bot Decision
+
+https://www.google.com/search?q=Is+this+right+dead+hand+because+I+make+the+group+of+7+crack+and+submit+the+server+call+this+as+dead+hand+so+is+this+right+as+per+the+American+Mahjong+rules&sourceid=chrome&ie=UTF-8&amc=1&gs_lcrp=EgZjaHJvbWUyBggAEEUYOdIBCjQ1MTMzajBqMzGoAgCwAgHqBwoIARAAGAAgACgA&lns_mode=cvst&oq=Is+this+right+dead+hand+because+I+make+the+group+of+7+crack+and+submit+the+server+call+this+as+dead+hand+so+is+this+right+as+per+the+American+Mahjong+rules&aep=42&cud=89&source=chrome.crn.rb&gsessionid=cO7Syjec8aiNgt6rO-hq3hN1MPoOpGhJmfO_oqYjxMmNLGTM7OdMPQ&lns_surface=42&mstk=AUtExfAt9hEkdWNL6ArjpzIWRx0-_Y5C743LFoCsxrr07uMOC57531dq1b9tEL5kbalVJQSOnwlhkc1BQhO72ROLqXKqWMXHzuPwKJfqzU-63y_fd-bWol5pbmvfQPm6F7tZT-zjYzBUbTqO4krkjTMlRKbUREHjePeasRw&csuir=1&mtid=0n_HarGUO6-ohvcPzJLW4Q0&udm=50
+
+https://chatgpt.com/c/6ac9d950-f4a0-83ee-a2fa-f9290138ed24
+CONTINUE THREAD IN NEW CHAT
+https://chatgpt.com/c/6acdd922-2f4c-83ec-b50f-38bf5819610d
+
+
+[tech][Frontend development][D1] Game Play - Current logic assessment and upgrade plan
+
+
+Analyse the current game play logic and plan further upgradation  
+Game Play - Current logic assesmet and plan next upgratation
+
+============= POINTS =============
+Computer / Bot Exposure Intelligence:
+
+Bots must never make invalid exposures or suffer dead hands.
+A Bot must simulate any proposed claim before making it and ensure that:
+The new exposed set strictly matches a set required by one of its candidate winning hands.
+The candidate hand is not a Concealed ("C") hand.
+The new exposure leaves the Bot with at least 1 valid open winning hand on the card (preventing invalid exposure dead hands).
+
+
+How to finilised the bot decision making process.
+Track win rate, wall-game rate, average turns to win, invalid claims, and missed winning opportunities. 
+A single game, or even a few games, is not enough to judge strategy reliably.
+
+Do game play developer side testing to make sure the bot decision taking process is work proper, dead hand features work properly.
+
+Set the layout for the Mahjong game with show the winning hand and opponent seat rack tiles.
+
+
+Current status of how bot take decision and why its not win the game. 
+What's Done: The game rules, dead-hand validation, tile tracking, and exposed combinations are fully completed and working correctly.
+Why Bots Aren't Winning: The bot doesn't commit to a specific winning hand. Every turn it changes its mind and accidentally throws away its own winning tiles.
+The Next Step: Give the bot focus—make it choose 1–2 target hands and stick to them from start to finish so it protects its tiles, claims discards, and completes winning hands like a human player.
+
+
+Where We Are Right Now (What Has Been Completed & Working)
+The core mechanics of the Mahjong game engine and bot turns are fully functional and strictly follow the official rules:
+
+Rules & Tile Accounting Are Solid: The bot now tracks every tile visible on the table. It knows which tiles are already dead, so it won’t aim for impossible hands.
+Exposure & Melds Fixed: The bot properly recognizes combinations like Pungs (3 of a kind) and Kongs (4 of a kind), including Flowers and Jokers.
+Concealed Hands Upgraded: The system now accurately differentiates between hands that can be built openly (exposed) versus hands that must remain hidden (concealed).
+All 18 automated system tests are passing green.
+
+
+"Why Haven't Bots Been Winning Games?"
+The bots run smoothly without crashing, but they haven't been winning. 
+Think of how a human plays Mahjong versus how the bot currently thinks:
+
+A. A Human Stays Committed; The Bot Keeps Changing Its Mind
+Human Player: Looks at their starting tiles and the card, chooses 1 or 2 target hands (e.g., "I'm going for 2026" or "I'm going for Consecutive Run in Bams"), and keeps all tiles that fit that plan.
+Current Bot: Doesn't commit to a specific hand. Every single turn, it recalculates against all 70+ possible hands on the entire card. If it throws away a tile needed for Hand A, but Hand B on the card is equally far away, the computer tells itself: "Removing this tile didn't hurt my overall distance, so it must be junk!" As a result, it accidentally throws away its own winning tiles turn after turn.
+
+B. The Charleston (Tile Passing) Phase Throws Away Key Tiles
+At the start of the game during tile passing, the bot only looks for consecutive numbers (like 1-2-3).
+Because Winds (North/South/East/West), Dragons, and Flowers don't have standard numbers, the bot considers them "unhelpful" and gives them away to opponents, destroying its chances at hands that require them.
+C. The Bot Gets "Shy" About Claiming Discarded Tiles
+If a hidden (concealed) hand is rated as option #1, the bot refuses to call or claim any discarded tiles from other players—even if its #2 option is an open hand waiting for that exact tile.
+D. The Finish Line Label
+When a winning hand is completed, the game engine finishes the game, but it wasn't tagging the completion reason specifically with "MAHJONG" in the game report database.
+
+
+The game engine's foundation is solid and rule-compliant. The bots aren't broken—they just need to be given focus and commitment (a target hand to stick to) instead of recalculating 70 hands on every single turn. Once that strategy layer is updated, bots will play competitively and achieve standard human win rates.
+
+
+============= REPLY ==============
+FOR CLIENT]
+Today, I updated some UI elements and tested the claim tile and reverse claim features. I also fixed the animations for claiming and canceling a claim. Everything is working properly now, including continuing the game from the discard tile with the next seat.
+
+I also added a new key to the response and debug panel to help verify the bot's decisions. This key contains the full state data, which helps us understand the bot's behavior and how it makes decisions.
+
+Additionally, I added a Send Debug Email button to the debug panel. If you notice anything wrong, you can send the same response to me so I can investigate and identify the exact root cause.
+
+You can open the debug panel by clicking the </> icon in the top-right corner to check the latest state.
+
+I will keep you posted on the work progress. 
+Thank you!
+
+
+FOR CLIENT]
+Today, I analysed the current gameplay flow and played multiple games to test different scenarios based on the recent game changes.
+
+I also improved one UI/UX issue I noticed during gameplay. When the bot claimed a tile, it was moving directly to the exposed hand panel without first appearing in the discard area. I updated the flow so that the tile first appears in the discard area and then moves to the call seat's exposure panel.
+
+Bot Decision-Making – Current Status
+
+Completed and Working:
+The core Mahjong game engine and bot turns are working correctly and follow the official game rules.
+
+Rules and Tile Tracking: The bot tracks all visible tiles on the table and identifies tiles that are no longer available, helping it avoid impossible hands.
+Exposure and Melds: The bot correctly identifies combinations such as Pungs (three of a kind) and Kongs (four of a kind), including Flowers and Jokers.
+Concealed Hands: The system correctly distinguishes between hands that can be played openly and hands that must remain concealed.
+Automated Tests: All 18 automated system tests are passing.
+Current Observation
+
+We identified that the bot is not winning games because its current decision-making logic is too strict. It follows the rules correctly but needs to make better decisions and commit more confidently to a winning hand.
+
+The game engine's foundation is solid and follows the rules. The bot is not broken; the next step is to improve its decision-making strategy so it can build stronger hands and win games more effectively.
+
+I will keep you posted on the work progress. 
+Thank you!
+
+
+
+FOR CLIENT]
+Today, I tested all gameplay features and made the required changes to the Dead Hand feature. The backend API now correctly detects when a real player makes an invalid exposure and marks them as a Dead Hand. It is working fine now.
+
+I also added backend unit tests for the Dead Hand feature, bot decision-making for concealed hands, exposure actions, tile discarding, and other related actions.
+
+Alongside this, I worked on improving the Mahjong popup UI.
+
+Currently, I am playing the game and testing all the features.
+
+I will keep you posted on the work progress. 
+Thank you!
+
+
+
+The current decision-making process is too strict, so I am working on making it a little more flexible and lighten to help the bot win games.
+
+How to finalize the bot’s decision-making process:
+Track the win rate, wall-game rate, average number of turns to win, invalid claims, and missed winning opportunities.
+Test the bot over many games to evaluate its performance reliably.
+Do not judge the strategy based on just one or a few games, as this is not enough to determine whether it is effective.
+
+I will keep you posted on the work progress. 
+Thank you!
+
+
+
+
+FOR CLIENT]
+Today, I played multiple games to test the bot’s decision-making process. After playing many games, I found that the bot was unable to win any games.
+
+The current decision-making process is too strict, so I am working on making it a little more flexible and lighten to help the bot win games.
+
+How to finalize the bot’s decision-making process:
+Track the win rate, wall-game rate, average number of turns to win, invalid claims, and missed winning opportunities.
+Test the bot over many games to evaluate its performance reliably.
+Do not judge the strategy based on just one or a few games, as this is not enough to determine whether it is effective.
+
+I will keep you posted on the work progress. 
+Thank you!
+
+
+FOR CLIENT]
+Okay thanks for the confirmation. I will do required modification accordingly.
+
+FOR CLIENT]
+Hi,
+
+I need your help to confirm whether this hand is valid or if it should be declared dead.
+
+The winning hand pattern is:
+
+111 333 3333 5555 or 555 777 7777 9999 (any 2 suits).
+
+I am trying to make the following winning hand:
+
+555 777 7777 9999
+
+Is this hand valid, or would it be declared dead?
+
+Here is how I played my tiles:
+
+5 Crack Pung
+7 Crack Pung
+7 Bam Kong
+9 Bam Kong
+
+Could you please check the attached screenshot and let me know if I made a mistake?
+
+Thank you!
+
+FOR CLIENT]
+Today, I tested some gameplay scenarios and fixed the issues I found with the bot’s decisions and dead hand. I also updated some frontend UI components to handle error messages properly.
+
+Also complete one more point,
+If there is only 1 real player and 3 bots, and the real player gets a Dead Hand, the game will end with the correct message: “Game ended due to Dead Hand.”
+
+I will keep you posted on the work progress.
+Thank you!
+
+
+FOR CLIENT]
+Today, I anlysed the current decision making of bot seat and upgrade the current logic to bot take proper decision. Added feature dead hand by computer for real player if real player make wrong exposure PUNG, KONG etc.. 
+I also finished some points as below.
+- Call can be reversable if no tile exposed yet.
+- There is a bug that if i call the tile then it should be in exposure - it still show in discard area.
+- if only 1 player + 3 bot and if humal player get dead han then end the game. With correct message like end dure to dead hand - check whats app screen shot by jen.
+
+
+https://www.google.com/search?q=Is+this+right+dead+hand+because+I+make+the+group+of+7+crack+and+submit+the+server+call+this+as+dead+hand+so+is+this+right+as+per+the+American+Mahjong+rules&sourceid=chrome&ie=UTF-8&amc=1&gs_lcrp=EgZjaHJvbWUyBggAEEUYOdIBCjQ1MTMzajBqMzGoAgCwAgHqBwoIARAAGAAgACgA&lns_mode=cvst&oq=Is+this+right+dead+hand+because+I+make+the+group+of+7+crack+and+submit+the+server+call+this+as+dead+hand+so+is+this+right+as+per+the+American+Mahjong+rules&aep=42&cud=89&source=chrome.crn.rb&gsessionid=cO7Syjec8aiNgt6rO-hq3hN1MPoOpGhJmfO_oqYjxMmNLGTM7OdMPQ&lns_surface=42&mstk=AUtExfBzaVi-u1akIt4ZE07g0eTJ9otw-1zQJ-LOP0h86fcTiloS4MGBvO4zuAjKHtWnyWadB9CGsOWUDE_LSb9iHGKLKVRBTNB9ySDImNxMbM_ZC5RDFkAz-9azEd5qSFTypo_eQiP7M-JIQnfz2kwgcBGvd_Mo5CvXdxk&csuir=1&mtid=0n_HarGUO6-ohvcPzJLW4Q0&udm=50
+
+Today, I analyzed the bot’s current decision-making logic and upgraded it to make better decisions during the game.
+I also added the Dead Hand feature for real players. If a player makes an invalid exposure, such as Pung, Kong, etc., the game will now mark their hand as dead.
+I also completed the following points:
+A call can be reversed if no tile has been exposed yet.
+Fixed a bug where a called tile was still shown in the discard area instead of the exposure area.
+
+
+I will keep you posted on the work progress.
+Thank you!
+
+============= FROM CLIENT =============
+1]
+Attachement 1 - tiles on top of directions
+2]
+Attachement 2
+The tiles need to be to more randomly mixed and drawn, It is also  pretty unlikely to get this many winds during the Charleston.  It is not impossible, but this almost a complete hand
+3]
+Attachement 3
+also unlikely to have 2 exposures right away (player 2)- but this is not a legitimate hand anyways
+4]
+Attachement 4
+One more comment- 
+when a player is playing against bots, the game should never resume without them. If playing against another player, that player should get a minute before they get kicked off and a computer takes over. Let's discuss how that will work. But for now, computer does not take over when a player is only playing with bots
+
+
+
+
+++++++++
+EXPOSURE RULE:    Under National Mah Jongg League (NMJL) rules, once you call a discarded tile and expose tiles from your rack on top of your rack, you cannot reverse the call.
+However, there's an important distinction:
+- Before exposing tiles: You may change your mind and cancel the call, provided play has not progressed.
+- After exposing tiles: The call is committed. You cannot return the called tile to the discard area and put your exposed tiles back into your rack.
+- If the exposure is incorrect: You may be declared dead if the exposed combination cannot be part of a valid hand.
+++++++++
+
+
+
+
+============= PRMP =============
+
++++++++++++++++++++
+#]
+Change the icon with developer consoler icon instead of arrow for the debug.
+#]
+The log panel is not above the game board, game play area need to slide and that log panel open. Like collapsable
+#]
+Need to add the tab bar current and developer
+#]
+In the current we show the current log and in developer we have developer key in API response and we need to show this full log.
+
+#]
+This is only when enviroment is debug. 
+I want to show the tile_id: tile code for each seat,
+
+Assume we have one more key in API response, because I will add this key later. Which is development
+so basically we received total 4 keys game, play, private and new one development.
+
+This development key has all state data, which server hold, and for testing purpose we added this key and data.
+
+Now, the developement keys hold all data and in and it has subkey as game, play, private.
+
+Here private key hold the all seat data with the full rack hand.
+
+Now as per that need to show the tile_id: tile_code of the racks hand above to the exposure panel for top exposure, bottom exposure no need this as we can directly seen the all rack tiles. For left and right exposure the tile_id and tile_code should be show vertically and for left exposure it should be left side of exposure and for right exposure it should be right side of exposure.
+
+This need because I want to make sure that bot seat take proper decision, and meke proper PUNG, KONG, group according to rule winning hand. So I can manually check that bot take proper decision when claim the tile and stricly follow the rules. 
+
+Do not break the any exisiting working thing and any UI UX mismatched.
+
+---------------
+
+This is only when enviroment is debug. 
+I want to show the tile_id: tile_code for each seat,
+
+Assume we have one more key "development" in API response, because I will add this key later in BFW api.
+so basically we received total 4 keys game, play, private and new one development.
+
+This development key has all state data, which server hold, and for testing purpose we added this key and data.
+
+Now, the developement keys hold all data and in and it has subkey as game, play, private.
+
+Here private key hold the all seats data with the full rack hand.
+
+Now as per that need to show the tile_id: tile_code of the racks hand. 
+
+Now we have to create one more kye inside the personal > seats > specific seat > racks > specific rack > hands 
+need to add actual_tiles with object {tile_id: tile_code} actual tile code from the all_tiles.
+
++++++++++++++++++++++++++++++++++
+LAST PROMPT FOR TEST MAHJONG DESIGN NEED TO START FROM HERE.
+It still not showing the Opponent Hands Reveal on Table Exposure Panels.
+Also the Play Again and Exit button didn't matched the theme.
+The tiles images are different then what we have tile atlas
+
+
+
+Need to cross check how bot Joker exachange work and how it effect on frontend and how it visual to real player.
+I think that should be proper fast animation if bot joker exachange from any exposure and play joker exchange sound.
+
++++++++++++++++++++++++++++++++++
+Before assign prompt to AI Agent, I would like to know that can we make it very simple so any developer can manage the code, because what AI Agent change is just know to AI Agent for temporary and in future if it required to do any changes AI Agent don't know the past history and to do manual by developer it required more time to understand the current code and logical flow.
+
+Now this is the main issue when upgrade code with AI Agent, I need something that AI and developer can easily understand the code. Need some standard code that can easly undesrandble for both AI Agent as well as developer. I have already developed some standard in my current code. But due to many changes by AI Agent I think it lost. 
+
+I want to make the code standard and easy to undestand. No complex thing.
+
+Moving to our main task is bot also take decision same like the real human player.
+Here we have different bot level Easy, Medium and Hard. And bot will take decision as per that, same like real human player Beginner, Intermediat and Pro level.
+
+How human take decision
+From the assigned rack 13 or 14 tiles. 
+Open the rule book and check which are nearest winning and identified few possible winning hand.
+Now according to that human player PASS the unwanted tile in charleson round and take further decision while game play.
+
+Now this is the basic things which will followed by the real human player while playing the whole game play for the any action.
+Now below every action performed by the real player which has most possibility to win the game. 
+
+- Choose tile to PICK 
+- Choose tile to Discard 
+- Choose tile to Claim
+- Choose tile to Joker Exchange
+- Choose tile to Call Mahjong
+
+
+
+
+We need to implement this same logic for the bot player.
+
+
+
+
+
+
+++++++++++++++++++
+[WS PUBLISH] [BfwApiSdk:graphql:ws] game.subscribe.action.claim.tile @ 1791617467458
+
+PLAY RESPONSE
+
+claim: null
+current_turn_rack_id: 1
+current_turn_seat_id: 4703
+last_claim: {tile: {…}, from_seat: 4708, deadline_at: 1791617564844, intents: {…}, target_seat: Array(1), …}
+last_joker_exchange: {from_gseat_id: 4703, to_gseat_id: 4703, from_tile_id: 89, joker_tile_id: 147}
+pass: {}
+phase: 3
+seats: {4703: {…}, 4704: {…}, 4705: {…}, 4706: {…}, 4707: {…}, 4708: {…}}
+turn_stage: 1
+wall_count: 9
+
++++++++++
+
+
+https://chatgpt.com/c/6ac9d950-f4a0-83ee-a2fa-f9290138ed24
+CONTINUE THREAD IN NEW CHAT
+https://chatgpt.com/c/local-chatgpt%3Acee38a58-abba-4ddc-a95f-45e252439d81
+
+
+BOT Backedn Decision
+
+A robust decision engine should also consider:
+- How many copies of each required tile remain available.
+- Tiles already discarded or exposed by other players.
+- Whether the hand can legally be exposed.
+- Whether the required tiles are realistically obtainable.
+- Whether another candidate hand has better prospects.
+- Whether the bot has enough turns remaining to complete the hand.
+
+
+For example, a hand missing four tiles that are mostly unavailable may be worse than one missing five tiles that are still plentiful.
+
+
+
+++++++++++++++++++++++++++++++++
+### Purpose
+Analyze the existing codebase to identify and replace hardcoded static values (e.g., categories, states, or identifiers like `joker category 5`) with dynamic mapping references leveraging the existing `Enum` and `EnumAddon` collections. 
+
+CRITICAL CONSTRAINT: Do not modify any execution code directly during this phase. This is a read-only analysis to prevent breaking existing game features.
+
+---
+
+### Key Context & System Architecture
+1. **BFW API Response Dualism:** 
+   - **Initial Game Load (HTTP API):** Property values return as **Numeric values** (Integers).
+   - **Real-Time Interaction (WebSockets / WS):** Property values return as **String values**.
+   
+2. **Why this happens:** 
+   - Queries executed within the GraphQL Playground natively resolve and interact via GraphQL Enum objects (returning predictable formats). 
+   - Queries executed outside the playground via standard API calls fall back to raw formats, creating this numeric/string variance.
+
+3. **The Role of EnumAddon:** 
+   - `EnumAddon` was intentionally introduced as a dynamic lookup map to bridge this gap. It acts as a structural duplicate with alternate key/value alignments so the system can resolve both raw numbers and websocket strings seamlessly.
+
+---
+
+### Step-by-Step Instructions
+
+#### Step 1: Deep-Dive Analysis of BFW API schemas
+- Audit the underlying BFW API specifications, schema files, or types to extract all available Enum categories.
+- Document every mapping where a single game entity can be represented as both a `Number` and a `String`.
+
+#### Step 2: Codebase Static-Value Hunting
+Scan all game logic files, handlers, and components for hardcoded magic numbers or static string literals that match values present in `Enum` or `EnumAddon`. Look specifically for patterns such as:
+- Hardcoded IDs or categories used in conditional logic (e.g., `if (category === 5)`, `case "5":`, etc.).
+- Static comparison variables or fallback defaults.
+
+#### Step 3: Mapping Verification
+- Verify that every discovered static value can safely be resolved via `Enum[Key]` or `EnumAddon[Key]`. 
+- Ensure that the logic accounts for *both* states (the numeric initial payload and the string WebSocket payload).
+
+---
+
+### Deliverable Output Format
+Provide a comprehensive report detailing your findings using the following structure:
+
+1. **Found Static Values:** A list of lines/files where a hardcoded static value is currently in use instead of an enum.
+2. **Impact Assessment:** Explain how utilizing `Enum` or `EnumAddon` at that specific spot will safely handle both the numeric (initial load) and string (WS) variations.
+3. **Proposed Safe Replacements:** Provide a side-by-side snippet preview of the current code vs. the proposed dynamic refactor using the proper Enum/EnumAddon wrapper. Do not alter the actual code repository.
+
+
+++++++++++++++++++++++++++++
+You are an expert software architect specializing in American Mahjong. I have a complete, existing repository that was built by an AI agent. I need you to reverse-engineer this codebase and generate a comprehensive 'Living' Rulebook and Context File named MAHJONG_RULES_AND_STATE.md.
+This file will serve as the permanent, ultimate source of truth for all future development so that no future code updates break existing logic.
+
+We will build this file step-by-step. To start, please analyze the following code which handles our Core Data Structures and State Models
+So src/app/module/business
+
+
++++++++++++++++++++++++++++
+Do not change in the code just want some confirmation before move to the implementation.
+
+But as I know we will already developed the logic that the seatId is added to the targeted_seats f canClaim === true (i.e. options.can_pung || options.can_kong || options.can_quint || options.can_mahjong)
+
+Then why its removed.
+As I told many time, have to thing surrounding and do not break the existing logic whenever we upgrade the logic or only required thing should be update. 
+See this is the realtime project and I have deily target to achive and submit to the clien, and if we lost code like this or update code unconciously or ranndomly then how we finished the thing.
+What I faced right now, as I am totally depend on you, you are upgrading the code for the whole game lifecycle, Even I also don't know some features how work, I just basic flow.
+
+What I need from you is always remember the whole game play logic and how it works and how it goes on and also how new logic extend with the existing logc whenever you make the decision. So you are the only one who knows everything and if you do mistakes like this then how we handled. 
+If you are not able to remember this then let me know what should I have to do that you can follow and rememeber the things. 
+So here we also have something that everytime you have to follow which cannot lead the breking the existing working thins and we are not outof track.
+
+================ Meeting ===================
+Progress meeting: 7 OCT 2026 5 PM PDT
+https://meet.google.com/kvz-hdpp-ehc
+
+
+Tech discussion permission
+
+*]
+Require button position confiration from 
+Download/image0edr.jpeg
+
+During previous week we progresses as explained in last meeting.
+
+1]
+Completed developer side logic analysis for joker exchange and done some modification and bug fix.
+In previous week we have just completed this feature, in this week we made it accurate.
+To trade your natural tile for an exposed joker on a computer, tablet, or phone, use one of these two methods:
+- The Double-Click Method (Recommended): Simply double-click or double-tap on the specific joker you want to claim from an opponent's rack (or your own). The app will automatically verify that you have the matching natural tile, make the swap, and move the joker straight to your rack.
+- The Drag-and-Drop Method: Manually click/tap your natural tile from your rack, drag it directly over the exposed joker, and release it.
+
+Improvements and Strict Rule Requirements:
+- The animation was not consistent, now fixed.
+- Some time game hang/no-response during exchange, now fixed.
+- It must be your turn: You cannot swap a joker out-of-turn.
+- You must draw or call a tile first: Your turn must actively start before you can swap. You have to either draw a tile from the wall or successfully call a discarded tile to complete a brand-new exposure before you execute the swap.
+- The joker must be in an exposure: You can only swap tiles for jokers that are sitting in an open, face-up grouping (a Pung, Kong, or Quint) on a player's rack. You cannot swap for jokers hidden in someone's private, concealed hand.
+- No discarded tiles for swaps: You cannot pick up a freshly discarded tile from the table just to use it for a joker exchange. You must already hold the natural tile in your possession.
+
+2] 
+Joker Exchange Testing Summary:
+Joker Exchange testing required a significant amount of time because each test requires the game to be in a specific state during game play. To reach the required state, we often had to play multiple games and wait for the required possibility to become available. In some cases, I had to create the required state by holding specific tiles in the current player's rack.
+
+How we performed the testing:
+Started gameplay and held the required tiles in the rack.
+On my turn, discarded one tile.
+If another player claimed the discarded tile, I used the next turn to perform the Joker Exchange.
+If the tile was not claimed, I had to wait for another opportunity or change the tiles to create a different possible scenario.
+
+Tested the Joker Exchange from all player positions:
+Right
+Top
+Left
+
+Tested Joker Exchange using my own exposed Joker.
+Own Exposure Joker Exchange
+For this scenario, I first needed to create an exposure containing a Joker and then wait until the corresponding tile was available.
+I also tested scenarios where I had multiple copies of the same tile along with two Jokers. If another player claimed that tile, I moved one original tile to the exposure and used the two Jokers. On the next turn, I attempted to exchange one of the Jokers with the actual tile I had.
+However, this scenario does not occur every time, so I had to play multiple games and wait for the required state to become available.
+
+Additional Checks
+Along with the functional test cases, I focused on two additional areas:
+Animation: Verified that the Joker Exchange animation is displayed correctly after a successful exchange.
+
+Game State: Verified that the current game state is updated correctly after the Joker Exchange.
+Functional Test Cases — Core Game Logic
+Exchange from Opponent's Rack (After Drawing)
+Exchange from Own Rack (After Calling Discard)
+Multiple Exchanges in One Turn
+
+Invalid Exchange Scenarios
+Attempting an Exchange Out of Turn
+Attempting an Exchange Before Turn Initialization
+Attempting an Exchange with an Unexposed (Hidden) Joker
+Attempting an Exchange When the Hand Is Declared "Dead"
+
+So, this makes process complicated and slow.  
+Point 1 and 2 took a day to finalise joker feature to work accurately.
+
+
+3]
+New feature implemented  (took 3 days to complete during last week)
+Implemented the Dead Hand feature frontend side and cross check with the backend.
+This part was pending during last week.
+Developer side logic test is pending we will finish it during this week.
+
+If the player hand is dead then we automatically assign the next turn seat, API completely REMOVES the dead player from the turn rotation.
+Once officially declared dead by another player, you must cease play — stop drawing or discarding tiles. You are effectively out of the game for that round.
+
+If player make DEAD HAND request and if that request is invalid then the requested player seat is consider as dead.
+
+4]
+Found an issue with the exposure tray.
+Currently, the system has a limit that prevents players from adding a 13th tile to their exposure. 
+For example, if a player already has 10 tiles exposed (such as two Quints), claims a tile to make 11, and then tries to add another tile from their rack to make 12, the system blocks any further additions.
+Updgrade the exposure limit to allow up to 14 tiles, so players can form the required melds without being blocked.
+
+So, this is a real bug as per game rule and now fixed.
+
+5]
+Solved the issue with flower tiles when creating a PUNG or KONG using different types of flowers. All flower tiles are now treated as the same flower category.
+This bug was found during previous metting when Jeniffer was playing the game.
+
+6]
+Upgrade the bot decision making process.
+Added logic after passing the tiles to the bot seat, server take the most nearest 3 to 5 hands, and as per that bot take the further game decision, when game goes on bot will stick with the one hand which is nearest to the win.
+This bug was also found during previous meeting, now improved.
+
+7] 
+Point 4,5,6 took one and half day to improve bot logic.
+Remain points
+1. Help (HAND SUGGESTION when all other seats are bot)
+2. Need to fix the proper order of the tile when perform JOKER exchange with same seat rack and exposure and also need to cross check the order of the tile with other seat joker exchange.
+3. Mobile responsive tile management.
+4. Some points are completed and some are remains, we will keep checking bug list and will fix as we will come to that point.
+https://docs.google.com/spreadsheets/d/1_2urWwlk9zd57jkUt16_eCTTgP5a4E3Mous12cyeFrg/edit?gid=0#gid=0
+5. Menu wiring on game play area
+6. Game on Mobile device (this is kind of keep continue part until we finish - so just add it here to here to bring in focus)
+7. Release test app on App Store and Play Store
+
+8]
+After game play area we will move on with below without design.
+We have decided to finish functional part, so when we will have design we need to just to design wiring. 
+
+Signin
+Signup
+Forgot Password
+User my account area
+Join player
+Send request to join
+On going active game screen, where user can search and join manually
+Leader board
+
+
+Current target is finish the full game implementation, so we can play the fully function game in real.
+
+DECISIONS FROM MEETING]
+
+- Call can be reversable if no tile exposed yet.
+- There is a bug that if i call the tile then it should be in exposure - it still show in discard area.
+- If mahjong button clicked and nothign then we need to show shake/wiggle the button to express that process is done and mahjong button again enabled.
+- if only 1 player + 3 bot and if humal player get dead han then end the game. With correct message like end dure to dead hand - check whats app screen shot by jen.
+- There are some screen shot of issues of exposure we fixed during last week but seems like still an issue. 
+- Pulse effect of message when action arrive - like discards.
+- Do not allow to expose wrong tiles - if it is then dead hand. if 1+4 then end the game and if multiple human players then mark player as dead. So exposure only allow winning hand for bot and humans.
+
+NOT FOR NOW: - in easy mode we need to allow computer based checking in terms of call or dead hand so user feel real easy and no need to use the brain much
+##################################
+
+
 
 ============= POINTS =============
 1]
@@ -27,6 +625,44 @@ Strict Rule Requirements:
 3. The joker must be in an exposure: You can only swap tiles for jokers that are sitting in an open, face-up grouping (a Pung, Kong, or Quint) on a player's rack. You cannot swap for jokers hidden in someone's private, concealed hand.
 4. No discarded tiles for swaps: You cannot pick up a freshly discarded tile from the table just to use it for a joker exchange. You must already hold the natural tile in your possession.
 
+
+
+Joker Exchange Testing Summary
+Joker Exchange testing required a significant amount of time because each test requires the game to be in a specific state during gameplay. To reach the required state, I often had to play multiple games and wait for the required possibility to become available. In some cases, I had to create the required state by holding specific tiles in the current player's rack.
+
+How I Performed the Testing
+Started gameplay and held the required tiles in the rack.
+On my turn, discarded one tile.
+If another player claimed the discarded tile, I used the next turn to perform the Joker Exchange.
+If the tile was not claimed, I had to wait for another opportunity or change the tiles to create a different possible scenario.
+
+Tested the Joker Exchange from all player positions:
+Right
+Top
+Left
+
+Tested Joker Exchange using my own exposed Joker.
+Own Exposure Joker Exchange
+For this scenario, I first needed to create an exposure containing a Joker and then wait until the corresponding tile was available.
+I also tested scenarios where I had multiple copies of the same tile along with two Jokers. If another player claimed that tile, I moved one original tile to the exposure and used the two Jokers. On the next turn, I attempted to exchange one of the Jokers with the actual tile I had.
+However, this scenario does not occur every time, so I had to play multiple games and wait for the required state to become available.
+
+Additional Checks
+Along with the functional test cases, I focused on two additional areas:
+Animation: Verified that the Joker Exchange animation is displayed correctly after a successful exchange.
+
+Game State: Verified that the current game state is updated correctly after the Joker Exchange.
+Functional Test Cases — Core Game Logic
+Exchange from Opponent's Rack (After Drawing)
+Exchange from Own Rack (After Calling Discard)
+Multiple Exchanges in One Turn
+
+Invalid Exchange Scenarios
+Attempting an Exchange Out of Turn
+Attempting an Exchange Before Turn Initialization
+Attempting an Exchange with an Unexposed (Hidden) Joker
+Attempting an Exchange When the Hand Is Declared "Dead"
+
 2]
 Found an issue with the exposure tray.
 Currently, the system has a limit that prevents players from adding a 13th tile to their exposure. 
@@ -36,11 +672,268 @@ Updgrade the exposure limit to allow up to 14 tiles, so players can form the req
 3]
 Solved the issue with flower tiles when creating a PUNG or KONG using different types of flowers. All flower tiles are now treated as the same flower category.
 
+4]
+Implemented the Dead Hand feature frontend side and cross check with the backend.
+Test the implementation and also checke the bacekend logic. 
+Upgrade the bot decision making process.
+Added logic after passing the tiles to the bot seat, server take the most nearest 3 to 5 hands, and as per that bot take the further game decision, when game goes on bot will stick with the one hand which is nearest to the win. 
+
+If the player hand is dead then we automatically assign the next turn seat, API completely REMOVES the dead player from the turn rotation.
+Once officially declared dead by another player, you must cease play — stop drawing or discarding tiles. You are effectively out of the game for that round.
+
+If player make DEAD HAND request and if that request is invalid then the requested player seat is consider as dead.
+
+
+Remain points
+1]
+Help (HAND SUGGESTION when all other seats are bot)
+2]
+Need to fix the proper order of the tile when perform JOKER exchange with same seat rack and exposure and also need to cross check the order of the tile with other seat joker exchange.
+3]
+Mobile responsive tile management.
+4]
+Some points are completed and some are remains, we have to first check the possibility or any other way to manage that UI parts.
+https://docs.google.com/spreadsheets/d/1_2urWwlk9zd57jkUt16_eCTTgP5a4E3Mous12cyeFrg/edit?gid=0#gid=0
+5]
 
 
 
+========= BACKEND UPDATE ===========
+Here we need to change the seat rack hand order and the exposure order. 
+Currently we ara managing the all tiles order in the hand_order wether tile is in exposure or tile is in rack. 
+
+But I think we have to change that logic here, How I don't know so need proper analysis and prepare the planing how to upgrade the functionality.
+
+What to update is
+When tile is in exposure meld we have specific field to manage the exposure tile order and it is sort_exposer_one and sort_exposer_two
+
+If the tile is in exposure one then we have to manage the tile order in the sort_exposer_one field and if tile is in rack two and exposure two then we have to manage the tile order in sort_exposer_two field.
+
+Because when we exchange the joker tile with natural tile then the natural tile should be in the exposure and the joker tile in the rack. But the exposure group going unorder and also rack orders are unorder.
 
 ============= TODO ===============
+
+Now need to i,plemetation the dead hand functionality
+
+Also consider the below points
+
+
+# 🀄 Dead Hand Feature — Frontend Integration Guide
+
+This guide details the WebSocket payload specifications, UI state fields, enums, and UX workflows required to integrate the **Dead Hand** feature in the Mahjong frontend application.
+
+---
+
+## 1. WebSocket Action Channel: Call Dead Hand
+
+When a player clicks the **"Call Dead"** button on an opponent player's hand, send a WebSocket message over the `game.subscribe.action.call.dead.hand` channel.
+
+### **Channel Slug**
+`game.subscribe.action.call.dead.hand`
+
+### **Request Payload Schema**
+```json
+{
+  "keyid": "01a100bd-7cd3-7b3b-a221-030a26b9e480", // Unique request ID (UUID)
+  "game_id": 835,                                    // Active Game ID
+  "id": 4127,                                         // Caller seat ID (gseat_id)
+  "from_gseat_id": 4127,                              // Caller seat ID
+  "to_gseat_id": 4128,                                // Target player seat ID being called dead
+  "rack_id": 1                                        // Target player rack ID (default: 1)
+}
+```
+
+---
+
+## 2. Server Response & Updated Game State
+
+The server processes the request and broadcasts an updated game state over `subscribePlay`.
+
+### **Rack Dead State Fields**
+Inspect `state.personal.seats[gseat_id].racks[rack_id]` in the `subscribePlay` state payload:
+
+```json
+{
+  "seats": {
+    "4128": {
+      "id": 4128,
+      "racks": {
+        "1": {
+          "id": 1,
+          "is_dead": true,                         // true if seat hand is dead
+          "is_locked": true,                       // true when rack is locked from taking turns
+          "dead_reason": 3,                        // GameDeadHandReasonEnum ID
+          "dead_by_gseat_id": 4127,                // Seat ID of caller (null if auto-dead by system)
+          "dead_at": "2026-10-03T18:30:00.000Z",   // ISO timestamp when marked dead
+          "dead_note": "Invalid exposure: Pung set cannot be legally formed." // Description string
+        }
+      }
+    }
+  }
+}
+```
+
+---
+
+## 3. Enums Reference
+
+### `GameDeadHandReasonEnum`
+| Value | Key | Description |
+| :--- | :--- | :--- |
+| `1` | `FALSE_MAHJONG` | Called Mahjong falsely with an invalid hand pattern. |
+| `2` | `INVALID_TILE_COUNT` | Player held an invalid tile count on or off turn (e.g. not 13/14 tiles). |
+| `3` | `IMPOSSIBLE_HAND` | Made an illegal exposure (e.g., exposing a set for a concealed "C" hand, wrong tile count exposure). |
+| `4` | `INCORRECT_DEAD_CALL` | **Caller penalty**: Caller falsely called a player dead when target's hand was valid. |
+| `5` | `MANUAL_DEAD_CALL_ACCEPTED` | Target was legitimately called dead by another player. |
+
+### `GameFinishedReasonEnum` (Game End Reason)
+| Value | Description |
+| :--- | :--- |
+| `"NO_ACTIVE_RACKS"` | All 4 players in the game have been declared dead. |
+| `"MAHJONG"` | A player declared valid Mahjong. |
+| `"WALL_EMPTY"` | Wall ran out of tiles (Draw). |
+
+---
+
+### **B. Visual Indicators for Dead Seats**
+Whenever `racks[1].is_dead === true`:
+1. **Rack Overlay**: Display a semi-transparent dark overlay over the player's rack with a prominent **"DEAD HAND"** badge/banner.
+2. **Disable Actions**: Disable all action buttons (Pick, Discard, Call, Mahjong) for this player.
+3. **Turn Skipping**: The turn indicator automatically bypasses dead players. No action required on turn change.
+4. **Tooltip / Info Modal**: Hovering or tapping the "DEAD HAND" badge shows a popup containing `dead_note` (e.g. *"Player declared dead due to incorrect exposure"*).
+
+---
+
+### **C. Handling False Dead Calls (Caller Penalties)**
+- **Scenario**: Player A calls Player B dead. Backend checks Player B's hand and finds it **VALID**.
+- **Server Behavior**: Player B stays alive (`is_dead: false`), while Player A's hand is killed (`is_dead: true`, `dead_reason: 4` (`INCORRECT_DEAD_CALL`), `dead_note: "Falsely called player 4128 dead."`).
+- **Frontend Action**:
+  - Show a red toast / alert notification to Player A:  
+    > ❌ **False Dead Call!**  
+    > Your call against Player B was invalid. Your hand has been declared **DEAD**.
+
+---
+
+### **D. Computer Auto-Dead Detection**
+- **Scenario**: A player attempts an illegal exposure (e.g. putting up 3 tiles on a Concealed Hand pattern, or wrong claim size).
+- **Server Behavior**: Backend rejects the exposure, marks the player dead (`is_dead: true`, `dead_reason: 3` (`IMPOSSIBLE_HAND`)), and advances the turn to the next live player.
+- **Frontend Action**:
+  - Show a banner / toast:
+    > ⚠️ **Invalid Exposure!**  
+    > [Player Name] exposed an invalid set. Their hand is now **DEAD**.
+
+---
+
+### **E. End Game Screen (`phase: FINISHED`)**
+- If all active players become dead (`finished_reason: "NO_ACTIVE_RACKS"`):
+  - Display Game Over Modal: **"Game Ended — All Players Dead"**.
+  - As per the Mahjong rules, reveal all seats' concealed tiles and exposures.
+  
+++++++++++++++++++++++++++++++++++
+
+Agian faced the same seat joker exchange issue so also consider this, and prepare planing accordingly.
+
+Request
+game.subscribe.action.exchange.joker
+
+input: 
+from_gseat_id: 4127
+from_tile_id: 13
+game_id: 835
+gpaction_id: 47
+id: 4127
+joker_tile_id: 152
+keyid: "01a100bd-7cd3-7b3b-a221-030a26b9e480"
+rack_id: 1
+to_gseat_id: 4127
+to_rack_id: 1
+u_id: 65
+
+
+RESPONSE
+[subscribePlay] data:  
+
+seats: 4127: 
+active: null
+created: "2026-10-03T07:49:41.233Z"
+deleted: null
+game_id: 835
+gseattype_id: 1
+id: 4127
+keyid: 
+"01a100bd-7efa-7e83-b76a-4d63099b532b"
+racks: 
+1: 
+exposures_meld: 
+Array(2)
+0: {kind: 17, tile: {…}, from_seat: 4131, to_seat: 4127, tiles: Array(3)}
+1: 
+from_seat: 4131
+kind: 18
+tile: 
+{tile_id: 31, gseat_id: 4130, in_rack_one: '2026-10-03T07:49:41.242Z', in_exposer_one: null, sort_exposer_one: null, …}
+tiles: 
+Array(4)
+0: {tile_id: 31, gseat_id: 4130, in_rack_one: '2026-10-03T07:49:41.242Z', in_exposer_one: null, sort_exposer_one: null, …}
+1: {tile_id: 152, gseat_id: 4127, in_rack_one: '2026-10-03T07:49:41.242Z', in_exposer_one: null, sort_exposer_one: null, …}
+2: {tile_id: 13, gseat_id: 4127, in_rack_one: '2026-10-03T07:49:41.242Z', in_exposer_one: null, sort_exposer_one: null, …}
+3: {tile_id: 40, gseat_id: 4127, in_rack_one: '2026-10-03T07:49:41.242Z', in_exposer_one: null, sort_exposer_one: null, …}
+length: 4
+[[Prototype]]: 
+Array(0)
+to_seat: 4127
+[[Prototype]]: 
+Objectlength: 2
+[[Prototype]]: 
+Array(0)
+gseat_id: 4127
+
+
+
+[subscribePersonal] data: 
+seats: 
+4127: 
+active: null
+created: "2026-10-03T07:49:41.233Z"
+deleted: null
+game_id: 835
+gseattype_id: 1
+id: 4127
+keyid: "01a100bd-7efa-7e83-b76a-4d63099b532b"
+racks: 
+1: 
+exposures_meld: 
+(2) [{…}, {…}]
+gseat_id: 4127
+hand: 
+3: 
+{tile_id: 3, gseat_id: 4127, in_rack_one: '2026-10-03T07:49:41.242Z', in_exposer_one: null, sort_exposer_one: null, …}
+26: 
+{tile_id: 26, gseat_id: 4127, in_rack_one: '2026-10-03T07:49:41.242Z', in_exposer_one: null, sort_exposer_one: null, …}
+82: 
+{tile_id: 82, gseat_id: 4127, in_rack_one: '2026-10-03T07:49:41.242Z', in_exposer_one: null, sort_exposer_one: null, …}
+134: 
+{tile_id: 134, gseat_id: 4127, in_rack_one: '2026-10-03T07:49:41.242Z', in_exposer_one: null, sort_exposer_one: null, …}
+149: {tile_id: 149, gseat_id: 4127, in_rack_one: '2026-10-03T07:49:41.242Z', in_exposer_one: null, sort_exposer_one: null, …}
+151: {tile_id: 151, gseat_id: 4127, in_rack_one: '2026-10-03T07:49:41.242Z', in_exposer_one: null, sort_exposer_one: null, …}
+152: {tile_id: 149, gseat_id: 4127, in_rack_one: '2026-10-03T07:49:41.242Z', in_exposer_one: null, sort_exposer_one: null, …}
+153: {tile_id: 153, gseat_id: 4127, in_rack_one: '2026-10-03T07:49:41.242Z', in_exposer_one: null, sort_exposer_one: null, …}
+[[Prototype]]: 
+Object
+hand_order: (17) [142, 34, 3, 26, 4, 18, 29, 39, 50, 158, 127, 126, 147, 154, 151, 153, 149]
+is_dead: false
+is_locked: false
+is_mahjong: false
+rack_id: 1
+
+
+
+#]
+Need to cross check the Joker exchange by bot how it show in the frontend side UI animation and voice.
+
+#]
+Add sound for Mahjong, Wall Game
+
 #]
 Need to add close icon on claim tile to undo the claim.
 Also need one more implementation on claim, if claim window appear and user skip the request then and if the next turn is current seat pick then there also need option to claim the tile or pick the tile. 
@@ -51,6 +944,10 @@ Need to test the multiple joker exchange multiple time, is it perform well.
 Because we checked the multiple joker exchange it send the same joker id with both request and tile get 13 in the requested seat rack, it should be 14 tiles, so please check it properly.
 
 Also need to check the joker exchange by the bot seat, while playing the game. Is it working or not.
+
+#]
+Charlestone round, After select tiles for pass and  before click to pass if we re-arange the tile in rack, sort the tile in rack, it make blank space in rack.
+It should be properly managed and do not show any blank space.
 
 #]
 Need to check the bot will follow the rule and winning hand and how bot take decision, we have some screenshots of game play need to cross check that screenshot with the actual game hand is it all exposure belong to the 
@@ -268,6 +1165,37 @@ u_id: 65
 [[Prototype]]: Object selections: {play: {…}, personal: {…}, game: {…}}[[Prototype]]: Object[[Prototype]]: Objectindex.js:22 
 
 ============= REPLY ==============
+
+Hi Raj- a question about the Audio. 
+During the charleston, I like the audio you guys chose for choosing the tiles, but I don’t care for the sound that happens when you pass. 
+Where did you find these sounds?
+
+For that I search on the google for sound-effect and open multiple links from the search list.
+But for that two sounds as I know I downloaded from the pixabay.com.
+URL: https://pixabay.com/sound-effects
+
+I am adding this point to my queue. Once I finished all the task, I will work on this. Currently, I am wokrking on Dead Hand feature.
+
+
+[8:30 am, 5/10/2026] Client Jennifer Tyler:
+
+Actually, I don’t like any of the UI sounds I originally chose. So I am open to suggestions on where to find more that go along with the “pick tile sound”
+
+FOR CLIENT]
+Today, I completed the implementation of the Dead Hand feature. Basic testing is done, but testing is still pending for various use cases and possible scenarios.
+
+I will keep you posted on the work progress.
+Thank you!
+
+
+FOR CLIENT]
+Today, I started working on the Dead Hand feature implementation and continued making progress on it. Meanwhile, I played the game and made the necessary upgrades and fixes based on the issues I encountered during gameplay. I also updated the Joker Exchange logic to handle the same seat and the same exposure correctly.
+
+I will keep you posted on the work progress.
+Thank you!
+
+
+
 FOR CLIENT]
 Today, I cross-checked the Joker implementation and made the required updates. I also updated the animation when exchanging the Joker.
 
@@ -787,6 +1715,39 @@ Dead Hand
 Yes, you can call a player 'dead' if it's impossible for them to get the tiles they need for Mah Jongg. 
 Simply press on the 'gear' icon on the top-right of the screen, then the 'Call Dead...' option.
 If a player exposes the wrong number of tiles, thus forming an invalid hand, they will be called dead by the computer.
+
+
+Will instantly kill your hand for the following mistakes:
+• Invalid Exposures: If you call a tile and put up an exposure that does not match any possible combination on the card (for example, exposing a "pung" or a "kong" of tiles that must be kept as a concealed pair or single), the computer immediately flags it.
+• Exposing a Concealed Hand: If you are trying to build a hand marked as "C" (Concealed) on the card and you call a discarded tile to make an exposure, you have broken the concealed rule, and your hand is dead.
+• Incorrect Tile Count: If an error occurs where you end up with too many or too few tiles on your rack (e.g., forgetting to pick up a tile after making a call), the system will invalidate your play.
+
+Game Lockdown & Skipped Turns
+Once the engine marks you dead:
+• You can no longer play that hand.
+• The computer automatically skips your turns (you stop picking from the wall or discarding tiles).
+• You must sit out the rest of the round while the other three players (or bots) finish playing.
+
+
+
+
++++++++++++
+Step-by-Step Execution Flow:
+1. Action Trigger: A player attempts an action (e.g., calling a discard to expose a Melds/Group).
+2. State Analysis: The system looks at the player's private hand, their public exposures, and the global pool of visible tiles (discarded tiles + other players' exposures).
+3. Card Pattern Matching: The engine runs a matching algorithm against a structured database of the selected year's valid card combinations.
+4. Dead Hand Declaration: If the algorithm returns a 0% probability of completing any valid hand, the player's state is mutated to is_dead = true.
+5. State Lock: The UI disables all player interaction buttons, and the turn-handler script automatically skips their turns for the remainder of the round.
+
+Allows a player to choose to call someone else dead, or the system does it automatically depending on the mode.
+If a hand is dead based only on a player's public exposures,  engine can automatically declare it dead.
+If a hand is dead based on a mismatch in their hidden hand (e.g., they accidentally drew 15 tiles instead of 13/14), the server knows it, but the UI shouldn't reveal it to other players immediately unless your game settings dictate automatic enforcement.
+
++++++++++++
+
+Regarding winning points.
+Even though you are locked out of winning, you are still financially or numerically in the game. If another player wins the round, you are still required to pay the winner their points or coins at the end
+
 
 #]
 Also the icons have some opacity and when hover or tap on the icon, it show the active.

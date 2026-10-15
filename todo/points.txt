@@ -1,0 +1,407 @@
+1] 
+For consistency, all the exposed tiles on the racks should be the same size.
+2]
+All racks should be able to show 14 tiles.
+3]
+Player3 tiles are upside-down on their rack.
+4]
+The in-play note - currently white text on black bubble - needs to follow design guide colors/fonts
+5]
+If a player calls the discarded tile, it should be removed from the discards pile.
+DONE
+ 
+6]
+Make instructions on the rack very clear: The instructions should repeat exactly what is happening in the game, reference Real Mahjong instructions during play:
+ 
+For example:
+ 
+* Discard a Tile
+* Player 1’s Turn
+* Player 2’s Turn
+* Player’s 3 Turn
+* Pick a tile
+* Discard a tile
+* Player 1’s Turn
+* Player 2 Called
+
+7] 
+CALL
+If I call for an exposure, I can change my mind as long as I don’t add any of my tiles to the rack.
+IF I change my mind, once I return that tile back to the board, my turn is over and it moves to the next player’s turn. 
+DONE
+
+7.1]
+Instructions for when I call:
+“Complete the exposure, then discard a tile”
+ (The computer should know when the exposure is complete based on:
+- the other hands in the rack 
+- if there are no other tiles on the rack, the exposure can be 3, 4, or 5 of the same tile
+ 
+ 
+8]
+Refine discards pile location - keep to one row or 1.5 rows to hint at scroll, make visible only in the top part of table, consider adding a semi-transparent side scroll bar.
+
+9]
+Dead Hand
+A hand can be dead if the tiles in the rack do not match any hands on the card. 
+A hand can also be called dead, if the tiles needed to complete the hand have already been discarded, making 
+Hand the player is working on, impossible to win.
+ 
+10]
+If you call a dead hand on another player, there should be follow up messaging:
+    * Either:
+        * This hand is a dead hand
+        * OR
+        * This hand is not dead, your hand is now dead.
+            * Would you like to end this game? Yes/No
+            * If yes, the screen goes to “End Game” screen, which reveals the
+               hands of all of the players.
+
+11]
+Attachement 1 - tiles on top of directions
+12]
+Attachement 2
+The tiles need to be to more randomly mixed and drawn, It is also pretty unlikely to get this many winds during the Charleston. It is not impossible, but this almost a complete hand
+13]
+Attachement 3
+also unlikely to have 2 exposures right away (player 2)- but this is not a legitimate hand anyways
+14]
+Attachement 4
+One more comment- when a player is playing against bots, the game should never resume without them. If playing against another player, that player should get a minute before they get kicked off and a computer takes over. Let's discuss how that will work. But for now, computer does not take over when a player is only playing with bots
+
+============
+POINTS IN DOC
+==============
+https://docs.google.com/spreadsheets/d/1_2urWwlk9zd57jkUt16_eCTTgP5a4E3Mous12cyeFrg/edit?gid=0#gid=0
+
+1]
+Opponents pick tiles	When an opponents picks a tile, the tile moves too fast - slow the tile movement down
+on game board > select left, right, or top > select 'pick'
+
+DONE
+
+2]
+Direction Box	Please follow box shape and font from design guide. The box can be smaller
+3]
+Need Image/Notifcation of discarded tile 	We need to let the player visually know which tile has been discarded. For now it is only audio 
+
+DONE
+Note: As we moved the buttons above the bottom seat exposure panel. We added the discarded tile to center of the buttons.
+
+4]
+Swap player username location to the top of rack. Bottom should be used for player instructions	Move the player username to the top of the rack like other players. The bottom space where it is now, can be used for instructions during the game
+
+DONE
+Note: 
+We added the user name at the bottom and instruction panel at top of the exposure area.
+
+5]
+Game Board sizing	The blue racks can be narrower and the tiles should be as big as possible
+DONE
+
+6]
+Tile Sizing	Increase size of discarded tiles
+
+DONE
+Note: 
+We added scroll to the discarded tiles area to allow for more tiles to be shown. 
+
+7]
+Tile dimension	Increase the 2D effect shadowing of user tiles to make it more lifelike
+
+DONE
+Note:
+Need confiration, if need to change any thing.
+
+8]
+Charleston	Resize the direction box so tiles do not cover the PASS button
+
+9]
+Mahjong Banner	Design should be consistent. Where can we find alternative Celebration graphics?
+Note:
+We change the design but still need to do assesment as per the reference site realmahjong. Show opponents seat all tiles to the exposure.
+
+10]
+Join Request: Design should be consistent. Where can we find alternative Celebration graphics?
+
+11]
+Game Direction: Move the instructions from a box in the middle of the board, to on the rack where the USERNAME is. Move the USERNAME to the rack like the other racks
+DONE
+Connected point with #4
+
+12]
+Audio: When playing against bots, the user should hear the name of the tile they picked- now, there is no audio for this move.
+
+13]
+Sort: Remove the drop down box. Program this button fo thhat on one click it sorts by rank, on the next click it sorts by suit. Then another click it goes by to sort ny rank, and so on
+DONE
+
+14]
+Sort by Suit: Sort by SUIT: There are still errors- the cracks and dots are mixed in together. Also the order of suit groupings should be, from Left to Right: First the Flowers, then the numbers for Bam, Dot, Crack then the Dragons (green, red,soap), then the Winds (N,S,E,W), and last the Jokers
+DONE
+
+15]
+Sort by Rank: Sort by Rank: Sort by Rank: The order fom Left to Right, should start with the Flowers, then the numbers for Bam, Dot, Crack then the Dragons (green, red,soap), then the Winds (N,S,E,W), and last the Jokers
+DONE
+
+16]
+Discarded Tile	Any time a tile is discarded, whether you can call it or not, include an enlarged visial of it for the user
+DONE
+
+17]
+Color and Tile size	Orange color should be pink. Tiles on the board need to be bigger	Refer to Brand Guide
+DONE
+
+18]
+Move icons on top right, scoot other icons over	Make the controls more user friendly
+
+Note:
+Need to discuss and change as per the new layout design, design remain.
+
+19]
+After Pick	Include instructions to "Discard a Tile"
+DONE
+
+20]
+we like the rack flipped as you have shown here
+
+let's move forward with this style as well as moving the instructions down onto the rack instead of the pop-up box on the game board. 
+In order to fit the instructions we may want to have both the top and the bottom of the user's rack be wide both the top and the bottom.
+
+PFA: Directions.pdf
+
+See the screen shots of the notes I have so far:
+
+PFA: 
+After_Pick.pdf
+discarded_Tile.pdf
+move icons.pdf
+sort_rank.pdf
+Sort_Suit.pdf
+Sort.pdf
+
+DONE
+Note: 
+Same as points #4, #11
+
+
+MEETING POINTS
+DECISIONS FROM MEETING]
+1]
+- Call can be reversable if no tile exposed yet.
+DONE
+
+2]
+- There is a bug that if i call the tile then it should be in exposure - it still show in discard area.
+DONE
+
+3]
+- If mahjong button clicked and nothign then we need to show shake/wiggle the button to express that process is done and mahjong button again enabled.
+4]
+- if only 1 player + 3 bot and if humal player get dead han then end the game. With correct message like end dure to dead hand - check whats app screen shot by jen.
+5]
+- There are some screen shot of issues of exposure we fixed during last week but seems like still an issue. 
+6]
+- Pulse effect of message when action arrive - like discards.
+7]
+- Do not allow to expose wrong tiles - if it is then dead hand. if 1+4 then end the game and if multiple human players then mark player as dead. So exposure only allow winning hand for bot and humans.
+DONE
+
+8]
+NOT FOR NOW: - in easy mode we need to allow computer based checking in terms of call or dead hand so user feel real easy and no need to use the brain much
+
+
+9] 
+As tile quantity increse it adjust the size accordingly.
+10] 
+It seems like exposure get full and game is still going on.
+11]
+There is a video for a bug we in Nirav mobile - check and fix.
+12]
+Need to create an image of rack position change upside down and send image for confirmation.
+13] 
+We might have to change clame window call button color - need to check design guide
+DONE
+14] 
+If we can make the clame and other small popup transparent. 
+
+
+
+15]
+Here are my notes on the Charleston portion of the game: 
+Let me know if you have questions. I am just following Real Mahj as closely as possible for all direction.
+
+
+- During the Charleston, directions are covering the tiles
+DONE - Add Note over the joker * can not pass during Charleston (right now nothing happens when you click it- so it could be confusing for a player)
+
+- during Charleston, the tiles I am getting passed should come into my rack at the same time the other tiles are moving to other players. Now they are coming in after the other tiles pass.
+
+DONE - Second Charleston Round: Message should say: Would you like to stop the Charleston?
+DONE - Options should be YES or NO
+DONE - Then a message: Are you sure? YES or NO
+DONE - Then an audio for “Charleston Stopped”.  (I know this needs to be WAV)
+PFA: Charleston Stopped
+
+
+############
+NEW POINTS
+############
+1]
+START SCREEN UX AND HOW TO EARN POINTS
+
+START NEW GAME SECTION
+Button: Display game selection menu pop up
+Points: Clicking the “start game” button will display your points and streak day (how does this integrate with the first bullet?)
+ 
+
+WEEKLY WORKOUT CHALLENGE SECTION
+Dynamic text:
+Display current weekly challenge
+A checked box when challenge completed
+ 
+
+MY FIT TRACKER SECTION
+DAILY STREAK: Earnings based on a 7 days streak
+
+Hover over text: “The more days you play in a row the more points you earn”
+
+Fit Tracker Icon: Displays current number of days streak (retaining the player's actual consecutive-day streak separately - This prevents a player with 21 consecutive days from appearing to have only a one-day streak when the rewards reset.)
+Points: Each days points included in leaderboard points (1.25x incremental formula)
+Day 1 = 8 points
+Day 2 = 10 points
+Day 3 = 13 points
+Day 4 = 16 points
+Day 5 = 20 points
+Day 6 = 25 points
+Day 7 = 31 points
+Max streak is 7 days
+On Day 8 the point system resets to Day 1 = 8 points
+If user skips a day, it resets to Day 1 = 8 points
+Day 1 based on user sign up day
+ 
+
+GAMES PLAYED:
+Fit Tracker Icon: Number of games won displayed in the icon
+Points: Event does not earn user points
+There should be an animated celebration each time the user wins the 10th game (10, 20, 30 etc.)
+ 
+
+WINS:
+Fit Tracker Icon: Display total number of games won
+Points: Amount earned from winning a game to be included in leaderboard points
+ 
+
+WEEKLY WORKOUTS CHALLENGES: 
+Fit Tracker Icon: Click to display list of challenges completed
+Remove # from Kettle Bell
+Points: Included in leaderboard when challenge completed
+150 points for each challenge completed
+Challenges will change on a 7 day weekly basis
+Win a consecutive hand
+win a 2026 hand
+win a 2468 hand
+win a 357 hand
+win a singles and pairs
+win a concealed hand
+win a jokerless hand
+win a quints hand
+Win a winds and dragons hand
+play with 2 racks
+join an active game table
+Play with a friend/invite a friend to join
+ 
+
+LEADERBOARD SECTION
+Points: Sum of users total points earned to be displayed on leaderboard
+ 
+
+MY FIT METER LEVELS SECTION
+Points: Sum of points earned levels the user up
+Warm Up 1,000
+Trainee 2,000
+Competitor 5,000
+Athlete 10,000
+All Star 20,000
+Elite 45,000
+Champion 95,000
+Hall of Famer 200,000
+GOAT 415,000
+DOUBLE GOAT 875,000
+TRIPLE GOAT 2,000,000
+
+2]
+PFA: WhatsApp Video 2026-10-02 at 1.51.18 AM
+here is an example of the way the app works- they have the function to take a photo within the app- so the player is not taken out of the app to get the pic. The card is something players reference throughout the game.
+
+
+
+###########
+INCLUDE OR NOT 
+###########
+1] 
+Remain design parts
+- Siamese game play
+- Game board icons – We currently have the action icons, but I noticed that two icons are still missing: the tile count icon and the points icon.
+- 1x tile atlas
+- Favicon
+- Final app icons, including the foreground and background assets (mobile app icon)
+
+- chcck ilovemahj for 2 player
+- As per the level of game hardness we will adjust tile animation as harder animation will be faster.
+- 13" macbook-air has design layout issue.  So, we need to test the app with more resolution, its required.
+
+2]
+Given this doc by client, but didn't getting the access. 
+https://docs.google.com/document/d/15vyOyNMx10t9Tq64AeNX_z8VeMlwOqHmynehrJFRuO8/edit?usp=drivesdk
+
+OUR MSG
+I checked the link but it required the access so can you please share the access to the email softdev.thatsend@gmail.com
+
+
+
+################ POINT FROM OUR SIDE 
+1]
+Need to cross check the Joker exchange by bot how it show in the frontend side UI animation and voice.
+
+2]
+Add sound for Mahjong, Wall Game
+
+3]
+Need one more implementation on claim, if claim window appear and user skip the request then and if the next turn is current seat pick then there also need option to claim the tile or pick the tile. 
+
+4]
+Need to test the multiple joker exchange multiple time, is it perform well.
+Because we checked the multiple joker exchange it send the same joker id with both request and tile get 13 in the requested seat rack, it should be 14 tiles, so please check it properly.
+
+Also need to check the joker exchange by the bot seat, while playing the game. Is it working or not.
+
+5]
+Charlestone round, After select tiles for pass and  before click to pass if we re-arange the tile in rack, sort the tile in rack, it make blank space in rack.
+It should be properly managed and do not show any blank space.
+
+6]
+Need to check the bot will follow the rule and winning hand and how bot take decision, we have some screenshots of game play need to cross check that screenshot with the actual game hand is it all exposure belong to the 
+
+7]
+From mobile remove the bottom seat rack arrow and show the full tiles in one rack, No need horizontal animation to view all tiles.
+DONE
+Note: But need to check the tile images.
+
+8]
+Mahjong need to add in UI.
+Opponent Hands Reveal
+
+9]
+Upgrade the Joker Exchange animation same like the reference websire realmahjongg.com
+Tile flip animation not works while Joker exchange. Need the flip animation when joker exchange.
+
+10]
+When pass tile, need to add some animation as when tile goes to the rack disappear tile with some animation like flad or somthing. 
+
+
+11]
+For mobile device,
+Check the required size for tile to load all 14 tiles in rack.
+Then ake the same size of tile atlas and load 100% image in phaser.
+Remove shadow from tiles only in the mobile device. 

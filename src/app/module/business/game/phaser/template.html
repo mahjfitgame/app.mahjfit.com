@@ -229,6 +229,7 @@
 </div>
 }
 
+<!-- OLDCODE
 @if (mahjongWinResult(); as result) {
 <div class="mahjong-win-popup" aria-hidden="false" [style.display]="'flex'">
   @for (confetti of mahjongConfetti(); track $index) {
@@ -248,6 +249,79 @@
   </div>
 </div>
 }
+OLDCODE -->
+
+<!-- NEWCODE -->
+@if (mahjongWinResult(); as result) {
+<div class="mahjong-win-overlay" aria-hidden="false">
+  @for (confetti of mahjongConfetti(); track $index) {
+  <div class="mahjong-win-popup__confetti" [style.left]="confetti.left" [style.top]="confetti.top"
+    [style.width]="confetti.width" [style.height]="confetti.height" [style.background]="confetti.background"
+    [style.--fall-duration]="confetti.fallDuration" [style.--fall-delay]="confetti.fallDelay"
+    [style.--start-rotate]="confetti.startRotate" [style.--end-rotate]="confetti.endRotate"
+    [style.--fall-distance]="confetti.fallDistance"></div>
+  }
+
+  <div class="mahjong-win-card">
+    <!-- Top Section: Winner Announcement -->
+    <header class="mahjong-win-header">
+      <h1 class="mahjong-win-title">MAH JONGG!</h1>
+      @if (winningOverlayData(); as winData) {
+        <div class="mahjong-win-subtext-score">
+          Score: {{ winData.baseScore }} &nbsp;&bull;&nbsp; Self Picked Bonus: +{{ winData.bonus }}
+        </div>
+        <div class="mahjong-win-subtext-announcement">
+          {{ winData.winnerName === 'YOU' ? 'YOU WIN!' : winData.winnerName }} earned {{ winData.totalPoints }} points
+        </div>
+      } @else {
+        <div class="mahjong-win-subtext-announcement">
+          {{ result.winner === 'bottom' ? 'YOU WIN!' : (result.winner.toUpperCase() + ' WINS!') }}
+        </div>
+      }
+    </header>
+
+    <!-- Middle Section: The Winning Hand & Exposures -->
+    @if (winningOverlayData(); as winData) {
+      <section class="mahjong-win-hand-section">
+        <div class="mahjong-win-hand-label">WINNING HAND & EXPOSURES</div>
+        <div class="mahjong-win-melds-container">
+          @for (group of winData.winningHandGroups; track $index) {
+            <div class="mahjong-win-meld-group">
+              @if (group.combinationName) {
+                <span class="mahjong-win-meld-tag">{{ group.combinationName }}</span>
+              }
+              <div class="mahjong-win-meld-tiles">
+                @for (tile of group.tiles; track tile.id || $index) {
+                  <div class="mahjong-tile-card" [attr.data-type]="tile.type" [attr.data-category]="tile.category">
+                    <span class="tile-corner-rank">{{ getTileCornerRank(tile) }}</span>
+                    <div class="tile-body-visual">
+                      <span class="tile-symbol">{{ getTileSymbol(tile) }}</span>
+                      @if (getTileSubSymbol(tile)) {
+                        <span class="tile-sub-symbol">{{ getTileSubSymbol(tile) }}</span>
+                      }
+                    </div>
+                  </div>
+                }
+              </div>
+            </div>
+          }
+        </div>
+      </section>
+    }
+
+    <!-- Bottom Section: Action Controls -->
+    <footer class="mahjong-win-actions">
+      <button type="button" class="popup-button-active" (pointerup)="$event.stopPropagation(); onStartNewGame()">
+        Play Again
+      </button>
+      <button type="button" class="popup-button-secondary" (pointerup)="$event.stopPropagation(); onExitGame()">
+        Exit
+      </button>
+    </footer>
+  </div>
+</div>
+}
+<!-- NEWCODE -->
 
 @if (mahjongGameOver()) {
 <div class="wall-game-popup" aria-hidden="false">
@@ -277,8 +351,20 @@
 @if (wallGameOver()) {
 <div class="wall-game-popup" aria-hidden="false">
   <div class="wall-game-popup__card">
+    <!-- OLDCODE
     <div class="wall-game-popup__title">Wall Game</div>
     <div class="wall-game-popup__winner">That means no one win the game.</div>
+    OLDCODE -->
+    <!-- NEWCODE -->
+    <div class="wall-game-popup__title">{{ gameOverState().title || 'Game Over' }}</div>
+    <div class="wall-game-popup__winner">{{ gameOverState().message || 'Game ended.' }}</div>
+    @if (gameOverState().note) {
+      <div class="wall-game-popup__dead-note">
+        <span class="dead-note-icon">⚠️</span>
+        {{ gameOverState().note }}
+      </div>
+    }
+    <!-- NEWCODE -->
     <div class="wall-game-popup__actions">
       <button type="button" class="popup-button-secondary" (pointerup)="$event.stopPropagation(); onExitGame()">EXIT GAME</button>
       <button type="button" class="popup-button-active" (pointerup)="$event.stopPropagation(); onStartNewGame()">START NEW GAME</button>
