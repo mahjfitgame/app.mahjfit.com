@@ -1,3 +1,5 @@
+CLIENT FEEDBACK + PENDING POINTS + IMPROVEMENT POINTS
+========================================================
 1] 
 For consistency, all the exposed tiles on the racks should be the same size.
 2]
@@ -336,9 +338,7 @@ here is an example of the way the app works- they have the function to take a ph
 
 
 
-###########
-INCLUDE OR NOT 
-###########
+########### CLIENT WAITING ###########
 1] 
 Remain design parts
 - Siamese game play
@@ -375,6 +375,9 @@ Need to test the multiple joker exchange multiple time, is it perform well.
 Because we checked the multiple joker exchange it send the same joker id with both request and tile get 13 in the requested seat rack, it should be 14 tiles, so please check it properly.
 
 Also need to check the joker exchange by the bot seat, while playing the game. Is it working or not.
+
+4.1]
+Joker tile must be movable after joker swap with the current rack, we can not move that tile to rack. Also need to add shadow. 
 
 5]
 Charlestone round, After select tiles for pass and  before click to pass if we re-arange the tile in rack, sort the tile in rack, it make blank space in rack.

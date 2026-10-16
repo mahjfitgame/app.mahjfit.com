@@ -1130,8 +1130,50 @@ export class PhaserScene extends Phaser.Scene {
       }
     }
 
+    // OLDCODE
+    /*
     for (const tile of this.rackTiles) {
       const existingRuntime = this.tileMap.get(tile.tile_id!);
+      // `rackTiles` is the source hand and still contains tiles that have
+      // moved to an exposure. Never add those IDs back as invisible rack
+      // slots when a later Pick refreshes the hand.
+      if (
+        !this.rackOrder.includes(tile.tile_id!) &&
+        !this.discardedTileIds.includes(tile.tile_id!) &&
+        !this.stateManager.optimisticPassTileIds.includes(tile.tile_id!) &&
+        existingRuntime?.zone !== "exposure"
+      ) {
+        this.rackOrder.push(tile.tile_id!);
+      }
+
+      if (existingRuntime) continue;
+    */
+    // NEWCODE
+    for (const tile of this.rackTiles) {
+      const existingRuntime = this.tileMap.get(tile.tile_id!);
+
+      if (existingRuntime && existingRuntime.zone === "exposure" && !this.isTileInAnyExposure(tile.tile_id!)) {
+        // Tile was swapped or returned from exposure to rack
+        existingRuntime.zone = "rack";
+        existingRuntime.selected = false;
+        existingRuntime.isDragging = false;
+        existingRuntime.image.clearTint();
+        existingRuntime.image.setData("joker-swap-enabled", false);
+        existingRuntime.image.setData("exposure-asset", undefined);
+        existingRuntime.image.setData("joker-tile-id", undefined);
+        existingRuntime.image.setData("joker-seat", undefined);
+        existingRuntime.image.off("pointerup");
+        existingRuntime.image.setDepth(30);
+        this.applyTileTextureFilter(existingRuntime.image, true);
+        existingRuntime.image.removeAllListeners();
+        this.registerTileInput(existingRuntime);
+        if (!this.rackOrder.includes(tile.tile_id!)) {
+          this.rackOrder.push(tile.tile_id!);
+        }
+      } else if (existingRuntime && existingRuntime.zone === "rack" && !existingRuntime.image.getData("hasShadow")) {
+        this.applyTileTextureFilter(existingRuntime.image, true);
+      }
+
       // `rackTiles` is the source hand and still contains tiles that have
       // moved to an exposure. Never add those IDs back as invisible rack
       // slots when a later Pick refreshes the hand.
@@ -2744,7 +2786,25 @@ export class PhaserScene extends Phaser.Scene {
       const entry = [...this.tileMap.entries()].find(([, runtime]) => runtime.image === image);
       if (!entry || authoritativeTileIds.has(entry[0])) continue;
 
-      const [tileId] = entry;
+      const [tileId, runtime] = entry;
+      // OLDCODE
+      /*
+      image.destroy();
+      this.tileMap.delete(tileId);
+      this.calledBottomExposureTiles.splice(this.calledBottomExposureTiles.indexOf(image), 1);
+      this.exposureCloseButtons.get(tileId)?.destroy(true);
+      this.exposureCloseButtons.delete(tileId);
+      this.activeExposureBuildTileIds = this.activeExposureBuildTileIds.filter((id) => id !== tileId);
+      */
+      // NEWCODE
+      if (runtime.zone === "rack" || this.rackOrder.includes(tileId) || this.rackTiles.some((t) => t.tile_id === tileId)) {
+        this.calledBottomExposureTiles.splice(this.calledBottomExposureTiles.indexOf(image), 1);
+        this.exposureCloseButtons.get(tileId)?.destroy(true);
+        this.exposureCloseButtons.delete(tileId);
+        this.activeExposureBuildTileIds = this.activeExposureBuildTileIds.filter((id) => id !== tileId);
+        continue;
+      }
+
       image.destroy();
       this.tileMap.delete(tileId);
       this.calledBottomExposureTiles.splice(this.calledBottomExposureTiles.indexOf(image), 1);
@@ -3988,6 +4048,8 @@ export class PhaserScene extends Phaser.Scene {
     }
   }
 
+  // OLDCODE
+  /*
   private handleJokerExchange(payload: any): void {
     if (!payload || !this.layout) return;
 
@@ -4120,6 +4182,233 @@ export class PhaserScene extends Phaser.Scene {
                  const jokerImg = opponentImages.find((img: Phaser.GameObjects.Image) => img.getData("joker-tile-id") === joker_tile_id);
                  if (jokerImg && jokerImg.active) jokerImg.setAlpha(1);
              }
+          }
+        }
+      );
+    }, 50);
+  }
+  */
+  // NEWCODE
+  private handleJokerExchange(payload: any): void {
+    if (!payload || !this.layout) return;
+
+    this.soundManager.playJokerExchange();
+
+    const { from_tile_id, joker_tile_id, from_seat, to_seat } = payload;
+
+    let jokerTile = this.tileMap.get(joker_tile_id);
+    let oldJokerPos = { x: this.layout.tableOuter.x, y: this.layout.tableOuter.y, scale: 1 };
+    let jokerKey = "tiles";
+    let jokerFrame = "1-bam";
+
+    if (jokerTile && jokerTile.image && jokerTile.image.active) {
+      oldJokerPos = { x: jokerTile.image.x, y: jokerTile.image.y, scale: jokerTile.image.scaleX };
+      jokerKey = (jokerTile.image.texture as any)?.key || jokerKey;
+      jokerFrame = jokerTile.image.frame?.name || jokerFrame;
+    } else {
+      let found = false;
+      if (to_seat && to_seat !== "bottom") {
+        const opponentImages = this.calledOpponentExposureTiles[to_seat as Exclude<TableSeat, "bottom">];
+        if (opponentImages) {
+          const jokerImg = opponentImages.find((img: Phaser.GameObjects.Image) => img.getData("joker-tile-id") === joker_tile_id);
+          if (jokerImg && jokerImg.active) {
+            oldJokerPos = { x: jokerImg.x, y: jokerImg.y, scale: jokerImg.scaleX };
+            jokerKey = (jokerImg.texture as any)?.key || jokerKey;
+            jokerFrame = jokerImg.frame?.name || jokerFrame;
+            jokerImg.setAlpha(0);
+            found = true;
+          }
+        }
+        if (!found) {
+          const rect = (this.layout as any)[`${to_seat}Exposure`];
+          if (rect) {
+            oldJokerPos = { x: rect.x + rect.width / 2, y: rect.y + rect.height / 2, scale: 0.5 };
+          }
+        }
+      }
+      const fullTile = this.allTiles[joker_tile_id];
+      if (fullTile) {
+        const texture = this.gameService.resolve(fullTile as any, 50);
+        if (texture) { jokerKey = texture.atlasKey; jokerFrame = texture.frameKey; }
+      }
+    }
+
+    let naturalTile = this.tileMap.get(from_tile_id);
+    let oldNaturalPos = { x: this.layout.tableOuter.x, y: this.layout.tableOuter.y, scale: 1 };
+    let naturalKey = "tiles";
+    let naturalFrame = "1-bam";
+
+    if (naturalTile && naturalTile.image && naturalTile.image.active && from_seat === "bottom") {
+      oldNaturalPos = { x: naturalTile.image.x, y: naturalTile.image.y, scale: naturalTile.image.scaleX };
+      naturalKey = (naturalTile.image.texture as any)?.key || naturalKey;
+      naturalFrame = naturalTile.image.frame?.name || naturalFrame;
+    } else {
+      if (from_seat) {
+        const targetPoint = this.pickTargetPointForSeat(from_seat as TableSeat);
+        oldNaturalPos = { x: targetPoint.x, y: targetPoint.y, scale: 0.5 };
+      }
+      const fullTile = this.allTiles[from_tile_id];
+      if (fullTile) {
+        const texture = this.gameService.resolve(fullTile as any, 50);
+        if (texture) { naturalKey = texture.atlasKey; naturalFrame = texture.frameKey; }
+      }
+    }
+
+    // Determine destination position for Joker (entering from_seat)
+    let destJokerPos = { ...oldNaturalPos, scale: 1 };
+    if (from_seat === "bottom") {
+      const rackIndex = this.rackOrder.indexOf(from_tile_id);
+      if (rackIndex !== -1 && this.layout.bottomTileLayout?.slots?.[rackIndex]) {
+        const slot = this.layout.bottomTileLayout.slots[rackIndex];
+        destJokerPos = { x: slot.x, y: slot.y, scale: 1 };
+      } else {
+        destJokerPos = { ...oldNaturalPos, scale: 1 };
+      }
+    } else {
+      const targetPoint = this.pickTargetPointForSeat(from_seat as TableSeat);
+      destJokerPos = { x: targetPoint.x, y: targetPoint.y, scale: 0.5 };
+    }
+
+    // Determine destination position for Natural tile (entering to_seat exposure)
+    let destNaturalPos = { ...oldJokerPos };
+    if (to_seat === "bottom") {
+      destNaturalPos = { ...oldJokerPos, scale: oldJokerPos.scale };
+    } else {
+      const targetPoint = this.pickTargetPointForSeat(to_seat as TableSeat);
+      destNaturalPos = { x: targetPoint.x, y: targetPoint.y, scale: 0.5 };
+    }
+
+    let exposureAsset: string | undefined;
+    let exposureIndex = -1;
+
+    if (to_seat === "bottom" && jokerTile && jokerTile.image) {
+      exposureAsset = jokerTile.image.getData("exposure-asset") as string | undefined;
+      exposureIndex = this.calledBottomExposureTiles.indexOf(jokerTile.image);
+    }
+
+    if (from_seat === "bottom") {
+      // Joker is entering bottom player's rack
+      const rackIndex = this.rackOrder.indexOf(from_tile_id);
+      if (rackIndex !== -1) {
+        this.rackOrder.splice(rackIndex, 1, joker_tile_id);
+      } else if (!this.rackOrder.includes(joker_tile_id)) {
+        this.rackOrder.push(joker_tile_id);
+      }
+      this.removeFromRackOrder(from_tile_id);
+      this.reindexRackRuntimeSlots();
+
+      const tileWidth = Math.round(this.layout.bottomTileLayout.width);
+      const tileHeight = Math.round(this.layout.bottomTileLayout.height);
+
+      if (!jokerTile) {
+        const fullTile = this.allTiles[joker_tile_id];
+        if (fullTile) {
+          const texture = this.gameService.resolve(fullTile as any, tileWidth);
+          const image = this.add.image(destJokerPos.x, destJokerPos.y, texture.atlasKey, texture.frameKey);
+          image.setOrigin(0.5);
+          image.setDisplaySize(tileWidth, tileHeight);
+          jokerTile = {
+            vm: fullTile as any,
+            image,
+            zone: "rack",
+            selected: false,
+            isDragging: false,
+            slotIndex: this.rackOrder.indexOf(joker_tile_id),
+          };
+          this.tileMap.set(joker_tile_id, jokerTile);
+        }
+      }
+
+      if (jokerTile) {
+        jokerTile.zone = "rack";
+        jokerTile.selected = false;
+        jokerTile.isDragging = false;
+        jokerTile.image.clearTint();
+        jokerTile.image.setData("joker-swap-enabled", false);
+        jokerTile.image.setData("exposure-asset", undefined);
+        jokerTile.image.setData("joker-tile-id", undefined);
+        jokerTile.image.setData("joker-seat", undefined);
+        jokerTile.image.off("pointerup");
+        jokerTile.image.setDepth(30);
+        jokerTile.image.setDisplaySize(tileWidth, tileHeight);
+        this.applyTileTextureFilter(jokerTile.image, true);
+        jokerTile.image.removeAllListeners();
+        this.registerTileInput(jokerTile);
+      }
+    }
+
+    if (to_seat === "bottom") {
+      // Natural tile is entering bottom player's exposure
+      if (naturalTile) {
+        naturalTile.zone = "exposure";
+        naturalTile.selected = false;
+        naturalTile.isDragging = false;
+        this.selectedIds.delete(from_tile_id);
+        naturalTile.image.clearTint();
+        this.removeTileTextureFilter(naturalTile.image);
+        naturalTile.image.disableInteractive();
+        naturalTile.image.setDepth(42);
+        if (exposureAsset) {
+          naturalTile.image.setData("exposure-asset", exposureAsset);
+        }
+        const exposureTileSize = this.calledBottomExposureTileSize();
+        naturalTile.image.setDisplaySize(exposureTileSize.width, exposureTileSize.height);
+
+        if (exposureIndex !== -1) {
+          this.calledBottomExposureTiles[exposureIndex] = naturalTile.image;
+        } else {
+          if (jokerTile) {
+            const idx = this.calledBottomExposureTiles.indexOf(jokerTile.image);
+            if (idx !== -1) {
+              this.calledBottomExposureTiles[idx] = naturalTile.image;
+            } else if (!this.calledBottomExposureTiles.includes(naturalTile.image)) {
+              this.calledBottomExposureTiles.push(naturalTile.image);
+            }
+          } else if (!this.calledBottomExposureTiles.includes(naturalTile.image)) {
+            this.calledBottomExposureTiles.push(naturalTile.image);
+          }
+        }
+      }
+    }
+
+    const naturalClone = this.add.image(oldNaturalPos.x, oldNaturalPos.y, naturalKey, naturalFrame)
+      .setScale(oldNaturalPos.scale).setDepth(150);
+    const jokerClone = this.add.image(oldJokerPos.x, oldJokerPos.y, jokerKey, jokerFrame)
+      .setScale(oldJokerPos.scale).setDepth(150);
+
+    if (naturalTile && naturalTile.image && naturalTile.image.active) naturalTile.image.setAlpha(0);
+    if (jokerTile && jokerTile.image && jokerTile.image.active) jokerTile.image.setAlpha(0);
+
+    setTimeout(() => {
+      if (!this.sys || !this.layout) return;
+
+      this.animationManager.animateJokerExchange(
+        jokerClone,
+        naturalClone,
+        destJokerPos,
+        destNaturalPos,
+        260,
+        () => {
+          if (naturalTile && naturalTile.image && naturalTile.image.active) {
+            naturalTile.image.setPosition(destNaturalPos.x, destNaturalPos.y);
+            naturalTile.image.setAlpha(1);
+          }
+          if (jokerTile && jokerTile.image && jokerTile.image.active) {
+            jokerTile.image.setPosition(destJokerPos.x, destJokerPos.y);
+            jokerTile.image.setAlpha(1);
+          }
+          if (to_seat && to_seat !== "bottom") {
+            const opponentImages = this.calledOpponentExposureTiles[to_seat as Exclude<TableSeat, "bottom">];
+            if (opponentImages) {
+              const jokerImg = opponentImages.find((img: Phaser.GameObjects.Image) => img.getData("joker-tile-id") === joker_tile_id);
+              if (jokerImg && jokerImg.active) jokerImg.setAlpha(1);
+            }
+          }
+          if (from_seat === "bottom") {
+            this.layoutRackTiles(true);
+          }
+          if (to_seat === "bottom") {
+            this.layoutCalledBottomExposureTiles();
           }
         }
       );

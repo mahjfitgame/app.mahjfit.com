@@ -375,6 +375,8 @@ export class PhaserAnimation {
     this.previews.length = 0;
   }
 
+  // OLDCODE
+  /*
   animateJokerExchange(
     jokerClone: Phaser.GameObjects.Container | Phaser.GameObjects.Image,
     naturalClone: Phaser.GameObjects.Container | Phaser.GameObjects.Image,
@@ -412,6 +414,50 @@ export class PhaserAnimation {
       y: Math.round(jokerTarget.y),
       scaleX: jokerTarget.scale,
       scaleY: jokerTarget.scale,
+      duration: duration,
+      ease: "Cubic.easeInOut",
+      onComplete: checkDone
+    });
+  }
+  */
+  // NEWCODE
+  animateJokerExchange(
+    jokerClone: Phaser.GameObjects.Container | Phaser.GameObjects.Image,
+    naturalClone: Phaser.GameObjects.Container | Phaser.GameObjects.Image,
+    destJokerPos: { x: number, y: number, scale: number },
+    destNaturalPos: { x: number, y: number, scale: number },
+    duration: number,
+    onFinished: () => void
+  ): void {
+    let completedCount = 0;
+    const checkDone = () => {
+      completedCount++;
+      if (completedCount === 2) {
+        jokerClone.destroy();
+        naturalClone.destroy();
+        onFinished();
+      }
+    };
+
+    // Tween Joker Clone to destJokerPos
+    this.scene.tweens.add({
+      targets: jokerClone,
+      x: Math.round(destJokerPos.x),
+      y: Math.round(destJokerPos.y),
+      scaleX: destJokerPos.scale,
+      scaleY: destJokerPos.scale,
+      duration: duration,
+      ease: "Cubic.easeInOut",
+      onComplete: checkDone
+    });
+
+    // Tween Natural Clone to destNaturalPos
+    this.scene.tweens.add({
+      targets: naturalClone,
+      x: Math.round(destNaturalPos.x),
+      y: Math.round(destNaturalPos.y),
+      scaleX: destNaturalPos.scale,
+      scaleY: destNaturalPos.scale,
       duration: duration,
       ease: "Cubic.easeInOut",
       onComplete: checkDone
