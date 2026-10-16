@@ -861,7 +861,11 @@ export class PhaserScene extends Phaser.Scene {
     for (const seat of ["top", "left", "right"] as const) {
       this.layoutCalledOpponentExposureTiles(seat);
     }
-    this.layoutOpponentDiscardTiles();
+    // OLDCODE
+    // this.layoutOpponentDiscardTiles();
+    // NEWCODE
+    this.discardScrollY = Phaser.Math.Clamp(this.discardScrollY, 0, Math.max(0, this.discardMaxScroll));
+    this.layoutDiscardTiles(false);
     this.renderTileCallWindow();
     // this.renderJokerSwapWindow(); // OLDCODE
     // Keeps the Dead Hand highlights locked to the exposures after a resize.
@@ -1332,13 +1336,24 @@ export class PhaserScene extends Phaser.Scene {
   }
 
   private addDiscardSlot(tileId: number): void {
-    if (!this.discardSlotOrder.includes(tileId)) {
-      this.discardSlotOrder.push(tileId);
+    // OLDCODE
+    // if (!this.discardSlotOrder.includes(tileId)) {
+    //   this.discardSlotOrder.push(tileId);
+    // }
+    // NEWCODE
+    const numId = Number(tileId);
+    if (!this.discardSlotOrder.includes(numId)) {
+      this.discardSlotOrder.push(numId);
     }
   }
 
   private removeDiscardSlot(tileId: number): void {
-    const index = this.discardSlotOrder.indexOf(tileId);
+    // OLDCODE
+    // const index = this.discardSlotOrder.indexOf(tileId);
+    // if (index >= 0) this.discardSlotOrder.splice(index, 1);
+    // NEWCODE
+    const numId = Number(tileId);
+    const index = this.discardSlotOrder.indexOf(numId);
     if (index >= 0) this.discardSlotOrder.splice(index, 1);
   }
 
@@ -1369,7 +1384,11 @@ export class PhaserScene extends Phaser.Scene {
   }
 
   private discardSlotIndex(tileId: number, fallback: number): number {
-    const index = this.discardSlotOrder.indexOf(tileId);
+    // OLDCODE
+    // const index = this.discardSlotOrder.indexOf(tileId);
+    // NEWCODE
+    const numId = Number(tileId);
+    const index = this.discardSlotOrder.indexOf(numId);
     return index >= 0 ? index : fallback;
   }
 
@@ -3290,9 +3309,17 @@ export class PhaserScene extends Phaser.Scene {
     this.opponentDiscardTiles.forEach((image, index) => {
       if (!image.active) return;
 
-      const discardId = image.getData("discard-id") as number;
+      // OLDCODE
+      // const discardId = image.getData("discard-id") as number;
+      // const slot = this.discardSlotFor(
+      //   discardId ? this.discardSlotIndex(discardId, index) : index,
+      //   grid,
+      // );
+      // NEWCODE
+      const rawId = image.getData("discard-id");
+      const numericId = rawId != null ? Number(rawId) : undefined;
       const slot = this.discardSlotFor(
-        discardId ? this.discardSlotIndex(discardId, index) : index,
+        numericId != null ? this.discardSlotIndex(numericId, index) : index,
         grid,
       );
       // NEWCODE
@@ -3303,7 +3330,14 @@ export class PhaserScene extends Phaser.Scene {
       // image.setDepth(this.discardTileDepth());
       image.setDisplaySize(grid.tileWidth, grid.tileHeight).setPosition(slot.x, slot.y);
 
-      image.setVisible(slot.y > this.layout.discardArea.y && slot.y < this.layout.discardArea.y + this.layout.discardArea.height);
+      // OLDCODE
+      // const area = this.layout.discardArea;
+      // image.setVisible(slot.y >= area.y && slot.y <= area.y + area.height);
+      // NEWCODE
+      const area = this.layout.discardArea;
+      const tileTop = slot.y - grid.tileHeight / 2;
+      const tileBottom = slot.y + grid.tileHeight / 2;
+      image.setVisible(tileTop >= area.y && tileBottom <= area.y + area.height);
     });
   }
 
@@ -4640,19 +4674,33 @@ export class PhaserScene extends Phaser.Scene {
     const grid = this.discardGrid();
 
     // Scroll opponent discards
-    for (const image of this.opponentDiscardTiles) {
-      const id = image.getData("discard-id");
-      if (id != null) {
-        const slot = this.discardSlotFor(this.discardSlotIndex(id, this.opponentDiscardTiles.length), grid);
-        image.setPosition(slot.x, slot.y);
-      }
-    }
+    // OLDCODE
+    // for (const image of this.opponentDiscardTiles) {
+    //   const id = image.getData("discard-id");
+    //   if (id != null) {
+    //     const slot = this.discardSlotFor(this.discardSlotIndex(id, this.opponentDiscardTiles.length), grid);
+    //     image.setPosition(slot.x, slot.y);
+    //   }
+    // }
+    // NEWCODE
+    this.opponentDiscardTiles.forEach((image, index) => {
+      if (!image.active) return;
+      const rawId = image.getData("discard-id");
+      const numericId = rawId != null ? Number(rawId) : undefined;
+      const slotIndex = numericId != null ? this.discardSlotIndex(numericId, index) : index;
+      const slot = this.discardSlotFor(slotIndex, grid);
+      image.setPosition(slot.x, slot.y);
+    });
 
     // Scroll personal discards
     this.discardedTileIds.forEach((id, index) => {
       const runtime = this.tileMap.get(id);
       if (!runtime) return;
-      const slot = this.discardSlotFor(this.discardSlotIndex(id, index), grid);
+      // OLDCODE
+      // const slot = this.discardSlotFor(this.discardSlotIndex(id, index), grid);
+      // NEWCODE
+      const numericId = Number(id);
+      const slot = this.discardSlotFor(this.discardSlotIndex(numericId, index), grid);
       this.tweens.killTweensOf(runtime.image);
       runtime.image.setPosition(Math.round(slot.x), Math.round(slot.y));
     });
@@ -4661,6 +4709,33 @@ export class PhaserScene extends Phaser.Scene {
     // Manually toggle visibility for tiles outside the discard area
     const area = this.layout.discardArea;
 
+    // OLDCODE
+    // for (const image of this.opponentDiscardTiles) {
+    //   if (!image.active) continue;
+    //   const tileTop = image.y - grid.tileHeight / 2;
+    //   const tileBottom = image.y + grid.tileHeight / 2;
+    //   image.setVisible(tileTop >= area.y && tileBottom <= area.y + area.height);
+    // }
+    //
+    // this.discardedTileIds.forEach((id) => {
+    //   const runtime = this.tileMap.get(id);
+    //   if (!runtime) return;
+    //   const tileTop = runtime.image.y - grid.tileHeight / 2;
+    //   const tileBottom = runtime.image.y + grid.tileHeight / 2;
+    //   runtime.image.setVisible(tileTop >= area.y && tileBottom <= area.y + area.height);
+    // });
+    // OLDCODE
+    // for (const image of this.opponentDiscardTiles) {
+    //   if (!image.active) continue;
+    //   image.setVisible(image.y >= area.y && image.y <= area.y + area.height);
+    // }
+    //
+    // this.discardedTileIds.forEach((id) => {
+    //   const runtime = this.tileMap.get(id);
+    //   if (!runtime) return;
+    //   runtime.image.setVisible(runtime.image.y >= area.y && runtime.image.y <= area.y + area.height);
+    // });
+    // NEWCODE
     for (const image of this.opponentDiscardTiles) {
       if (!image.active) continue;
       const tileTop = image.y - grid.tileHeight / 2;
@@ -5138,7 +5213,11 @@ export class PhaserScene extends Phaser.Scene {
       const runtime = this.tileMap.get(id);
       if (!runtime) return;
 
-      const slot = this.discardSlotFor(this.discardSlotIndex(id, index), grid);
+      // OLDCODE
+      // const slot = this.discardSlotFor(this.discardSlotIndex(id, index), grid);
+      // NEWCODE
+      const numericId = Number(id);
+      const slot = this.discardSlotFor(this.discardSlotIndex(numericId, index), grid);
 
       // NEWCODE
       if (runtime.image.parentContainer !== this.discardContainer) {
@@ -5170,12 +5249,43 @@ export class PhaserScene extends Phaser.Scene {
     this.scrollToBottomDiscard(animate);
 
     // Apply visibility clipping
+    // OLDCODE
+    // this.discardedTileIds.forEach((id, index) => {
+    //   const runtime = this.tileMap.get(id);
+    //   if (!runtime) return;
+    //   const slot = this.discardSlotFor(this.discardSlotIndex(id, index), grid);
+    //   runtime.image.setVisible(slot.y > this.layout.discardArea.y && slot.y < this.layout.discardArea.y + this.layout.discardArea.height);
+    // });
+    // OLDCODE
+    // const area = this.layout.discardArea;
+    // this.discardedTileIds.forEach((id, index) => {
+    //   const runtime = this.tileMap.get(id);
+    //   if (!runtime) return;
+    //   const numericId = Number(id);
+    //   const slot = this.discardSlotFor(this.discardSlotIndex(numericId, index), grid);
+    //   runtime.image.setVisible(slot.y >= area.y && slot.y <= area.y + area.height);
+    // });
+    // for (const image of this.opponentDiscardTiles) {
+    //   if (!image.active) continue;
+    //   image.setVisible(image.y >= area.y && image.y <= area.y + area.height);
+    // }
+    // NEWCODE
+    const area = this.layout.discardArea;
     this.discardedTileIds.forEach((id, index) => {
       const runtime = this.tileMap.get(id);
       if (!runtime) return;
-      const slot = this.discardSlotFor(this.discardSlotIndex(id, index), grid);
-      runtime.image.setVisible(slot.y > this.layout.discardArea.y && slot.y < this.layout.discardArea.y + this.layout.discardArea.height);
+      const numericId = Number(id);
+      const slot = this.discardSlotFor(this.discardSlotIndex(numericId, index), grid);
+      const tileTop = slot.y - grid.tileHeight / 2;
+      const tileBottom = slot.y + grid.tileHeight / 2;
+      runtime.image.setVisible(tileTop >= area.y && tileBottom <= area.y + area.height);
     });
+    for (const image of this.opponentDiscardTiles) {
+      if (!image.active) continue;
+      const tileTop = image.y - grid.tileHeight / 2;
+      const tileBottom = image.y + grid.tileHeight / 2;
+      image.setVisible(tileTop >= area.y && tileBottom <= area.y + area.height);
+    }
   }
   private discardTileDepth(): number {
     return 35;

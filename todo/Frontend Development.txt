@@ -48,6 +48,104 @@ Analyse the current game play logic and plan further upgradation
 Game Play - Current logic assesmet and plan next upgratation
 
 
+
+
+
+============ Meeting =================
+Progress meeting: 15 OCT 2026 5 PM PDT
+https://meet.google.com/uoj-ecqy-sds
+
+#]
+UPDATED DEMO server URL
+https://mahjfit-com.thatsend.dev/
+Username: test1ak56
+Password: test1@AK56
+
+
+1]
+Improve Bot Decision-Making Logic
+In previous meeting we had issue with exposure, bot was not considering the winning hand. We have improved this part.
+- The core Mahjong game engine and bot turns are modified to follow the official game rules.
+- Tile Tracking: The bot tracks all visible tiles on the table and identifies tiles that are no longer available. This helps the bot avoid selecting tiles that cannot complete a valid hand.
+- Exposure and Meld Recognition: The bot correctly identifies Pungs (three matching tiles) and Kongs (four matching tiles), including the handling of Flowers and Jokers according to the game rules.
+- Concealed Hands: The system correctly identifies which hands can be played openly and which must remain concealed, ensuring that the bot follows the appropriate rules.
+- Current Observation: The bot is not winning games consistently because its current decision-making logic is too strict. Although it follows the rules correctly, it needs to make more effective decisions, evaluate possible winning combinations, and commit more confidently to a potential winning hand.
+- Next Steps: Improve the bot's strategy to help it build stronger hands, make better tile selections, and identify winning opportunities more effectively.
+
+2]
+Bot automated testing
+- Automated Testing: All 18 automated system tests are passing, confirming that the core game logic and existing functionality are working as per current understanding.- Performance Evaluation: Track key metrics, including the win rate, wall-game rate (games ending without a winner), average number of turns required to win, invalid claims, and missed winning opportunities.
+- Testing Strategy: Run the bot through a large number of games to evaluate its performance and identify areas for improvement. The strategy should not be judged based on only one or a few games, as a larger sample is needed to assess its effectiveness reliably.
+- Next Steps: Improve the bot's strategy to help it build stronger hands, make better tile selections, and identify winning opportunities more effectively.
+
+3]
+Tested the Dead Hand Feature and improved with previous meeting suggestion for wrong exposure
+- Modified Dead Hand feature to handle situations where a player makes an invalid exposure or claim, such as an incorrect Pung or Kong.
+- The computer can identify when a real player's action violates the game rules and mark the player's hand as dead.
+- This feature helps enforce the game's rules consistently and prevents players from continuing with an invalid hand.
+- Further testing is required to ensure that Dead Hand conditions are detected correctly and that the appropriate messages and game flow are triggered.
+
+4]
+Worked on Claim and Reverse Claim Functionality, in previous meeting it was discuessed that call tile should be reversible until nothing is exposed
+- Updated the claim functionality to allow a player to reverse or cancel a claim, provided the claimed tile has not yet been exposed.
+- Once a tile is claimed, it should appear in the exposure area rather than remain in the discard area.
+- Improved the claim-handling logic to ensure that tile positions and game states are updated correctly when a claim is made or reversed.
+- Tested the claim and reverse claim features to verify that the tile movements and game state remain consistent throughout the process.
+
+5]
+End the Game When the Human Player Gets a Dead Hand
+- Updated the game logic for the scenario in which one human player is playing against three computer-controlled bots.
+- If the human player receives a Dead Hand, the game should end automatically rather than allow the game to continue.
+- The system should display a clear message explaining why the game has ended, such as "Game ended due to Dead Hand."
+- Verify that the game ends correctly and that the appropriate message is displayed to the player.
+
+6]
+Updated UI Elements and Claim Animations
+- Updated several UI elements to improve the overall user experience and make the game interactions clearer.
+- Tested the tile-claiming and reverse-claim functionality to verify that both actions work as expected.
+- Fixed the animations for claiming and cancelling a claim to ensure that tiles move smoothly between the discard area and the exposure panel.
+- Verified that the visual changes accurately reflect the current game state and that the interface remains consistent during these actions.
+
+7]
+Added Full State Data to the Response and Debug Panel, from now its required to track the small misbehaviour 
+- Added a new key to the response data and debug panel to display the complete game-state information.
+- This data helps developers understand the bot's current state, the tiles available to it, and the information used when making decisions.
+- The additional details make it easier to investigate unexpected bot behavior and identify potential issues in the decision-making process.
+- This enhancement will support further debugging and help improve the bot's strategy based on actual game-state information.
+
+8]
+Added a quick debug sending process via email 
+- Added a Send Debug Email button to the debug panel to simplify the process of reporting issues.
+- When an unexpected behavior occurs, the user can send the relevant response and debug information by email for further investigation.
+- This allows the development team to review the same state data, understand the issue, and identify the root cause more efficiently.
+- The debug panel can be opened by clicking the `</>` icon in the top-right corner of the game interface.
+- Users can review the latest game-state information in the panel before sending the debug details.
+
+9]
+Fixed Tile Movement When a Bot Claims a Tile 
+- Fixed an issue where a tile claimed by a bot moved directly to the exposure panel without first appearing in the discard area.
+- Updated the tile movement flow so that the claimed tile first appears in the discard area and then moves to the claiming player's exposure panel.
+- This ensures that the claim sequence is visually clear and consistent with the expected game behavior.
+- Verified that the tile movement animation correctly represents the claiming process and provides a smoother gameplay experience.
+
+10]
+Added Backend Unit Tests
+- Added backend unit tests to validate the Dead Hand feature and ensure that invalid player actions are handled correctly.
+- Added tests for bot decision-making involving concealed hands to verify that the bot follows the appropriate rules when selecting and playing tiles.
+- Added tests for exposure actions, including Pung and Kong-related scenarios, to ensure that claims and exposed combinations are processed correctly.
+- Added tests for tile discarding and other related game actions to verify that the backend updates the game state correctly.
+- These tests help detect regressions, improve the reliability of the game logic, and ensure that new changes do not break existing functionality.
+
+11]
+During this week we will work on 
+points.txt
+
+
+POINTS]
+- There is a delay before card discard - possible taking longer to process - check it out. In short need to speed up the game.
+- Call and discard is very fast we need to show it clearely - what is happening it just - we need to adjust the speed of game
+- Mahjong button is not working properly - need to check
+ 
 #################################
 # Meeting Minutes – Mahjong Game Development and Improvements
 
