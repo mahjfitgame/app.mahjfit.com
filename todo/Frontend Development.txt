@@ -49,7 +49,231 @@ Game Play - Current logic assesmet and plan next upgratation
 
 
 
+============= REPLY ==============
 
+FOR CLIENT]
+Today, I analysed the backend and frontend code to improve the user experience and fix delays during gameplay when the bot picks, discards, and calls tiles. I am still monitoring these issues.
+
+I also updated the discard area scrolling to prevent it from overlapping the top section. I still need to test it on different devices and in responsive mode. The scrolling also needs some further improvements to make it smoother.
+
+I will keep you posted on the work progress. 
+Thank you!
+
+
+================ PRMP ================
+# Task: Fix Bot Claim Presentation, Tile Animation Continuity, and Deferred Event Queue Processing
+
+## Objective
+
+Fix the frontend Phaser game presentation when a bot claims a discarded tile in the American Mahjong game.
+
+The current implementation introduces an approximately 1.8-second visual stall (1500 ms delay + 300 ms tween), followed by a burst of accumulated visual updates. The claim presentation must be smooth, responsive, sequential, and consistent with the authoritative game state received from the NestJS game server.
+
+**Primary goal:** Implement a production-quality claim animation pipeline that preserves visual continuity without freezing the board or releasing queued animations simultaneously.
+
+## Important Instructions
+
+1. Inspect the existing implementation before making changes.
+2. Implement the fix in the existing architecture rather than creating a parallel animation system.
+3. Keep the changes focused on the frontend claim presentation and event queue.
+4. Do not modify backend game rules, bot decision-making, claim eligibility, scoring, or Mahjong validation.
+5. Do not change WebSocket event contracts unless absolutely necessary and explicitly justified.
+6. Preserve existing player interactions, multiplayer synchronization, and authoritative server state.
+7. Avoid arbitrary delays, duplicate event handling, stale sprites, and race conditions.
+8. Do not remove existing safeguards unless the replacement provides equivalent or stronger protection.
+9. After implementation, run the relevant tests and type checks, and report actual results. Do not claim a test passed unless it was executed.
+
+## Files and Functions to Investigate
+
+Use the existing repository and verify the current code before editing.
+
+- `scene.ts`
+  - `handleResolvedClaimPresentation()`
+  - `flushDeferredClaimVisualUpdates()`
+  - `handleExposuresSet()`
+  - WebSocket event handlers around `exposures:update` and related exposure updates
+  - Discard tile rendering, positioning, removal, and layout functions
+  - `layoutCalledOpponentExposureTiles()`
+- `component.ts`
+  - Relevant tile sprite creation, movement, and exposure rendering around the previously inspected lines 590–650
+- Any existing queue, animation completion, discard history, and claim resolution utilities used by these functions.
+
+Line numbers from previous investigations are only references. Locate the current implementations before making changes.
+
+## 1. Fix the Claim Presentation Timeline
+
+Replace the current 1500 ms recognition delay with a configurable short recognition interval of approximately 350–400 ms.
+
+Target sequence:
+
+1. The discarding bot's tile completes its discard animation and reaches its correct discard slot.
+2. The discarded tile receives a brief visual recognition cue, such as a pulse, highlight, or existing call sound/badge.
+3. The claiming bot's tile moves from the discard area to its destination in the exposure rack.
+4. The exposure settles into its final layout.
+5. Deferred visual actions resume in their correct order.
+
+Target animation timings:
+
+- Discard flight: approximately 200–250 ms, where applicable.
+- Recognition beat: approximately 350–400 ms.
+- Claim tile flight: approximately 200–250 ms.
+- Exposure layout settling: use existing layout behavior or a short transition if required.
+
+These are initial UX targets, not permission to add redundant waits. Avoid summing unnecessary delays when the existing discard animation or server event timing already provides the required recognition interval.
+
+The total target is approximately 700–800 ms for the complete presentation when the existing event sequence permits it.
+
+Do not block unrelated UI interaction or the Phaser render loop while waiting. Use Phaser timers/tweens or the project's existing animation utilities.
+
+## 2. Preserve Spatial Continuity of the Claimed Tile
+
+When a bot claims a discarded tile, prefer animating the existing discard sprite directly into the claiming bot's exposure rack.
+
+Required behavior:
+
+1. Identify the exact discard entry associated with the claim using stable tile/discard identity and the existing game-state information.
+2. Find the corresponding rendered discard sprite.
+3. Capture its current world position.
+4. Calculate the destination using the existing exposure layout system.
+5. Animate that sprite to the correct destination.
+6. Integrate the sprite into the exposure representation and update the remaining discard layout.
+7. Complete the exposure layout without duplicating the claimed tile or leaving an orphaned discard sprite.
+
+The implementation must account for Phaser containers, coordinate transforms, tile rotation, scaling, depth, and any existing parent-container behavior.
+
+**Critical fallback:** If the exact discard sprite cannot be identified, do not animate an arbitrary tile. Use the existing safe rendering path to complete the exposure correctly.
+
+If the existing component architecture makes direct sprite reuse unsafe, implement an equivalent visual handoff that preserves the appearance of continuous movement without corrupting sprite ownership or lifecycle management.
+
+Do not create a second authoritative tile instance merely to perform the animation.
+
+## 3. Correct Deferred Visual Update Queue Processing
+
+Investigate why `flushDeferredClaimVisualUpdates()` currently processes multiple queued updates synchronously in a `while` loop after the claim presentation finishes.
+
+Replace the burst-style processing with a paced, sequential pipeline.
+
+Required behavior:
+
+- Preserve the existing event order.
+- Process only the next eligible visual action when the current action or animation reaches its completion point.
+- Start the next action through the existing Phaser animation lifecycle or queue mechanism.
+- Continue processing until the queue is empty.
+- Ensure the queue resumes even if an animation is cancelled, a sprite is destroyed, or a handler encounters an error.
+- Prevent duplicate scheduling and multiple concurrent queue processors.
+- Preserve claim presentation priority where required by the existing game rules and event ordering.
+
+Do not assume every WebSocket event requires a visible animation. Preserve the existing distinction between state synchronization events, presentation events, and events that can safely be coalesced.
+
+Do not blindly serialize every incoming event if doing so would delay authoritative state reconciliation or prevent the board from reflecting the latest server state.
+
+The authoritative game state must continue to update independently of presentation delays. The visual queue must never become a second source of truth.
+
+### Queue processing requirements
+
+1. Maintain a single active queue processor.
+2. Ensure each queued visual action has a clear completion or failure path.
+3. Do not remove an event from the queue in a way that permanently loses it if processing fails.
+4. Prevent stale queued actions from replaying after a game reset, scene shutdown, game switch, or newer state reconciliation.
+5. Preserve any existing event identifiers, ordering metadata, or deduplication logic.
+6. Avoid unbounded queue growth during network lag.
+
+If a queue backlog develops, use a safe recovery strategy based on event semantics. Speed up nonessential animations only if this can be done without breaking spatial continuity, overlapping dependent actions, or making gameplay confusing. Never skip required state updates just to clear the queue.
+
+## 4. Handle Exposure Updates and Claim Resolution Safely
+
+Trace the complete sequence from the original discard event through claim resolution and the corresponding exposure update.
+
+Verify whether `handleResolvedClaimPresentation()` and `handleExposuresSet()` can both create, move, remove, or relayout the same tile.
+
+Prevent the following:
+
+- The claimed discard disappearing before its flight animation begins.
+- A second exposure sprite appearing while the original tile is moving.
+- The same exposure being processed twice.
+- The exposure layout snapping back to an older position.
+- A later event overwriting the animation's intended final state.
+- A claim animation remaining active indefinitely.
+- A claim for one discard accidentally matching another visually identical tile.
+- A late event from a previous game affecting the current board.
+
+Use the existing game state and stable identifiers to correlate events. Tile face/value alone is not sufficient to uniquely identify a discard when multiple identical tiles are visible.
+
+The final rendered board must always converge to the latest authoritative server state.
+
+## 5. Lifecycle, Cancellation, and Recovery
+
+Audit the claim animation lifecycle.
+
+Ensure that:
+
+- Only one claim presentation owns the relevant tile at a time.
+- Claim completion releases the active claim state and resumes queue processing.
+- Scene shutdown and game reset cancel pending timers/tweens and clear stale work safely.
+- Destroyed sprites are never reused.
+- Failed or cancelled animations trigger a safe final-layout reconciliation.
+- A failed visual animation cannot permanently freeze the queue.
+- Cleanup does not delete sprites that have already been adopted by the exposure rack.
+- No duplicate timers or repeated completion callbacks are registered.
+
+Use existing scene lifecycle hooks and project conventions. Do not introduce unnecessary global state.
+
+## 6. Audio and Visual Feedback
+
+Reuse the existing call sound and call badge/presentation if available.
+
+- Trigger the call cue at a visually appropriate point in the claim sequence.
+- Avoid replaying the cue when the same claim event is processed more than once.
+- Keep feedback brief and consistent with existing game presentation.
+- Do not add new audio assets or unrelated UI redesigns.
+
+## 7. Testing Requirements
+
+Add or update focused tests wherever the current test architecture supports them.
+
+Cover at least these cases:
+
+1. A bot claims a recently discarded tile, and the correct discard sprite is used.
+2. The claimed tile transitions into the correct exposure without duplication.
+3. Multiple deferred actions are processed sequentially rather than in one synchronous burst.
+4. The next queued action begins after the preceding action completes.
+5. Duplicate claim or exposure events do not replay the animation or duplicate tiles.
+6. A missing discard sprite follows the safe fallback path.
+7. An interrupted or cancelled tween does not permanently block the queue.
+8. A scene reset or game switch prevents stale actions from executing.
+9. A long queue does not cause unbounded animation overlap or lose required state updates.
+10. Exposure updates and claim resolution leave the board consistent with authoritative state.
+
+If Phaser rendering cannot be reliably unit-tested, add focused tests for the queue orchestration and state transitions, then perform a manual or browser-based verification of the actual animation.
+
+## 8. Verification
+
+Run the relevant commands based on the repository's actual package scripts and test configuration:
+
+- TypeScript type checking.
+- Linting for modified files, if configured.
+- Relevant frontend unit tests.
+- Any existing game-scene or animation tests.
+- A browser/manual scenario that exercises a bot discard followed by another bot claiming that tile, if the environment permits.
+
+Check for regressions in ordinary discards, exposure updates, turn transitions, and subsequent game actions.
+
+Report actual timing measurements if available. Do not infer measured performance from configured tween durations alone.
+
+## 9. Final Report
+
+After implementation, provide:
+
+1. Root cause confirmed by code inspection.
+2. Files and functions modified.
+3. The revised claim presentation sequence and timings.
+4. How tile identity and sprite ownership are preserved.
+5. How the queue is serialized, resumed, cancelled, and recovered.
+6. How duplicate or stale events are handled.
+7. Tests and commands executed, with actual pass/fail results.
+8. Any remaining limitations or scenarios requiring manual verification.
+
+**Important:** Implement the fix, not just a proposal. Do not stop after inspecting the code or writing a plan. If a requirement cannot be implemented safely, explain the specific technical blocker and complete the remaining safe work without expanding the scope.
 
 ============ Meeting =================
 Progress meeting: 15 OCT 2026 5 PM PDT
