@@ -31,7 +31,7 @@ export class DashboardRoute extends FoundationModuleRoute {
             canDeactivate: [],
             resolve: this.resolve(),
             breadcrumbAlias: 'dashboard',
-            actions: [],
+            actions: this.actionPrivilege(),
         };
     }
 
@@ -50,7 +50,7 @@ export class DashboardRoute extends FoundationModuleRoute {
             label: 'GL.MODULE.DASHBOARD',
             icon: 'list',
             sort_order: 10,
-            actions: [],
+            actions: this.actionPrivilege(),
             nav_position: [FoundationNavPositionEnum.START],
         };
     }

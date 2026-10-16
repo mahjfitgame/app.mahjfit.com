@@ -83,7 +83,26 @@ export const FOUNDATION_ACTION_ROUTE_CONFIG: Partial<Record<FoundationActionEnum
     [FoundationActionEnum.UPDATE]:          { slug: `${FoundationActionEnum.UPDATE}/:${FoundationRouteDefaultParamEnum.INDEX}`,             labelKey: 'GL.ACTION.UPDATE',          aliasSuffix: 'Update' },
     [FoundationActionEnum.VIEW]:            { slug: `${FoundationActionEnum.VIEW}/:${FoundationRouteDefaultParamEnum.INDEX}`,               labelKey: 'GL.ACTION.VIEW',            aliasSuffix: 'View' },
     [FoundationActionEnum.UPLOAD]:          { slug: `${FoundationActionEnum.UPLOAD}/:${FoundationRouteDefaultParamEnum.INDEX}`,             labelKey: 'GL.ACTION.UPLOAD',          aliasSuffix: 'Upload' },
-    [FoundationActionEnum.UPLOAD_DELETE]:   { slug: `${FoundationActionEnum.UPLOAD_DELETE}/:${FoundationRouteDefaultParamEnum.INDEX}`,      labelKey: 'GL.ACTION.UPLOAD_DELETE',   aliasSuffix: 'UploadDelete' },
+    /**
+     * ⚠ UPLOAD_DELETE IS DELIBERATELY ABSENT, which is exactly what this
+     * record's own header means by "absent = not routable = a record mutation
+     * with no url surface of its own". It is driven by a button inside the open
+     * upload dialog, never by a url, so a slug here only generated a route that
+     * matched, set crudAction(), opened nothing, and froze the listing
+     * (shouldSkipListingLoadForActiveCrudAction() answers true for ANY non-null
+     * action). Every module's actionPrivilege() already said so in a comment -
+     * `// record mutation, no route` - and this record was the half that
+     * disagreed.
+     *
+     * ⚠ It STAYS in actionPrivilege(), because that is the PERMISSION, not the
+     * route: hasUploadDelete() gates the dialog's delete button
+     * ([canDeleteExisting]), CrudUploadService.uploadDelete()'s own check, AND
+     * the hard-delete file cascade in CrudActionService.deleteRecordUploads(),
+     * which answers "nothing to clear" when it is false. Removing it there
+     * would silently strand every file blob and thumb on disk - and the api
+     * throws on an upload-delete once the row is gone, so that is not
+     * recoverable through the app.
+     */
     [FoundationActionEnum.FILE_RELOCATION]: { slug: `${FoundationActionEnum.FILE_RELOCATION}/:${FoundationRouteDefaultParamEnum.INDEX}`,    labelKey: 'GL.ACTION.FILE_RELOCATION', aliasSuffix: 'FileRelocation' },
     [FoundationActionEnum.IMPORT]:          { slug: FoundationActionEnum.IMPORT,                                                          labelKey: 'GL.ACTION.IMPORT',          aliasSuffix: 'Import' },
     [FoundationActionEnum.EXPORT]:          { slug: FoundationActionEnum.EXPORT,                                                          labelKey: 'GL.ACTION.EXPORT',          aliasSuffix: 'Export' },

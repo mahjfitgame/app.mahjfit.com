@@ -6,7 +6,8 @@ import { ProgressBarService } from '@base/progress-bar/service';
 
 @Service()
 export class SplashScreenService {
-    public readonly splashBrandLogo = '/assets/majhfit-logo-blue@1x.png';
+    public readonly brandLogoSrc = 'open/assets/brand/icons/icon-96x96.png';
+    //public readonly brandLogoSrc = 'private/assets/brand/logo/logo.png';
 
     private readonly log = inject(LogService);
     private readonly aps = inject(PlatformService);
@@ -39,26 +40,26 @@ export class SplashScreenService {
             this.progressBarService.set(null);
         }
     }
-
+    
     /**
      * Show capacitor splash screen programmatically.
      * Useful for native-only flows like reloading auth/bootstrap state.
      */
     public async capacitorSplashScreenShow(duration = 2000): Promise<void> {
         try {
-            await SplashScreen.show({
-                autoHide: true,
-                showDuration: duration,
-                fadeInDuration: 150,
-                fadeOutDuration: 150,
-            });
-
+        await SplashScreen.show({
+            autoHide: true,
+            showDuration: duration,
+            fadeInDuration: 150,
+            fadeOutDuration: 150,
+        });
+        
         } catch (error) {
-            if (!this.aps.isNative) {
-                return;
-            }
+        if (!this.aps.isNative) {
+            return;
+        }
 
-            this.log.error('[SplashService] show failed', error);
+        this.log.error('[SplashService] show failed', error);
         }
     }
 
@@ -68,16 +69,16 @@ export class SplashScreenService {
      */
     public async capacitorSplashScreenHide(): Promise<void> {
         try {
-            await SplashScreen.hide({
-                fadeOutDuration: 300,
-            });
+        await SplashScreen.hide({
+            fadeOutDuration: 300,
+        });
 
         } catch (error) {
-            if (!this.aps.isNative) {
-                return;
-            }
+        if (!this.aps.isNative) {
+            return;
+        }
 
-            this.log.error('[SplashService] hide failed', error);
+        this.log.error('[SplashService] hide failed', error);
         }
     }
 
@@ -121,7 +122,7 @@ export class SplashScreenService {
 
     public set stream(progress: number) {
         const pb = this.progressBarService();
-        if (pb) {
+        if(pb){
             pb.stream = progress;
         }
     }

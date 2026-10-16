@@ -40,7 +40,7 @@ export class RecoverPasswordRoute extends FoundationModuleRoute {
             canDeactivate: [],
             resolve: this.resolve(),
             breadcrumbAlias: 'recoverPassword',
-            actions: [],
+            actions: this.actionPrivilege(),
         };
     }
 
@@ -62,7 +62,7 @@ export class RecoverPasswordRoute extends FoundationModuleRoute {
             label: 'GL.MODULE.PREBOARDING.RECOVER_PASSWORD',
             icon: 'key',
             sort_order: 40,
-            actions: [],
+            actions: this.actionPrivilege(),
             hidden: true,
             nav_position: [FoundationNavPositionEnum.START],
         };

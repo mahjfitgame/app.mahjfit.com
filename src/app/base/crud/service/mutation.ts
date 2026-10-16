@@ -33,6 +33,8 @@ export class CrudMutationService {
 
     private activeMutationDialogRef: MatDialogRef<CrudMutationDialogComponent> | null = null;
     private activeMutationBottomSheetRef: MatBottomSheetRef<CrudMutationBottomSheetComponent> | null = null;
+    /** what openMutationOverlay() actually opened — NOT what the layout signal says now */
+    private openedMutationLayout: CrudActionUiLayoutEnum | null = null;
 
     constructor(
         private readonly root: CrudRootService,
@@ -58,6 +60,11 @@ export class CrudMutationService {
             || (this.isMutationUpdate() && !this.action.ensureActionPermitted(this.root.state.action.hasUpdate()))
             || (this.isMutationDuplicate() && !this.action.ensureActionPermitted(this.root.state.action.hasDuplicate()))
         ) {
+            // the url named an action this user may not run - notifying alone
+            // would leave the browser on it with no form AND crudAction() set,
+            // which freezes the listing via
+            // shouldSkipListingLoadForActiveCrudAction()
+            await this.closeMutationAction();
             return;
         }
 
@@ -141,7 +148,26 @@ export class CrudMutationService {
         }
     }
     public openMutationOverlay(): void {
+        /**
+         * ⚠ ALL FIVE LAYOUTS, which is why the guard sits here and not inside
+         * the DIALOG branch: this runs from a setTimeout and does not merely
+         * open a dialog - it also flips the END_DRAWER and END_SIDE_BAR flags,
+         * so a late timer could open any of four layouts for an action the
+         * route has already left. openViewOverlay() already does this.
+         */
+        if (!this.isMutationActionActive()) {
+            return;
+        }
+
         const layout = this.root.state.mutation.mutationActionUiLayout();
+
+        /**
+         * Remembered so closeMutationOverlay() can dismiss WHAT WAS OPENED
+         * rather than infer it from mutationActionUiLayout(), which a module
+         * may re-set and resolveMutationActionUiLayout() derives from
+         * breakpoints - see the note there.
+         */
+        this.openedMutationLayout = layout;
 
         if (layout === CrudActionUiLayoutEnum.DIALOG) {
             if (this.activeMutationDialogRef) {
@@ -218,27 +244,58 @@ export class CrudMutationService {
         }
     }
     public closeMutationOverlay(): void {
+        const opened = this.openedMutationLayout;
+        this.openedMutationLayout = null;
+
         if (this.activeMutationDialogRef) {
             this.activeMutationDialogRef.close();
             this.activeMutationDialogRef = null;
         }
-        else if (this.activeMutationBottomSheetRef) {
+
+        if (this.activeMutationBottomSheetRef) {
             this.activeMutationBottomSheetRef.dismiss();
             this.activeMutationBottomSheetRef = null;
         }
-        else if (this.root.state.mutation.mutationActionUiLayout() === CrudActionUiLayoutEnum.END_DRAWER) {
+
+        /**
+         * ⚠ KEYED ON WHAT WAS OPENED, and no longer an `else if` chain. The two
+         * refs above are facts; these two flags used to be inferred from
+         * mutationActionUiLayout(), which a module may re-set and
+         * resolveMutationActionUiLayout() derives from breakpoints - so a
+         * layout change between open and close left the drawer or the side bar
+         * open with no action behind it. closeViewOverlay() already avoids this
+         * for its own drawer flag.
+         *
+         * ⚠ END_SIDE_BAR stays conditional rather than being cleared outright:
+         * that panel is SHARED (paLayout, tabbed), so closing it unasked would
+         * tear down a panel this action never opened.
+         */
+        if (opened === CrudActionUiLayoutEnum.END_DRAWER) {
             this.root.state.mutation.setMutationEndDrawerIsOpen(false);
         }
-        else if (this.root.state.mutation.mutationActionUiLayout() === CrudActionUiLayoutEnum.END_SIDE_BAR) {
-            if (this.root.paLayout) {
-                this.root.paLayout.state.setEndSideBarIsOpen(false);
-            }
+
+        if (opened === CrudActionUiLayoutEnum.END_SIDE_BAR && this.root.paLayout) {
+            this.root.paLayout.state.setEndSideBarIsOpen(false);
         }
     }
     public async closeMutationAction(): Promise<void> {
         const action = this.root.state.crudAction();
+        /**
+         * ⚠ PAGE-layout mutation tears the listing down while active (unlike
+         * the four overlay layouts, which keep it mounted underneath) and
+         * shouldLoadListingOnRouteEnter() answered false on the way in, so
+         * closing one needs a real reload or it renders EMPTY - regardless of
+         * setReloadListingAfterAction(), which answers a different question
+         * ("after this action succeeds, is the local patch enough?") and so
+         * says nothing about a listing that was never loaded. Same term
+         * closeViewAction() uses for PAGE View and Print.
+         */
+        const listingWasHidden = this.root.state.mutation.mutationActionUiLayout()
+            === CrudActionUiLayoutEnum.PAGE;
+
         await this.action.closeCrudAction(
-            action !== null && this.root.state.listing.shouldReloadListingAfterAction(action),
+            listingWasHidden
+            || (action !== null && this.root.state.listing.shouldReloadListingAfterAction(action)),
         );
     }
     public addEndDrawerOnCloseCallBack(): void {
@@ -268,6 +325,7 @@ export class CrudMutationService {
 
         if (value === null) {
             this.root.notify.error(this.action.getMutationFormMessage('key_missing'));
+            await this.closeMutationAction();
             return false;
         }
 
@@ -275,36 +333,31 @@ export class CrudMutationService {
 
         try {
             /**
+             * ⚠ ONE call where this used to be four steps - labelField
+             * force-add, fetch, not-found, stale-route.
+             * CrudActionService.loadRecordForUrlAction() owns all of them now;
+             * see the long note there for why the rule could not stay
+             * per-action.
+             *
              * PAGE layout never loads the listing (shouldLoadListingOnRouteEnter()),
              * so listingDataSource() stays empty on a direct url load and
-             * actionListingRecord() has nothing to resolve from - this fetch is the
-             * only record PAGE mode ever gets. Force labelField() into its
-             * selection (same force-include reasoning as isMainField/monogram_field
-             * in CrudListingState.getListingSearchFormViewOption()) so the title
-             * can read it below even when the module's own mutation schema has no
-             * reason to select it.
+             * actionListingRecord() has nothing to resolve from - the fetch
+             * inside the guard is the only record PAGE mode ever gets. NO
+             * fastPathRecord is passed for exactly that reason, and because a
+             * listing row only carries the columns Display Fields ticked while
+             * this form needs its own full selection.
+             *
+             * A null answer means the guard already notified and closed, or
+             * the route moved on - which is not ours to report.
              */
-            const labelField = this.root.state.labelField();
-            const baseMutationFieldObj = this.root.state.mutation.mutationFieldObj();
-            const recordFieldObj = labelField && !(labelField in baseMutationFieldObj)
-                ? { ...baseMutationFieldObj, [labelField]: { label: '', type: CrudFieldUiTypeEnum.TEXT } }
-                : baseMutationFieldObj;
-
-            const record = await this.action.findOneByActionRecordIndexColumn(recordFieldObj);
+            const record = await this.action.loadRecordForUrlAction(
+                value,
+                this.root.state.mutation.mutationFieldObj(),
+                () => this.isMutationUpdate() || this.isMutationDuplicate(),
+                () => this.closeMutationAction(),
+            );
 
             if (!record) {
-                this.root.notify.error(this.action.getMutationFormMessage('failed'));
-                return false;
-            }
-
-            // Ignore a response for a record that is no longer the active route.
-            if (
-                (
-                    !this.isMutationUpdate()
-                    && !this.isMutationDuplicate()
-                )
-                || this.action.getCrudActionRecordIndex() !== value
-            ) {
                 return false;
             }
 
@@ -363,6 +416,14 @@ export class CrudMutationService {
             this.root.state.mutation.setMutationFormValues(mutationValues);
             return true;
         } catch (error: unknown) {
+            /**
+             * ⚠ POST-LOAD ONLY now - loadRecordForUrlAction() owns every error
+             * the fetch itself can raise. What is left is the normalise /
+             * duplicate-blank work above, so an exception here really is a
+             * bug, and getMutationFormMessage('failed') is the honest message
+             * for it: by this point the record WAS found and the form
+             * genuinely failed to build.
+             */
             this.root.log.error('[UPDATE MUTATION FORM LOAD FAILED]', error);
 
             const fallbackMessage = this.action.getMutationFormMessage('failed');
@@ -373,6 +434,7 @@ export class CrudMutationService {
                     : fallbackMessage;
 
             this.root.notify.error(message);
+            await this.closeMutationAction();
             return false;
         } finally {
             this.root.state.mutation.setMutationFormProcessing(false);

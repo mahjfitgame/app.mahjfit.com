@@ -27,6 +27,11 @@ export interface FileAccessUrlType {
  * a further option (loop, autoplay, …) is a plain member rather than another
  * `slideshow_*` key flattened onto a neighbour.
  *
+ * ⚠ note the asymmetry that follows from that: the object's presence turns the
+ * VIEWER on, while each capability INSIDE it is its own member and defaults
+ * OFF - see [print] below. "Is there a lightbox" and "may it reach a printer"
+ * are not one question.
+ *
  * The canonical declaration, same stance as FileAccessUrlType above:
  * @base/crud/type's CrudFieldSlideshowType aliases THIS instead of carrying a
  * second structurally-identical copy, and declaring it here creates no
@@ -42,6 +47,28 @@ export interface FileSlideshowType {
      * open at MD instead of taking over the screen.
      */
     size?: BreakpointSizeEnum;
+
+    /**
+     * print: boolean
+     * Draw the viewer's PRINT button, which prints the ACTIVE slide only, one
+     * image to a page. Unset = off, the same stance as the viewer's own
+     * showDownload: handing the original picture to a printer is opted INTO.
+     *
+     * ⚠ NOT a literal `true` in a module - it carries whether that module was
+     * assigned the PRINT action:
+     *
+     *     print: XRoute.hasPermittedAction(FoundationActionEnum.PRINT)
+     *
+     * ⚠ and the gate has to live HERE rather than in the openers, because
+     * FormFieldFileRegularService is one of the three readers and
+     * @base/form-fields may never import crud - so it can never reach
+     * CrudActionState.hasPrint(). Putting the answer in this object is what
+     * keeps all three readers honouring one declaration.
+     *
+     * ⚠ therefore a SNAPSHOT of that intersection, taken when the module's
+     * state is constructed. @see FoundationModuleRoute.permittedActions().
+     */
+    print?: boolean;
 }
 
 export interface FileMediaDimensionType {

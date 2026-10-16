@@ -497,6 +497,14 @@ export class CrudListingState implements CrudListingStateType {
     private readonly _listingDataSource = signal<MatTableDataSource<any>>(new MatTableDataSource<any>([]));
     public readonly listingDataSource = this._listingDataSource.asReadonly();
 
+    /**
+     * Moves on whenever the rows change. HOLDS NO ROWS - assigning
+     * _listingDataSource().data changes no reference, so a computed reading it
+     * never recomputes. A counter, not a 2nd copy, so nothing can drift.
+     */
+    private readonly _listingVersion = signal<number>(0);
+    public readonly listingVersion = this._listingVersion.asReadonly();
+
     private readonly _totalRecords = signal<number>(0);
     public readonly totalRecords = this._totalRecords.asReadonly();
 
@@ -539,11 +547,14 @@ export class CrudListingState implements CrudListingStateType {
      * A computed, so the filter runs once per data change rather than on every
      * read — cheaper than the per-call filter rowSelectionSummary used to do.
      */
-    public readonly indexedListingRows = computed(
-        () => this.listingDataSource().data.filter(
+    public readonly indexedListingRows = computed(() => {
+        // tracked on purpose: a local patch notifies through here
+        this.listingVersion();
+
+        return this.listingDataSource().data.filter(
             (row) => this.root.hasRecordIndex(row),
-        ),
-    );
+        );
+    });
     /**
      * Counted over the ADDRESSABLE rows, so isAllRowsSelected() and
      * isPartiallyRowsSelected() stay correct with no change of their own —
@@ -566,6 +577,10 @@ export class CrudListingState implements CrudListingStateType {
     }
     public setListingDataSource<T>(rows?: T[]): void {
         this._listingDataSource.set(new MatTableDataSource<T>(rows ?? []));
+    }
+    /** ⚠ NOT a setter: the value means nothing, only the change does. */
+    public nextListingVersion(): void {
+        this._listingVersion.update((version) => version + 1);
     }
     public setTotalRecords(total: number): void {
         this._totalRecords.set(total);
@@ -739,6 +754,19 @@ export class CrudListingState implements CrudListingStateType {
 
     /** Inserts a newly created row at the front, for CREATE/DUPLICATE's local patch. */
     public prependListingData(row: Record<string, unknown>): void {
+        // only the child's create selection can fix this, but it must not be
+        // silent: no pk renders fine and then fails at upload + delete cascade
+        if (
+            !this.root.hasRecordIndex(row)
+            || this.root.getRecordPrimaryKeyValue(row) === null
+        ) {
+            this.root.log.error(
+                '[CRUD PREPEND PARTIAL ROW] no index column or primary key - record '
+                + 'actions will fail. Add both to the create handler selection.',
+                row,
+            );
+        }
+
         this.updateListingData(
             [row, ...this._listingDataSource().data],
             this._totalRecords() + 1,
@@ -770,21 +798,25 @@ export class CrudListingState implements CrudListingStateType {
     }
     private updateListingData(
         rows: any[],
-        total: number = this._totalRecords(),
+        total: number = this.totalRecords(),
     ): void {
-        const listingData = this._listingData();
+        const listingData = this.listingData();
 
         if (listingData) {
-            this._listingData.set({
+            this.setListingData({
                 ...listingData,
                 rows,
                 total,
             });
         }
 
-        // Retain the table source instance, its filter predicate, and subscriptions.
+        // ⚠ direct on purpose: setListingDataSource() builds a NEW source and
+        // would drop the filter predicate + subscriptions this must keep
         this._listingDataSource().data = rows;
-        this._totalRecords.set(total);
+        // ...and that assignment changes no reference, so notify by hand or
+        // indexedListingRows() keeps answering with the pre-patch rows
+        this.nextListingVersion();
+        this.setTotalRecords(total);
     }
     private formatListingFieldObj(finfo: CrudStateListingFieldObjType): CrudListingFormattedFieldObjType {
         const result: CrudListingFormattedFieldObjType = {
@@ -1540,18 +1572,6 @@ export class CrudListingState implements CrudListingStateType {
         }
 
         /**
-         * Same reason as isMainField above: labelField() names the record for
-         * a dialog title (upload/mutation), read off whatever row is already
-         * in listingDataSource - not worth a dedicated api call. Force-added
-         * so unticking it in Display Fields does not blank that title.
-         */
-        const labelField = this.root.labelField();
-
-        if (labelField) {
-            selectedColumns.add(labelField);
-        }
-
-        /**
          * Same reason again, one field type further: a FILE cell falls back to
          * initials taken from another column (`file.monogram_field`), and that
          * column is a user choice in Display Fields. Unticking it would leave
@@ -1592,6 +1612,27 @@ export class CrudListingState implements CrudListingStateType {
                     [relationField]: true,
                 };
             }
+        }
+
+        /**
+         * Same reason as isMainField above: labelField() names the record for
+         * an action heading, read off whatever row is already in
+         * listingDataSource - not worth a dedicated api call. So it is
+         * selected regardless of what Display Fields has ticked.
+         *
+         * ⚠ EMITTED HERE rather than added to selectedColumns above, because a
+         * label field may be a RELATION PATH (`fr_api_auth.username`) and that
+         * set can only ever match a COLUMN key - which is why force-adding it
+         * there was inert, and unticking the column DID blank the title.
+         * getLabelFieldSelection() answers either shape, so both are covered.
+         */
+        for (const [fkey, fvalue] of Object.entries(this.root.getLabelFieldSelection())) {
+            const current = dynamicColumns[fkey];
+
+            // a relation the loop above already selected keeps its own fields
+            dynamicColumns[fkey] = typeof current === 'object' && typeof fvalue === 'object'
+                ? { ...current, ...fvalue }
+                : fvalue;
         }
 
         const direction = voIn.sort_direction === RecordSortDirectionEnum.ASC

@@ -82,7 +82,114 @@
                         </h4>
                         }
                         <div class="tw:mt-1 tw:wrap-break-word tw:whitespace-pre-wrap tw:text-sm">
-                            {{ service.view.formatViewFieldValue(key, field, record) }}
+                            @if (field.type === service.CrudFieldUiTypeEnum.FILE) {
+                                <!--
+                                FILE draws no text, so it never reaches
+                                formatViewFieldValue(). [file.is_image] picks the
+                                half - a picture, or a link to the file itself -
+                                the same two halves as the listing cell
+                                (component/listing/template.html), sized for a
+                                record panel.
+
+                                BOTH halves read the DIRECT variant, so the url
+                                resolves ONCE here: this panel has room for the
+                                real picture, unlike the listing's 40px avatar
+                                which takes the thumb. No thumb fallback either -
+                                the monogram below is this half's fallback, and
+                                getForeignRelationSelection() selects all three
+                                variants anyway, so `direct` is present whenever
+                                `thumb` is.
+                                -->
+                                @let fileUrl = service.utility.getFileFieldUrl(record, field, 'direct');
+                                @let empty = field.default ?? '—';
+
+                                @if (field.file?.is_image) {
+                                    @let monogram = service.utility.getFileFieldMonogram(record, field);
+                                    @let imgClass = 'tw:size-32 tw:rounded-xl tw:border tw:border-outline/20 tw:object-cover tw:shadow-md';
+                                    @if (fileUrl) {
+                                        <!--
+                                        ⚠ no loading="lazy" here, unlike the
+                                        listing cell. This is the only <img>
+                                        inside a #printArea, and lazy would be
+                                        one more reason for it to be undecoded
+                                        when /print/:index fires printRecord()
+                                        from afterNextRender(). A single-record
+                                        panel gains nothing from lazy anyway.
+
+                                        ⚠ this REDUCES that risk, it does not
+                                        remove it: PrintService.whenReadyToPrint()
+                                        waits for stylesheets only, never images,
+                                        so a cold cache can still print a blank
+                                        box. The real fix is an image wait there,
+                                        or a `delay` from printRecord().
+                                        -->
+                                        @if (field.slideshow) {
+                                            <!--
+                                            [slideshow] opt-in by PRESENCE: a
+                                            real <button>, so Enter/Space and the
+                                            focus ring come for free - an
+                                            <img tabindex> would give neither.
+                                            tw:block because an inline button
+                                            adds a baseline gap under the preview
+                                            that the bare <img> never had.
+                                            -->
+                                            <button
+                                                type="button"
+                                                class="tw:block tw:cursor-zoom-in tw:rounded-xl tw:border-0 tw:bg-transparent tw:p-0 tw:focus-visible:outline-2 tw:focus-visible:outline-primary"
+                                                [attr.aria-label]="'GL.SLIDESHOW.OPEN' | transloco"
+                                                [matTooltip]="'GL.SLIDESHOW.OPEN' | transloco"
+                                                matTooltipPosition="below"
+                                                (click)="service.view.openImageFileFieldSlideshow(record, field)"
+                                            >
+                                                <img [src]="fileUrl" [alt]="field.label | transloco" [class]="imgClass" />
+                                            </button>
+                                        } @else {
+                                            <img [src]="fileUrl" [alt]="field.label | transloco" [class]="imgClass" />
+                                        }
+                                    } @else if (monogram) {
+                                        <span class="tw:flex tw:size-32 tw:items-center tw:justify-center tw:rounded-xl tw:bg-primary tw:text-on-primary tw:text-3xl tw:font-semibold">{{ monogram }}</span>
+                                    } @else {
+                                        <span>{{ empty }}</span>
+                                    }
+                                } @else {
+                                    <!--
+                                    A plain anchor, name from the field's OWN
+                                    column value, middle-truncated with the full
+                                    name as the tooltip - which is what makes
+                                    truncating safe. ⚠ for a CROSS-ORIGIN url
+                                    browsers ignore [download] and follow the
+                                    server's Content-Disposition instead, which
+                                    is accepted, not overlooked.
+
+                                    ⚠ toStringValue() is not decoration:
+                                    CrudRecordType is Record<string, unknown>, so
+                                    a bare record[key] does not type-check
+                                    against [download]/[matTooltip]. The listing
+                                    cell only gets away with it because its
+                                    `let-row` context is `any`.
+                                    -->
+                                    @if (fileUrl) {
+                                        @let fileName = service.utility.toStringValue(record[key]);
+                                        <a
+                                            [href]="fileUrl"
+                                            [download]="fileName"
+                                            target="_blank"
+                                            rel="noopener"
+                                            [matTooltip]="fileName"
+                                            matTooltipPosition="below"
+                                            [attr.aria-label]="'GL.COMMON.DOWNLOAD' | transloco"
+                                            class="tw:inline-flex tw:items-center tw:gap-1 tw:text-primary tw:hover:underline"
+                                        >
+                                            <span>{{ service.utility.truncateFileName(fileName) }}</span>
+                                            <mat-icon class="material-symbols-rounded tw:text-sm! tw:w-4! tw:h-4! -tw:leading-none!">download</mat-icon>
+                                        </a>
+                                    } @else {
+                                        <span>{{ empty }}</span>
+                                    }
+                                }
+                            } @else {
+                                {{ service.view.formatViewFieldValue(key, field, record) }}
+                            }
                         </div>
                     </section>
                 }

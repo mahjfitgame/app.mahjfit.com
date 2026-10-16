@@ -178,6 +178,41 @@ export class CrudUtility {
                         ?? data?.snapshot?.alert?.[0],
         };
     }
+    /**
+     * Same envelope as toAffectedResult(), for the operations that answer one
+     * entry PER INPUT ENTRY rather than one aggregate: uploadDelete is the
+     * only one today, because the api maps over its input array.
+     *
+     * ⚠ EVERY entry must have affected it. A batch where one record's file was
+     * already gone is a PARTIAL success, and reporting it as success would
+     * leave that file orphaned with nothing on screen saying so — the opposite
+     * of what the delete cascade exists for.
+     *
+     * The message is the first real one the api gave, so a caller still shows
+     * the server's own wording rather than a generic fallback.
+     */
+    public toAffectedResultList(
+        data: (CrudAffectedDto | null | undefined)[] | null | undefined,
+        isBulk: boolean = false,
+    ): CrudMutationResultType {
+        const list = data ?? [];
+        const succeeded = list.length > 0
+            && list.every((one) => Number(one?.affected ?? 0) > 0);
+
+        // the entry that actually failed — one lookup, and it names why
+        const failed = list.find((one) => Number(one?.affected ?? 0) === 0);
+
+        return {
+            success: succeeded,
+            message: isBulk
+                ? undefined
+                : succeeded
+                    ? list[0]?.snapshot?.success?.[0]
+                        ?? list[0]?.snapshot?.message?.[0]
+                    : failed?.snapshot?.error?.[0]
+                        ?? failed?.snapshot?.alert?.[0],
+        };
+    }
 
     // █████ GENERAL ████████████████████████████████████████████████
     public isNil(value: unknown): value is null | undefined {

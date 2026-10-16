@@ -71,6 +71,17 @@ export interface ImageSlideshowDataType {
      * config for it at all.
      */
     showDownload?: boolean;
+
+    /**
+     * draw the toolbar's print button. Default FALSE, the same stance as
+     * showDownload above and for the same reason. Prints the ACTIVE slide
+     * only, one image to a page - @see ImageSlideshowService.printActiveImage().
+     *
+     * ⚠ the caller has ALREADY resolved this against its module's PRINT
+     * action - @see FileSlideshowType.print. This module asks no further
+     * permission question; it cannot reach one, and must not try.
+     */
+    showPrint?: boolean;
 }
 
 export interface ImageSlideshowConfigType {
@@ -83,6 +94,7 @@ export interface ImageSlideshowConfigType {
     showThumbs: Signal<boolean>;
     showToolbar: Signal<boolean>;
     showDownload: Signal<boolean>;
+    showPrint: Signal<boolean>;
 }
 
 /**

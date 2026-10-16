@@ -33,7 +33,7 @@ export class SigninRoute extends FoundationModuleRoute {
             canDeactivate: [],
             resolve: this.resolve(),
             breadcrumbAlias: 'signin',
-            actions: [],
+            actions: this.actionPrivilege(),
         };
     }
 
@@ -47,7 +47,7 @@ export class SigninRoute extends FoundationModuleRoute {
             label: 'GL.MODULE.PREBOARDING.SIGNIN',
             icon: 'login',
             sort_order: 20,
-            actions: [],
+            actions: this.actionPrivilege(),
             hidden: true,
             nav_position: [FoundationNavPositionEnum.START],
         };

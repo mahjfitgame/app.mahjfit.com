@@ -7,7 +7,6 @@ import { BREAKPOINT_WIDTH } from "@libs/breakpoint/const";
 import { CrudUploadDialogComponent } from "src/app/base/crud/component/upload/dialog/component";
 import { CrudUploadFormComponent } from "src/app/base/crud/component/upload/form/component";
 import { BfwApiSdkError } from "@bfw/api-sdk/core";
-import { CrudRecordType } from "@base/crud/type";
 import { CrudRootService } from "./root";
 import { CrudActionService } from "./action";
 import { CrudListingService } from "./listing";
@@ -33,34 +32,52 @@ export class CrudUploadService {
         value: string | number | null = this.action.getCrudActionRecordIndex(),
     ): Promise<void> {
         if (!this.action.ensureActionPermitted(this.root.state.action.hasUpload())) {
+            // notifying alone would leave the browser on an action url with no
+            // dialog AND crudAction() set, which freezes the listing
+            await this.closeUploadAction();
             return;
         }
 
         if (value === null) {
             this.root.notify.error(this.action.getUploadFormMessage('key_missing'));
+            await this.closeUploadAction();
             return;
         }
 
-        // scan the loaded rows on the column this module addresses by
-        let row: CrudRecordType | null =
-            this.root.state.listing.findListingDataSourceByIndexColumn(value);
+        /**
+         * ⚠ THE WHOLE POINT OF THIS CALL: the dialog may not open until the
+         * record is in hand. Parking a null record and opening anyway is what
+         * pushed the failure to submit time, where the module's own upload()
+         * refuses on target.pk === null and the user is told the KEY is
+         * missing - when the truth is the RECORD is gone.
+         *
+         * The last argument is the fast path, unchanged in spirit: the row is
+         * already loaded and is the same one `value` itself came from, so the
+         * normal click-the-menu-item flow still costs no api call. A miss
+         * answers null and the guard falls back to a fresh fetch for a direct
+         * deep link (the listing may still be loading, or never load at all).
+         */
+        const row = await this.action.loadRecordForUrlAction(
+            value,
+            this.root.state.upload.uploadFieldObj(),
+            () => this.isUploadActionActive(),
+            () => this.closeUploadAction(),
+            this.root.state.listing.findListingDataSourceByIndexColumn(value),
+        );
 
         /**
-         * Fast path covers the normal click-the-menu-item flow with zero
-         * extra api calls - the row is already loaded, the same one value
-         * itself came from. Falls back to a fresh fetch (same helper
-         * CrudMutationService uses for UPDATE) for a direct deep link
-         * (listing may still be loading) or if Display Fields ever leaves
-         * the row incomplete for this purpose.
+         * ⚠ uploadRecord() is deliberately NOT cleared here. A previous open's
+         * row is harmless - resolveActionProcessingRecord() and
+         * patchListingFileField() both re-check it against the live index -
+         * whereas clearing it would race a concurrent init for the record that
+         * replaced this one.
          */
         if (!row) {
-            row = await this.action.findOneByActionRecordIndexColumn(
-                this.root.state.upload.uploadFieldObj(),
-            );
+            return;
         }
 
         this.root.state.upload.setUploadRecord(row);
-        this.root.state.upload.setUploadFormValues(row ?? {});
+        this.root.state.upload.setUploadFormValues(row);
 
         setTimeout(() => {
             this.openUploadOverlay();
@@ -79,7 +96,9 @@ export class CrudUploadService {
         return this.root.state.upload.uploadFormCustomComponent() ?? CrudUploadFormComponent;
     }
     public openUploadOverlay(): void {
-        if (this.activeUploadDialogRef) {
+        // mirrors openViewOverlay() - the setTimeout that calls this can fire
+        // after the route has already left the Upload action
+        if (!this.isUploadActionActive() || this.activeUploadDialogRef) {
             return;
         }
 

@@ -18,6 +18,49 @@ export const IMAGE_SLIDESHOW_INSET_PANEL_CLASS = 'bfw-safe-area-p';
 export const IMAGE_SLIDESHOW_AUTOPLAY_DELAY = 4000;
 
 /**
+ * The print sheet: ONE image, one page, no app CSS at all.
+ *
+ * ⚠ embedded in the html string rather than passed as PrintOptionsType.css,
+ * because PrintService's NATIVE path (Printer.printHtml) never reads that
+ * option - only the string. One copy, both platforms.
+ *
+ * ⚠ nothing here sizes html/body. PRINT_BASE_CSS (libs/src/print/const.ts)
+ * forces `height: auto !important` on both, so a 100%-height centring wrapper
+ * loses outright. The cap lives on the img instead, which has the better side
+ * effect anyway: it cannot produce a blank second page the way a 100vh box
+ * rounding up over the page height can.
+ *
+ * ⚠ the @page override DOES win, even though PRINT_BASE_CSS also declares one:
+ * this tag goes into the BODY, so it is later in document order than that
+ * sheet's `@page { margin: 10mm }`.
+ *
+ * ⚠ a TS constant and not a print.scss read at runtime - `?inline` css imports
+ * are a Vite feature this project's builder (@angular/build:application) does
+ * not expose, an `inject: false` style bundle gets hashed in production, and a
+ * fetched stylesheet puts a failure path on the print button. Same shape as
+ * PRINT_BASE_CSS, which is the precedent.
+ */
+export const IMAGE_SLIDESHOW_PRINT_CSS = `
+@page { margin: 0; }
+img {
+    display: block;
+    margin: 0 auto;
+    max-width: 100%;
+    max-height: 100vh;
+    break-inside: avoid;
+}
+`;
+
+/**
+ * Covers the print document's OWN request for the image.
+ *
+ * ⚠ PrintService waits for stylesheets, never for images, and a picture that
+ * has not arrived prints a BLANK sheet. printActiveImage() decodes it first, so
+ * this is only the margin on what should already be a cache hit.
+ */
+export const IMAGE_SLIDESHOW_PRINT_DELAY = 200;
+
+/**
  * The stop the toolbar's fullscreen toggle drops back to when the consumer asked
  * for FULL, or asked for nothing at all.
  *

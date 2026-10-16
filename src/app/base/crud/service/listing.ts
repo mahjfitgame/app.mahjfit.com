@@ -100,7 +100,14 @@ export class CrudListingService {
         // chunk, which rejects offline or against a hash that a deploy has
         // moved. void leaves that as an unhandled rejection.
         this.imageSlideshowDialog
-            .open({ items, startIndex, size: finfo.slideshow.size })
+            .open({
+                items,
+                startIndex,
+                size: finfo.slideshow.size,
+                // already resolved against the module's PRINT action by the
+                // field object, not re-checked here - @see FileSlideshowType.print
+                showPrint: finfo.slideshow.print,
+            })
             .catch((error) => this.root.log.error?.('image slideshow open failed', error));
     }
 

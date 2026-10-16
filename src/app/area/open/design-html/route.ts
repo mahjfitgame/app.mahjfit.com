@@ -40,7 +40,7 @@ export class DesignHtmlRoute extends FoundationModuleRoute {
             canDeactivate: [],
             resolve: this.resolve(),
             breadcrumbAlias: 'design-html',
-            actions: [],
+            actions: this.actionPrivilege(),
         };
     }
 
@@ -54,7 +54,7 @@ export class DesignHtmlRoute extends FoundationModuleRoute {
             label: 'Design Html (temp)',
             icon: 'palette',
             sort_order: 0,
-            actions: [],
+            actions: this.actionPrivilege(),
             hidden: true,
             nav_position: [FoundationNavPositionEnum.START],
         };

@@ -7,6 +7,7 @@ import { ConfirmationDialogDataType } from "@base/confirmation-dialog/type";
 import {
     CrudActiveHandlerType,
     CrudCreateHandlerType,
+    CrudDeleteFrRelationHandlerType,
     CrudDeleteHandlerType,
     CrudFindHandlerType,
     CrudFindInputType,
@@ -51,6 +52,7 @@ export class CrudActionService {
     private softDeleteHandler: CrudSoftDeleteHandlerType | null = null;
     private restoreHandler: CrudRestoreHandlerType | null = null;
     private deleteHandler: CrudDeleteHandlerType | null = null;
+    private deleteFrRelationHandler: CrudDeleteFrRelationHandlerType | null = null;
 
     /**
      * Set once by CrudListingService's own constructor (registerAfterRecordActionSuccess).
@@ -133,6 +135,44 @@ export class CrudActionService {
             index,
             fieldObj,
         );
+    }
+    public async loadRecordForUrlAction(
+        value: CrudRecordKeyType,
+        fieldObj: CrudStateRecordFieldObjType,
+        isActionActive: () => boolean,
+        closeAction: () => Promise<void>,
+        fastPathRecord: CrudRecordType | null = null,
+    ): Promise<CrudRecordType | null> {
+        try {
+            const record = fastPathRecord
+                ?? await this.findOneByActionRecordIndexColumn(fieldObj);
+
+            if (!isActionActive() || this.getCrudActionRecordIndex() !== value) {
+                return null;
+            }
+
+            if (!record) {
+                this.root.notify.error(this.getRecordNotFoundMessage(value));
+                await closeAction();
+                return null;
+            }
+
+            return record;
+        } catch (error: unknown) {
+            this.root.log.error('[URL ACTION RECORD LOAD FAILED]', error);
+
+            const fallbackMessage = this.getRecordNotFoundMessage(value);
+
+            this.root.notify.error(
+                error instanceof BfwApiSdkError
+                    ? error.errors()[0] ?? fallbackMessage
+                    : error instanceof Error
+                        ? error.message
+                        : fallbackMessage,
+            );
+            await closeAction();
+            return null;
+        }
     }
     /** Classifies CREATE/UPDATE/DUPLICATE — shared by shouldLoadListingOnRouteEnter here and CrudMutationService.isMutationActionActive(). */
     public isMutationActionType(action: FoundationActionEnum | null): boolean {
@@ -255,14 +295,24 @@ export class CrudActionService {
             await this.runFind();
         }
     }
-    public getMutationFormMessage(
-        outcome: 'success' | 'failed' | 'key_missing' | 'key_mismatch',
-    ): string {
+    private getActionModuleName(): string {
         const moduleInfo = this.root.paLayout.state.moduleInfo();
-        const moduleName = moduleInfo?.i18n?.title
+
+        return moduleInfo?.i18n?.title
             ? this.root.i18n.translate(moduleInfo.i18n.title)
             : moduleInfo?.title?.trim()
                 || this.root.i18n.translate('GL.CRUD.RECORD');
+    }
+    public getRecordNotFoundMessage(index: CrudRecordKeyType): string {
+        return this.root.i18n.translate('GL.CRUD.RECORD_NOT_FOUND', {
+            module: this.getActionModuleName(),
+            index: String(index),
+        });
+    }
+    public getMutationFormMessage(
+        outcome: 'success' | 'failed' | 'key_missing' | 'key_mismatch',
+    ): string {
+        const moduleName = this.getActionModuleName();
         const action = this.root.state.crudAction() === FoundationActionEnum.UPDATE ? 'UPDATE' : 'CREATE';
         const result = outcome === 'success' ? 'SUCCESS' : 'FAILED';
         const messageKey = outcome === 'key_missing'
@@ -277,13 +327,9 @@ export class CrudActionService {
         );
     }
     public getUploadFormMessage(
-        outcome: 'success' | 'failed' | 'key_missing' | 'delete_success' | 'delete_failed' | 'select_required',
+        outcome: 'success' | 'failed' | 'key_missing' | 'delete_success' | 'delete_failed' | 'delete_orphan' | 'select_required',
     ): string {
-        const moduleInfo = this.root.paLayout.state.moduleInfo();
-        const moduleName = moduleInfo?.i18n?.title
-            ? this.root.i18n.translate(moduleInfo.i18n.title)
-            : moduleInfo?.title?.trim()
-                || this.root.i18n.translate('GL.CRUD.RECORD');
+        const moduleName = this.getActionModuleName();
         const messageKey = outcome === 'key_missing'
             ? 'KEY_MISSING'
             : outcome === 'success'
@@ -292,9 +338,11 @@ export class CrudActionService {
                     ? 'DELETE_SUCCESS'
                     : outcome === 'delete_failed'
                         ? 'DELETE_FAILED'
-                        : outcome === 'select_required'
-                            ? 'SELECT_REQUIRED'
-                            : 'FAILED';
+                        : outcome === 'delete_orphan'
+                            ? 'DELETE_ORPHAN'
+                            : outcome === 'select_required'
+                                ? 'SELECT_REQUIRED'
+                                : 'FAILED';
 
         return this.root.i18n.translate(
             `GL.CRUD.UPLOAD.${messageKey}`,
@@ -337,6 +385,9 @@ export class CrudActionService {
     }
     public registerDelete(handler: CrudDeleteHandlerType): void {
         this.deleteHandler = handler;
+    }
+    public registerDeleteFrRelation(handler: CrudDeleteFrRelationHandlerType): void {
+        this.deleteFrRelationHandler = handler;
     }
     /** Wired by CrudListingService's constructor — see afterRecordActionSuccess above. */
     public registerAfterRecordActionSuccess(
@@ -489,33 +540,14 @@ export class CrudActionService {
             };
         }
 
+        /**
+         * A scalar target, deliberately: this is the INTERACTIVE path (one
+         * file, one open dialog). The array form of the handler is for
+         * deleteRecordUploads() below, which clears a whole bulk selection in
+         * one call.
+         */
         return this.uploadDeleteHandler(this.resolveActionProcessingRecord(value), fkey);
     }
-    /**
-     * Everything an action knows about the record it is about to process: the
-     * index it was invoked with, both specific identifiers, and the whole row.
-     *
-     * Named for the general job rather than for upload, because every action
-     * facing the same mismatch resolves it the same way. Upload is the first:
-     * the url carries this module's INDEX, while the api's upload mutation keys
-     * on the entity PRIMARY key. Rather than push that onto every child,
-     * resolve once here and hand the child all of it — a child with a different
-     * api shape then has what it needs without a second fetch.
-     *
-     * uploadRecord() is the row CrudUploadService.initUploadActionFromUrl()
-     * already resolved for THIS action (listing row, or a deep-link fetch), so
-     * the fast path costs nothing. The value guard is what keeps a stale parked
-     * record from a previous open out of a new one; the listing scan is the
-     * fallback for that case.
-     *
-     * ⚠ NO KIND ARGUMENT. There is one addressing column, so there is nothing
-     * to pass and nothing to get wrong — which is what let the old
-     * resolveActionProcessingTarget() wrapper and its "default to SK" fallback
-     * go. That wrapper existed because record actions come from the LISTING and
-     * always yield secondary keys, while the url could carry either: taking the
-     * kind off the route meant a row-menu delete fired on a pk-addressed url
-     * would look a uuid up by primary key and act on nothing.
-     */
     private resolveActionProcessingRecord(index: CrudRecordKeyType): CrudRecordTargetType {
         // match the cached row on the same column everything else addresses by
         const cached = this.root.state.upload.uploadRecord();
@@ -596,14 +628,6 @@ export class CrudActionService {
         await this.runRecordAction(
             FoundationActionEnum.MARK_AS_MAIN,
             sk,
-            /**
-             * The two extra values ride in a closure so runRecordAction keeps
-             * its single handler(targets) call for every record action.
-             *
-             * The narrowing is safe, not defensive: runMarkAsMain takes a
-             * SCALAR key, so runRecordAction never builds an array here — see
-             * CrudMarkAsMainHandlerType for why this action has no bulk form.
-             */
             handler
                 ? async (t: CrudRecordTargetInputType) => await handler(
                     Array.isArray(t) ? t[0] : t,
@@ -652,13 +676,6 @@ export class CrudActionService {
             return;
         }
 
-        /**
-         * ⚠ bulkCount and the target shape are both ARITY-based, off the value
-         * the caller passed. A bulk action on ONE row is still bulk: it picks
-         * the GL.CRUD.SELECTED_RECORD_ACTION.* message set and, in the child,
-         * drops the `deleted: { nulls: true }` clause. Deriving either from
-         * `length > 1` would silently change both.
-         */
         const isBulk = Array.isArray(value);
         const bulkCount = isBulk ? value.length : null;
         const values = isBulk ? value : [value];
@@ -680,13 +697,6 @@ export class CrudActionService {
             return;
         }
 
-        /**
-         * A row-menu action never navigates, so nothing else populates
-         * actionListingRecord() the way the view/mutation/upload initializers
-         * do off the url. Resolve it here, single-record only, so the
-         * confirmation dialog's label reads the same row every other action
-         * surface does — bulk has no one record to name.
-         */
         if (!isBulk) {
             const row = this.root.state.listing.findListingDataSourceByIndexColumn(values[0]);
             if (row) {
@@ -712,6 +722,66 @@ export class CrudActionService {
         const targets: CrudRecordTargetInputType = isBulk ? resolved : resolved[0];
 
         try {
+            /**
+             * ⚠ BEFORE the handler, not after. The api's uploadDelete resolves
+             * its target with repository.find({ where: { [ref_id_field]: ... } })
+             * and THROWS when that finds nothing — so once the row is gone the
+             * call can only fail and the file is stranded for good.
+             *
+             * ⚠ DEEPEST FIRST: fr relations, then this record's own files, then
+             * (below) the record row. A child row must go before the parent it
+             * keys on, or nothing can address it afterwards.
+             *
+             * Returning early leaves the records untouched, so a failure here
+             * is recoverable — nothing is ever half-deleted.
+             *
+             * ⚠ RELOAD BEFORE GIVING UP. A partly-succeeded batch leaves rows
+             * whose file is gone while the listing still caches the old
+             * filename — the skip guard in deleteRecordUploads() would then
+             * keep sending them, the api would answer affected: 0 for an
+             * already-null column, and the delete would abort FOREVER.
+             * Resyncing is what makes a retry possible.
+             */
+            if (action === FoundationActionEnum.DELETE) {
+                if (!await this.runDeleteFrRelation(targets)) {
+                    this.root.notify.error(
+                        this.root.i18n.translate('GL.CRUD.RECORD_ACTION.DELETE.FR_RELATION_FAILED'),
+                    );
+                    return;
+                }
+
+                if (!await this.deleteRecordUploads(targets)) {
+                    this.root.notify.error(this.getUploadFormMessage('delete_orphan'));
+                    /**
+                     * ⚠ RELOAD, unlike the fr-relation branch above, because
+                     * THIS cleanup reads the listing to decide what to send. A
+                     * partly-succeeded batch leaves rows whose file is gone
+                     * while the cache still holds the old filename, so the
+                     * skip guard in deleteRecordUploads() would resend them,
+                     * the api would answer affected: 0 for an already-null
+                     * column, and the delete would abort FOREVER. Resyncing is
+                     * what makes a retry possible.
+                     *
+                     * ⚠ DELIBERATELY NOT gated on shouldReloadListingAfterAction().
+                     * That config answers a different question — "after this
+                     * action SUCCEEDS, is the local patch enough?" — and
+                     * defaults to off, so honouring it here would disable this
+                     * resync for every module and hand the deadlock straight
+                     * back.
+                     *
+                     * ⚠ Accepted cost: when the cascade failed because the
+                     * network is down, this find fails too and toasts its own
+                     * error, so the user sees two. Both are true, it is an
+                     * error path, and the alternatives are a silent-mode flag
+                     * on runFind() or guessing whether the batch half-ran —
+                     * which a thrown Promise.all cannot tell us.
+                     */
+                    await this.runFind({}, CrudDataLoadTypeEnum.ACTION);
+                    return;
+                }
+            }
+
+            // execute the actual action here
             const result = await handler(targets);
 
             if (!result.success) {
@@ -743,6 +813,85 @@ export class CrudActionService {
 
             this.root.notify.error(message);
         }
+    }
+
+    /**
+     * Clears the fr relations of the records about to be deleted.
+     *
+     * A thin executor, deliberately: it owns WHEN the cascade runs and what a
+     * failure means, while the registered child owns WHAT to delete. That split
+     * is why this file never imports another module's sdk.
+     *
+     * Answers true when no handler is registered — a module with no fr relation
+     * has nothing to clear, which is the common case and not a failure.
+     *
+     * ⚠ A false answer ABORTS the delete (see runRecordAction). That is the
+     * point: with no FK constraints in the api, nothing else stops a parent
+     * from being deleted out from under its children.
+     *
+     * ⚠ `targets` is passed WHOLE, bulk included — the child issues one call
+     * for the entire selection.
+     */
+    private async runDeleteFrRelation(
+        targets: CrudRecordTargetInputType,
+    ): Promise<boolean> {
+        if (!this.deleteFrRelationHandler) return true;
+
+        try {
+            const result = await this.deleteFrRelationHandler(targets);
+
+            if (!result.success) {
+                this.root.log.error('[CRUD DELETE FR RELATION FAILED]', result.message);
+            }
+
+            return result.success;
+        } catch (error: unknown) {
+            this.root.log.error('[CRUD DELETE FR RELATION FAILED]', error);
+
+            return false;
+        }
+    }
+    private async deleteRecordUploads(
+        targets: CrudRecordTargetInputType,
+    ): Promise<boolean> {
+        if (!this.uploadDeleteHandler) return true;
+        if (!this.root.state.action.hasUploadDelete()) return true;
+
+        const fkeys = this.root.state.upload.uploadableFileFkeys();
+
+        if (fkeys.length === 0) return true;
+
+        const list = Array.isArray(targets) ? targets : [targets];
+        let allDeleted = true;
+
+        for (const fkey of fkeys) {
+            const batch = list.filter((target) =>
+                target.pk !== null
+                && !(target.record && fkey in target.record && !target.record[fkey]),
+            );
+
+            if (batch.length === 0) continue;
+
+            try {
+                const result = await this.uploadDeleteHandler(
+                    batch.length === 1 ? batch[0] : batch,
+                    fkey,
+                );
+
+                /**
+                 * ⚠ STOP AT THE FIRST FAILED FIELD. The delete is aborted
+                 * either way, so clearing the NEXT field would only widen the
+                 * set of records left with a deleted file and an intact row.
+                 */
+                if (!result.success) { allDeleted = false; break; }
+            } catch (error: unknown) {
+                this.root.log.error('[CRUD DELETE RECORD UPLOADS FAILED]', fkey, error);
+                allDeleted = false;
+                break;
+            }
+        }
+
+        return allDeleted;
     }
 
     // ████████████████████████████████████████████████████████████████████
@@ -904,15 +1053,9 @@ export class CrudActionService {
             );
         }
 
-        const moduleInfo = this.root.paLayout.state.moduleInfo();
-        const moduleName = moduleInfo?.i18n?.title
-            ? this.root.i18n.translate(moduleInfo.i18n.title)
-            : moduleInfo?.title?.trim()
-                || this.root.i18n.translate('GL.CRUD.RECORD');
-
         return this.root.i18n.translate(
             `GL.CRUD.RECORD_ACTION.${actionKey}.${outcome}`,
-            { module: moduleName },
+            { module: this.getActionModuleName() },
         );
     }
     private getRecordActionMessageKey(

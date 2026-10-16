@@ -34,7 +34,7 @@ export class SignoutRoute extends FoundationModuleRoute {
             canDeactivate: [],
             resolve: this.resolve(),
             breadcrumbAlias: 'signout',
-            actions: [],
+            actions: this.actionPrivilege(),
         };
     }
 
@@ -48,7 +48,7 @@ export class SignoutRoute extends FoundationModuleRoute {
             label: 'GL.MODULE.ONBOARDING.SIGNOUT',
             icon: 'logout',
             sort_order: 90,
-            actions: [],
+            actions: this.actionPrivilege(),
             hidden: true,
             nav_position: [FoundationNavPositionEnum.START],
         };

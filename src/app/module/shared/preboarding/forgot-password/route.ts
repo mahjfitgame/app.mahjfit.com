@@ -33,7 +33,7 @@ export class ForgotPasswordRoute extends FoundationModuleRoute {
             canDeactivate: [],
             resolve: this.resolve(),
             breadcrumbAlias: 'forgotPassword',
-            actions: [],
+            actions: this.actionPrivilege(),
         };
     }
 
@@ -47,7 +47,7 @@ export class ForgotPasswordRoute extends FoundationModuleRoute {
             label: 'GL.MODULE.PREBOARDING.FORGOT_PASSWORD',
             icon: 'key',
             sort_order: 30,
-            actions: [],
+            actions: this.actionPrivilege(),
             hidden: true,
             nav_position: [FoundationNavPositionEnum.START],
         };

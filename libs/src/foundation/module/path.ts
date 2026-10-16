@@ -60,8 +60,9 @@ export class FoundationModulePath {
     /**
      * a module's url for ONE of its actions, /private/geo/country/view/42
      *
-     * ⚠ the action must be in that module's definition().actions or the route
-     * was never generated. the same list drives both, which is the point
+     * ⚠ the action must be in that module's actionPrivilege() or the route was
+     * never generated — that ONE method feeds definition().actions and
+     * nav().actions both, which is the point
      *
      * ⚠ never hand build `${absolutePath()}/view/${id}` — that survives until
      * someone re-parents the module or renames the action slug

@@ -323,6 +323,17 @@ export class FoundationAreaBuilder {
     // ACTIONS ▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬
     /**
      * Rule 6. definition = what EXISTS, row = what is ALLOWED, intersection wins
+     *
+     * ⚠ BOTH LISTS, never the module's actionPrivilege(). that method is only
+     * the SOURCE a *Route class declares; either half may derive from it, and a
+     * row reaching here may not have come from a class at all — a borrowed
+     * module's row, or later an api payload.
+     *
+     * ⚠ CrudActionState.permittedActions computes the same intersection, on
+     * purpose: this runs once at provideRouter() time with no DI and no
+     * signals, that one is a reactive gate on buttons. they must agree —
+     * change both together, or a button appears for an action whose route was
+     * never generated.
      */
     public static effectiveActions(
         definition: FoundationModuleRouteDefinitionType,

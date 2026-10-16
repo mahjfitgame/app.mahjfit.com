@@ -12,6 +12,8 @@ import { CrudViewPageComponent } from "src/app/base/crud/component/view/page/com
 import { CrudViewRecordComponent } from "src/app/base/crud/component/view/record/component";
 import { BfwApiSdkError } from "@bfw/api-sdk/core";
 import { CrudFieldInfoType, CrudRecordType } from "@base/crud/type";
+import { ImageSlideshowDialog } from "@base/image-slideshow/dialog";
+import { ImageSlideshowItemType } from "@base/image-slideshow/type";
 import { CrudRootService } from "./root";
 import { CrudActionService } from "./action";
 import { CrudListingService } from "./listing";
@@ -23,6 +25,13 @@ export class CrudViewService {
     // ████████████████████████████████████████████████████████████████████
     public readonly viewDialog = inject(MatDialog);
     public readonly viewBottomSheet = inject(MatBottomSheet);
+
+    /**
+     * A FIELD initializer, not a constructor param: this class is new-ed inside
+     * CrudService's constructor (service/entry.ts), which IS an injection
+     * context. @see CrudListingService.imageSlideshowDialog, same idiom.
+     */
+    private readonly imageSlideshowDialog = inject(ImageSlideshowDialog);
 
     // View has independent overlays so its lifecycle never changes Mutation UI state.
     private activeViewDialogRef: MatDialogRef<CrudViewDialogComponent> | null = null;
@@ -68,11 +77,13 @@ export class CrudViewService {
         value: string | number | null = this.action.getCrudActionRecordIndex(),
     ): Promise<void> {
         if (!this.action.ensureActionPermitted(this.root.state.action.hasView())) {
+            await this.closeViewAction();
             return;
         }
 
         if (value === null) {
             this.root.notify.error(this.root.i18n.translate('GL.CRUD.RECORD_ACTION.KEY_MISSING'));
+            await this.closeViewAction();
             return;
         }
 
@@ -81,34 +92,24 @@ export class CrudViewService {
 
         try {
             /**
+             * ⚠ ONE call where this used to be four steps - see
+             * CrudActionService.loadRecordForUrlAction(), which now owns the
+             * labelField force-add, the fetch, the not-found branch and the
+             * stale-route guard for every url-driven action.
+             *
              * PAGE layout never loads the listing (shouldLoadListingOnRouteEnter()),
-             * so listingDataSource() stays empty on a direct url load and
-             * actionListingRecord() has nothing to resolve from - this fetch is the
-             * only record PAGE mode ever gets. Force labelField() into its
-             * selection (same force-include reasoning as isMainField/monogram_field
-             * in CrudListingState.getListingSearchFormViewOption()) so the title
-             * can read it below even when the module's own view schema has no
-             * reason to select it.
+             * so listingDataSource() stays empty on a direct url load and the
+             * fetch inside the guard is the only record PAGE mode ever gets -
+             * hence no fastPathRecord here.
              */
-            const labelField = this.root.state.labelField();
-            const baseViewFieldObj = this.root.state.view.viewFieldObj();
-            const recordFieldObj = labelField && !(labelField in baseViewFieldObj)
-                ? { ...baseViewFieldObj, [labelField]: { label: '', type: CrudFieldUiTypeEnum.TEXT } }
-                : baseViewFieldObj;
-
-            const record = await this.action.findOneByActionRecordIndexColumn(recordFieldObj);
-
-            // Ignore a response for a View route that is no longer active.
-            if (
-                !this.isViewActionActive()
-                || this.action.getCrudActionRecordIndex() !== value
-            ) {
-                return;
-            }
+            const record = await this.action.loadRecordForUrlAction(
+                value,
+                this.root.state.view.viewFieldObj(),
+                () => this.isViewActionActive(),
+                () => this.closeViewAction(),
+            );
 
             if (!record) {
-                this.root.notify.error(this.root.i18n.translate('GL.MODULE.HTTP_STATUS.NOT_FOUND'));
-                await this.closeViewAction();
                 return;
             }
 
@@ -120,12 +121,19 @@ export class CrudViewService {
                 setTimeout(() => this.openViewOverlay());
             }
         } catch (error: unknown) {
+            /**
+             * ⚠ KEPT, and now POST-LOAD ONLY - loadRecordForUrlAction() owns
+             * every error the fetch itself can raise, so what reaches here is
+             * the record publish above. Dropping this block would have turned
+             * that into an unhandled rejection, since the entry effect calls
+             * this as `void initViewActionFromUrl(...)`.
+             */
             this.root.log.error('[VIEW RECORD LOAD FAILED]', error);
             const message = error instanceof BfwApiSdkError
-                ? error.errors()[0] ?? this.root.i18n.translate('GL.MODULE.HTTP_STATUS.NOT_FOUND')
+                ? error.errors()[0] ?? this.action.getRecordNotFoundMessage(value)
                 : error instanceof Error
                     ? error.message
-                    : this.root.i18n.translate('GL.MODULE.HTTP_STATUS.NOT_FOUND');
+                    : this.action.getRecordNotFoundMessage(value);
 
             this.root.notify.error(message);
             await this.closeViewAction();
@@ -262,6 +270,66 @@ export class CrudViewService {
     }
 
     // ████████████████████████████████████████████████████████████████████
+    // ███ FILE FIELD SLIDESHOW ███████████████████████████████████████████
+    // ████████████████████████████████████████████████████████████████████
+    /**
+     * Opens the image slideshow over ONE FILE field of the record on screen.
+     *
+     * The THIRD reader of one `slideshow: {}` declaration, and only the GROUP
+     * differs: the listing's opener gathers every visible row in a column, the
+     * upload form control its own single preview, and this one the single record
+     * being viewed.
+     *
+     * ⚠ It can NOT reuse CrudListingService.openImageFileFieldSlideshow() -
+     * that reads listingDataSource().filteredData, and a PAGE-layout view never
+     * loads the listing at all (shouldLoadListingOnRouteEnter() is false there),
+     * so the group would be permanently empty on exactly the layout where the
+     * picture is largest.
+     *
+     * A one-item group needs nothing extra: state.showThumbs already gates on
+     * slideCount() > 1 and buildMainParams() drops `loop` below two slides.
+     */
+    public openImageFileFieldSlideshow(
+        record: CrudRecordType,
+        finfo: CrudFieldInfoType,
+    ): void {
+        if (!finfo.file?.is_image || !finfo.slideshow) return;
+
+        /**
+         * DIRECT with a THUMB fallback, the same pair the listing's opener
+         * builds - a SLIDE has no monogram to fall back to, unlike the view
+         * panel that drew the picture, so a module whose selection omitted
+         * `direct` still gets an image rather than an empty viewer.
+         */
+        const thumb = this.root.utility.getFileFieldUrl(record, finfo, 'thumb');
+        const src = this.root.utility.getFileFieldUrl(record, finfo, 'direct') ?? thumb;
+
+        if (!src) return;
+
+        const item: ImageSlideshowItemType = {
+            src,
+            thumb: thumb ?? src,
+            alt: this.root.utility.getFileFieldMonogram(record, finfo),
+        };
+
+        // size is left undefined when the module did not set one, so the
+        // slideshow applies its own FULL default rather than this file guessing
+        //
+        // ⚠ .catch() and not void: open() awaits an import() of the slideshow
+        // chunk, which rejects offline or against a hash that a deploy has
+        // moved. void leaves that as an unhandled rejection.
+        this.imageSlideshowDialog
+            .open({
+                items: [item],
+                size: finfo.slideshow.size,
+                // already resolved against the module's PRINT action by the
+                // field object, not re-checked here - @see FileSlideshowType.print
+                showPrint: finfo.slideshow.print,
+            })
+            .catch((error) => this.root.log.error('image slideshow open failed', error));
+    }
+
+    // ████████████████████████████████████████████████████████████████████
     // ███ PRINT RECORD OPERATION █████████████████████████████████████████
     // ████████████████████████████████████████████████████████████████████
     public isPrintActionActive(): boolean {
@@ -299,11 +367,13 @@ export class CrudViewService {
         value: string | number | null = this.action.getCrudActionRecordIndex(),
     ): Promise<void> {
         if (!this.action.ensureActionPermitted(this.root.state.action.hasPrint())) {
+            await this.closeViewAction();
             return;
         }
 
         if (value === null) {
             this.root.notify.error(this.root.i18n.translate('GL.CRUD.RECORD_ACTION.KEY_MISSING'));
+            await this.closeViewAction();
             return;
         }
 
@@ -311,27 +381,18 @@ export class CrudViewService {
         this.root.state.view.setViewRecordProcessing(true);
 
         try {
-            // same PAGE-mode reasoning as initViewActionFromUrl above - /print/:index
-            // is always a direct url load, so this fetch is the only record it gets
-            const labelField = this.root.state.labelField();
-            const baseViewFieldObj = this.root.state.view.viewFieldObj();
-            const recordFieldObj = labelField && !(labelField in baseViewFieldObj)
-                ? { ...baseViewFieldObj, [labelField]: { label: '', type: CrudFieldUiTypeEnum.TEXT } }
-                : baseViewFieldObj;
-
-            const record = await this.action.findOneByActionRecordIndexColumn(recordFieldObj);
-
-            // Ignore a response for a Print route that is no longer active.
-            if (
-                !this.isPrintActionActive()
-                || this.action.getCrudActionRecordIndex() !== value
-            ) {
-                return;
-            }
+            // same PAGE-mode reasoning as initViewActionFromUrl above -
+            // /print/:index is always a direct url load, so the fetch inside
+            // the guard is the only record it gets, and there is no listing row
+            // to pass as a fast path
+            const record = await this.action.loadRecordForUrlAction(
+                value,
+                this.root.state.view.viewFieldObj(),
+                () => this.isPrintActionActive(),
+                () => this.closeViewAction(),
+            );
 
             if (!record) {
-                this.root.notify.error(this.root.i18n.translate('GL.MODULE.HTTP_STATUS.NOT_FOUND'));
-                await this.closeViewAction();
                 return;
             }
 
@@ -358,12 +419,13 @@ export class CrudViewService {
                 void this.printRecord(this.autoPrintArea);
             }, { injector: this.root.getComponentInjector() });
         } catch (error: unknown) {
+            /** ⚠ POST-LOAD ONLY now - see initViewActionFromUrl's catch. */
             this.root.log.error('[PRINT RECORD LOAD FAILED]', error);
             const message = error instanceof BfwApiSdkError
-                ? error.errors()[0] ?? this.root.i18n.translate('GL.MODULE.HTTP_STATUS.NOT_FOUND')
+                ? error.errors()[0] ?? this.action.getRecordNotFoundMessage(value)
                 : error instanceof Error
                     ? error.message
-                    : this.root.i18n.translate('GL.MODULE.HTTP_STATUS.NOT_FOUND');
+                    : this.action.getRecordNotFoundMessage(value);
 
             this.root.notify.error(message);
             await this.closeViewAction();

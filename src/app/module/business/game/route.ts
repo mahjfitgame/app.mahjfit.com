@@ -27,6 +27,25 @@ export class GameRoute extends FoundationModuleRoute {
     public readonly url = inject(UrlService);
     public readonly router = inject(Router);
 
+
+    // ACTION PRIVILEGE ▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬
+    /**
+     * CODE OWNED, and the ONE list this module declares (Rule 6):
+     * definition().actions and nav().actions both read it
+     *
+     * ⚠ authoritative — an api's list is filtered against it, so a policy row
+     * can never expose a capability with no implementation behind it
+     *
+     * ⚠ this list also drives the absolutePath*() helpers below — declare an
+     * action here or its route was never generated
+     *
+     * ⚠ ORDER IS LOAD-BEARING, see FoundationActionRoute.routesFor()
+     */
+    public static override actionPrivilege(): FoundationActionEnum[] {
+        return [
+            FoundationActionEnum.CREATE,
+        ];
+    }
     // DEFINITION ▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬
     /**
      * CODE OWNED. `actions` is authoritative (Rule 6): an api's list is
@@ -46,9 +65,7 @@ export class GameRoute extends FoundationModuleRoute {
             canDeactivate: [],
             resolve: this.resolve(),
             breadcrumbAlias: 'game',
-            actions: [
-                FoundationActionEnum.CREATE,           // -> country/create
-            ],
+            actions: this.actionPrivilege(),
         };
     }
 
@@ -62,7 +79,7 @@ export class GameRoute extends FoundationModuleRoute {
             label: 'GL.MODULE.GAME',
             icon: 'globe',
             sort_order: 10,
-            actions: [],
+            actions: this.actionPrivilege(),
             nav_position: [FoundationNavPositionEnum.START],
         };
     }
@@ -93,7 +110,7 @@ export class GameInstanceRoute extends FoundationModuleRoute {
             registryKey: this.registryKey,
             component: () => import('./component').then((c) => c.GameComponent),
             canMatch: [AreaGuard.CanMatchAuthenticatedOrRedirect],
-            actions: [],
+            actions: this.actionPrivilege(),
         };
     }
 
@@ -108,7 +125,7 @@ export class GameInstanceRoute extends FoundationModuleRoute {
             label: 'GL.MODULE.GAME',
             icon: 'globe',
             sort_order: 10,
-            actions: [],
+            actions: this.actionPrivilege(),
             nav_position: [FoundationNavPositionEnum.START],
         };
     }

@@ -261,7 +261,14 @@ export interface FormFieldAutosuggestConfigType {
 
     // ── rendering
     template: Signal<FormFieldAutosuggestTemplateType>;
-    option: Signal<FormFieldAutosuggestOptionType>;
+    /**
+     * WritableSignal, like every other option-based control - see
+     * FormFieldCollectionOptionConfigType. It is an INPUT (the caller's
+     * key => label seed, read by seed()) and an OUTPUT: publishLearnedOption()
+     * in state.ts hands back what this control has NAMED, so a caller can read
+     * a picked key's label out of it the way it already can from a SELECT.
+     */
+    option: WritableSignal<FormFieldAutosuggestOptionType>;
     optionDefault: Signal<Record<string | number, any>>;
 
     /** the NATIVE input element - used to write a late label in when the value was a cold key */

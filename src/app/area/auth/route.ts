@@ -22,7 +22,7 @@ export class AuthAreaRoute extends FoundationModuleRoute {
             canDeactivate: [],
             resolve: this.resolve(),
             breadcrumbAlias: 'auth',
-            actions: [],
+            actions: this.actionPrivilege(),
         };
     }
 
@@ -37,7 +37,7 @@ export class AuthAreaRoute extends FoundationModuleRoute {
             label: 'GL.MODULE.PREBOARDING.SIGNIN',
             icon: 'login',
             sort_order: 0,
-            actions: [],
+            actions: this.actionPrivilege(),
             hidden: true,
             default_child_key: 'PREBOARDING_SIGNIN',
             nav_position: [FoundationNavPositionEnum.START],

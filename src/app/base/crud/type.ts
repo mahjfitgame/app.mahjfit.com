@@ -819,13 +819,20 @@ export interface CrudFieldInfoType {
      * THUMB. Both live inside the object [fr_field] already points at, so this
      * needs NO extra row selection.
      *
-     * ONE declaration, TWO readers, and only the GROUP differs. In an UPLOAD
+     * ONE declaration, THREE readers, and only the GROUP differs. In an UPLOAD
      * field object the same object is handed STRAIGHT to the FILE form control
      * (CRUD_FT_FILE passes it through untouched), which opens a one-item viewer
      * over its own existing-file preview - there is no row group to gather, and
      * so no crud opener for that half at all.
+     *
+     * In a VIEW field object the group is the ONE record on screen. ⚠ that half
+     * needs its own opener rather than the listing's: the listing one gathers
+     * listingDataSource().filteredData, and a PAGE-layout view never loads the
+     * listing at all (shouldLoadListingOnRouteEnter() is false), so the group
+     * would be permanently empty on exactly the layout with the largest picture.
      * @see CrudListingService.openImageFileFieldSlideshow
      * @see FormFieldFileRegularService.openSlideshow
+     * @see CrudViewService.openImageFileFieldSlideshow
      */
     slideshow?: CrudFieldSlideshowType;
 
@@ -1224,9 +1231,21 @@ export type CrudUploadHandlerType = (
     input: CrudMutationInputType,
 ) => Promise<CrudMutationResultType>;
 
-/** Same shape, same reasons — see CrudUploadHandlerType. */
+/**
+ * Same addressing reasons as CrudUploadHandlerType, but BULK-CAPABLE — scalar
+ * OR array, like the five record actions, and the child derives its own arity
+ * with Array.isArray().
+ *
+ * ⚠ The array form is not a convenience. The api's uploadDelete takes an ARRAY
+ * of input entries and fans them out itself, so clearing the files of 50
+ * deleted records is ONE call, not 50. A single-target signature made that
+ * impossible to express.
+ *
+ * The interactive path (CrudUploadService.uploadDelete, one file in an open
+ * dialog) still passes a scalar — that is what scalar-or-array is for.
+ */
 export type CrudUploadDeleteHandlerType = (
-    target: CrudRecordTargetType,
+    targets: CrudRecordTargetInputType,
     fkey: string,
 ) => Promise<CrudMutationResultType>;
 
@@ -1337,6 +1356,22 @@ export type CrudDeleteHandlerType = (
     targets: CrudRecordTargetInputType,
 ) => Promise<CrudMutationResultType>;
 
+/**
+ * Deletes the rows that OTHER entities hang off this record — the `fr_`
+ * relations — before this record's own row goes.
+ *
+ * ⚠ NOT this module's own FILE fields. CrudActionService.deleteRecordUploads()
+ * already clears those generically off UPLOAD_FIELD_OBJ. This handler exists
+ * because the base has no typed accessor for another module's sdk and no way
+ * to know the foreign key column, so only the owning child can do it.
+ *
+ * Bulk-capable like every other record handler, and for the same reason as
+ * CrudUploadDeleteHandlerType: one call, N entries.
+ */
+export type CrudDeleteFrRelationHandlerType = (
+    targets: CrudRecordTargetInputType,
+) => Promise<CrudMutationResultType>;
+
 export type CrudFieldObj = Record<string, any>;
 export type CrudFieldObjInput = CrudFieldObj | CrudFieldObj[] | null | undefined;
 
@@ -1441,6 +1476,9 @@ export interface CrudUploadStateType {
     _uploadRecord: WritableSignal<CrudRecordType | null>;
     uploadRecord: Signal<CrudRecordType | null>;
     setUploadRecord(record: CrudRecordType | null): void;
+
+    /** fkeys of every FILE field actually wired (fr_field set) to a stored file */
+    uploadableFileFkeys: Signal<string[]>;
 
     /** at least one FILE field is actually wired (fr_field set) to read/preview an existing file */
     hasUploadableField: Signal<boolean>;

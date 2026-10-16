@@ -349,6 +349,7 @@
     [dependentFieldValue]="dependency?.dependentFieldValue"
     [template]="finfo.template"
     [option]="finfo.option ?? service.emptyOptionBag"
+    (optionChange)="finfo.option = $event"
     [optionDefault]="finfo.option_default ?? service.emptyOptionBag"
     [label]="finfo.label | transloco"
     [placeholder]="(finfo.placeholder | transloco) || ''"

@@ -90,8 +90,13 @@ export class FormFieldAutosuggestComponent {
     /**
      * key => label seed, so a saved key can be named before any search has run.
      * Takes a SIGNAL too - see FormFieldAutosuggestOptionType for why.
+     *
+     * TWO-WAY, like the select family: state.publishLearnedOption() writes back
+     * what this control has named, so (optionChange) gives the caller the labels
+     * it would otherwise have to re-fetch. Nothing is pushed in - a one-way
+     * [option] binding keeps working exactly as before.
      */
-    public readonly option = input<FormFieldAutosuggestOptionType>({});
+    public readonly option = model<FormFieldAutosuggestOptionType>({});
 
     /**
      * the 'Any' / 'None' row, and a second label seed.

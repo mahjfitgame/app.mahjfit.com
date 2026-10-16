@@ -44,7 +44,7 @@ export class ProtectedAreaRoute extends FoundationModuleRoute {
             canDeactivate: [],
             resolve: this.resolve(),
             breadcrumbAlias: 'account',
-            actions: [],
+            actions: this.actionPrivilege(),
         };
     }
 
@@ -68,7 +68,7 @@ export class ProtectedAreaRoute extends FoundationModuleRoute {
             label: 'GL.AREA.PROTECTED.TITLE',
             icon: 'account_circle',
             sort_order: 0,
-            actions: [],
+            actions: this.actionPrivilege(),
             /** ⚠ TRANSPARENT, not absent: children rise a level, they do not vanish */
             hidden: true,
             // default_child_key: 'PROTECTED_DASHBOARD',

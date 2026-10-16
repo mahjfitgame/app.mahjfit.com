@@ -36,7 +36,7 @@ export class HttpStatusForbiddenRoute extends FoundationModuleRoute {
             canDeactivate: [],
             resolve: this.resolve(),
             breadcrumbAlias: 'httpStatusForbidden',
-            actions: [],
+            actions: this.actionPrivilege(),
         };
     }
 
@@ -50,7 +50,7 @@ export class HttpStatusForbiddenRoute extends FoundationModuleRoute {
             label: 'GL.MODULE.HTTP_STATUS.FORBIDDEN',
             icon: 'block',
             sort_order: 30,
-            actions: [],
+            actions: this.actionPrivilege(),
             hidden: true,
             nav_position: [FoundationNavPositionEnum.START],
         };

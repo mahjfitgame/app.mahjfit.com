@@ -177,11 +177,29 @@ export class CrudUploadState implements CrudUploadStateType {
         this._uploadRecord.set(record);
     }
 
+    /**
+     * fkeys of every FILE field actually wired (fr_field set) to a stored file.
+     * A FILE field with no fr_field has nothing to read, preview, or delete.
+     *
+     * The single source for that predicate — hasUploadableField and
+     * CrudActionService.deleteRecordUploads() both read it from here.
+     */
+    public readonly uploadableFileFkeys = computed<string[]>(() => {
+        const fieldObj = this.uploadFieldObj();
+        const fkeys: string[] = [];
+
+        for (const fkey of Object.keys(fieldObj)) {
+            const finfo = fieldObj[fkey];
+
+            if (finfo.type === CrudFieldUiTypeEnum.FILE && finfo.fr_field) fkeys.push(fkey);
+        }
+
+        return fkeys;
+    });
+
     /** at least one FILE field is actually wired (fr_field set) to read/preview an existing file */
-    public readonly hasUploadableField = computed<boolean>(() =>
-        Object.values(this.uploadFieldObj()).some(
-            (finfo) => finfo.type === CrudFieldUiTypeEnum.FILE && !!finfo.fr_field,
-        ),
+    public readonly hasUploadableField = computed<boolean>(
+        () => this.uploadableFileFkeys().length > 0,
     );
 
     /**
