@@ -30,10 +30,6 @@ const debugEnvironment: any = {
     BFW_API_SDK_REST_URL: 'https://localhost:20152/rest',
     BFW_API_SDK_WS_URL: 'https://localhost:20179', */
 
-    // BFW_API_SDK_GRAPHQL_URL: 'http://0.0.0.0:20147/graphql',
-    // BFW_API_SDK_REST_URL: 'http://0.0.0.0:20152/rest',
-    // BFW_API_SDK_WS_URL: 'http://0.0.0.0:20150',
-
     // direct API on LAN (cross-site from the app, Safari blocks the session cookie)
     //BFW_API_SDK_GRAPHQL_URL: 'https://192.168.0.200:20178/graphql',
     //BFW_API_SDK_REST_URL: 'https://192.168.0.200:20178/rest',
@@ -44,8 +40,8 @@ const debugEnvironment: any = {
     BFW_API_SDK_REST_URL: 'https://192.168.0.231:20180/rest',
     BFW_API_SDK_WS_URL: 'https://192.168.0.231:20180',
 
-    // BFW_API_SDK_GRAPHQL_URL: 'https://api-mahjfit-com.thatsend.dev/graphql',
-    // BFW_API_SDK_REST_URL: 'https://api-mahjfit-com.thatsend.dev/rest',
-    // BFW_API_SDK_WS_URL: 'https://ws-mahjfit-com.thatsend.dev',
+    /* BFW_API_SDK_GRAPHQL_URL: 'https://api-mahjfit-com.thatsend.dev/graphql',
+    BFW_API_SDK_REST_URL: 'https://api-mahjfit-com.thatsend.dev/rest',
+    BFW_API_SDK_WS_URL: 'https://ws-mahjfit-com.thatsend.dev', */
 };
 export const environment: any = { ...defaultEnvironment, ...debugEnvironment };
