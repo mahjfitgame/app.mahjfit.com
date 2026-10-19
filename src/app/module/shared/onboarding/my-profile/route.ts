@@ -31,7 +31,7 @@ export class MyProfileRoute extends FoundationModuleRoute {
             canDeactivate: [],
             resolve: this.resolve(),
             breadcrumbAlias: 'myProfile',
-            actions: [],
+            actions: this.actionPrivilege(),
         };
     }
 
@@ -50,7 +50,7 @@ export class MyProfileRoute extends FoundationModuleRoute {
             label: 'GL.MODULE.ONBOARDING.MY_PROFILE',
             icon: 'person',
             sort_order: 10,
-            actions: [],
+            actions: this.actionPrivilege(),
             nav_position: [FoundationNavPositionEnum.ONBOARDING],
         };
     }

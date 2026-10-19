@@ -18,8 +18,10 @@
     <ng-template matMenuContent>
         @let indexColumn = service.state.indexColumn();
         @if(indexColumn) {
-            <!-- ████ ACTIVE, INACTIVE -->
             @let activeField = service.state.activeField();
+            @let deletedField = service.state.deletedField();
+
+            <!-- ████ ACTIVE, INACTIVE -->
             @if(activeField && service.state.action.hasActive()) {
                 <button
                     mat-menu-item
@@ -39,11 +41,12 @@
                 </button>
             }
 
-            <!-- ████ SOFT DELETE, RESTORE, DELETE -->
-            @let deletedField = service.state.deletedField();
-            @if(deletedField){
+            <!-- ████ DIVIDER -->
+            @if(activeField && deletedField){
                 <mat-divider></mat-divider>
             }
+
+            <!-- ████ SOFT DELETE, RESTORE, DELETE -->
             @if(deletedField && service.state.action.hasRestore()) {
                 <button
                     mat-menu-item

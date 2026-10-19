@@ -4,6 +4,12 @@ import { ActivatedRouteSnapshot, ResolveFn } from '@angular/router';
 import { LogService } from '@libs/log/service';
 import { UrlState } from '@libs/url/state';
 import { FoundationActionEnum } from '../action/enum';
+/**
+ * ⚠ NO CYCLE: area/builder.ts imports module/TYPE.ts, never this file - nor
+ * does anything it pulls in (action/route.ts, area/type.ts, nav/type.ts, the
+ * enums). @see permittedActions() for why the dependency exists at all.
+ */
+import { FoundationAreaBuilder } from '../area/builder';
 import { FoundationAreaEnum } from '../enum';
 import { FoundationNavPositionEnum } from '../nav/enum';
 import { FoundationModulePath } from './path';
@@ -68,6 +74,40 @@ export abstract class FoundationModuleRoute {
      */
     public static readonly resolvedKey = 'resolved';
 
+    // ████ ACTION PRIVILEGE ████████████████████████████████████████████
+    /**
+     * THE ONE action list this module DECLARES. the SOURCE both halves below
+     * read — not their final value.
+     *
+     * ⚠ declared here so `this` is the DERIVED class: one override feeds
+     * definition().actions AND nav().actions, the same way registryKey answers
+     * every path helper. a module spelling its list twice is what this replaced.
+     *
+     * ⚠ NOT a collapse of Rule 6, and NOT a promise the two halves match.
+     * definition() = what the module CAN do, nav() = what the user MAY do, and
+     * either is free to DERIVE from this rather than pass it through:
+     *
+     *     public static override nav(): FoundationModuleRouteNavType {
+     *         const actions = this.actionPrivilege().filter(...);
+     *         return { ..., actions, ... };
+     *     }
+     *
+     * so every consumer still reads the two concrete lists and intersects them
+     * — see FoundationAreaBuilder.effectiveActions(). nothing may shortcut to
+     * this method and call it the effective answer. when an api starts
+     * returning nav rows, nav().actions stops coming from here entirely.
+     *
+     * ⚠ this list drives the absolutePath*() helpers — declare an action here
+     * or its route was never generated.
+     *
+     * ⚠ FAIL MODE: `[]`, which denies every action. a module that never
+     * declares its own gets no action child routes and no CRUD buttons, which
+     * is visible immediately rather than exposing a capability by accident.
+     */
+    public static actionPrivilege(): FoundationActionEnum[] {
+        return [];
+    }
+
     // ████ DEFINITION ██████████████████████████████████████████████████
     /**
      * the CODE OWNED half (Rule 6): the component, the guards, the actions.
@@ -90,7 +130,7 @@ export abstract class FoundationModuleRoute {
             canActivateChild: [],
             canDeactivate: [],
             resolve: this.resolve(),
-            actions: [],
+            actions: this.actionPrivilege(),
         };
     }
 
@@ -117,11 +157,41 @@ export abstract class FoundationModuleRoute {
             label: '',
             icon: '',
             sort_order: 0,
-            actions: [],
+            actions: this.actionPrivilege(),
             hidden: true,
             active: false,
             nav_position: [FoundationNavPositionEnum.START],
         };
+    }
+
+    // ████ PERMITTED ACTIONS ███████████████████████████████████████████
+    /**
+     * Rule 6's intersection read off THIS class: definition() ∩ nav().
+     *
+     * ⚠ DELEGATES to FoundationAreaBuilder.effectiveActions() — it does NOT
+     * compute that filter again. There are exactly TWO implementations on
+     * purpose (that one for route generation, CrudActionState.permittedActions
+     * for reactive button gating) and they must agree; this adds no third.
+     *
+     * ⚠ never actionPrivilege() — that is only the SOURCE a *Route declares,
+     * and either half is free to narrow it.
+     *
+     * ⚠ a SNAPSHOT, not a signal, and that is the whole difference from
+     * CrudActionState. Use this where the answer must be written into plain
+     * data at construction time — a module's *_FIELD_OBJ. Anything that has to
+     * REACT to a change reads CrudActionState.hasPrint() & friends instead.
+     * Correct while nav() is code-owned; when nav().actions starts arriving
+     * from an api, the callers of this are what need revisiting.
+     *
+     * ⚠ `this` is the DERIVED class, like absolutePath() below — one
+     * implementation answers for every module.
+     */
+    public static permittedActions(): FoundationActionEnum[] {
+        return FoundationAreaBuilder.effectiveActions(this.definition(), this.nav());
+    }
+
+    public static hasPermittedAction(action: FoundationActionEnum): boolean {
+        return this.permittedActions().includes(action);
     }
 
     // ████ PATHS ███████████████████████████████████████████████████████

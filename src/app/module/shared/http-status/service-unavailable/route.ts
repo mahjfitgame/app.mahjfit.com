@@ -33,7 +33,7 @@ export class HttpStatusServiceUnavailableRoute extends FoundationModuleRoute {
             canDeactivate: [],
             resolve: this.resolve(),
             breadcrumbAlias: 'httpStatusServiceUnavailable',
-            actions: [],
+            actions: this.actionPrivilege(),
         };
     }
 
@@ -47,7 +47,7 @@ export class HttpStatusServiceUnavailableRoute extends FoundationModuleRoute {
             label: 'GL.MODULE.HTTP_STATUS.SERVICE_UNAVAILABLE',
             icon: 'cloud_off',
             sort_order: 10,
-            actions: [],
+            actions: this.actionPrivilege(),
             hidden: true,
             nav_position: [FoundationNavPositionEnum.START],
         };

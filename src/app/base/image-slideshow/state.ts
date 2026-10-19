@@ -185,6 +185,19 @@ export class ImageSlideshowState {
         () => this._config()?.showDownload() ?? false,
     );
 
+    /**
+     * ⚠ defaults FALSE, like showDownload above. A live toggle rather than an
+     * attach-time contract, for the same reason: it gates one plain button, not
+     * an initialised swiper instance.
+     *
+     * ⚠ NOT a permission check, and there is nothing here to make it one. The
+     * caller already resolved its module's PRINT action into the input - @see
+     * FileSlideshowType.print.
+     */
+    public readonly showPrint = computed<boolean>(
+        () => this._config()?.showPrint() ?? false,
+    );
+
     /** clamped - a caller's stale index must not blank the viewer */
     public readonly startIndex = computed<number>(() => {
         const raw = this._config()?.startIndex() ?? 0;

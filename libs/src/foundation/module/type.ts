@@ -70,6 +70,18 @@ export interface FoundationModuleRouteType {
     /** = mod_ararea_id. also decides route ownership: a foreign area's module is nav only */
     area: FoundationAreaEnum;
 
+    /**
+     * THE ONE action list this module declares — the SOURCE definition() and
+     * nav() read, which either may derive from rather than pass through.
+     *
+     * ⚠ NOT the effective answer. that is always
+     * definition().actions ∩ nav().actions — never this method.
+     *
+     * ⚠ part of the static shape, so a registry entry that drops it fails to
+     * compile (TS2418). the base supplies `[]`, so every subclass satisfies it.
+     */
+    actionPrivilege(): FoundationActionEnum[];
+
     /** CODE OWNED, camelCase */
     definition(): FoundationModuleRouteDefinitionType;
 
@@ -185,6 +197,15 @@ export interface FoundationModuleRouteNavType {
      * = te_user_authorisation_policy ⋈ te_authorisation_module_action
      * what this USER may do. Required and always intersected with
      * definition().actions; an empty array denies every action.
+     *
+     * ⚠ never a literal list. it comes from this.actionPrivilege() — either
+     * passed straight through, or DERIVED from it via a local const:
+     *
+     *     const actions = this.actionPrivilege().filter(...);
+     *
+     * ⚠ which is why no consumer may read actionPrivilege() in place of this
+     * field. this is the slot an api will fill once nav rows come from the
+     * server, at which point it stops relating to actionPrivilege() at all.
      */
     actions: FoundationActionEnum[];
 
@@ -253,6 +274,12 @@ export interface FoundationModuleRouteDefinitionType {
      * ⚠ AUTHORITATIVE (Rule 6). an api's action list is filtered against this,
      * so a policy row can never expose a capability that has no implementation
      * see FoundationAreaBuilder.effectiveActions()
+     *
+     * ⚠ never a literal list. it comes from this.actionPrivilege() — either
+     * passed straight through, or DERIVED from it via a local const. that
+     * method is the module's single declaration; this field and nav().actions
+     * are two independently readable lists that may differ, which is why no
+     * consumer may read actionPrivilege() in place of either.
      */
     actions: FoundationActionEnum[];
 

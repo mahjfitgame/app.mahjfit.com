@@ -117,6 +117,7 @@ export class ImageSlideshowDialog {
                 inputBinding('showToolbar', () => data.showToolbar ?? true),
                 // ⚠ ?? false, not ?? true - @see ImageSlideshowDataType
                 inputBinding('showDownload', () => data.showDownload ?? false),
+                inputBinding('showPrint', () => data.showPrint ?? false),
                 inputBinding('mode', () => ImageSlideshowModeEnum.DIALOG),
             ],
 

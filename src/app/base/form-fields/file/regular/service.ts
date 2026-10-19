@@ -81,7 +81,7 @@ export class FormFieldFileRegularService {
         // size is left undefined when the consumer did not set one, so the
         // slideshow applies its own FULL default rather than this file guessing
         this.imageSlideshowDialog
-            .open({ items: [item], size: config.size })
+            .open({ items: [item], size: config.size, showPrint: config.print })
             .catch((error) => this.log.error('image slideshow open failed', error));
     }
 }

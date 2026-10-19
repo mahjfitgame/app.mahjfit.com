@@ -36,7 +36,7 @@ export class GeoRoute extends FoundationModuleRoute {
             canDeactivate: [],
             resolve: this.resolve(),
             breadcrumbAlias: 'geo',
-            actions: [],
+            actions: this.actionPrivilege(),
         };
     }
 
@@ -50,7 +50,7 @@ export class GeoRoute extends FoundationModuleRoute {
             label: 'GL.MODULE.GEO.TITLE',
             icon: 'planet',
             sort_order: 30,
-            actions: [],
+            actions: this.actionPrivilege(),
             nav_position: [FoundationNavPositionEnum.START],
         };
     }

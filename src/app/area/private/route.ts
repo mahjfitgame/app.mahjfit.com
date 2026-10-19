@@ -32,7 +32,7 @@ export class PrivateAreaRoute extends FoundationModuleRoute {
             canDeactivate: [],
             resolve: this.resolve(),
             breadcrumbAlias: 'private',
-            actions: [],
+            actions: this.actionPrivilege(),
         };
     }
 
@@ -51,7 +51,7 @@ export class PrivateAreaRoute extends FoundationModuleRoute {
             label: 'GL.AREA.PRIVATE.TITLE',
             icon: 'admin_panel_settings',
             sort_order: 0,
-            actions: [],
+            actions: this.actionPrivilege(),
             hidden: true,
             default_child_key: 'DASHBOARD',
             nav_position: [FoundationNavPositionEnum.START],

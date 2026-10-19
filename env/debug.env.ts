@@ -30,9 +30,9 @@ const debugEnvironment: any = {
     BFW_API_SDK_REST_URL: 'https://localhost:20152/rest',
     BFW_API_SDK_WS_URL: 'https://localhost:20179', */
 
-    //BFW_API_SDK_GRAPHQL_URL: 'http://0.0.0.0:20147/graphql',
-    //BFW_API_SDK_REST_URL: 'http://0.0.0.0:20152/rest',
-    //BFW_API_SDK_WS_URL: 'http://0.0.0.0:20150',
+    // BFW_API_SDK_GRAPHQL_URL: 'http://0.0.0.0:20147/graphql',
+    // BFW_API_SDK_REST_URL: 'http://0.0.0.0:20152/rest',
+    // BFW_API_SDK_WS_URL: 'http://0.0.0.0:20150',
 
     // direct API on LAN (cross-site from the app, Safari blocks the session cookie)
     //BFW_API_SDK_GRAPHQL_URL: 'https://192.168.0.200:20178/graphql',

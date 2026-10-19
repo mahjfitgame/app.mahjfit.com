@@ -22,11 +22,6 @@ export class HttpStatusServiceUnavailableService implements FoundationModuleServ
             icon: 'home',
             routerLink: OpenAreaRoute.absolutePathArr(),
         },
-        {
-            label: 'GL.MODULE.PREBOARDING.SIGNIN',
-            icon: 'login',
-            routerLink: SigninRoute.absolutePathArr(),
-        },
     ];
 
     constructor() {

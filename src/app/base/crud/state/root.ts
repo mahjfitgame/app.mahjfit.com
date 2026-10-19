@@ -308,6 +308,21 @@ export abstract class CrudRootState extends SignalStateService implements Founda
             );
         }
     }
+    /**
+     * labelField()'s SELECTION — what a query must ask for so the row carries
+     * the value every action heading reads through
+     * getRecordLabelFieldValue().
+     *
+     * ⚠ A label field may be a RELATION PATH (`fr_api_auth.username`), not a
+     * column, which is why this exists at all: a relation cannot be selected
+     * as a flat key — the sdk drops it silently and the heading goes blank.
+     * getFieldRelationSelection() owns the shape, so a column answers
+     * `{ username: true }` and a path answers `{ fr_api_auth: { username:
+     * true } }` and no caller needs a dot test.
+     */
+    public getLabelFieldSelection(labelField?: string | null): Record<string, any> {
+        return this.getFieldRelationSelection([labelField ?? this.labelField()]);
+    }
 
     // ███████████████████████████████████████████████████████████████████
     // ████ HELPER ███████████████████████████████████████████████████████
@@ -379,6 +394,45 @@ export abstract class CrudRootState extends SignalStateService implements Founda
      */
     public getRecordLabelFieldValue(row: any, rowLabelField?: string | null): string | null {
         return this.getRecordFieldValue(row, rowLabelField ?? this.labelField());
+    }
+    /**
+     * Field paths as a SELECTION object — the write-side twin of
+     * getRecordFieldValue() above: that one READS a path off a row, this one
+     * BUILDS the selection that puts the value there.
+     *
+     * ANY depth, and the value is always the LAST segment, so one call covers
+     * a column and a relation alike:
+     *   `username`             -> { username: true }
+     *   `fr_api_auth.username` -> { fr_api_auth: { username: true } }
+     *   `fr_user.fr_some.id`   -> { fr_user: { fr_some: { id: true } } }
+     *
+     * ⚠ It takes the WHOLE LIST rather than one path, and that is the point:
+     * every path merges into ONE object, so two fields on the same relation
+     * (`fr_region.name` + `fr_region.code`) both survive. Spreading two
+     * separate results over each other would silently drop one.
+     */
+    public getFieldRelationSelection(fields: Array<string | null | undefined>): Record<string, any> {
+        const selection: Record<string, any> = {};
+
+        for (const field of fields) {
+            const path = field?.split('.').filter(Boolean) ?? [];
+
+            if (path.length === 0) {
+                continue;
+            }
+
+            let cursor = selection;
+
+            // every segment but the last is an object, the last one is the value
+            for (const segment of path.slice(0, -1)) {
+                cursor[segment] ??= {};
+                cursor = cursor[segment];
+            }
+
+            cursor[path[path.length - 1]] = true;
+        }
+
+        return selection;
     }
     /** Does this row have an index? False means no url, no action, no selection. */
     public hasRecordIndex(row: any): boolean {

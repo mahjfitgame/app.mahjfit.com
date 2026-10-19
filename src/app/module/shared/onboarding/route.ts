@@ -37,7 +37,7 @@ export class OnboardingRoute extends FoundationModuleRoute {
             canActivateChild: [],
             canDeactivate: [],
             resolve: this.resolve(),
-            actions: [],
+            actions: this.actionPrivilege(),
         };
     }
 
@@ -51,7 +51,7 @@ export class OnboardingRoute extends FoundationModuleRoute {
             label: 'GL.MODULE.ONBOARDING.MY_ACCOUNT',
             icon: 'account_circle',
             sort_order: 100,
-            actions: [],
+            actions: this.actionPrivilege(),
             hidden: true,                                          // ⚠ transparent, children rise
             nav_position: [FoundationNavPositionEnum.ONBOARDING],  // ⚠ ...into the avatar menu
         };

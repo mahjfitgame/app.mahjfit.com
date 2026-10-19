@@ -29,7 +29,7 @@ export class OpenAreaRoute extends FoundationModuleRoute {
             canDeactivate: [],
             resolve: this.resolve(),
             breadcrumbAlias: 'open',
-            actions: [],
+            actions: this.actionPrivilege(),
         };
     }
 
@@ -60,7 +60,7 @@ export class OpenAreaRoute extends FoundationModuleRoute {
             label: 'GL.MODULE.HOME',
             icon: 'public',
             sort_order: 0,
-            actions: [],
+            actions: this.actionPrivilege(),
             hidden: true,
             default_child_key: 'HOME',
             nav_position: [FoundationNavPositionEnum.START],

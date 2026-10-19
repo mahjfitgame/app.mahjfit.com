@@ -205,6 +205,12 @@ export interface CrudChildServiceType {
     registerSoftDelete(): void;
     registerRestore(): void;
     registerDelete(): void;
+    /**
+     * Same per-entity opt-in stance as registerUploadDelete() — a module whose
+     * entity owns no rows in another entity leaves this and deleteFrRelation()
+     * below INERT (register nothing).
+     */
+    registerDeleteFrRelation(): void;
 
     /** Sync CRUD state from URL matrix params */
     initCrudStateFromUrl(): void;
@@ -278,7 +284,14 @@ export interface CrudChildServiceType {
      */
     update(target: CrudRecordTargetType, input: CrudMutationInputType): Promise<CrudMutationResultType>;
     upload(target: CrudRecordTargetType, input: CrudMutationInputType): Promise<CrudMutationResultType>;
-    uploadDelete(target: CrudRecordTargetType, fkey: string): Promise<CrudMutationResultType>;
+    /**
+     * ⚠ BULK-CAPABLE (scalar OR array), unlike upload() above. The api's
+     * uploadDelete takes an input ARRAY and fans it out itself, so clearing
+     * the files of a whole deleted selection is ONE call — see
+     * CrudUploadDeleteHandlerType. Derive arity with Array.isArray() and pass
+     * isBulk to toAffectedResultList().
+     */
+    uploadDelete(targets: CrudRecordTargetInputType, fkey: string): Promise<CrudMutationResultType>;
 
     active(targets: CrudRecordTargetInputType): Promise<CrudMutationResultType>;
     inactive(targets: CrudRecordTargetInputType): Promise<CrudMutationResultType>;
@@ -298,4 +311,34 @@ export interface CrudChildServiceType {
     softDelete(targets: CrudRecordTargetInputType): Promise<CrudMutationResultType>;
     restore(targets: CrudRecordTargetInputType): Promise<CrudMutationResultType>;
     delete(targets: CrudRecordTargetInputType): Promise<CrudMutationResultType>;
+
+    /**
+     * Delete the rows OTHER entities hang off this record — this module's
+     * `fr_` relations — so they do not outlive it.
+     *
+     * ⚠ NOT this module's own FILE fields. CrudActionService.deleteRecordUploads()
+     * already clears those generically off UPLOAD_FIELD_OBJ. This is only for
+     * rows in a DIFFERENT entity, which the base cannot see: it has no typed
+     * accessor for another module's sdk and no way to know the foreign key.
+     *
+     * ⚠ NEVER CALLED BY THE CHILD. CrudActionService.runRecordAction() invokes
+     * the registered handler before the row mutation, so delete() stays exactly
+     * as it is and no module can forget the ordering. A false/throwing answer
+     * ABORTS the delete — with no FK constraints in the api
+     * (CREATE_FOREIGN_KEY_CONSTRAINTS = false), that abort is the only thing
+     * protecting the children.
+     *
+     * ⚠ ONE PRIVATE METHOD PER RELATION behind this one, not a loop over a
+     * config list. The three relation shapes need genuinely different calls: a
+     * maxCount > 1 child is cleared by uploadDelete alone, a maxCount === 1
+     * child needs uploadDelete AND delete because the engine only nulls its
+     * column, and a child with no uploads needs delete alone. A declarative
+     * mapper would have to encode all three and still be wrong for the fourth.
+     *
+     * ⚠ DEEPEST FIRST inside the body if a grandchild ever appears.
+     *
+     * INERT when nothing references this entity: answer { success: true } —
+     * false would abort every delete.
+     */
+    deleteFrRelation(targets: CrudRecordTargetInputType): Promise<CrudMutationResultType>;
 }

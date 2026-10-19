@@ -22,14 +22,7 @@ export class HomeRoute extends FoundationModuleRoute {
     public readonly router = inject(Router);
 
     // DEFINITION ▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬
-    /**
-     * CODE OWNED. `actions` is authoritative (Rule 6): an api's list is
-     * filtered against it, so a policy row can never expose a capability with
-     * no implementation behind it
-     *
-     * ⚠ this list also drives the absolutePath*() helpers below — declare an
-     * action here or its route was never generated
-     */
+    /** CODE OWNED */
     public static override definition(): FoundationModuleRouteDefinitionType {
         return {
             registryKey: this.registryKey,
@@ -40,7 +33,7 @@ export class HomeRoute extends FoundationModuleRoute {
             canDeactivate: [],
             resolve: this.resolve(),
             breadcrumbAlias: 'home',
-            actions: [],
+            actions: this.actionPrivilege(),
         };
     }
 
@@ -60,7 +53,7 @@ export class HomeRoute extends FoundationModuleRoute {
             label: 'GL.MODULE.HOME',
             icon: 'house',
             sort_order: 0,
-            actions: [],
+            actions: this.actionPrivilege(),
             nav_position: [FoundationNavPositionEnum.START],
         };
     }

@@ -31,7 +31,7 @@ export class HttpStatusNotFoundRoute extends FoundationModuleRoute {
             canDeactivate: [],
             resolve: this.resolve(),
             breadcrumbAlias: 'httpStatusNotFound',
-            actions: [],
+            actions: this.actionPrivilege(),
         };
     }
 
@@ -50,7 +50,7 @@ export class HttpStatusNotFoundRoute extends FoundationModuleRoute {
             label: 'GL.MODULE.HTTP_STATUS.NOT_FOUND',
             icon: 'bug_report',
             sort_order: 20,
-            actions: [],
+            actions: this.actionPrivilege(),
             hidden: true,
             nav_position: [FoundationNavPositionEnum.START],
         };

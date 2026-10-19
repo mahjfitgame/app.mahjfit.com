@@ -18,6 +18,17 @@ export class CrudActionState {
     /**
      * definition().actions is what the module implements. nav().actions is
      * what the current access policy permits. Their intersection always wins.
+     *
+     * ⚠ READ BOTH LISTS, never actionPrivilege(). they share one declaration
+     * in most modules today, but nav() is free to derive a narrowed list from
+     * it, and later an api supplies nav().actions outright.
+     *
+     * ⚠ the SAME intersection as FoundationAreaBuilder.effectiveActions(),
+     * duplicated ON PURPOSE: that one runs once at provideRouter() time to
+     * decide which action child routes exist, with no DI and no signals. this
+     * one is a reactive gate on buttons. they must agree, and neither may
+     * depend on the other — if they ever disagree, a button appears for an
+     * action whose route was never generated, so change both together.
      */
     private readonly permittedActions = computed<ReadonlySet<FoundationActionEnum>>(() => {
         const moduleRoute = this.root.moduleRoute();

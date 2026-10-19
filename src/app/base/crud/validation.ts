@@ -889,9 +889,14 @@ export class CrudValidation {
             },
 
             /**
-             * NOT normalizeSingleOptionValue(): suggestions are remote, so [option] is
-             * empty and fieldOptionHasValue() would throw every real key away as soon as the
-             * field also declares [option_default].
+             * NOT normalizeSingleOptionValue(): suggestions are remote, so [option] is no
+             * allowed-set and fieldOptionHasValue() would throw every real key away as soon
+             * as the field also declares [option_default].
+             *
+             * ⚠ It is not EMPTY any more - FormFieldAutosuggestState.publishLearnedOption()
+             * stamps the labels the control has named into it - and that changes nothing
+             * here: what it holds is what this session happened to browse, never the set of
+             * keys the api would accept. Still not something to validate or filter against.
              */
             [CrudFieldUiTypeEnum.AUTOSUGGEST]: (
                 v: any,
@@ -908,7 +913,8 @@ export class CrudValidation {
              * The array arm of AUTOSUGGEST above, and NOT normalizeMultiOptionValue():
              * that runs every entry through normalizeSingleOptionValue, whose
              * fieldOptionHasValue() would throw real keys away for the same reason the single
-             * arm avoids it - suggestions are remote, so [option] is empty.
+             * arm avoids it - suggestions are remote, so [option] is a label bag and never
+             * an allowed-set (see the note on the single arm above).
              *
              * CrudUtility.toArrayValue() does the work that matters here: the URL carries
              * ";test_autosuggest=2,3" as ONE string, and without the split it reaches

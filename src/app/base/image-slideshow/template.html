@@ -98,6 +98,35 @@
                     </a>
                 }
 
+                <!-- ████ PRINT ████ the ACTIVE slide only, one image to a page.
+
+                     ⚠ deliberately OUTSIDE the isDialog() block below - an
+                     inline viewer is just as printable, which is the stance the
+                     download button above already takes. It sits LAST before
+                     the size toggle so the dialog-only controls stay grouped at
+                     the end of the row.
+
+                     ⚠ showPrint() already carries the module's PRINT action
+                     (@see FileSlideshowType.print) - nothing here re-checks it,
+                     and nothing here could.
+
+                     ⚠ GL.ACTION.PRINT, not a new GL.SLIDESHOW.* key: that
+                     string exists in all six languages already, and this
+                     toolbar reuses GL.COMMON.DOWNLOAD / CLOSE the same way. -->
+                @if (service.state.showPrint() && current) {
+                    <button
+                        mat-icon-button
+                        type="button"
+                        [disabled]="service.isPrinting()"
+                        [attr.aria-label]="'GL.ACTION.PRINT' | transloco"
+                        [matTooltip]="'GL.ACTION.PRINT' | transloco"
+                        matTooltipPosition="below"
+                        (click)="service.printActiveImage()"
+                    >
+                        <mat-icon class="material-symbols-rounded">print</mat-icon>
+                    </button>
+                }
+
                 @if (service.state.isDialog()) {
                     <!-- ████ SIZE MENU - PARKED, NOT DEAD ████████████████████
                          The seven-stop size switcher, replaced by the plain

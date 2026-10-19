@@ -5,12 +5,16 @@ import type { SwiperContainer } from 'swiper/element';
 import type { SwiperOptions } from 'swiper/types';
 import { BREAKPOINT_SIZE_OPTIONS } from '@libs/breakpoint/const';
 import { BreakpointSizeEnum } from '@libs/breakpoint/enum';
+import { LogService } from '@libs/log/service';
+import { PrintService } from '@libs/print/service';
 import { I18nService } from '@base/internationalization/service';
 import { I18nBidiEnum } from '@base/internationalization/enum';
 import { ImageSlideshowState } from '@base/image-slideshow/state';
 import {
     DEF_IMAGE_SLIDESHOW_SWIPER,
     DEF_IMAGE_SLIDESHOW_THUMBS_SWIPER,
+    IMAGE_SLIDESHOW_PRINT_CSS,
+    IMAGE_SLIDESHOW_PRINT_DELAY,
 } from '@base/image-slideshow/const';
 import { ImageSlideshowUtility } from '@base/image-slideshow/utility';
 
@@ -28,6 +32,19 @@ export class ImageSlideshowService {
     public readonly state = inject(ImageSlideshowState);
     private readonly utility = inject(ImageSlideshowUtility);
     private readonly i18n = inject(I18nService);
+
+    /**
+     * ⚠ both are @libs - the layer this module already sits on - and NOT a new
+     * @base sibling edge. The rule is that @base/image-slideshow imports
+     * neither crud nor form-fields, which is what lets form-fields depend on
+     * IT; see .agents/coding-rules.md.
+     *
+     * ⚠ no bundle cost: app.service.ts already injects PrintService, so it is
+     * in the main bundle and this does not drag the printer plugin into the
+     * lazy slideshow chunk.
+     */
+    private readonly printService = inject(PrintService);
+    private readonly log = inject(LogService);
 
     /**
      * ⚠ OPTIONAL, and NEVER read directly - go through dialogRef().
@@ -238,6 +255,84 @@ export class ImageSlideshowService {
 
     public toggleZoom(): void {
         this.mainEl?.swiper?.zoom?.toggle();
+    }
+
+    // ████████████████████████████████████████████████████████████████████
+    // ███ PRINT ██████████████████████████████████████████████████████████
+    // ████████████████████████████████████████████████████████████████████
+    /**
+     * A print job is running - the toolbar button disables on it.
+     *
+     * A plain method rather than a signal of its own: the one source of truth
+     * is PrintState, and state.ts owns no copy of another module's signal.
+     * Reading it through here still tracks, exactly like dir() above.
+     */
+    public isPrinting(): boolean {
+        return this.printService.state.isPrinting();
+    }
+
+    /**
+     * Prints the ACTIVE slide, one image to a page. Not the group: the thumbs
+     * strip is the affordance for choosing, and a twelve-page print is a
+     * different feature with a different button.
+     *
+     * ⚠ html() and NOT element(). element()'s native path (PrintService.
+     * printLive) mounts a clone on <body> and prints the LIVE document, which
+     * never reads PrintOptionsType.css - so the sheet would be laid out by app
+     * CSS on device and by ours in the browser. html() reaches
+     * Printer.printHtml instead, which builds its own document, so carrying the
+     * <style> INSIDE the string is what gives both platforms one layout.
+     *
+     * ⚠ the markup is built as a DOM node and read back through outerHTML,
+     * never string-interpolated. html() writes the string in as-is (its manual
+     * says so) and [src] is an api url with a query string - outerHTML escapes
+     * both it and [alt] by construction. CrudUtility.escapeHtml is the repo's
+     * only escaper and is not reachable from this layer anyway.
+     *
+     * ⚠ nothing here re-checks permission. @see FileSlideshowType.print - the
+     * caller resolved its module's PRINT action before the input was bound.
+     */
+    public async printActiveImage(): Promise<void> {
+        const item = this.state.activeItem();
+
+        if (!item?.src) return;
+
+        const img = document.createElement('img');
+        img.src = item.src;
+        img.alt = item.alt ?? '';
+
+        /**
+         * ⚠ warms the cache BEFORE the print document requests the same url.
+         * PrintService.whenReadyToPrint() waits for stylesheets only, never for
+         * images, and a picture that has not arrived prints a blank sheet.
+         *
+         * A rejection is NOT fatal and is swallowed on purpose: the print
+         * document issues its own request regardless, so a failed decode costs
+         * the pre-warm, not the print.
+         */
+        await img.decode().catch(() => undefined);
+
+        const result = await this.printService.html(
+            `<style>${IMAGE_SLIDESHOW_PRINT_CSS}</style>${img.outerHTML}`,
+            {
+                title: item.name || item.alt || document.title,
+                // the sheet is deliberately theme-free - see the css const
+                useAppStyles: false,
+                delay: IMAGE_SLIDESHOW_PRINT_DELAY,
+            },
+        );
+
+        /**
+         * `busy` is a second click while the dialog is open - nothing went
+         * wrong, and the button is already disabled on isPrinting() anyway.
+         *
+         * Logged rather than notified: @base/notify would be a new base->base
+         * edge for a failure that cannot normally happen, and PrintService has
+         * already logged the technical cause - this only names the caller.
+         */
+        if (!result.ok && !result.busy) {
+            this.log.error('[PRINT SLIDESHOW IMAGE FAILED]', result.error);
+        }
     }
 
     // ████████████████████████████████████████████████████████████████████

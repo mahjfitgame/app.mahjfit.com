@@ -2,6 +2,7 @@ import { Component, computed, inject } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDividerModule } from '@angular/material/divider';
 import { MatIconModule } from '@angular/material/icon';
+import { MatTooltipModule } from '@angular/material/tooltip';
 import { TranslocoModule } from '@jsverse/transloco';
 import { CrudFieldInfoType } from '@base/crud/type';
 import { CrudFieldUiTypeEnum } from '@base/crud/enum';
@@ -12,7 +13,7 @@ import { CrudService } from 'src/app/base/crud/service/entry';
   standalone: true,
   templateUrl: './template.html',
   styleUrl: './style.scss',
-  imports: [MatButtonModule, MatDividerModule, MatIconModule, TranslocoModule],
+  imports: [MatButtonModule, MatDividerModule, MatIconModule, MatTooltipModule, TranslocoModule],
 })
 export class CrudViewRecordComponent {
   public readonly service = inject(CrudService);

@@ -82,6 +82,8 @@ export class ImageSlideshowComponent {
     public readonly showToolbar = input<boolean>(true);
     /** ⚠ FALSE by default, unlike the two above - see ImageSlideshowDataType */
     public readonly showDownload = input<boolean>(false);
+    /** ⚠ FALSE by default too, and already gated on the caller's PRINT action */
+    public readonly showPrint = input<boolean>(false);
 
     // ████ SHELL █████████████████████████████████████████████████████████
     /** ⚠ set to DIALOG only by ImageSlideshowDialog - never by a page */
@@ -117,6 +119,7 @@ export class ImageSlideshowComponent {
             showThumbs: this.showThumbs,
             showToolbar: this.showToolbar,
             showDownload: this.showDownload,
+            showPrint: this.showPrint,
         });
 
         /**

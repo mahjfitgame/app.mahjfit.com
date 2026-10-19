@@ -312,6 +312,32 @@ export class FormFieldAutosuggestState {
     public readonly displayWith = computed(() => this.createDisplayWith(this.seed()));
 
     /**
+     * key => label, everything this control has NAMED: rows it rendered, valueLoader
+     * answers, and the caller's own seed - [label] is fed by all three (option(),
+     * learn()/learnRow(), createDisplayWith()).
+     *
+     * This is the autosuggest's answer to the bag a SELECT holds outright, and what
+     * publishLearnedOption() hands back through [option].
+     *
+     * ⚠ [_learned], [optionEntry] and [groupEntry] are read for their DEPENDENCIES:
+     * [label] is a plain Map, so nothing about filling it moves a signal by itself -
+     * the same spend selectedChips() and customSaveGroup() already make. Reading the
+     * two entry computeds is also what RUNS the normalizer that writes those labels,
+     * so the snapshot below is taken after them and never one result behind.
+     *
+     * ⚠ It must NOT read seed() or displayWith(). Once published, [option] IS this
+     * computed, and seed() reads [option] - reading it back here would close the loop
+     * into a cyclic computed.
+     */
+    public readonly learnedOption = computed<Record<string, string>>(() => {
+        this._learned();
+        this.optionEntry();
+        this.groupEntry();
+
+        return Object.fromEntries(this.label);
+    });
+
+    /**
      * the 'no match' row.
      *
      * NOT shown while the resource is idle: a cold field would otherwise greet the user
@@ -536,6 +562,51 @@ export class FormFieldAutosuggestState {
          * One shape, one `where id IN (…)`, both modes.
          */
         this.resolveValue(cold, valueLoader);
+    });
+
+    /**
+     * Hand [learnedOption] back through [option] - the autosuggest half of the contract
+     * form-field-select implements as publishLoadedOption().
+     *
+     * The SIGNAL, not its current value, for the same reason select publishes the
+     * resource: a label learned later (valueLoader answering for the key a form opened
+     * on) has to reach the caller without anything being pushed again. CRUD's
+     * (optionChange) writes it to finfo.option, so a module can read a picked key's
+     * label with utility.flatOption() - the same call GeoCountryService already makes
+     * for its SELECT fields.
+     *
+     * ⚠ A LOADER is what makes this control the owner of the bag, which is the same
+     * line form-field-select draws ("if (!config?.optionLoader()) return"). Without one
+     * there is nothing of this control's own to publish: the caller's bag IS the bag,
+     * and it is left exactly as declared.
+     *
+     * ⚠ It must NOT instead stand down on "the current value looks like someone else's
+     * bag". A dialog that is closed and reopened destroys this control and keeps the
+     * FIELD OBJECT, so the next mount is handed its predecessor's published bag - which
+     * is indistinguishable from a caller's signal. Standing down there left a destroyed
+     * instance's labels where the module reads them, and every save after the first
+     * reopen named nothing. A fresh mount publishes over it instead: its own [label] is
+     * the only honest answer for the form on screen.
+     */
+    private readonly publishLearnedOption = effect(() => {
+        const config = this.config();
+
+        if (!config) return;
+
+        // not this control's bag to publish
+        if (!config.optionLoader() && !config.valueLoader()) return;
+
+        /**
+         * Nothing named yet. Publishing an empty bag here would replace the caller's
+         * [option] seed before seed() had copied it into [label] - the one way this
+         * could lose a label rather than add one.
+         */
+        if (Object.keys(this.learnedOption()).length === 0) return;
+
+        // already ours
+        if (config.option() === this.learnedOption) return;
+
+        config.option.set(this.learnedOption);
     });
 
     /**

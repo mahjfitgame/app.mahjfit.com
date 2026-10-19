@@ -160,6 +160,18 @@ export class ConfService {
     public get fileFormatCad(): Record<string, string> {
         return this._conf.FILE_FORMAT_CAD;
     }
+    public get fileFormatAll(): Record<string, string> {
+        return {
+            ...this.fileFormatImage,
+            ...this.fileFormatDoc,
+            ...this.fileFormatAudio,
+            ...this.fileFormatVideo,
+            ...this.fileFormatCode,
+            ...this.fileFormatExecutable,
+            ...this.fileFormatGraphics,
+            ...this.fileFormatCad
+        };
+    }
 
     // ████ PUBLIC █ INDEPENDENT █████████████████████████████████████████████
 

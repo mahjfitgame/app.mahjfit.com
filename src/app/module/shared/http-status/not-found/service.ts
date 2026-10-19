@@ -22,11 +22,6 @@ export class HttpStatusNotFoundService implements FoundationModuleServiceType {
             icon: 'home',
             routerLink: OpenAreaRoute.absolutePathArr(),
         },
-        {
-            label: 'GL.MODULE.PREBOARDING.SIGNIN',
-            icon: 'login',
-            routerLink: SigninRoute.absolutePathArr(),
-        },
     ];
 
     constructor() {
