@@ -92,6 +92,8 @@ export class GameService implements FoundationModuleServiceType {
         };
     }
 
+    // OLDCODE
+    /*
     public assetBaseName(tile: TileEntityGSDto): string {
         switch (tile.category as any as TileCategoryEnumAddon) {
             case TileCategoryEnumAddon.SUITED: // Suits
@@ -118,6 +120,37 @@ export class GameService implements FoundationModuleServiceType {
         }
 
         throw new Error(`Invalid tile asset data: ${JSON.stringify(tile)}`);
+    }
+    */
+    // NEWCODE
+    public assetBaseName(tile: TileEntityGSDto): string {
+        if (!tile || tile.category == null) return "";
+
+        switch (tile.category as any as TileCategoryEnumAddon) {
+            case TileCategoryEnumAddon.SUITED: // Suits
+                if (tile.type as any as TileTypeEnumAddon === TileTypeEnumAddon.BAM) return `bam_${tile.rank}`;
+                if (tile.type as any as TileTypeEnumAddon === TileTypeEnumAddon.CHAR) return `char_${tile.rank}`;
+                if (tile.type as any as TileTypeEnumAddon === TileTypeEnumAddon.DOT) return `dot_${tile.rank}`;
+                break;
+            case TileCategoryEnumAddon.WIND: // Winds
+                if (tile.type as any as TileTypeEnumAddon === TileTypeEnumAddon.WIND_EAST) return "wind_e";
+                if (tile.type as any as TileTypeEnumAddon === TileTypeEnumAddon.WIND_SOUTH) return "wind_s";
+                if (tile.type as any as TileTypeEnumAddon === TileTypeEnumAddon.WIND_WEST) return "wind_w";
+                if (tile.type as any as TileTypeEnumAddon === TileTypeEnumAddon.WIND_NORTH) return "wind_n";
+                break;
+            case TileCategoryEnumAddon.DRAGON: // Dragons
+                if (tile.type as any as TileTypeEnumAddon === TileTypeEnumAddon.DRAGON_RED) return "dragon_red";
+                if (tile.type as any as TileTypeEnumAddon === TileTypeEnumAddon.DRAGON_GREEN) return "dragon_green";
+                if (tile.type as any as TileTypeEnumAddon === TileTypeEnumAddon.DRAGON_WHITE) return "dragon_white";
+                break;
+            case TileCategoryEnumAddon.FLOWER: // Flowers
+                return `flower_${tile.rank}`;
+            case TileCategoryEnumAddon.JOKER: // Jokers
+                // There are 8 joker images (joker_1.png to joker_8.png), mapping by rank or just 1
+                return `joker_${tile.rank || 1}`;
+        }
+
+        return "";
     }
 
     private isMobilePortraitOnly(): boolean {
