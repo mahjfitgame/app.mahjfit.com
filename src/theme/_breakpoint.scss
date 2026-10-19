@@ -1,0 +1,116 @@
+// file: src/theme/_breakpoint.scss
+
+/**
+ * Breakpoints
+ * Keep these aligned with Angular + Tailwind
+ */
+/* if you change breakpoint also change in: src/tailwind.css */
+$bfw-breakpoint-min-sm: 37.5rem;   // 600px
+$bfw-breakpoint-min-md: 60rem;     // 960px
+$bfw-breakpoint-min-lg: 80rem;     // 1280px
+$bfw-breakpoint-min-xl: 105rem;    // 1680px
+$bfw-breakpoint-min-xxl: 140rem;   // 2240px
+
+/* ---------- Up ---------- */
+@mixin bfw-sm-and-up {
+  @media screen and (min-width: #{$bfw-breakpoint-min-sm}) {
+    @content;
+  }
+}
+
+@mixin bfw-md-and-up {
+  @media screen and (min-width: #{$bfw-breakpoint-min-md}) {
+    @content;
+  }
+}
+
+@mixin bfw-lg-and-up {
+  @media screen and (min-width: #{$bfw-breakpoint-min-lg}) {
+    @content;
+  }
+}
+
+@mixin bfw-xl-and-up {
+  @media screen and (min-width: #{$bfw-breakpoint-min-xl}) {
+    @content;
+  }
+}
+
+@mixin bfw-xxl-and-up {
+  @media screen and (min-width: #{$bfw-breakpoint-min-xxl}) {
+    @content;
+  }
+}
+
+/* ---------- Down ---------- */
+/* derived from the next min breakpoint */
+
+@mixin bfw-xs-and-down {
+  @media screen and (max-width: calc(#{$bfw-breakpoint-min-sm} - 0.02px)) {
+    @content;
+  }
+}
+
+@mixin bfw-sm-and-down {
+  @media screen and (max-width: calc(#{$bfw-breakpoint-min-md} - 0.02px)) {
+    @content;
+  }
+}
+
+@mixin bfw-md-and-down {
+  @media screen and (max-width: calc(#{$bfw-breakpoint-min-lg} - 0.02px)) {
+    @content;
+  }
+}
+
+@mixin bfw-lg-and-down {
+  @media screen and (max-width: calc(#{$bfw-breakpoint-min-xl} - 0.02px)) {
+    @content;
+  }
+}
+
+@mixin bfw-xl-and-down {
+  @media screen and (max-width: calc(#{$bfw-breakpoint-min-xxl} - 0.02px)) {
+    @content;
+  }
+}
+
+/* xxl-and-down = everything, so usually useless */
+
+/* ---------- Only ---------- */
+
+@mixin bfw-xs-only {
+  @include bfw-xs-and-down {
+    @content;
+  }
+}
+
+@mixin bfw-sm-only {
+  @media screen and (min-width: #{$bfw-breakpoint-min-sm}) and (max-width: calc(#{$bfw-breakpoint-min-md} - 0.02px)) {
+    @content;
+  }
+}
+
+@mixin bfw-md-only {
+  @media screen and (min-width: #{$bfw-breakpoint-min-md}) and (max-width: calc(#{$bfw-breakpoint-min-lg} - 0.02px)) {
+    @content;
+  }
+}
+
+@mixin bfw-lg-only {
+  @media screen and (min-width: #{$bfw-breakpoint-min-lg}) and (max-width: calc(#{$bfw-breakpoint-min-xl} - 0.02px)) {
+    @content;
+  }
+}
+
+@mixin bfw-xl-only {
+  @media screen and (min-width: #{$bfw-breakpoint-min-xl}) and (max-width: calc(#{$bfw-breakpoint-min-xxl} - 0.02px)) {
+    @content;
+  }
+}
+
+@mixin bfw-xxl-only {
+  @include bfw-xxl-and-up {
+    @content;
+  }
+}

@@ -1,0 +1,51 @@
+// file: src/theme/_utility.scss
+
+/*
+⚠ SHARED across every theme - moved out of each theme's own _color.scss because both open
+and private declared this exact same block verbatim. It sets no theme-specific colour, only
+the OS-level color-scheme hint and the .bfw-light/.bfw-dark visibility toggle, so there is
+nothing here for an individual theme to own.
+*/
+// ███ LIGHT - DARK █████████████████████████████████████████████████
+/*
+⚠ html, not body - html is the ROOT element, and it's the root's OWN computed
+color-scheme (not an inherited one) that the browser uses for the viewport's native
+scrollbar / overscroll chrome. body inherits this as its bootstrap default until one of
+the data-bfw-theme-mode rules below resolves it to an explicit light/dark.
+*/
+html {
+  color-scheme: light dark;
+}
+
+body[data-bfw-theme-mode='light'] {
+  color-scheme: light;
+
+  .bfw-light { display: none; }
+  .bfw-dark  { display: inline-block; }
+}
+
+body[data-bfw-theme-mode='dark'] {
+  color-scheme: dark;
+
+  .bfw-light { display: block; }
+  .bfw-dark  { display: none; }
+}
+
+@keyframes bfw-alert-blink {
+  0%,
+  100% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0.2;
+  }
+}
+
+.bfw-alert-blink {
+  animation: bfw-alert-blink 0.5s ease-in-out 5;
+}
+
+.bfw-blink {
+  animation: bfw-alert-blink 1s ease-in-out infinite;
+}
