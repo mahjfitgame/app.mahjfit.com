@@ -48,6 +48,12 @@ export const FONT_FAMILY = "Poppins, Arial";
 
 export const ANIMATION_SPEED = 900;
 
+/* NEWCODE */
+export const CLAIM_DISCARD_FLIGHT_MS = 280;
+export const CLAIM_RECOGNITION_BEAT_MS = 340;
+export const CLAIM_TRANSFER_FLIGHT_MS = 320;
+/* NEWCODE */
+
 
 
 

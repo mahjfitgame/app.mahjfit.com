@@ -37,92 +37,144 @@ OLDCODE -->
     <div class="debug-content">
       <div class="debug-section">
         <div class="debug-section-title">Game Info</div>
-        <div class="debug-row"><span class="debug-key">game_id:</span> <span class="debug-val">{{ service.state.game_id() }}</span></div>
-        <div class="debug-row"><span class="debug-key">game_keyid:</span> <span class="debug-val">{{ service.state.game_keyid() }}</span></div>
-        <div class="debug-row"><span class="debug-key">game_mode:</span> <span class="debug-val">{{ service.state.game_mode() }}</span></div>
-        <div class="debug-row"><span class="debug-key">game_botlvl_id:</span> <span class="debug-val">{{ service.state.game_botlvl_id() }}</span></div>
-        <div class="debug-row"><span class="debug-key">defaultTileStyleKeyid:</span> <span class="debug-val">{{ service.state.defaultTileStyleKeyid() }}</span></div>
-        <div class="debug-row"><span class="debug-key">tileStyle:</span> <span class="debug-val">{{ service.state.tileStyle() | json }}</span></div>
-        <div class="debug-row"><span class="debug-key">game_bot_profile:</span> <span class="debug-val">{{ service.state.game_bot_profile() | json }}</span></div>
+        <div class="debug-row"><span class="debug-key">game_id:</span> <span class="debug-val">{{
+            service.state.game_id() }}</span></div>
+        <div class="debug-row"><span class="debug-key">game_keyid:</span> <span class="debug-val">{{
+            service.state.game_keyid() }}</span></div>
+        <div class="debug-row"><span class="debug-key">game_mode:</span> <span class="debug-val">{{
+            service.state.game_mode() }}</span></div>
+        <div class="debug-row"><span class="debug-key">game_botlvl_id:</span> <span class="debug-val">{{
+            service.state.game_botlvl_id() }}</span></div>
+        <div class="debug-row"><span class="debug-key">defaultTileStyleKeyid:</span> <span class="debug-val">{{
+            service.state.defaultTileStyleKeyid() }}</span></div>
+        <div class="debug-row"><span class="debug-key">tileStyle:</span> <span class="debug-val">{{
+            service.state.tileStyle() | json }}</span></div>
+        <div class="debug-row"><span class="debug-key">game_bot_profile:</span> <span class="debug-val">{{
+            service.state.game_bot_profile() | json }}</span></div>
       </div>
 
       <div class="debug-section">
         <div class="debug-section-title">Turn & Actions</div>
-        <div class="debug-row"><span class="debug-key">play_phase:</span> <span class="debug-val">{{ service.state.play_phase() }}</span></div>
-        <div class="debug-row"><span class="debug-key">play_turn_stage:</span> <span class="debug-val">{{ service.state.play_turn_stage() }}</span></div>
-        <div class="debug-row"><span class="debug-key">play_current_turn_seat_id:</span> <span class="debug-val">{{ service.state.play_current_turn_seat_id() }}</span></div>
-        <div class="debug-row"><span class="debug-key">play_current_turn_rack_id:</span> <span class="debug-val">{{ service.state.play_current_turn_rack_id() }}</span></div>
-        <div class="debug-row"><span class="debug-key">play_current_turn_u_id:</span> <span class="debug-val">{{ service.state.play_current_turn_u_id() }}</span></div>
-        <div class="debug-row"><span class="debug-key">canDiscard:</span> <span class="debug-val">{{ service.state.canDiscard() }}</span></div>
-        <div class="debug-row"><span class="debug-key">canPickTile:</span> <span class="debug-val">{{ service.state.canPickTile() }}</span></div>
-        <div class="debug-row"><span class="debug-key">play_round_count:</span> <span class="debug-val">{{ service.state.play_round_count() }}</span></div>
-        <div class="debug-row"><span class="debug-key">play_wall_count:</span> <span class="debug-val">{{ service.state.play_wall_count() }}</span></div>
-        <div class="debug-row"><span class="debug-key">play_action_error:</span> <span class="debug-val">{{ service.state.play_action_error() | json }}</span></div>
+        <div class="debug-row"><span class="debug-key">play_phase:</span> <span class="debug-val">{{
+            service.state.play_phase() }}</span></div>
+        <div class="debug-row"><span class="debug-key">play_turn_stage:</span> <span class="debug-val">{{
+            service.state.play_turn_stage() }}</span></div>
+        <div class="debug-row"><span class="debug-key">play_current_turn_seat_id:</span> <span class="debug-val">{{
+            service.state.play_current_turn_seat_id() }}</span></div>
+        <div class="debug-row"><span class="debug-key">play_current_turn_rack_id:</span> <span class="debug-val">{{
+            service.state.play_current_turn_rack_id() }}</span></div>
+        <div class="debug-row"><span class="debug-key">play_current_turn_u_id:</span> <span class="debug-val">{{
+            service.state.play_current_turn_u_id() }}</span></div>
+        <div class="debug-row"><span class="debug-key">canDiscard:</span> <span class="debug-val">{{
+            service.state.canDiscard() }}</span></div>
+        <div class="debug-row"><span class="debug-key">canPickTile:</span> <span class="debug-val">{{
+            service.state.canPickTile() }}</span></div>
+        <div class="debug-row"><span class="debug-key">play_round_count:</span> <span class="debug-val">{{
+            service.state.play_round_count() }}</span></div>
+        <div class="debug-row"><span class="debug-key">play_wall_count:</span> <span class="debug-val">{{
+            service.state.play_wall_count() }}</span></div>
+        <div class="debug-row"><span class="debug-key">play_action_error:</span> <span class="debug-val">{{
+            service.state.play_action_error() | json }}</span></div>
       </div>
 
-      <div class="debug-section">
+      <!--  <div class="debug-section">
         <div class="debug-section-title">Discards & Claims</div>
         <div class="debug-row"><span class="debug-key">play_discards_tiles:</span> <span class="debug-val">{{ service.state.play_discards_tiles() | json }}</span></div>
         <div class="debug-row"><span class="debug-key">play_claim_from_seat:</span> <span class="debug-val">{{ service.state.play_claim_from_seat() }}</span></div>
         <div class="debug-row"><span class="debug-key">play_claim_tile:</span> <span class="debug-val">{{ service.state.play_claim_tile() | json }}</span></div>
         <div class="debug-row"><span class="debug-key">active_claim:</span> <span class="debug-val">{{ service.state.active_claim() | json }}</span></div>
         <div class="debug-row"><span class="debug-key">active_table_position:</span> <span class="debug-val">{{ service.state.active_table_position() }}</span></div>
-      </div>
+      </div> -->
 
-      <div class="debug-section">
+      <!-- <div class="debug-section">
         <div class="debug-section-title">Charleston & Passing</div>
-        <div class="debug-row"><span class="debug-key">play_pass_count:</span> <span class="debug-val">{{ service.state.play_pass_count() }}</span></div>
-        <div class="debug-row"><span class="debug-key">play_pass_direction:</span> <span class="debug-val">{{ service.state.play_pass_direction() }}</span></div>
-        <div class="debug-row"><span class="debug-key">play_pass_round:</span> <span class="debug-val">{{ service.state.play_pass_round() }}</span></div>
-        <div class="debug-row"><span class="debug-key">play_pass_stage:</span> <span class="debug-val">{{ service.state.play_pass_stage() }}</span></div>
-        <div class="debug-row"><span class="debug-key">charlestonState:</span> <span class="debug-val">{{ service.state.charlestonState() | json }}</span></div>
-      </div>
+        <div class="debug-row"><span class="debug-key">play_pass_count:</span> <span class="debug-val">{{
+            service.state.play_pass_count() }}</span></div>
+        <div class="debug-row"><span class="debug-key">play_pass_direction:</span> <span class="debug-val">{{
+            service.state.play_pass_direction() }}</span></div>
+        <div class="debug-row"><span class="debug-key">play_pass_round:</span> <span class="debug-val">{{
+            service.state.play_pass_round() }}</span></div>
+        <div class="debug-row"><span class="debug-key">play_pass_stage:</span> <span class="debug-val">{{
+            service.state.play_pass_stage() }}</span></div>
+        <div class="debug-row"><span class="debug-key">charlestonState:</span> <span class="debug-val">{{
+            service.state.charlestonState() | json }}</span></div>
+      </div> -->
 
-      <div class="debug-section">
+      <!-- <div class="debug-section">
         <div class="debug-section-title">Seats & Mapping</div>
-        <div class="debug-row"><span class="debug-key">personal_seat_index:</span> <span class="debug-val">{{ service.state.personal_seat_index() }}</span></div>
-        <div class="debug-row"><span class="debug-key">personal_seat_id:</span> <span class="debug-val">{{ service.state.personal_seat_id() }}</span></div>
-        <div class="debug-row"><span class="debug-key">personal_seat_u_id:</span> <span class="debug-val">{{ service.state.personal_seat_u_id() }}</span></div>
-        <div class="debug-row"><span class="debug-key">seat_position_by_gseat_id:</span> <span class="debug-val">{{ service.state.seat_position_by_gseat_id() ? 'Active' : 'None' }}</span></div>
-        <div class="debug-row"><span class="debug-key">ordered_seats:</span> <span class="debug-val">{{ service.state.ordered_seats() | json }}</span></div>
-        <div class="debug-row"><span class="debug-key">seat_mapping:</span> <span class="debug-val">{{ service.state.seat_mapping() | json }}</span></div>
-        <div class="debug-row"><span class="debug-key">all_seat_dead_states:</span> <span class="debug-val">{{ service.state.all_seat_dead_states() | json }}</span></div>
-        <div class="debug-row"><span class="debug-key">all_seat_exposures:</span> <span class="debug-val">{{ service.state.all_seat_exposures() | json }}</span></div>
-        <div class="debug-row"><span class="debug-key">play_seats:</span> <span class="debug-val">{{ service.state.play_seats() | json }}</span></div>
-      </div>
+        <div class="debug-row"><span class="debug-key">personal_seat_index:</span> <span class="debug-val">{{
+            service.state.personal_seat_index() }}</span></div>
+        <div class="debug-row"><span class="debug-key">personal_seat_id:</span> <span class="debug-val">{{
+            service.state.personal_seat_id() }}</span></div>
+        <div class="debug-row"><span class="debug-key">personal_seat_u_id:</span> <span class="debug-val">{{
+            service.state.personal_seat_u_id() }}</span></div>
+        <div class="debug-row"><span class="debug-key">seat_position_by_gseat_id:</span> <span class="debug-val">{{
+            service.state.seat_position_by_gseat_id() ? 'Active' : 'None' }}</span></div>
+        <div class="debug-row"><span class="debug-key">ordered_seats:</span> <span class="debug-val">{{
+            service.state.ordered_seats() | json }}</span></div>
+        <div class="debug-row"><span class="debug-key">seat_mapping:</span> <span class="debug-val">{{
+            service.state.seat_mapping() | json }}</span></div>
+        <div class="debug-row"><span class="debug-key">all_seat_dead_states:</span> <span class="debug-val">{{
+            service.state.all_seat_dead_states() | json }}</span></div>
+        <div class="debug-row"><span class="debug-key">all_seat_exposures:</span> <span class="debug-val">{{
+            service.state.all_seat_exposures() | json }}</span></div>
+        <div class="debug-row"><span class="debug-key">play_seats:</span> <span class="debug-val">{{
+            service.state.play_seats() | json }}</span></div>
+      </div> -->
 
-      <div class="debug-section">
+      <!-- <div class="debug-section">
         <div class="debug-section-title">Personal Seat Actions</div>
-        <div class="debug-row"><span class="debug-key">personal_seat:</span> <span class="debug-val">{{ service.state.personal_seat() | json }}</span></div>
-        <div class="debug-row"><span class="debug-key">personal_pass:</span> <span class="debug-val">{{ service.state.personal_pass() | json }}</span></div>
-        <div class="debug-row"><span class="debug-key">personal_pass_submissions:</span> <span class="debug-val">{{ service.state.personal_pass_submissions() | json }}</span></div>
-        <div class="debug-row"><span class="debug-key">personal_pass_second_votes:</span> <span class="debug-val">{{ service.state.personal_pass_second_votes() | json }}</span></div>
-        <div class="debug-row"><span class="debug-key">personal_claim:</span> <span class="debug-val">{{ service.state.personal_claim() | json }}</span></div>
-        <div class="debug-row"><span class="debug-key">personal_claim_target_seat:</span> <span class="debug-val">{{ service.state.personal_claim_target_seat() | json }}</span></div>
-        <div class="debug-row"><span class="debug-key">personal_claim_submission:</span> <span class="debug-val">{{ service.state.personal_claim_submission() | json }}</span></div>
+        <div class="debug-row"><span class="debug-key">personal_seat:</span> <span class="debug-val">{{
+            service.state.personal_seat() | json }}</span></div>
+        <div class="debug-row"><span class="debug-key">personal_pass:</span> <span class="debug-val">{{
+            service.state.personal_pass() | json }}</span></div>
+        <div class="debug-row"><span class="debug-key">personal_pass_submissions:</span> <span class="debug-val">{{
+            service.state.personal_pass_submissions() | json }}</span></div>
+        <div class="debug-row"><span class="debug-key">personal_pass_second_votes:</span> <span class="debug-val">{{
+            service.state.personal_pass_second_votes() | json }}</span></div>
+        <div class="debug-row"><span class="debug-key">personal_claim:</span> <span class="debug-val">{{
+            service.state.personal_claim() | json }}</span></div>
+        <div class="debug-row"><span class="debug-key">personal_claim_target_seat:</span> <span class="debug-val">{{
+            service.state.personal_claim_target_seat() | json }}</span></div>
+        <div class="debug-row"><span class="debug-key">personal_claim_submission:</span> <span class="debug-val">{{
+            service.state.personal_claim_submission() | json }}</span></div>
       </div>
-
-      <div class="debug-section">
+ -->
+      <!-- <div class="debug-section">
         <div class="debug-section-title">Personal Rack 1</div>
-        <div class="debug-row"><span class="debug-key">is_mahjong:</span> <span class="debug-val">{{ service.state.personal_seat_rack_first_is_mahjong() }}</span></div>
-        <div class="debug-row"><span class="debug-key">is_locked:</span> <span class="debug-val">{{ service.state.personal_seat_rack_first_is_locked() }}</span></div>
-        <div class="debug-row"><span class="debug-key">is_dead:</span> <span class="debug-val">{{ service.state.personal_seat_rack_first_is_dead() }}</span></div>
-        <div class="debug-row"><span class="debug-key">dead_info:</span> <span class="debug-val">{{ service.state.personal_seat_rack_first_dead_info() | json }}</span></div>
-        <div class="debug-row"><span class="debug-key">hand_order:</span> <span class="debug-val">{{ service.state.personal_seat_rack_first_hand_order() | json }}</span></div>
-        <div class="debug-row"><span class="debug-key">hand:</span> <span class="debug-val">{{ service.state.personal_seat_rack_first_hand() | json }}</span></div>
-        <div class="debug-row"><span class="debug-key">exposures_meld:</span> <span class="debug-val">{{ service.state.personal_seat_rack_first_exposures_meld() | json }}</span></div>
-      </div>
+        <div class="debug-row"><span class="debug-key">is_mahjong:</span> <span class="debug-val">{{
+            service.state.personal_seat_rack_first_is_mahjong() }}</span></div>
+        <div class="debug-row"><span class="debug-key">is_locked:</span> <span class="debug-val">{{
+            service.state.personal_seat_rack_first_is_locked() }}</span></div>
+        <div class="debug-row"><span class="debug-key">is_dead:</span> <span class="debug-val">{{
+            service.state.personal_seat_rack_first_is_dead() }}</span></div>
+        <div class="debug-row"><span class="debug-key">dead_info:</span> <span class="debug-val">{{
+            service.state.personal_seat_rack_first_dead_info() | json }}</span></div>
+        <div class="debug-row"><span class="debug-key">hand_order:</span> <span class="debug-val">{{
+            service.state.personal_seat_rack_first_hand_order() | json }}</span></div>
+        <div class="debug-row"><span class="debug-key">hand:</span> <span class="debug-val">{{
+            service.state.personal_seat_rack_first_hand() | json }}</span></div>
+        <div class="debug-row"><span class="debug-key">exposures_meld:</span> <span class="debug-val">{{
+            service.state.personal_seat_rack_first_exposures_meld() | json }}</span></div>
+      </div> -->
 
-      <div class="debug-section">
+      <!--  <div class="debug-section">
         <div class="debug-section-title">Personal Rack 2</div>
-        <div class="debug-row"><span class="debug-key">is_mahjong:</span> <span class="debug-val">{{ service.state.personal_seat_rack_second_is_mahjong() }}</span></div>
-        <div class="debug-row"><span class="debug-key">is_locked:</span> <span class="debug-val">{{ service.state.personal_seat_rack_second_is_locked() }}</span></div>
-        <div class="debug-row"><span class="debug-key">is_dead:</span> <span class="debug-val">{{ service.state.personal_seat_rack_second_is_dead() }}</span></div>
-        <div class="debug-row"><span class="debug-key">dead_info:</span> <span class="debug-val">{{ service.state.personal_seat_rack_second_dead_info() | json }}</span></div>
-        <div class="debug-row"><span class="debug-key">hand_order:</span> <span class="debug-val">{{ service.state.personal_seat_rack_second_hand_order() | json }}</span></div>
-        <div class="debug-row"><span class="debug-key">hand:</span> <span class="debug-val">{{ service.state.personal_seat_rack_second_hand() | json }}</span></div>
-        <div class="debug-row"><span class="debug-key">exposures_meld:</span> <span class="debug-val">{{ service.state.personal_seat_rack_second_exposures_meld() | json }}</span></div>
-      </div>
+        <div class="debug-row"><span class="debug-key">is_mahjong:</span> <span class="debug-val">{{
+            service.state.personal_seat_rack_second_is_mahjong() }}</span></div>
+        <div class="debug-row"><span class="debug-key">is_locked:</span> <span class="debug-val">{{
+            service.state.personal_seat_rack_second_is_locked() }}</span></div>
+        <div class="debug-row"><span class="debug-key">is_dead:</span> <span class="debug-val">{{
+            service.state.personal_seat_rack_second_is_dead() }}</span></div>
+        <div class="debug-row"><span class="debug-key">dead_info:</span> <span class="debug-val">{{
+            service.state.personal_seat_rack_second_dead_info() | json }}</span></div>
+        <div class="debug-row"><span class="debug-key">hand_order:</span> <span class="debug-val">{{
+            service.state.personal_seat_rack_second_hand_order() | json }}</span></div>
+        <div class="debug-row"><span class="debug-key">hand:</span> <span class="debug-val">{{
+            service.state.personal_seat_rack_second_hand() | json }}</span></div>
+        <div class="debug-row"><span class="debug-key">exposures_meld:</span> <span class="debug-val">{{
+            service.state.personal_seat_rack_second_exposures_meld() | json }}</span></div>
+      </div> -->
 
       <div class="debug-section">
         <div class="debug-section-title">Raw Payloads</div>
