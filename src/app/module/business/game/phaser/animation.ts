@@ -225,6 +225,7 @@ export class PhaserAnimation {
       const tileBack = this.createTileBackClone(item.image.x, item.image.y, size.width, size.height, item.image.angle);
       onCloneCreated(tileBack);
       item.image.setDepth(181);
+      /* OLDCODE
       this.scene.tweens.add({
         targets: item.image, scaleX: 0, duration: 110, ease: "Sine.easeIn", onComplete: () => {
           item.image?.setVisible(false);
@@ -235,6 +236,53 @@ export class PhaserAnimation {
           });
         }
       });
+      OLDCODE */
+      /* NEWCODE */
+      this.scene.tweens.add({
+        targets: item.image,
+        scaleX: 0,
+        duration: 110,
+        ease: "Sine.easeIn",
+        onComplete: () => {
+          item.image?.setVisible(false);
+          this.scene.tweens.add({
+            targets: tileBack,
+            scaleX: 1,
+            duration: 110,
+            ease: "Sine.easeOut",
+            onComplete: () => {
+              // Tile travels into the seat rack with full visibility
+              this.scene.tweens.add({
+                targets: tileBack,
+                x: target.x,
+                y: target.y,
+                angle: endAngle,
+                alpha: 1,
+                scaleX: 0.82,
+                scaleY: 0.82,
+                duration: 480,
+                ease: "Cubic.easeInOut",
+                onComplete: () => {
+                  // Disappear tile with fade & sink animation at the rack
+                  this.scene.tweens.add({
+                    targets: tileBack,
+                    scaleX: 0.45,
+                    scaleY: 0.45,
+                    alpha: 0,
+                    duration: 250,
+                    ease: "Sine.easeIn",
+                    onComplete: () => {
+                      tileBack.destroy();
+                      completeOne();
+                    },
+                  });
+                },
+              });
+            },
+          });
+        },
+      });
+      /* NEWCODE */
     });
   }
 

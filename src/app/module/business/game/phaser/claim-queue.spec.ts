@@ -96,7 +96,7 @@ describe('Claim Animation & Sequential Event Queue Pipeline', () => {
       queue.push({ type: 'opponent-discard' });
       queue.push({ type: 'exposures' });
 
-      processNext(() => processNext(() => processNext(() => {})));
+      processNext(() => processNext(() => processNext(() => { })));
 
       // Immediately after triggering, only the first action should be running
       expect(processedEvents).toEqual(['opponent-pick']);
@@ -135,7 +135,7 @@ describe('Claim Animation & Sequential Event Queue Pipeline', () => {
       queue.push({ type: 'opponent-discard' });
       queue.push({ type: 'opponent-discard' });
 
-      processNext(() => {});
+      processNext(() => { });
 
       // Normally opponent-discard is 220ms, but with backlog > 2 it accelerates to min(220, 120) = 120ms
       vi.advanceTimersByTime(119);

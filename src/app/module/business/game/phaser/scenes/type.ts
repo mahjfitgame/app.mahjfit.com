@@ -39,11 +39,21 @@ export interface MahjongWinCelebration {
 }
 
 /** A resolved server claim that needs a short, frontend-only discard presentation. */
+/* OLDCODE
 export interface ResolvedClaimPresentation {
   readonly key: string;
   readonly tile: GameTileEntityGSDto;
   readonly discardedBy: TableSeat;
 }
+OLDCODE */
+/* NEWCODE */
+export interface ResolvedClaimPresentation {
+  readonly key: string;
+  readonly tile: GameTileEntityGSDto;
+  readonly discardedBy: TableSeat;
+  readonly calledBy?: TableSeat;
+}
+/* NEWCODE */
 
 /** Server-supplied away state for the local moderation prompt. */
 export interface PlayerAwayNotice {
@@ -94,8 +104,15 @@ export interface TileRuntime {
 }
 
 
+/* OLDCODE
 export interface TableSceneCallbacks {
   readonly getUsername: () => string;
+OLDCODE */
+/* NEWCODE */
+export interface TableSceneCallbacks {
+  readonly getUsername: () => string;
+  readonly getPlayerName?: (seat: TableSeat) => string;
+/* NEWCODE */
   readonly onSelectionChanged: (ids: readonly number[]) => void;
   readonly onPassCompleted: (payload: { readonly tileIds: readonly number[]; readonly direction: PassDirection }) => void;
   readonly onPassWaitingStateChanged?: (payload: { readonly tileIds: readonly number[]; }) => void;
@@ -218,8 +235,16 @@ export interface HudImageButton {
 }
 type OverlayMenuSide = "left" | "right";
 
+/* OLDCODE
 export interface UiLayoutCallbacks {
   readonly onHudAction?: (action: HudActionKey) => void;
+OLDCODE */
+/* NEWCODE */
+export interface UiLayoutCallbacks {
+  readonly getUsername?: () => string;
+  readonly getPlayerName?: (seat: TableSeat) => string;
+  readonly onHudAction?: (action: HudActionKey) => void;
+/* NEWCODE */
   /** Applies the explicit sort mode chosen from the Sort dropdown. */
   readonly onSortRequested?: (mode: "rank" | "suit") => void;
   readonly onPrimaryAction?: () => void;

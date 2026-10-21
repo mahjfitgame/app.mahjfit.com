@@ -346,7 +346,7 @@ export class GameState extends SignalStateService implements FoundationModuleSta
     OLDCODE */
     /* NEWCODE */
     public readonly play_current_turn_u_id = computed<number>(() => {
-    /* NEWCODE */
+        /* NEWCODE */
         return this.play().current_turn_u_id;
     });
 
@@ -461,7 +461,7 @@ export class GameState extends SignalStateService implements FoundationModuleSta
     OLDCODE */
     /* NEWCODE */
     public readonly play_pass_count = computed<number | undefined>(() => {
-    /* NEWCODE */
+        /* NEWCODE */
         return this.play()?.pass?.count;
     });
 
@@ -759,7 +759,7 @@ export class GameState extends SignalStateService implements FoundationModuleSta
     OLDCODE */
     /* NEWCODE */
     public readonly personal_seat_rack_first_is_mahjong = computed<boolean>(() => {
-    /* NEWCODE */
+        /* NEWCODE */
         return this.personal_seat()?.racks?.[GameRackIDEnumAddon.RACK_FIRST]?.is_mahjong ?? false;
     });
 
@@ -771,7 +771,7 @@ export class GameState extends SignalStateService implements FoundationModuleSta
     OLDCODE */
     /* NEWCODE */
     public readonly personal_seat_rack_first_is_locked = computed<boolean>(() => {
-    /* NEWCODE */
+        /* NEWCODE */
         return this.personal_seat()?.racks?.[GameRackIDEnumAddon.RACK_FIRST]?.is_locked ?? false;
     });
 
@@ -783,7 +783,7 @@ export class GameState extends SignalStateService implements FoundationModuleSta
     OLDCODE */
     /* NEWCODE */
     public readonly personal_seat_rack_first_is_dead = computed<boolean>(() => {
-    /* NEWCODE */
+        /* NEWCODE */
         return this.personal_seat()?.racks?.[GameRackIDEnumAddon.RACK_FIRST]?.is_dead ?? false;
     });
 
@@ -795,7 +795,7 @@ export class GameState extends SignalStateService implements FoundationModuleSta
     OLDCODE */
     /* NEWCODE */
     public readonly personal_seat_rack_first_dead_info = computed<GameRackDeadInfoGSOutputDto | undefined | null>(() => {
-    /* NEWCODE */
+        /* NEWCODE */
         return this.personal_seat()?.racks?.[GameRackIDEnumAddon.RACK_FIRST]?.dead_info || null;
     });
 
@@ -843,7 +843,7 @@ export class GameState extends SignalStateService implements FoundationModuleSta
     OLDCODE */
     /* NEWCODE */
     public readonly personal_seat_rack_second_is_mahjong = computed<boolean>(() => {
-    /* NEWCODE */
+        /* NEWCODE */
         return this.personal_seat()?.racks?.[GameRackIDEnumAddon.RACK_SECOND]?.is_mahjong ?? false;
     });
 
@@ -855,7 +855,7 @@ export class GameState extends SignalStateService implements FoundationModuleSta
     OLDCODE */
     /* NEWCODE */
     public readonly personal_seat_rack_second_is_locked = computed<boolean>(() => {
-    /* NEWCODE */
+        /* NEWCODE */
         return this.personal_seat()?.racks?.[GameRackIDEnumAddon.RACK_SECOND]?.is_locked ?? false;
     });
 
@@ -867,7 +867,7 @@ export class GameState extends SignalStateService implements FoundationModuleSta
     OLDCODE */
     /* NEWCODE */
     public readonly personal_seat_rack_second_is_dead = computed<boolean>(() => {
-    /* NEWCODE */
+        /* NEWCODE */
         return this.personal_seat()?.racks?.[GameRackIDEnumAddon.RACK_SECOND]?.is_dead ?? false;
     });
 
@@ -879,7 +879,7 @@ export class GameState extends SignalStateService implements FoundationModuleSta
     OLDCODE */
     /* NEWCODE */
     public readonly personal_seat_rack_second_dead_info = computed<GameRackDeadInfoGSOutputDto | undefined | null>(() => {
-    /* NEWCODE */
+        /* NEWCODE */
         return this.personal_seat()?.racks?.[GameRackIDEnumAddon.RACK_SECOND]?.dead_info || null;
     });
 
@@ -1044,15 +1044,15 @@ export class GameState extends SignalStateService implements FoundationModuleSta
         ordered_seats: this.ordered_seats(),
         personal_seat_index: this.personal_seat_index(),
         seat_mapping: this.seat_mapping(),
-        personal_pass: this.personal_pass(),
+        /* personal_pass: this.personal_pass(),
         personal_pass_submissions: this.personal_pass_submissions(),
         personal_pass_second_votes: this.personal_pass_second_votes(),
         personal_claim: this.personal_claim(),
         personal_claim_target_seat: this.personal_claim_target_seat(),
         personal_claim_submission: this.personal_claim_submission(),
-        personal_seat_id: this.personal_seat_id(),
+        personal_seat_id: this.personal_seat_id(), */
         personal_seat: this.personal_seat(),
-        personal_seat_u_id: this.personal_seat_u_id(),
+        /* personal_seat_u_id: this.personal_seat_u_id(),
         personal_seat_rack_first_is_mahjong: this.personal_seat_rack_first_is_mahjong(),
         personal_seat_rack_first_is_locked: this.personal_seat_rack_first_is_locked(),
         personal_seat_rack_first_is_dead: this.personal_seat_rack_first_is_dead(),
@@ -1066,14 +1066,14 @@ export class GameState extends SignalStateService implements FoundationModuleSta
         personal_seat_rack_second_dead_info: this.personal_seat_rack_second_dead_info(),
         personal_seat_rack_second_hand: this.personal_seat_rack_second_hand(),
         personal_seat_rack_second_hand_order: this.personal_seat_rack_second_hand_order(),
-        personal_seat_rack_second_exposures_meld: this.personal_seat_rack_second_exposures_meld(),
-        _game: this._game(),
+        personal_seat_rack_second_exposures_meld: this.personal_seat_rack_second_exposures_meld(), */
+        /* _game: this._game(),
         _play: this._play(),
-        _personal: this._personal(),
+        _personal: this._personal(), */
         development: this.development_with_actual_tiles(),
         tileStyle: this.tileStyle(),
         defaultTileStyleKeyid: this.defaultTileStyleKeyid(),
-        game_all_tiles: this.game_all_tiles(),
+        //game_all_tiles: this.game_all_tiles(),
         game_bot_profile: this.game_bot_profile(),
     }));
     /* NEWCODE */

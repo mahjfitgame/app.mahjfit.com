@@ -40,13 +40,23 @@
     [style.background]="state.borderWidth === 0 ? '#c7c22e' : '#f4f2ec'"
     >
   -->
-  <!-- NEWCODE -->
+  <!-- OLDCODE
   <div class="instruction-panel" aria-hidden="false" [style.display]="'block'" [style.left.px]="state.x"
     [style.top.px]="state.y" [style.width.px]="state.width" [style.height.px]="state.height"
     [style.borderWidth.px]="state.borderWidth" [style.borderRadius.px]="state.radius"
     [style.background]="'transparent'"
     [style.borderColor]="'transparent'"
     >
+  OLDCODE -->
+  <!-- NEWCODE -->
+  <div class="instruction-panel" aria-hidden="false" [style.display]="'block'" [style.left.px]="state.x"
+    [style.top.px]="state.y" [style.width.px]="state.width" [style.height.px]="state.height"
+    [style.borderWidth.px]="state.borderWidth" [style.borderRadius.px]="state.radius"
+    [style.background]="state.borderWidth === 0 ? 'transparent' : '#f4f2ec'"
+    [style.borderColor]="state.borderWidth === 0 ? 'transparent' : '#c7c22e'"
+    [style.pointerEvents]="state.borderWidth === 0 ? 'none' : 'auto'"
+    >
+  <!-- NEWCODE -->
   <div class="instruction-panel__content" [style.left.px]="-state.borderWidth" [style.width.px]="state.width"
     [style.top.px]="state.contentTop - state.borderWidth"
     [style.flexDirection]="state.borderWidth === 0 ? 'row' : 'column'"
@@ -114,6 +124,7 @@
     [style.color]="state.skipButton.color"
     [attr.aria-disabled]="!state.skipButton.enabled" (click)="state.skipButton.enabled && onClaimPanelClick('skip')">{{ state.skipButton.label }}</button>
 
+  <!-- OLDCODE
   <button type="button" class="instruction-panel__button" [style.left.px]="state.mahjongButton.x - state.x - state.borderWidth"
     [style.top.px]="state.mahjongButton.y - state.y - state.borderWidth" [style.width.px]="state.mahjongButton.width"
     [style.height.px]="state.mahjongButton.height" [style.borderRadius.px]="state.mahjongButton.radius"
@@ -121,6 +132,18 @@
     [style.backgroundColor]="state.mahjongButton.enabled ? state.mahjongButton.background : '#9eb5c1'"
     [style.color]="state.mahjongButton.color"
     [attr.aria-disabled]="!state.mahjongButton.enabled" (click)="state.mahjongButton.enabled && onMahjongButtonClick()">{{ state.mahjongButton.label }}</button>
+  OLDCODE -->
+  <!-- NEWCODE -->
+  <button type="button" class="instruction-panel__button" [class.instruction-panel__button--shake]="mahjongButtonShaking()"
+    [style.left.px]="state.mahjongButton.x - state.x - state.borderWidth"
+    [style.top.px]="state.mahjongButton.y - state.y - state.borderWidth" [style.width.px]="state.mahjongButton.width"
+    [style.height.px]="state.mahjongButton.height" [style.borderRadius.px]="state.mahjongButton.radius"
+    [style.fontSize.px]="state.mahjongButton.fontSize"
+    [style.backgroundColor]="(state.mahjongButton.enabled && !mahjongButtonProcessing()) ? state.mahjongButton.background : '#9eb5c1'"
+    [style.color]="state.mahjongButton.color"
+    [attr.aria-disabled]="!state.mahjongButton.enabled || mahjongButtonProcessing()"
+    (click)="state.mahjongButton.enabled && !mahjongButtonProcessing() && onMahjongButtonClick()">{{ state.mahjongButton.label }}</button>
+  <!-- NEWCODE -->
 
 </div>
 }

@@ -100,6 +100,11 @@ export class PhaserScene extends Phaser.Scene {
   private isWaitingForPickResponse = false;
   private pendingLocalPickRuntime?: TileRuntime;
   private lastServerOrder: string = "";
+  // NEWCODE
+  private isExplicitSortRequested: boolean = false;
+  private hasAppliedInitialRackOrder: boolean = false;
+  private pendingLocalJokerSwap?: { fromTileId: number; jokerTileId: number; rackIndex: number };
+  // NEWCODE
   private get dragPointerId(): number | undefined { return this.stateManager.dragPointerId; }
   private set dragPointerId(value: number | undefined) { this.stateManager.dragPointerId = value; }
 
@@ -136,6 +141,10 @@ export class PhaserScene extends Phaser.Scene {
   private readonly opponentDiscardTiles: Phaser.GameObjects.Image[] = [];
   private activeClaimPresentation?: ResolvedClaimPresentation;
   private claimPresentationTimer?: Phaser.Time.TimerEvent;
+  /* NEWCODE */
+  private activeCallPresentationSeat?: TableSeat;
+  private callPresentationTimer?: any;
+  /* NEWCODE */
   private deferredClaimVisualUpdates: Array<
     | { readonly type: "claim"; readonly payload: ResolvedClaimPresentation }
     | { readonly type: "exposures"; readonly payload: { bottom: any[], right: any[], top: any[], left: any[] } }
@@ -197,6 +206,10 @@ export class PhaserScene extends Phaser.Scene {
   private pendingClaimTileId: number | undefined;
   private get canDiscard(): boolean { return this.stateManager.canDiscard; }
   private set canDiscard(value: boolean) { this.stateManager.canDiscard = value; }
+/* NEWCODE */
+  private get canPick(): boolean { return this.stateManager.canPick; }
+  private set canPick(value: boolean) { this.stateManager.canPick = value; }
+/* NEWCODE */
   private get currentPassDestination(): TableSeat { return this.stateManager.currentPassDestination; }
   private set currentPassDestination(value: TableSeat) { this.stateManager.currentPassDestination = value; }
   private get activeSeat(): TableSeat { return this.stateManager.activeSeat; }
@@ -248,10 +261,27 @@ export class PhaserScene extends Phaser.Scene {
     super({ key: "table-scene" });
     this.callbacks = callbacks;
 
+    /* OLDCODE
+        this.uiLayoutManager = new PhaserLayoutUi({
+          logoTextureKey: this.logoTextureKey,
+          onHudAction: (action) => this.handleHudAction(action),
+    OLDCODE */
+    /* NEWCODE */
     this.uiLayoutManager = new PhaserLayoutUi({
+      getUsername: () => this.callbacks.getUsername(),
+      getPlayerName: (seat) => this.callbacks.getPlayerName ? this.callbacks.getPlayerName(seat) : (seat === "bottom" ? this.callbacks.getUsername() : (seat === "top" ? "Player 1" : seat === "right" ? "Player 2" : "Player 3")),
       logoTextureKey: this.logoTextureKey,
       onHudAction: (action) => this.handleHudAction(action),
+      /* OLDCODE
       onSortRequested: (mode) => this.callbacks.onSortRequested?.(mode),
+      OLDCODE */
+      /* NEWCODE */
+      onSortRequested: (mode) => {
+        this.isExplicitSortRequested = true;
+        setTimeout(() => { this.isExplicitSortRequested = false; }, 5000);
+        this.callbacks.onSortRequested?.(mode);
+      },
+      /* NEWCODE */
       onPrimaryAction: () => this.handlePrimaryAction(),
       onPickSeatChange: (seat) => {
         this.pickTargetSeat = seat;
@@ -441,6 +471,7 @@ export class PhaserScene extends Phaser.Scene {
     });
 
     this.game.events.on("rack:set", this.setRack, this);
+    /* OLDCODE
     this.game.events.on("rack:order", (order: number[]) => {
       const orderStr = order.join(',');
       if (this.lastServerOrder !== orderStr) {
@@ -467,6 +498,42 @@ export class PhaserScene extends Phaser.Scene {
         }
       }
     }, this);
+    OLDCODE */
+    /* NEWCODE */
+    this.game.events.on("rack:order", (order: number[]) => {
+      const orderStr = order.join(',');
+      const isInitial = !this.hasAppliedInitialRackOrder;
+      const isExplicitSort = this.isExplicitSortRequested;
+      const shouldApply = (isInitial && this.rackOrder.length > 0) || isExplicitSort;
+
+      if (shouldApply || this.lastServerOrder !== orderStr) {
+        this.lastServerOrder = orderStr;
+
+        if (shouldApply && this.rackOrder.length > 0) {
+          this.isExplicitSortRequested = false;
+          this.hasAppliedInitialRackOrder = true;
+
+          // We apply the order, but only for tiles currently in rackOrder
+          // The new order might contain tiles that are in exposures, etc.
+          const newRackOrder = [];
+          for (const id of order) {
+            if (this.rackOrder.includes(id)) {
+              newRackOrder.push(id);
+            }
+          }
+          // Add any tiles that were in rackOrder but missing from the server order
+          for (const id of this.rackOrder) {
+            if (!newRackOrder.includes(id)) {
+              newRackOrder.push(id);
+            }
+          }
+          this.rackOrder = newRackOrder;
+          this.reindexRackRuntimeSlots();
+          this.layoutRackTiles(true);
+        }
+      }
+    }, this);
+    /* NEWCODE */
     this.game.events.on("pass:direction", this.setPassDirection, this);
     this.game.events.on("table:resize", this.resize, this);
     this.game.events.on("rack:set-discard-mode", (can: boolean) => {
@@ -474,7 +541,15 @@ export class PhaserScene extends Phaser.Scene {
       this.updateInstructionText();
       this.updatePassButtonState();
     }, this);
+/* NEWCODE */
+    this.game.events.on("wall:set-pick-mode", (can: boolean) => {
+      this.canPick = can;
+      this.updateInstructionText();
+      this.updatePassButtonState();
+    }, this);
+/* NEWCODE */
     this.game.events.on("table:phase", this.setTablePhase, this);
+/* OLDCODE
     this.game.events.on("table:turn_stage", (stage: any) => {
       this.turnStage = stage;
       if (stage !== GameTurnStageEnum.NEED_EXPOSURE) {
@@ -484,6 +559,19 @@ export class PhaserScene extends Phaser.Scene {
       setTimeout(() => this.processPendingClaimTile(), 50);
       this.updateExposureCloseButtonsState();
     }, this);
+OLDCODE */
+/* NEWCODE */
+    this.game.events.on("table:turn_stage", (stage: any) => {
+      this.turnStage = stage;
+      if (stage !== GameTurnStageEnum.NEED_EXPOSURE) {
+        this.pendingCallTileId = undefined;
+        this.pendingCallHasExposedRackTile = false;
+      }
+      setTimeout(() => this.processPendingClaimTile(), 50);
+      this.updateExposureCloseButtonsState();
+      this.updateInstructionText();
+    }, this);
+/* NEWCODE */
     this.game.events.on("table:safe-area", this.setSafeAreaInsets, this);
     this.game.events.on("table:active-seat", this.setActiveSeat, this);
     this.game.events.on("ui:set-is-personal-turn", (isPersonalTurn: boolean) => {
@@ -538,6 +626,10 @@ export class PhaserScene extends Phaser.Scene {
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
       // console.log("Table scene shutdown");
       this.game.events.off("rack:set", this.setRack, this);
+/* NEWCODE */
+      this.game.events.off("rack:set-discard-mode");
+      this.game.events.off("wall:set-pick-mode");
+/* NEWCODE */
       this.game.events.off("pass:direction", this.setPassDirection, this);
       this.game.events.off("table:resize", this.resize, this);
       this.game.events.off("table:phase", this.setTablePhase, this);
@@ -681,6 +773,7 @@ export class PhaserScene extends Phaser.Scene {
    * Enforces the 13-tile rule only for the local Bottom seat. The other seats
    * are test controls and can always receive a wall tile while one remains.
    */
+/* OLDCODE
   private canPickFromWall(forUi: boolean = false): boolean {
     if (!this.stateManager.isPersonalTurn) {
       // The UI button should only be enabled when it's the personal player's turn.
@@ -707,6 +800,18 @@ export class PhaserScene extends Phaser.Scene {
 
     return rackCount + apiExposedCount < 14;
   }
+OLDCODE */
+/* NEWCODE */
+  private canPickFromWall(forUi: boolean = false): boolean {
+    if (!this.stateManager.isPersonalTurn) {
+      // The UI button should only be enabled when it's the personal player's turn.
+      // But test controls need this to return true.
+      return !forUi;
+    }
+
+    return this.canPick;
+  }
+/* NEWCODE */
 
   private handleHudAction(action: HudActionKey): void {
     if (action === "slider-left" as any) {
@@ -803,9 +908,23 @@ export class PhaserScene extends Phaser.Scene {
       return;
     }
 
+/* OLDCODE
     if (seat) {
       this.activeSeat = seat;
     }
+OLDCODE */
+/* NEWCODE */
+    if (seat) {
+      if (this.activeCallPresentationSeat && seat !== this.activeCallPresentationSeat) {
+        if (this.callPresentationTimer) {
+          clearTimeout(this.callPresentationTimer);
+          this.callPresentationTimer = undefined;
+        }
+        this.activeCallPresentationSeat = undefined;
+      }
+      this.activeSeat = seat;
+    }
+/* NEWCODE */
 
     if (this.layout && this.graphics) {
       this.drawTable();
@@ -1175,9 +1294,21 @@ export class PhaserScene extends Phaser.Scene {
         this.applyTileTextureFilter(existingRuntime.image, true);
         existingRuntime.image.removeAllListeners();
         this.registerTileInput(existingRuntime);
+        /* OLDCODE
         if (!this.rackOrder.includes(tile.tile_id!)) {
           this.rackOrder.push(tile.tile_id!);
         }
+        OLDCODE */
+        /* NEWCODE */
+        if (!this.rackOrder.includes(tile.tile_id!)) {
+          if (this.pendingLocalJokerSwap && this.pendingLocalJokerSwap.jokerTileId === tile.tile_id!) {
+            const safeIdx = Phaser.Math.Clamp(this.pendingLocalJokerSwap.rackIndex, 0, this.rackOrder.length);
+            this.rackOrder.splice(safeIdx, 0, tile.tile_id!);
+          } else {
+            this.rackOrder.push(tile.tile_id!);
+          }
+        }
+        /* NEWCODE */
       } else if (existingRuntime && existingRuntime.zone === "rack" && !existingRuntime.image.getData("hasShadow")) {
         this.applyTileTextureFilter(existingRuntime.image, true);
       }
@@ -1185,6 +1316,7 @@ export class PhaserScene extends Phaser.Scene {
       // `rackTiles` is the source hand and still contains tiles that have
       // moved to an exposure. Never add those IDs back as invisible rack
       // slots when a later Pick refreshes the hand.
+      /* OLDCODE
       if (
         !this.rackOrder.includes(tile.tile_id!) &&
         !this.discardedTileIds.includes(tile.tile_id!) &&
@@ -1193,6 +1325,22 @@ export class PhaserScene extends Phaser.Scene {
       ) {
         this.rackOrder.push(tile.tile_id!);
       }
+      OLDCODE */
+      /* NEWCODE */
+      if (
+        !this.rackOrder.includes(tile.tile_id!) &&
+        !this.discardedTileIds.includes(tile.tile_id!) &&
+        !this.stateManager.optimisticPassTileIds.includes(tile.tile_id!) &&
+        existingRuntime?.zone !== "exposure"
+      ) {
+        if (this.pendingLocalJokerSwap && this.pendingLocalJokerSwap.jokerTileId === tile.tile_id!) {
+          const safeIdx = Phaser.Math.Clamp(this.pendingLocalJokerSwap.rackIndex, 0, this.rackOrder.length);
+          this.rackOrder.splice(safeIdx, 0, tile.tile_id!);
+        } else {
+          this.rackOrder.push(tile.tile_id!);
+        }
+      }
+      /* NEWCODE */
 
       if (existingRuntime) continue;
 
@@ -1250,6 +1398,11 @@ export class PhaserScene extends Phaser.Scene {
     }
 
     this.reindexRackRuntimeSlots();
+    /* NEWCODE */
+    if (!this.hasAppliedInitialRackOrder && this.rackOrder.length > 0) {
+      this.hasAppliedInitialRackOrder = true;
+    }
+    /* NEWCODE */
     this.selectedIds.clear();
     this.callbacks.onSelectionChanged([]);
     this.resize(this.scale.width, this.scale.height, animate);
@@ -2777,8 +2930,15 @@ export class PhaserScene extends Phaser.Scene {
       }
     }
 
+/* OLDCODE
     this.layoutCalledBottomExposureTiles();
     this.updateExposureCloseButtonsState();
+OLDCODE */
+/* NEWCODE */
+    this.layoutCalledBottomExposureTiles();
+    this.updateExposureCloseButtonsState();
+    this.updateInstructionText();
+/* NEWCODE */
 
     // Render opponent exposures from the API
     for (const seat of ["top", "left", "right"] as const) {
@@ -3028,9 +3188,18 @@ export class PhaserScene extends Phaser.Scene {
         action: "call",
         tileIds,
       });
+/* OLDCODE
       this.pendingTileCallOffer = undefined;
       this.closeTileCallWindow();
     });
+OLDCODE */
+/* NEWCODE */
+      this.turnStage = GameTurnStageEnum.NEED_EXPOSURE;
+      this.pendingTileCallOffer = undefined;
+      this.closeTileCallWindow();
+      this.updateInstructionText();
+    });
+/* NEWCODE */
 
     addButton(1, "SKIP", 0x475569, () => {
       this.callbacks.onTileCallDecision({
@@ -3133,6 +3302,7 @@ export class PhaserScene extends Phaser.Scene {
       this.opponentDiscardTiles.splice(discardIndex, 1);
       this.layoutOpponentDiscardTiles();
     }
+/* OLDCODE
     this.calledBottomExposureTiles.push(image);
     this.removeTileTextureFilter(image);
     this.pendingTileCallImage = undefined;
@@ -3141,6 +3311,18 @@ export class PhaserScene extends Phaser.Scene {
     const target = this.calledBottomExposureTilePosition(
       this.calledBottomExposureTiles.length - 1,
     );
+OLDCODE */
+/* NEWCODE */
+    this.sanitizeBottomExposureTiles();
+    this.calledBottomExposureTiles.push(image);
+    this.removeTileTextureFilter(image);
+    this.pendingTileCallImage = undefined;
+    this.exposureBuildAsset = this.pendingTileCallOffer ? this.gameService.assetBaseName(this.allTiles[this.pendingTileCallOffer.discard.tile_id!]) : undefined;
+    image.setData("exposure-asset", this.exposureBuildAsset);
+    const target = this.calledBottomExposureTilePosition(
+      this.calledBottomExposureTiles.length - 1,
+    );
+/* NEWCODE */
     const tileSize = this.calledBottomExposureTileSize();
     image.setDisplaySize(tileSize.width, tileSize.height);
     this.tweens.add({
@@ -3149,11 +3331,21 @@ export class PhaserScene extends Phaser.Scene {
       y: target.y,
       duration: ANIMATION_SPEED,
       ease: "Cubic.Out",
+/* OLDCODE
       onComplete: () => {
         image.setDepth(42);
       },
     });
   }
+OLDCODE */
+/* NEWCODE */
+      onComplete: () => {
+        image.setDepth(42);
+      },
+    });
+    this.updateInstructionText();
+  }
+/* NEWCODE */
 
   /** Calculates a tile size that fits inside the usable exposure tray area. */
   private calledBottomExposureTileSize(): { readonly width: number; readonly height: number } {
@@ -3205,6 +3397,7 @@ export class PhaserScene extends Phaser.Scene {
     return Math.max(0, contentWidth - this.layout.topExposure.width);
   }
 
+/* OLDCODE
   // NEWCODE
   private maxBottomExposureScroll(): number {
     const tiles = this.calledBottomExposureTiles;
@@ -3214,6 +3407,18 @@ export class PhaserScene extends Phaser.Scene {
     const contentWidth = tiles.length * (tile.width + gap);
     return Math.max(0, contentWidth - this.layout.bottomExposure.width);
   }
+OLDCODE */
+/* NEWCODE */
+  private maxBottomExposureScroll(): number {
+    this.sanitizeBottomExposureTiles();
+    const tiles = this.calledBottomExposureTiles;
+    if (!tiles || tiles.length === 0) return 0;
+    const tile = this.calledBottomExposureTileSize();
+    const gap = Math.max(2, Math.round(tile.width * 0.05));
+    const contentWidth = tiles.length * (tile.width + gap);
+    return Math.max(0, contentWidth - this.layout.bottomExposure.width);
+  }
+/* NEWCODE */
 
   /** Places exposure tiles from left to right, below the tray lip and label. */
   private calledBottomExposureTilePosition(index: number): Point {
@@ -3238,7 +3443,20 @@ export class PhaserScene extends Phaser.Scene {
     };
   }
 
-  /** Repositions all local exposure tiles after a resize or orientation change. */
+  // NEWCODE
+  /** Removes destroyed or inactive tile images from the bottom exposure list. */
+  private sanitizeBottomExposureTiles(): void {
+    for (let i = this.calledBottomExposureTiles.length - 1; i >= 0; i--) {
+      const img = this.calledBottomExposureTiles[i];
+      if (!img || !img.active || !img.scene) {
+        this.calledBottomExposureTiles.splice(i, 1);
+      }
+    }
+  }
+  // NEWCODE
+
+/* OLDCODE
+  // Repositions all local exposure tiles after a resize or orientation change.
   private layoutCalledBottomExposureTiles(): void {
     let activeIndex = 0;
     this.calledBottomExposureTiles.forEach((image) => {
@@ -3254,6 +3472,25 @@ export class PhaserScene extends Phaser.Scene {
       this.positionExposureCloseButton(tileId);
     }
   }
+OLDCODE */
+/* NEWCODE */
+  /** Repositions all local exposure tiles after a resize or orientation change. */
+  private layoutCalledBottomExposureTiles(): void {
+    this.sanitizeBottomExposureTiles();
+    let activeIndex = 0;
+    this.calledBottomExposureTiles.forEach((image) => {
+      if (!image.active) return;
+
+      const tile = this.calledBottomExposureTileSize();
+      const target = this.calledBottomExposureTilePosition(activeIndex++);
+      image.setDisplaySize(tile.width, tile.height).setPosition(target.x, target.y);
+      image.setVisible(target.x >= this.layout.bottomExposure.x && target.x <= this.layout.bottomExposure.x + this.layout.bottomExposure.width);
+    });
+    for (const tileId of this.exposureCloseButtons.keys()) {
+      this.positionExposureCloseButton(tileId);
+    }
+  }
+/* NEWCODE */
 
   /** Calculates a tile size that fits inside the usable opponent exposure tray area. */
   private calledOpponentExposureTileSize(seat: "top" | "left" | "right"): { readonly width: number; readonly height: number } {
@@ -3458,6 +3695,7 @@ export class PhaserScene extends Phaser.Scene {
   }
 
   /** Allows only matching tiles or jokers, and prevents overflowing the tray. */
+/* OLDCODE
   private canAddTileToBottomExposure(tile: GameTileEntity): boolean {
     const tileAsset = this.gameService.assetBaseName(this.allTiles[tile.tile_id!]);
     const isFlowerMatch = this.exposureBuildAsset?.startsWith("flower_") && tileAsset.startsWith("flower_");
@@ -3475,6 +3713,20 @@ export class PhaserScene extends Phaser.Scene {
       (tileAsset === this.exposureBuildAsset || isFlowerMatch || this.isJoker(tile.tile_id!)),
     );
   }
+OLDCODE */
+/* NEWCODE */
+  private canAddTileToBottomExposure(tile: GameTileEntity): boolean {
+    this.sanitizeBottomExposureTiles();
+    const tileAsset = this.gameService.assetBaseName(this.allTiles[tile.tile_id!]);
+    const isFlowerMatch = this.exposureBuildAsset?.startsWith("flower_") && tileAsset.startsWith("flower_");
+
+    return Boolean(
+      this.exposureBuildAsset &&
+      this.calledBottomExposureTiles.length < 24 &&
+      (tileAsset === this.exposureBuildAsset || isFlowerMatch || this.isJoker(tile.tile_id!)),
+    );
+  }
+/* NEWCODE */
 
   /** Removes one rack tile and animates it into the current local exposure. */
   private moveRackTileToBottomExposure(runtime: TileRuntime): void {
@@ -3501,6 +3753,7 @@ export class PhaserScene extends Phaser.Scene {
     this.selectedIds.delete(runtime.vm.tile_id!);
     runtime.image.clearTint().disableInteractive();
     this.removeTileTextureFilter(runtime.image);
+/* OLDCODE
     runtime.image.setData("exposure-asset", this.exposureBuildAsset);
     this.calledBottomExposureTiles.push(runtime.image);
     this.activeExposureBuildTileIds.push(runtime.vm.tile_id!);
@@ -3513,6 +3766,22 @@ export class PhaserScene extends Phaser.Scene {
     const target = this.calledBottomExposureTilePosition(
       this.calledBottomExposureTiles.length - 1,
     );
+OLDCODE */
+/* NEWCODE */
+    this.sanitizeBottomExposureTiles();
+    runtime.image.setData("exposure-asset", this.exposureBuildAsset);
+    this.calledBottomExposureTiles.push(runtime.image);
+    this.activeExposureBuildTileIds.push(runtime.vm.tile_id!);
+
+    if (this.isJoker(runtime.vm.tile_id!)) {
+      this.setupJokerInteraction(runtime.image, runtime.vm.tile_id!, "bottom");
+    }
+
+    const tile = this.calledBottomExposureTileSize();
+    const target = this.calledBottomExposureTilePosition(
+      this.calledBottomExposureTiles.length - 1,
+    );
+/* NEWCODE */
     runtime.image.setDisplaySize(tile.width, tile.height).setDepth(42);
     this.tweens.killTweensOf(runtime.image);
     this.ensureExposureCloseButton(runtime.vm.tile_id!);
@@ -3528,9 +3797,17 @@ export class PhaserScene extends Phaser.Scene {
         this.positionExposureCloseButton(runtime.vm.tile_id!);
       },
     });
+/* OLDCODE
     this.layoutRackTiles(true);
     this.callbacks.onSelectionChanged([...this.selectedIds]);
   }
+OLDCODE */
+/* NEWCODE */
+    this.layoutRackTiles(true);
+    this.callbacks.onSelectionChanged([...this.selectedIds]);
+    this.updateInstructionText();
+  }
+/* NEWCODE */
 
   private returnExposureTileToRack(tileId: number): void {
     const runtime = this.tileMap.get(tileId);
@@ -3581,9 +3858,17 @@ export class PhaserScene extends Phaser.Scene {
     runtime.image.setInteractive({ useHandCursor: true, draggable: true });
     this.input.setDraggable(runtime.image, true);
 
+/* OLDCODE
     this.layoutRackTiles(true);
     this.layoutCalledBottomExposureTiles();
   }
+OLDCODE */
+/* NEWCODE */
+    this.layoutRackTiles(true);
+    this.layoutCalledBottomExposureTiles();
+    this.updateInstructionText();
+  }
+/* NEWCODE */
 
   private ensureExposureCloseButton(tileId: number): void {
     if (this.exposureCloseButtons.has(tileId)) return;
@@ -3874,6 +4159,7 @@ export class PhaserScene extends Phaser.Scene {
     const rackReplacementTileId = replacement.vm.tile_id ?? (replacement.vm as any).id;
     if (rackReplacementTileId == null) return;
 
+    /* OLDCODE
     // Play visual update instantly to feel responsive
     this.playHaptic("tile-discard");
 
@@ -3881,6 +4167,28 @@ export class PhaserScene extends Phaser.Scene {
     if (this.callbacks.onLocalPlayerJokerExchange) {
       await this.callbacks.onLocalPlayerJokerExchange(targetJokerTileId, rackReplacementTileId as number, targetSeat);
     }
+    OLDCODE */
+    /* NEWCODE */
+    // Record swap info and optimistically swap in-place in rackOrder to preserve exact rack slot
+    const rackIndex = this.rackOrder.indexOf(rackReplacementTileId as number);
+    if (rackIndex !== -1) {
+      this.pendingLocalJokerSwap = {
+        fromTileId: rackReplacementTileId as number,
+        jokerTileId: targetJokerTileId,
+        rackIndex: rackIndex,
+      };
+      this.rackOrder.splice(rackIndex, 1, targetJokerTileId);
+      this.reindexRackRuntimeSlots();
+    }
+
+    // Play visual update instantly to feel responsive
+    this.playHaptic("tile-discard");
+
+    // Call backend via callbacks
+    if (this.callbacks.onLocalPlayerJokerExchange) {
+      await this.callbacks.onLocalPlayerJokerExchange(targetJokerTileId, rackReplacementTileId as number, targetSeat);
+    }
+    /* NEWCODE */
   }
 
   private handleJokerSwapDrop(pointerX: number, pointerY: number, droppedTile: TileRuntime): boolean {
@@ -4259,6 +4567,33 @@ export class PhaserScene extends Phaser.Scene {
       this.deferredClaimVisualUpdates.push({ type: "claim", payload });
       return;
     }
+    /* NEWCODE */
+    if (payload.calledBy) {
+      this.activeCallPresentationSeat = payload.calledBy;
+      this.updateInstructionText();
+
+/* OLDCODE
+      this.callPresentationTimer?.remove(false);
+      this.callPresentationTimer = this.time.delayedCall(2200, () => {
+        if (this.activeCallPresentationSeat === payload.calledBy) {
+          this.activeCallPresentationSeat = undefined;
+          this.updateInstructionText();
+        }
+      });
+OLDCODE */
+/* NEWCODE */
+      if (this.callPresentationTimer) {
+        clearTimeout(this.callPresentationTimer);
+      }
+      this.callPresentationTimer = setTimeout(() => {
+        if (this.activeCallPresentationSeat === payload.calledBy) {
+          this.activeCallPresentationSeat = undefined;
+          this.updateInstructionText();
+        }
+      }, 1800);
+/* NEWCODE */
+    }
+    /* NEWCODE */
     if (!this.layout || payload.tile.tile_id == null) return;
 
     const tileId = Number(payload.tile.tile_id);
@@ -4438,6 +4773,20 @@ export class PhaserScene extends Phaser.Scene {
     this.activeClaimPresentation = undefined;
     this.deferredClaimVisualUpdates = [];
     if (tileId != null) this.removeTileFromDiscardArea(tileId);
+    /* NEWCODE */
+/* OLDCODE
+    this.callPresentationTimer?.remove(false);
+    this.callPresentationTimer = undefined;
+    this.activeCallPresentationSeat = undefined;
+OLDCODE */
+/* NEWCODE */
+    if (this.callPresentationTimer) {
+      clearTimeout(this.callPresentationTimer);
+      this.callPresentationTimer = undefined;
+    }
+    this.activeCallPresentationSeat = undefined;
+/* NEWCODE */
+    /* NEWCODE */
   }
   /* NEWCODE */
 
@@ -4673,6 +5022,7 @@ export class PhaserScene extends Phaser.Scene {
     }
 
     // Determine destination position for Joker (entering from_seat)
+    /* OLDCODE
     let destJokerPos = { ...oldNaturalPos, scale: 1 };
     if (from_seat === "bottom") {
       const rackIndex = this.rackOrder.indexOf(from_tile_id);
@@ -4686,6 +5036,28 @@ export class PhaserScene extends Phaser.Scene {
       const targetPoint = this.pickTargetPointForSeat(from_seat as TableSeat);
       destJokerPos = { x: targetPoint.x, y: targetPoint.y, scale: 0.5 };
     }
+    OLDCODE */
+    /* NEWCODE */
+    let destJokerPos = { ...oldNaturalPos, scale: 1 };
+    if (from_seat === "bottom") {
+      let rackIndex = this.rackOrder.indexOf(from_tile_id);
+      if (rackIndex === -1 && this.pendingLocalJokerSwap && this.pendingLocalJokerSwap.jokerTileId === joker_tile_id) {
+        rackIndex = this.pendingLocalJokerSwap.rackIndex;
+      }
+      if (rackIndex === -1) {
+        rackIndex = this.rackOrder.indexOf(joker_tile_id);
+      }
+      if (rackIndex !== -1 && this.layout.bottomTileLayout?.slots?.[rackIndex]) {
+        const slot = this.layout.bottomTileLayout.slots[rackIndex];
+        destJokerPos = { x: slot.x, y: slot.y, scale: 1 };
+      } else {
+        destJokerPos = { ...oldNaturalPos, scale: 1 };
+      }
+    } else {
+      const targetPoint = this.pickTargetPointForSeat(from_seat as TableSeat);
+      destJokerPos = { x: targetPoint.x, y: targetPoint.y, scale: 0.5 };
+    }
+    /* NEWCODE */
 
     // Determine destination position for Natural tile (entering to_seat exposure)
     let destNaturalPos = { ...oldJokerPos };
@@ -4704,6 +5076,7 @@ export class PhaserScene extends Phaser.Scene {
       exposureIndex = this.calledBottomExposureTiles.indexOf(jokerTile.image);
     }
 
+    /* OLDCODE
     if (from_seat === "bottom") {
       // Joker is entering bottom player's rack
       const rackIndex = this.rackOrder.indexOf(from_tile_id);
@@ -4714,6 +5087,26 @@ export class PhaserScene extends Phaser.Scene {
       }
       this.removeFromRackOrder(from_tile_id);
       this.reindexRackRuntimeSlots();
+    OLDCODE */
+    /* NEWCODE */
+    if (from_seat === "bottom") {
+      // Joker is entering bottom player's rack
+      const rackIndex = this.rackOrder.indexOf(from_tile_id);
+      if (rackIndex !== -1) {
+        this.rackOrder.splice(rackIndex, 1, joker_tile_id);
+      } else if (!this.rackOrder.includes(joker_tile_id)) {
+        if (this.pendingLocalJokerSwap && this.pendingLocalJokerSwap.jokerTileId === joker_tile_id) {
+          const safeIdx = Phaser.Math.Clamp(this.pendingLocalJokerSwap.rackIndex, 0, this.rackOrder.length);
+          this.rackOrder.splice(safeIdx, 0, joker_tile_id);
+        } else {
+          this.rackOrder.push(joker_tile_id);
+        }
+      }
+      this.removeFromRackOrder(from_tile_id);
+      this.reindexRackRuntimeSlots();
+      this.pendingLocalJokerSwap = undefined;
+      this.lastServerOrder = this.rackOrder.join(',');
+    /* NEWCODE */
 
       const tileWidth = Math.round(this.layout.bottomTileLayout.width);
       const tileHeight = Math.round(this.layout.bottomTileLayout.height);
@@ -4845,8 +5238,22 @@ export class PhaserScene extends Phaser.Scene {
     this.playHaptic("tile-discard");
     this.playTileDiscardVoice(payload.tile as any);
 
+/* OLDCODE
     this.pendingTileCallOffer = undefined;
     this.closeTileCallWindow();
+OLDCODE */
+/* NEWCODE */
+    this.pendingTileCallOffer = undefined;
+    this.closeTileCallWindow();
+    if (this.activeCallPresentationSeat) {
+      if (this.callPresentationTimer) {
+        clearTimeout(this.callPresentationTimer);
+        this.callPresentationTimer = undefined;
+      }
+      this.activeCallPresentationSeat = undefined;
+      this.updateInstructionText();
+    }
+/* NEWCODE */
 
     const grid = this.discardGrid();
     const texture = this.gameService.resolve(payload.tile, grid.tileWidth);
@@ -4987,6 +5394,23 @@ export class PhaserScene extends Phaser.Scene {
     this.uiLayoutManager.updateWallTiles(this.wallTileCount);
   }
 
+  /* OLDCODE
+    private updateInstructionText(): void {
+      const isBlindPassAllowed = this.passFlowManager?.isBlindPassAllowed ? this.passFlowManager.isBlindPassAllowed() : false;
+      const isOptionalPassAllowed = this.passFlowManager?.isOptionalPassAllowed ? this.passFlowManager.isOptionalPassAllowed() : false;
+      this.uiLayoutManager.updateInstruction(
+        this.tablePhase,
+        this.charlestonState?.stage,
+        this.stateManager.isPersonalTurn,
+        this.passDirection,
+        this.canDiscard,
+        isBlindPassAllowed,
+        isOptionalPassAllowed
+      );
+    }
+  OLDCODE */
+  /* NEWCODE */
+/* OLDCODE
   private updateInstructionText(): void {
     const isBlindPassAllowed = this.passFlowManager?.isBlindPassAllowed ? this.passFlowManager.isBlindPassAllowed() : false;
     const isOptionalPassAllowed = this.passFlowManager?.isOptionalPassAllowed ? this.passFlowManager.isOptionalPassAllowed() : false;
@@ -4997,9 +5421,82 @@ export class PhaserScene extends Phaser.Scene {
       this.passDirection,
       this.canDiscard,
       isBlindPassAllowed,
-      isOptionalPassAllowed
+      isOptionalPassAllowed,
+      this.activeSeat,
+      this.activeCallPresentationSeat ?? null
     );
   }
+OLDCODE */
+/* NEWCODE */
+  private countSameTilesOnRack(): number {
+    const assetBase = this.exposureBuildAsset ?? (
+      this.activeExposureBuildTileIds.length > 0
+        ? this.gameService.assetBaseName(this.allTiles[this.activeExposureBuildTileIds[0]])
+        : undefined
+    );
+    if (!assetBase) return 0;
+
+    let count = 0;
+    const isFlower = assetBase.startsWith("flower_");
+    for (const runtime of this.tileMap.values()) {
+      if (runtime.zone === "rack" && runtime.vm?.tile_id != null) {
+        const tileAsset = this.gameService.assetBaseName(this.allTiles[runtime.vm.tile_id]);
+        if (tileAsset === assetBase || (isFlower && tileAsset.startsWith("flower_"))) {
+          count++;
+        }
+      }
+    }
+    return count;
+  }
+
+  private getLocalExposureStatus(): "building" | "complete" | null {
+    if (this.tablePhase !== GamePhaseEnum.PLAYING || !this.stateManager.isPersonalTurn) {
+      return null;
+    }
+    const isNeedExposure = this.turnStage === GameTurnStageEnum.NEED_EXPOSURE;
+    const hasActiveExposureBuild = this.activeExposureBuildTileIds.length > 0;
+
+    if (!isNeedExposure && !hasActiveExposureBuild) {
+      return null;
+    }
+
+    const count = this.activeExposureBuildTileIds.length;
+    // An exposure must have at least 3 tiles (Pung: 3, Kong: 4, Quint: 5)
+    if (count < 3) {
+      return "building";
+    }
+
+    if (count >= 5) {
+      return "complete";
+    }
+
+    // If there are no other tiles on the rack of the same tile, the exposure can be 3, 4, or 5 and is complete
+    const sameTilesOnRack = this.countSameTilesOnRack();
+    if (sameTilesOnRack === 0) {
+      return "complete";
+    }
+
+    return "building";
+  }
+
+  private updateInstructionText(): void {
+    const isBlindPassAllowed = this.passFlowManager?.isBlindPassAllowed ? this.passFlowManager.isBlindPassAllowed() : false;
+    const isOptionalPassAllowed = this.passFlowManager?.isOptionalPassAllowed ? this.passFlowManager.isOptionalPassAllowed() : false;
+    this.uiLayoutManager.updateInstruction(
+      this.tablePhase,
+      this.charlestonState?.stage,
+      this.stateManager.isPersonalTurn,
+      this.passDirection,
+      this.canDiscard,
+      isBlindPassAllowed,
+      isOptionalPassAllowed,
+      this.activeSeat,
+      this.activeCallPresentationSeat ?? null,
+      this.getLocalExposureStatus()
+    );
+  }
+/* NEWCODE */
+  /* NEWCODE */
 
   private setCharlestonState(state: any): void {
     this.charlestonState = state;
@@ -5484,8 +5981,22 @@ export class PhaserScene extends Phaser.Scene {
       ease
     );
 
+/* OLDCODE
     this.playHaptic("tile-discard");
     this.playTileDiscardVoice(runtime.vm);
+OLDCODE */
+/* NEWCODE */
+    this.playHaptic("tile-discard");
+    this.playTileDiscardVoice(runtime.vm);
+    if (this.activeCallPresentationSeat) {
+      if (this.callPresentationTimer) {
+        clearTimeout(this.callPresentationTimer);
+        this.callPresentationTimer = undefined;
+      }
+      this.activeCallPresentationSeat = undefined;
+      this.updateInstructionText();
+    }
+/* NEWCODE */
 
     // NEWCODE
     setTimeout(() => {
@@ -6569,6 +7080,7 @@ export class PhaserScene extends Phaser.Scene {
 
         this.tweens.killTweensOf(tile.image);
 
+        /* OLDCODE
         this.tweens.add({
           targets: tile.image,
           x: Math.round(target.x),
@@ -6585,6 +7097,36 @@ export class PhaserScene extends Phaser.Scene {
             finishOneTile();
           },
         });
+        OLDCODE */
+        /* NEWCODE */
+        this.tweens.add({
+          targets: tile.image,
+          x: Math.round(target.x),
+          y: Math.round(target.y),
+          angle: endAngle,
+          scaleX: 0.74,
+          scaleY: 0.74,
+          alpha: 1,
+          duration: Math.max(380, this.botPassCommitDurationMs - 60),
+          delay: index * 45,
+          ease: "Sine.easeInOut",
+          onComplete: () => {
+            // Disappear tile with fade & sink animation at the rack
+            this.tweens.add({
+              targets: tile.image,
+              scaleX: 0.42,
+              scaleY: 0.42,
+              alpha: 0,
+              duration: 250,
+              ease: "Sine.easeIn",
+              onComplete: () => {
+                tile.image.destroy();
+                finishOneTile();
+              },
+            });
+          },
+        });
+        /* NEWCODE */
       });
     });
   }

@@ -22,6 +22,11 @@ export class PhaserLayoutUi {
   hudMenuOpen = false;
   hudMenuItems: Phaser.GameObjects.Text[] = [];
   hudBg?: Phaser.GameObjects.Rectangle;
+  /* NEWCODE */
+  private lastActiveSeat?: TableSeat | null;
+  private lastCalledSeat?: TableSeat | null;
+  private lastExposureStatus?: "building" | "complete" | null;
+  /* NEWCODE */
 
 
 
@@ -564,8 +569,21 @@ export class PhaserLayoutUi {
     this.layoutMobileActionDrawer(layout);
 
     // The instruction card, its copy, and its primary button are native HTML.
-    // updateInstruction()/updatePassButtonState() republish that panel below.
-    this.updateInstruction(tablePhase, options.charlestonStage, options.isPersonalTurn, passDirection, options.canDiscard ?? false);
+    /* OLDCODE
+        this.updateInstruction(tablePhase, options.charlestonStage, options.isPersonalTurn, passDirection, options.canDiscard ?? false);
+    OLDCODE */
+    /* NEWCODE */
+    this.updateInstruction(
+      tablePhase,
+      options.charlestonStage,
+      options.isPersonalTurn,
+      passDirection,
+      options.canDiscard ?? false,
+      false,
+      false,
+      options.activeSeat,
+    );
+    /* NEWCODE */
 
     if (options.username && this.usernameText) {
       this.usernameText.setText(options.username.toUpperCase());
@@ -1916,6 +1934,48 @@ export class PhaserLayoutUi {
     };
   }
 
+  /* OLDCODE
+    updateInstruction(
+      phase: GamePhaseEnum,
+      charlestonStage: GameCharlestoneStageEnum | undefined,
+      isPersonalTurn: boolean,
+      passDirection: PassDirection,
+      canDiscard: boolean,
+      isBlindPassAllowed: boolean = false,
+      isOptionalPassAllowed: boolean = false,
+    ): void {
+      this.instructionPhase = phase;
+      this.charlestonStage = charlestonStage;
+  
+      if (phase !== GamePhaseEnum.PASSING && phase !== GamePhaseEnum.LOBBY) {
+        const isGameplay = phase === GamePhaseEnum.PLAYING || phase === GamePhaseEnum.CLAIM;
+        if (isGameplay && !canDiscard && isPersonalTurn) {
+          this.instructionMessage = "Pick a tile";
+        } else if (isGameplay && canDiscard && isPersonalTurn) {
+          this.instructionMessage = "Discard A Tile";
+        } else {
+          this.instructionMessage = "";
+        }
+        this.publishInstructionPanel();
+        return;
+      }
+  OLDCODE */
+  /* NEWCODE */
+  private getPlayerName(seat: TableSeat): string {
+    if (this.callbacks.getPlayerName) {
+      return this.callbacks.getPlayerName(seat);
+    }
+    if (seat === "bottom") {
+      return this.callbacks.getUsername ? this.callbacks.getUsername() : "You";
+    }
+    const defaultLabels: Record<Exclude<TableSeat, "bottom">, string> = {
+      top: "Player 1",
+      right: "Player 2",
+      left: "Player 3",
+    };
+    return defaultLabels[seat];
+  }
+
   updateInstruction(
     phase: GamePhaseEnum,
     charlestonStage: GameCharlestoneStageEnum | undefined,
@@ -1924,22 +1984,91 @@ export class PhaserLayoutUi {
     canDiscard: boolean,
     isBlindPassAllowed: boolean = false,
     isOptionalPassAllowed: boolean = false,
+    activeSeat?: TableSeat | null,
+    calledSeat?: TableSeat | null,
+    exposureStatus?: "building" | "complete" | null,
   ): void {
     this.instructionPhase = phase;
     this.charlestonStage = charlestonStage;
 
+/* OLDCODE
+    if (activeSeat !== undefined) {
+      this.lastActiveSeat = activeSeat;
+    }
+
+    const effectiveActiveSeat = activeSeat !== undefined ? activeSeat : this.lastActiveSeat;
+    const effectiveCalledSeat = (calledSeat !== undefined && calledSeat !== null) ? calledSeat : null;
+
     if (phase !== GamePhaseEnum.PASSING && phase !== GamePhaseEnum.LOBBY) {
       const isGameplay = phase === GamePhaseEnum.PLAYING || phase === GamePhaseEnum.CLAIM;
-      if (isGameplay && !canDiscard && isPersonalTurn) {
-        this.instructionMessage = "Pick a tile";
-      } else if (isGameplay && canDiscard && isPersonalTurn) {
-        this.instructionMessage = "Discard A Tile";
+      if (isGameplay) {
+        if (effectiveCalledSeat) {
+          if (effectiveCalledSeat === "bottom") {
+            this.instructionMessage = "Discard a Tile";
+          } else {
+            const callerName = this.getPlayerName(effectiveCalledSeat);
+            this.instructionMessage = `${callerName} Called`;
+          }
+        } else if (isPersonalTurn) {
+          if (!canDiscard) {
+            this.instructionMessage = "Pick a tile";
+          } else {
+            this.instructionMessage = "Discard a Tile";
+          }
+        } else if (effectiveActiveSeat && effectiveActiveSeat !== "bottom") {
+          const playerName = this.getPlayerName(effectiveActiveSeat);
+          this.instructionMessage = `${playerName}’s Turn`;
+        } else {
+          this.instructionMessage = "";
+        }
       } else {
         this.instructionMessage = "";
       }
       this.publishInstructionPanel();
       return;
     }
+OLDCODE */
+/* NEWCODE */
+    if (activeSeat !== undefined) {
+      this.lastActiveSeat = activeSeat;
+    }
+    if (exposureStatus !== undefined) {
+      this.lastExposureStatus = exposureStatus;
+    }
+
+    const effectiveActiveSeat = activeSeat !== undefined ? activeSeat : this.lastActiveSeat;
+    const effectiveCalledSeat = (calledSeat !== undefined && calledSeat !== null) ? calledSeat : null;
+    const effectiveExposureStatus = exposureStatus !== undefined ? exposureStatus : this.lastExposureStatus;
+
+    if (phase !== GamePhaseEnum.PASSING && phase !== GamePhaseEnum.LOBBY) {
+      const isGameplay = phase === GamePhaseEnum.PLAYING || phase === GamePhaseEnum.CLAIM;
+      if (isGameplay) {
+        if (effectiveCalledSeat && effectiveCalledSeat !== "bottom") {
+          const callerName = this.getPlayerName(effectiveCalledSeat);
+          this.instructionMessage = `${callerName} Called`;
+        } else if (isPersonalTurn) {
+          if (effectiveExposureStatus === "building") {
+            this.instructionMessage = "Complete the exposure, then discard a tile";
+          } else if (effectiveExposureStatus === "complete") {
+            this.instructionMessage = "Discard a tile";
+          } else if (!canDiscard) {
+            this.instructionMessage = "Pick a tile";
+          } else {
+            this.instructionMessage = "Discard a tile";
+          }
+        } else if (effectiveActiveSeat && effectiveActiveSeat !== "bottom") {
+          const playerName = this.getPlayerName(effectiveActiveSeat);
+          this.instructionMessage = `${playerName}’s Turn`;
+        } else {
+          this.instructionMessage = "";
+        }
+      } else {
+        this.instructionMessage = "";
+      }
+      this.publishInstructionPanel();
+      return;
+    }
+/* NEWCODE */
 
     if (charlestonStage === GameCharlestoneStageEnum.SECOND_DECISION) {
       this.instructionMessage = "Would you like to \nstop the Charleston?";
@@ -2525,12 +2654,32 @@ export class PhaserLayoutUi {
 
     this.usernameText?.texture.setFilter(Phaser.Textures.FilterMode.LINEAR);
 
+    /* OLDCODE
+        this.callbacks.onPlayerLabelOverlay?.([
+          { key: "top", text: this.playerLabels[0]?.text ?? "PLAYER 1", x: Math.round(layout.topLabel.x), y: Math.round(layout.topLabel.y), fontSize: playerFont, color: topColor, angle: 0, visible: useHtmlPlayerLabels },
+          { key: "right", text: this.playerLabels[1]?.text ?? "PLAYER 2", x: Math.round(layout.rightLabel.x), y: Math.round(layout.rightLabel.y), fontSize: playerFont, color: rightColor, angle: 90, visible: useHtmlPlayerLabels },
+          { key: "left", text: this.playerLabels[2]?.text ?? "PLAYER 3", x: Math.round(layout.leftLabel.x), y: Math.round(layout.leftLabel.y), fontSize: playerFont, color: leftColor, angle: -90, visible: useHtmlPlayerLabels },
+          { key: "bottom", text: this.usernameText?.text ?? "USERNAME", x: Math.round(layout.username.x), y: Math.round(layout.username.y), fontSize: usernameFont, color: bottomColor, angle: 0, visible: useHtmlPlayerLabels },
+        ]);
+    OLDCODE */
+    /* NEWCODE */
+    const topName = this.getPlayerName("top").toUpperCase();
+    const rightName = this.getPlayerName("right").toUpperCase();
+    const leftName = this.getPlayerName("left").toUpperCase();
+    const bottomName = this.getPlayerName("bottom").toUpperCase();
+
+    this.playerLabels[0]?.setText(topName);
+    this.playerLabels[1]?.setText(rightName);
+    this.playerLabels[2]?.setText(leftName);
+    this.usernameText?.setText(bottomName);
+
     this.callbacks.onPlayerLabelOverlay?.([
-      { key: "top", text: this.playerLabels[0]?.text ?? "PLAYER 1", x: Math.round(layout.topLabel.x), y: Math.round(layout.topLabel.y), fontSize: playerFont, color: topColor, angle: 0, visible: useHtmlPlayerLabels },
-      { key: "right", text: this.playerLabels[1]?.text ?? "PLAYER 2", x: Math.round(layout.rightLabel.x), y: Math.round(layout.rightLabel.y), fontSize: playerFont, color: rightColor, angle: 90, visible: useHtmlPlayerLabels },
-      { key: "left", text: this.playerLabels[2]?.text ?? "PLAYER 3", x: Math.round(layout.leftLabel.x), y: Math.round(layout.leftLabel.y), fontSize: playerFont, color: leftColor, angle: -90, visible: useHtmlPlayerLabels },
-      { key: "bottom", text: this.usernameText?.text ?? "USERNAME", x: Math.round(layout.username.x), y: Math.round(layout.username.y), fontSize: usernameFont, color: bottomColor, angle: 0, visible: useHtmlPlayerLabels },
+      { key: "top", text: topName, x: Math.round(layout.topLabel.x), y: Math.round(layout.topLabel.y), fontSize: playerFont, color: topColor, angle: 0, visible: useHtmlPlayerLabels },
+      { key: "right", text: rightName, x: Math.round(layout.rightLabel.x), y: Math.round(layout.rightLabel.y), fontSize: playerFont, color: rightColor, angle: 90, visible: useHtmlPlayerLabels },
+      { key: "left", text: leftName, x: Math.round(layout.leftLabel.x), y: Math.round(layout.leftLabel.y), fontSize: playerFont, color: leftColor, angle: -90, visible: useHtmlPlayerLabels },
+      { key: "bottom", text: bottomName, x: Math.round(layout.username.x), y: Math.round(layout.username.y), fontSize: usernameFont, color: bottomColor, angle: 0, visible: useHtmlPlayerLabels },
     ]);
+    /* NEWCODE */
   }
 
   updateWallTiles(wallTileCount: number): void {

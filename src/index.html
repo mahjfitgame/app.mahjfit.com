@@ -15,19 +15,19 @@
     // but we leave SharedArrayBuffer undefined so OPFS correctly detects it is not supported.
     if (typeof Atomics === 'undefined') {
       window.Atomics = {
-        notify: function() {},
-        wait: function() { return 'timed-out'; },
-        waitAsync: function() { return { async: false, value: Promise.resolve('timed-out') }; },
-        load: function() { return 0; },
-        store: function() {},
-        add: function() {},
-        sub: function() {},
-        and: function() {},
-        or: function() {},
-        xor: function() {},
-        exchange: function() {},
-        compareExchange: function() {},
-        isLockFree: function() { return false; }
+        notify: function () { },
+        wait: function () { return 'timed-out'; },
+        waitAsync: function () { return { async: false, value: Promise.resolve('timed-out') }; },
+        load: function () { return 0; },
+        store: function () { },
+        add: function () { },
+        sub: function () { },
+        and: function () { },
+        or: function () { },
+        xor: function () { },
+        exchange: function () { },
+        compareExchange: function () { },
+        isLockFree: function () { return false; }
       };
     }
   </script>
@@ -88,12 +88,9 @@
           https://www.google.com;
         child-src 'self' blob:;
         object-src 'none';
-      "
-    />
-    <meta
-      http-equiv="Permissions-Policy"
-      content="camera=(self), microphone=(self), geolocation=(self), accelerometer=(self), display-capture=(self)"
-    />
+      " />
+  <meta http-equiv="Permissions-Policy"
+    content="camera=(self), microphone=(self), geolocation=(self), accelerometer=(self), display-capture=(self)" />
 
   <meta name="referrer" content="strict-origin-when-cross-origin" />
 
@@ -101,22 +98,20 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="" />
 
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded" />
-  <link rel="stylesheet"
-    href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&family=Poppins:wght@400;500;600;700&display=swap" />
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@200..800&display=swap" />
 
-    <!-- ████ OPEN AREA LAYOUT ████████████ -->
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Outfit:wght@100..900&display=swap" />
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@500&display=swap" />
+  <!-- ████ OPEN AREA LAYOUT ████████████ -->
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&display=swap" />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" />
 
-    <link rel="icon" type="image/png" sizes="32x32" href="open/assets/brand/favicon/favicon-32x32.png" />
-    <link rel="manifest" href="open/manifest.webmanifest" />
-    <!-- ████ /OPEN AREA LAYOUT ████████████ -->
+  <link rel="icon" type="image/png" sizes="32x32" href="open/assets/brand/favicon/favicon-32x32.png" />
+  <link rel="manifest" href="open/manifest.webmanifest" />
+  <!-- ████ /OPEN AREA LAYOUT ████████████ -->
 
-    <!-- ████ PRIVATE AREA LAYOUT ████████████ -->
-    <!-- <link rel="icon" type="image/x-icon" href="private/assets/brand/favicon/favicon.ico" /> -->
-    <!-- <link rel="manifest" href="private/manifest.webmanifest" /> -->
-    <!-- ████ /PRIVATE AREA LAYOUT ████████████ -->
+  <!-- ████ PRIVATE AREA LAYOUT ████████████ -->
+  <!-- <link rel="icon" type="image/x-icon" href="private/assets/brand/favicon/favicon.ico" /> -->
+  <!-- <link rel="manifest" href="private/manifest.webmanifest" /> -->
+  <!-- ████ /PRIVATE AREA LAYOUT ████████████ -->
 </head>
 <!--
     data-bfw-theme-mode is intentionally not set here. the script below sets it before the first
@@ -166,7 +161,7 @@
         if (mode === THEME_MODE_DARK || mode === THEME_MODE_LIGHT) {
           document.body.setAttribute(THEME_MODE_ATTRIBUTE, mode);
         }
-        } catch (e) {}
+      } catch (e) { }
     })();
   </script>
 

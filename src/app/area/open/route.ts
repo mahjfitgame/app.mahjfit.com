@@ -62,7 +62,7 @@ export class OpenAreaRoute extends FoundationModuleRoute {
             sort_order: 0,
             actions: this.actionPrivilege(),
             hidden: true,
-            default_child_key: 'HOME',
+            //default_child_key: 'HOME',
             nav_position: [FoundationNavPositionEnum.START],
         };
     }

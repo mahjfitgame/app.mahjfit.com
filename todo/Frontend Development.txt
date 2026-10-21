@@ -34,6 +34,8 @@ Current:
 
  Developer testing Dead Hand, Mahjong, Wall Game, Bot Decision
 
+ Game Play - Working on Dead Hand message and feature test
+
 https://www.google.com/search?q=Is+this+right+dead+hand+because+I+make+the+group+of+7+crack+and+submit+the+server+call+this+as+dead+hand+so+is+this+right+as+per+the+American+Mahjong+rules&sourceid=chrome&ie=UTF-8&amc=1&gs_lcrp=EgZjaHJvbWUyBggAEEUYOdIBCjQ1MTMzajBqMzGoAgCwAgHqBwoIARAAGAAgACgA&lns_mode=cvst&oq=Is+this+right+dead+hand+because+I+make+the+group+of+7+crack+and+submit+the+server+call+this+as+dead+hand+so+is+this+right+as+per+the+American+Mahjong+rules&aep=42&cud=89&source=chrome.crn.rb&gsessionid=cO7Syjec8aiNgt6rO-hq3hN1MPoOpGhJmfO_oqYjxMmNLGTM7OdMPQ&lns_surface=42&mstk=AUtExfAt9hEkdWNL6ArjpzIWRx0-_Y5C743LFoCsxrr07uMOC57531dq1b9tEL5kbalVJQSOnwlhkc1BQhO72ROLqXKqWMXHzuPwKJfqzU-63y_fd-bWol5pbmvfQPm6F7tZT-zjYzBUbTqO4krkjTMlRKbUREHjePeasRw&csuir=1&mtid=0n_HarGUO6-ohvcPzJLW4Q0&udm=50
 
 https://chatgpt.com/c/6ac9d950-f4a0-83ee-a2fa-f9290138ed24
@@ -50,6 +52,131 @@ Game Play - Current logic assesmet and plan next upgratation
 
 
 ============= REPLY ==============
+FOR CLIENT]
+I haven’t made any changes to the audio files because I’m a bit confused about the new sounds, which sound should be used, and which action each sound is associated with.
+I need your guidance on this. Based on my understanding, I will use the following sound files for the respective actions.
+Action: Joker Exchange
+Sound: JokerExchange.mp3
+
+Action: Charleston Pass
+Sound: Charleston_Pass.mp3
+
+Action: Call tile
+Sound: Call_.wav
+
+Action: Wall Game
+Sound: _Wall_Game_Voice.wav
+
+Action: Error
+Sound: error_01.wav
+
+What about the other sound files? When should each of them be played?
+Bell%20Star%201.wav
+combo_break_1.wav
+combo_break_1.wav
+confirm_02.wav
+confirm_06_1.wav
+confirm_06.wav
+equip_01.wav
+equip_03.wav
+
+lose_01.wav
+new_day.wav
+notify_02.wav
+notify_10.wav
+Shuffle.wav
+
+Tile%20Pick%20and%20Drop_1.wav
+Tile%20Pick%20and%20Drop_2.wav
+Tile%20Pick%20and%20Drop_3.wav
+Tile%20Pick%20and%20Drop.wav
+
+Waiting_Reminder.wav
+
+Thanks you!
+
+++++++++
+Hi Raj,
+
+Thank you for putting together the header examples.
+ I agree with using a consistent header structure across the site:
+Hamburger menu on the left
+Centered Mahjfit logo
+Sign In / Sign Up when logged out on the right 
+Member information and account shortcuts on the right when logged in
+The tagline can just appear for the marketing logged out state
+The header can use the same height and spacing/alignment across pages, with the right-side content changing based on login status.
+ For responsive layouts, we can simplify the member information and account shortcuts as needed to accommodate mobile screens.
+
+I'm good with this approach from a layout/UX perspective. Does that work from your dev standpoint?
+ 
+Can you also make these size/spacing adjustments?
+increase size of the hamburger menu.
+move hamburger menu flush left edge of main content container
+position the drop down menu so its icons align vertically with the hamburger menu icon and the main well.
+keep logo centered.
+align sign in/sign up and the avatar/personalization/buttons with the right edge of the main content container. 
+PFA: image9911
+
+PFA: image2299
+
+Let me know if you have any questions.
+Thanks! Carolyn
+
+++++++++++++
+FOR CLIENT]
+Today, I worked on multiple tasks simultaneously, including the required backend and frontend code updates as per game testing and I will also go for remain development.
+
+I completed the following updates:
+
+Tile Passing Animation: 
+Added an animation when a tile is passed to the rack, so it disappears with a visual effect, such as a flash.
+Mahjong Button Behavior: 
+If the Mahjong button is clicked and no Mahjong is detected, the button shakes or wiggles to indicate that the action is complete. The button is then enabled again.
+Tile Distribution During Charleston: 
+Updated the tile distribution to make the tiles appear more randomly mixed and drawn. As shown in Attachment 2, getting so many Winds during the Charleston round is highly unlikely, although not impossible. I need to test multiple gameplay sessions to verify that the Charleston tile distribution is working correctly.
+Rack UI Improvement: 
+Fixed a frontend issue where exchanging a Joker with an exposed tile in the same seat sometimes left an empty space in the rack. The UI has been updated to remove the gap and keep the rack layout consistent.
+Pending Task:
+
+Bot Exposure Decisions: 
+We need to review and verify how the bot decides works in turms of which tiles to group together for exposure. So this is detaild testing as there are too too too many use cases.
+
+System (Computer) Dead Hand Decisions: 
+We need to review and verify the Dead Hand Decision of computer. Becuase with some hand have winning possibility but system make the hand DEAD.
+
+I will keep you posted on the work progress. 
+Thank you!
+
+
+FOR CLIENT]
+Today, I worked on the two points, testing the game play with the proper instruction, added the claim instruction when call the tile. 
+Test the debug email process and it works but due to long JSON data it take time to paste so I reduced the json size and it works fine on my local, I will update these changes on demo server as soon as possibile
+
+I also checked the instruction panel during gameplay, checked Joker swap animation and move tile to rack to make the exposure, animation and also checked the winning hands is works properly or not.
+
+Added one more unit testing file for the mahjong test.
+
+So basically I completed the point and then test the recenet completed point as well as other completed point I done while game play tesing. If I found something then I will first fixed this and move to the next point. 
+
+
+Today, I completed the two assigned points by testing the gameplay with the proper instructions and adding the claim instruction when calling a tile. I also tested the debug email process, which worked successfully. However, pasting the large JSON data took too long, so I reduced the JSON size, and it is now working fine in my local environment. I will update these changes on the demo server as soon as possible.
+
+I also checked the instruction panel during gameplay, tested the Joker swap animation, and verified the process of moving tiles to the rack to make an exposure, along with the related animations. Additionally, I checked whether the winning hands were working properly and added another unit testing file for Mahjong.
+
+Overall, I completed the one by one point and tested both the recently completed features and other previously implemented features during gameplay testing. Whenever I find an issue, I fix it first before moving on to the next point to ensure everything works as expected.
+
+
+I will keep you posted on the work progress. 
+Thank you!
+
+
+FOR CLIENT]
+Today, I have started work on points and completed the instructions related point. 
+Also cross checked the current mahjong features for winning hand correction. 
+
+I will keep you posted on the work progress. 
+Thank you!
 
 FOR CLIENT]
 Today, I analysed the backend and frontend code to improve the user experience and fix delays during gameplay when the bot picks, discards, and calls tiles. I am still monitoring these issues.

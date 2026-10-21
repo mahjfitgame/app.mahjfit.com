@@ -171,6 +171,12 @@ export class PhaserComponent implements AfterViewInit {
   readonly instructionPanelOverlay = signal<InstructionPanelOverlayState | undefined>(undefined);
   readonly mahjongButtonOverlay = signal<MahjongButtonOverlayState | undefined>(undefined);
   readonly claimPanelOverlay = signal<ClaimPanelOverlayState | undefined>(undefined);
+  /* NEWCODE */
+  readonly mahjongButtonProcessing = signal<boolean>(false);
+  readonly mahjongButtonShaking = signal<boolean>(false);
+  private mahjongCheckTimer?: number;
+  private mahjongShakeTimer?: number;
+  /* NEWCODE */
   readonly mobileHeaderToggleOverlay = signal<MobileHeaderToggleOverlayState | null>(null);
 
   readonly mobileDrawerState = signal<MobileDrawerOverlayState | null>(null);
@@ -806,7 +812,13 @@ export class PhaserComponent implements AfterViewInit {
       let scene!: PhaserScene;
       runInInjectionContext(this.injector, () => {
         scene = new PhaserScene(this.gameService, {
+/* OLDCODE
           getUsername: () => this.gameState.ctxp.state.user_fullname || this.gameState.ctxp.state.user_username || "PLAYER",
+OLDCODE */
+/* NEWCODE */
+          getUsername: () => this.gameState.ctxp.state.user_fullname || this.gameState.ctxp.state.user_username || "PLAYER",
+          getPlayerName: (seat: TableSeat) => this.getPlayerName(seat),
+/* NEWCODE */
           onSelectionChanged: (ids) => this.zone.run(() => this.selectionChanged.emit(ids)),
           onPassCompleted: async (payload) => {
             // console.log("[PhaserBoardComponent] Publishing Charleston with tiles:", payload.tileIds);
@@ -858,9 +870,19 @@ export class PhaserComponent implements AfterViewInit {
             if (mode === "suit") enumMode = GameTileOrderEnumAddon.BY_SUIT;
             this.gameState.publishOderPersonalRackTiles(enumMode);
           },
+/* OLDCODE
           onMahjongDeclare: () => {
             this.gameState.publishMahjongDeclare();
           },
+OLDCODE */
+/* NEWCODE */
+          onMahjongDeclare: () => {
+            this.gameState.publishMahjongDeclare().catch((err) => {
+              console.warn("publishMahjongDeclare failed:", err);
+              this.handleMahjongFailure();
+            });
+          },
+/* NEWCODE */
           onWallCountOverlay: (state) => this.setWallCountOverlay(state),
           onPlayerLabelOverlay: (states) => this.setPlayerLabelOverlays(states),
           onPointsOverlay: (state) => this.setPointsOverlay(state),
@@ -928,10 +950,20 @@ export class PhaserComponent implements AfterViewInit {
         // initial iOS/Android inset measurement through the normal layout
         // path instead of only storing it for a later resize.
         this.syncGameViewport();
+/* OLDCODE
         const rack = this.getSortedRack();
         this.phaser?.events.emit("allTiles:set", this.gameState.game_all_tiles());
         this.phaser?.events.emit("rack:set", rack);
         this.phaser?.events.emit("tile-call:offer", this.tileCallOffer());
+OLDCODE */
+/* NEWCODE */
+        const rack = this.getSortedRack();
+        this.phaser?.events.emit("allTiles:set", this.gameState.game_all_tiles());
+        this.phaser?.events.emit("rack:set", rack);
+        this.phaser?.events.emit("tile-call:offer", this.tileCallOffer());
+        this.phaser?.events.emit("wall:set-pick-mode", this.gameState.canPickTile());
+        this.phaser?.events.emit("rack:set-discard-mode", this.gameState.canDiscard());
+/* NEWCODE */
         const win = this.mahjongWin();
         if (win) this.setMahjongWinPopup(win);
         this.phaser?.events.on(
@@ -978,6 +1010,10 @@ export class PhaserComponent implements AfterViewInit {
       this.clearDebugViewportRefreshTimer();
       this.clearJoinTablePopupTimer();
       this.clearMahjongWinPopupTimer();
+      /* NEWCODE */
+      this.clearMahjongCheckTimer();
+      this.clearMahjongShakeTimer();
+      /* NEWCODE */
 
       this.phaser?.destroy(true);
       this.phaser = undefined;
@@ -1178,12 +1214,58 @@ export class PhaserComponent implements AfterViewInit {
     return `${Math.floor(remaining / 60000)}:${String(Math.floor(remaining / 1000) % 60).padStart(2, "0")}`;
   }
 
+/* OLDCODE
   public getDeadHandTargetLabel(targetSeat: Exclude<TableSeat, "bottom">): string {
     const labels: Record<Exclude<TableSeat, "bottom">, string> = {
       top: "PLAYER 1 (TOP)", right: "PLAYER 2 (RIGHT)", left: "PLAYER 3 (LEFT)",
     };
     return labels[targetSeat];
   }
+OLDCODE */
+/* NEWCODE */
+  public getPlayerName(seat: TableSeat): string {
+    if (seat === "bottom") {
+      return this.gameState.ctxp.state.user_fullname || this.gameState.ctxp.state.user_username || "You";
+    }
+
+    const defaultNames: Record<Exclude<TableSeat, "bottom">, string> = {
+      top: "Player 1",
+      right: "Player 2",
+      left: "Player 3",
+    };
+
+    const seatsObj = this.gameState.play_seats();
+    if (seatsObj) {
+      for (const [id, s] of Object.entries(seatsObj)) {
+        if (this.gameState.seat_position_by_gseat_id()(Number(id)) === seat) {
+          // If real user (u_id is present and valid number > 0)
+          if (s?.u_id) {
+            const userObj = s?.user || s?.fr_user;
+            const fullName = s?.user_fullname || (userObj?.fname ? `${userObj.fname} ${userObj.lname ?? ""}`.trim() : null) || s?.fullname;
+            const candidate = fullName || s?.user_username || s?.username || s?.fname || s?.name || userObj?.username;
+            if (candidate && typeof candidate === "string" && candidate.trim().length > 0) {
+              return candidate.trim();
+            }
+          }
+          // If bot profile has a specific name
+          const profile = this.gameState.game_bot_profile() as any;
+          if (profile && profile[Number(id)]?.name) {
+            return profile[Number(id)].name;
+          }
+          break;
+        }
+      }
+    }
+
+    return defaultNames[seat];
+  }
+
+  public getDeadHandTargetLabel(targetSeat: Exclude<TableSeat, "bottom">): string {
+    const name = this.getPlayerName(targetSeat).toUpperCase();
+    const seatSuffix = targetSeat === "top" ? "TOP" : targetSeat === "right" ? "RIGHT" : "LEFT";
+    return `${name} (${seatSuffix})`;
+  }
+/* NEWCODE */
 
   private rawInstructionPanelState?: InstructionPanelOverlayState;
   public confirmStopCharleston = signal(false);
@@ -1335,10 +1417,38 @@ export class PhaserComponent implements AfterViewInit {
     this.setDeadHandPopup(null);
   }
 
+/* OLDCODE
   public onMahjongButtonClick(): void {
     console.log("Mahjong button clicked!");
     this.phaser?.events.emit("instruction-panel:mahjong");
   }
+OLDCODE */
+/* NEWCODE */
+  public onMahjongButtonClick(): void {
+    console.log("Mahjong button clicked!");
+    if (this.mahjongButtonProcessing()) return;
+
+    this.mahjongButtonProcessing.set(true);
+    this.mahjongButtonShaking.set(false);
+    this.clearMahjongCheckTimer();
+
+    this.phaser?.events.emit("instruction-panel:mahjong");
+
+    // Give backend time to evaluate and declare mahjong if valid.
+    // If no mahjong win is confirmed within timeout, trigger shake and error sound.
+    this.mahjongCheckTimer = window.setTimeout(() => {
+      const isFinished = this.gameState.play_phase() === GamePhaseEnum.FINISHED;
+      const isMahjong = this.gameState.play_finished_reason() === "MAHJONG"
+        || Boolean(this.mahjongWinResult())
+        || this.gameState.personal_seat_rack_first_is_mahjong();
+      if (!isFinished && !isMahjong) {
+        this.handleMahjongFailure();
+      } else {
+        this.mahjongButtonProcessing.set(false);
+      }
+    }, 1200);
+  }
+/* NEWCODE */
 
   /**
    * Emits before the matching exposure event so Phaser can stage a bot's
@@ -1378,11 +1488,33 @@ export class PhaserComponent implements AfterViewInit {
       && this.gameState.play_finished_reason() === "MAHJONG";
     if (!exposureContainsClaimedTile && !isMahjong) return false;
 
+/* OLDCODE
     const discardedBy = this.gameState.seat_position_by_gseat_id()(Number(fromSeatId));
     if (!discardedBy || !this.phaser || !this.sceneReady()) return false;
     const payload: ResolvedClaimPresentation = { key: claimKey, tile: tile!, discardedBy };
     this.phaser.events.emit("claim:resolved", payload);
     return true;
+OLDCODE */
+/* NEWCODE */
+    const discardedBy = this.gameState.seat_position_by_gseat_id()(Number(fromSeatId));
+    if (!discardedBy || !this.phaser || !this.sceneReady()) return false;
+    let calledBy: TableSeat | undefined = undefined;
+    for (const [seat, melds] of Object.entries(exposures)) {
+      const match = (melds ?? []).some((meld: any) => {
+        const meldTiles = meld?.tiles
+          ? (Array.isArray(meld.tiles) ? meld.tiles : Object.values(meld.tiles))
+          : (meld?.tile ? [meld.tile] : []);
+        return meldTiles.some((meldTile: any) => Number(meldTile?.tile_id) === tileId);
+      });
+      if (match) {
+        calledBy = seat as TableSeat;
+        break;
+      }
+    }
+    const payload: ResolvedClaimPresentation = { key: claimKey, tile: tile!, discardedBy, calledBy };
+    this.phaser.events.emit("claim:resolved", payload);
+    return true;
+/* NEWCODE */
   }
 
   /**
@@ -1391,6 +1523,7 @@ export class PhaserComponent implements AfterViewInit {
    * and claimed tile, which is sufficient for the same presentation flow.
    */
   private emitExposureClaimPresentationFallback(exposures: Record<TableSeat, any[]>, suppressPresentation: boolean): void {
+/* OLDCODE
     const candidates: Array<{ key: string; tile: GameTileEntityGSDto; fromSeatId: number }> = [];
 
     for (const [seat, melds] of Object.entries(exposures)) {
@@ -1428,6 +1561,47 @@ export class PhaserComponent implements AfterViewInit {
         discardedBy,
       } satisfies ResolvedClaimPresentation);
     }
+OLDCODE */
+/* NEWCODE */
+    const candidates: Array<{ key: string; tile: GameTileEntityGSDto; fromSeatId: number; calledBy: TableSeat }> = [];
+
+    for (const [seat, melds] of Object.entries(exposures)) {
+      // The local player finalizes CALL into Pung/Kong/Quint after choosing a
+      // group. That is not a new discard and must never synthesize one.
+      // Immediate-resolution fallback is only needed for opponent bot melds.
+      if (seat === "bottom") continue;
+      for (const meld of melds ?? []) {
+        const tile = meld?.tile as GameTileEntityGSDto | undefined;
+        const fromSeatId = Number(meld?.from_seat);
+        if (!tile || tile.tile_id == null || !Number.isFinite(fromSeatId)) continue;
+
+        // A manual CALL becomes Pung/Kong/Quint by changing `kind`; retain one
+        // identity across that lifecycle so it cannot be presented twice.
+        const key = `${fromSeatId}:${tile.tile_id}:${meld?.to_seat ?? ""}`;
+        const isNew = !this.knownExposurePresentationKeys.has(key);
+        this.knownExposurePresentationKeys.add(key);
+        if (this.exposurePresentationInitialized && isNew) {
+          candidates.push({ key, tile, fromSeatId, calledBy: seat as TableSeat });
+        }
+      }
+    }
+    if (!this.exposurePresentationInitialized) {
+      this.exposurePresentationInitialized = true;
+      return;
+    }
+    if (suppressPresentation) return;
+
+    for (const candidate of candidates) {
+      const discardedBy = this.gameState.seat_position_by_gseat_id()(candidate.fromSeatId);
+      if (!discardedBy || !this.phaser || !this.sceneReady()) continue;
+      this.phaser.events.emit("claim:resolved", {
+        key: `exposure:${this.gameState.game_keyid()}:${candidate.key}`,
+        tile: candidate.tile,
+        discardedBy,
+        calledBy: candidate.calledBy,
+      } satisfies ResolvedClaimPresentation);
+    }
+/* NEWCODE */
   }
 
   public onClaimPanelClick(action: "call" | "skip" | "mahjong" | "pick"): void {
@@ -1471,6 +1645,13 @@ export class PhaserComponent implements AfterViewInit {
   private setMahjongWinPopup(result: MahjongWinCelebration | null): void {
     this.mahjongWinResult.set(result);
     this.clearMahjongWinPopupTimer();
+    /* NEWCODE */
+    if (result) {
+      this.clearMahjongCheckTimer();
+      this.mahjongButtonProcessing.set(false);
+      this.mahjongButtonShaking.set(false);
+    }
+    /* NEWCODE */
     this.setTableOverlayBlocked(result ? "screen" : "none");
 
     if (!result) {
@@ -1856,6 +2037,43 @@ export class PhaserComponent implements AfterViewInit {
       this.mahjongWinPopupTimer = undefined;
     }
   }
+
+  /* NEWCODE */
+  private clearMahjongCheckTimer(): void {
+    if (this.mahjongCheckTimer !== undefined) {
+      window.clearTimeout(this.mahjongCheckTimer);
+      this.mahjongCheckTimer = undefined;
+    }
+  }
+
+  private clearMahjongShakeTimer(): void {
+    if (this.mahjongShakeTimer !== undefined) {
+      window.clearTimeout(this.mahjongShakeTimer);
+      this.mahjongShakeTimer = undefined;
+    }
+  }
+
+  private handleMahjongFailure(): void {
+    this.clearMahjongCheckTimer();
+    this.mahjongButtonProcessing.set(false);
+    this.mahjongButtonShaking.set(true);
+
+    try {
+      const audio = new Audio("assets/sounds/error_01.wav");
+      void audio.play().catch((err) => {
+        console.warn("Could not play error_01.wav sound:", err);
+      });
+    } catch (e) {
+      console.warn("Error playing error_01.wav:", e);
+    }
+
+    this.clearMahjongShakeTimer();
+    this.mahjongShakeTimer = window.setTimeout(() => {
+      this.mahjongButtonShaking.set(false);
+      this.mahjongShakeTimer = undefined;
+    }, 600);
+  }
+  /* NEWCODE */
 
   /** Aligns the DOM logo to the exact Phaser hamburger HUD centre. */
   private setHeaderLogoLayout(state: HeaderLogoLayoutState): void {

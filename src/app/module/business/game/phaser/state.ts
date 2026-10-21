@@ -34,7 +34,13 @@ export class PhaserState {
   readonly lastTapAtByTileId = new Map<number, number>();
 
   passTrayClones: Phaser.GameObjects.Image[] = [];
+/* OLDCODE
   canDiscard = false;
+OLDCODE */
+/* NEWCODE */
+  canDiscard = false;
+  canPick = false;
+/* NEWCODE */
   passAnimationClones: Phaser.GameObjects.GameObject[] = [];
   passDirection: PassDirection = GamePhaseFirstRoundDirectionEnum.ACROSS;
   currentPassDestination: TableSeat = "top";

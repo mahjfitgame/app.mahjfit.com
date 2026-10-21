@@ -1,8 +1,157 @@
 COMPLETED
 ========================================================
+6]
+Make instructions on the rack very clear: The instructions should repeat exactly what is happening in the game, reference Real Mahjong instructions during play:
+ 
+For example:
+ 
+* Discard a Tile
+* Player 1’s Turn
+* Player 2’s Turn
+* Player’s 3 Turn
+* Pick a tile
+* Discard a tile
+* Player 1 Called 
+* Player 2 Called
+* Player 3 Called
+
+
+Player 1, Player 2, Player 3 when its real user then we have to show the real player name 
+
+7] 
+CALL
+If I call for an exposure, I can change my mind as long as I don’t add any of my tiles to the rack.
+IF I change my mind, once I return that tile back to the board, my turn is over and it moves to the next player’s turn. 
+DONE
+
+7.1]
+Instructions for when I call:
+“Complete the exposure, then discard a tile”
+ (The computer should know when the exposure is complete based on:
+- the other hands in the rack 
+- if there are no other tiles on the rack, the exposure can be 3, 4, or 5 of the same tile
+
+
+11]
+Attachement 1 - tiles on top of directions 
+DONE
+
+
+14]
+Attachement 4
+One more comment- when a player is playing against bots, the game should never resume without them. If playing against another player, that player should get a minute before they get kicked off and a computer takes over. 
+Let's discuss how that will work. 
+But for now, computer does not take over when a player is only playing with bots
+DONE
+
+
+=============== POINTS IN DOC ===============
+1]
+Opponents pick tiles	When an opponents picks a tile, the tile moves too fast - slow the tile movement down
+on game board > select left, right, or top > select 'pick'
+
+DONE
+
+4]
+Swap player username location to the top of rack. Bottom should be used for player instructions	Move the player username to the top of the rack like other players. The bottom space where it is now, can be used for instructions during the game
+
+DONE
+Note: 
+We added the user name at the bottom and instruction panel at top of the exposure area.
+
+5]
+Game Board sizing	The blue racks can be narrower and the tiles should be as big as possible
+DONE
+
+6]
+Tile Sizing	Increase size of discarded tiles
+
+DONE
+Note: 
+We added scroll to the discarded tiles area to allow for more tiles to be shown. 
+
+7]
+Tile dimension	Increase the 2D effect shadowing of user tiles to make it more lifelike
+
+DONE
+Note:
+Need confiration, if need to change any thing.
+
+11]
+Game Direction: Move the instructions from a box in the middle of the board, to on the rack where the USERNAME is. Move the USERNAME to the rack like the other racks
+DONE
+Connected point with #4
+
+13]
+Sort: Remove the drop down box. Program this button fo thhat on one click it sorts by rank, on the next click it sorts by suit. Then another click it goes by to sort ny rank, and so on
+DONE
+
+14]
+Sort by Suit: Sort by SUIT: There are still errors- the cracks and dots are mixed in together. Also the order of suit groupings should be, from Left to Right: First the Flowers, then the numbers for Bam, Dot, Crack then the Dragons (green, red,soap), then the Winds (N,S,E,W), and last the Jokers
+DONE
+
+15]
+Sort by Rank: Sort by Rank: Sort by Rank: The order fom Left to Right, should start with the Flowers, then the numbers for Bam, Dot, Crack then the Dragons (green, red,soap), then the Winds (N,S,E,W), and last the Jokers
+DONE
+
+17]
+Color and Tile size	Orange color should be pink. Tiles on the board need to be bigger	Refer to Brand Guide
+DONE
+
+19]
+After Pick	Include instructions to "Discard a Tile"
+DONE
+
+20]
+we like the rack flipped as you have shown here
+
+let's move forward with this style as well as moving the instructions down onto the rack instead of the pop-up box on the game board. 
+In order to fit the instructions we may want to have both the top and the bottom of the user's rack be wide both the top and the bottom.
+
+PFA: Directions.pdf
+
+See the screen shots of the notes I have so far:
+
+PFA: 
+After_Pick.pdf
+discarded_Tile.pdf
+move icons.pdf
+sort_rank.pdf
+Sort_Suit.pdf
+Sort.pdf
+
+DONE
+Note: 
+Same as points #4, #11
+
+================ MEETING POINTS ================
+1]
+- Call can be reversable if no tile exposed yet.
+DONE
+
+2]
+- There is a bug that if i call the tile then it should be in exposure - it still show in discard area.
+DONE
 
 
 
+================ POIONT FROM OUR SIDE AND OTHER DISCUSSED POINTS ================
+3]
+- If mahjong button clicked and nothign then we need to show shake/wiggle the button to express that process is done and mahjong button again enabled.
+DONE
+
+7]
+- Do not allow to expose wrong tiles - if it is then dead hand. if 1+4 then end the game and if multiple human players then mark player as dead. So exposure only allow winning hand for bot and humans.
+DONE
+
+10]
+When pass tile, need to add some animation as when tile goes to the rack disappear tile with some animation like flad or somthing. 
+DONE
+
+12]
+Attachement 2
+The tiles need to be to more randomly mixed and drawn, It is also pretty unlikely to get this many winds during the Charleston. It is not impossible, but this almost a complete hand
+DONE
 
 #######################################
 
@@ -31,8 +180,13 @@ For example:
 * Player’s 3 Turn
 * Pick a tile
 * Discard a tile
-* Player 1’s Turn
+* Player 1 Called 
 * Player 2 Called
+* Player 3 Called
+
+
+Player 1, Player 2, Player 3 when its real user then we have to show the real player name 
+DONE
 
 7] 
 CALL
@@ -46,6 +200,9 @@ Instructions for when I call:
  (The computer should know when the exposure is complete based on:
 - the other hands in the rack 
 - if there are no other tiles on the rack, the exposure can be 3, 4, or 5 of the same tile
+
+
+Active the instruction panel of exposure if turn is current otherwise just change the color of text to COLOR_AVOCADO do not show as active tab if current turn is another seat.
  
  
 8]
@@ -68,16 +225,21 @@ If you call a dead hand on another player, there should be follow up messaging:
                hands of all of the players.
 
 11]
-Attachement 1 - tiles on top of directions
+Attachement 1 - tiles on top of directions 
+DONE
 12]
 Attachement 2
 The tiles need to be to more randomly mixed and drawn, It is also pretty unlikely to get this many winds during the Charleston. It is not impossible, but this almost a complete hand
+DONE
 13]
 Attachement 3
 also unlikely to have 2 exposures right away (player 2)- but this is not a legitimate hand anyways
 14]
 Attachement 4
-One more comment- when a player is playing against bots, the game should never resume without them. If playing against another player, that player should get a minute before they get kicked off and a computer takes over. Let's discuss how that will work. But for now, computer does not take over when a player is only playing with bots
+One more comment- when a player is playing against bots, the game should never resume without them. If playing against another player, that player should get a minute before they get kicked off and a computer takes over. 
+Let's discuss how that will work. 
+But for now, computer does not take over when a player is only playing with bots
+DONE
 
 ============
 POINTS IN DOC
@@ -91,7 +253,7 @@ on game board > select left, right, or top > select 'pick'
 DONE
 
 2]
-Direction Box	Please follow box shape and font from design guide. The box can be smaller
+Direction Box: Please follow box shape and font from design guide. The box can be smaller
 3]
 Need Image/Notifcation of discarded tile 	We need to let the player visually know which tile has been discarded. For now it is only audio 
 
@@ -156,7 +318,7 @@ DONE
 
 16]
 Discarded Tile	Any time a tile is discarded, whether you can call it or not, include an enlarged visial of it for the user
-DONE
+Need to add the discarded tile at the center of the buttons only for the visual 
 
 17]
 Color and Tile size	Orange color should be pink. Tiles on the board need to be bigger	Refer to Brand Guide
@@ -207,6 +369,7 @@ DONE
 
 3]
 - If mahjong button clicked and nothign then we need to show shake/wiggle the button to express that process is done and mahjong button again enabled.
+DONE 
 4]
 - if only 1 player + 3 bot and if humal player get dead han then end the game. With correct message like end dure to dead hand - check whats app screen shot by jen.
 5]
@@ -416,3 +579,2022 @@ For mobile device,
 Check the required size for tile to load all 14 tiles in rack.
 Then ake the same size of tile atlas and load 100% image in phaser.
 Remove shadow from tiles only in the mobile device. 
+
+12]
+Call tile by bot, some time if real player discad tile and if bot claim that tile then how it behave currently.
+Discard tile goes to discard area
+Call sound play
+Animation call tile from the bottom rack (real player rack) to the exposure it should be move from the discard area to exposure.
+
+So whenever the tile is discarad, it must be move to discard area first and then if some one call then the tile will be animating from the discard area to specific called tile seat exposure. This must maintain the flow.
+
+Joker exchange:
+13]
+When Joker exchange sometime if I drag and drop the joker to the specific exposure to exchange the Joker but the tile comes back to the rack instead exchange the joker and I again tried to exachange the joker it done.
+I think the issue is with area of placing the actual tile. 
+
+DONE - 14]
+After successfully joker swapped it automatically changed the rack tile order, why its happen. is it because of clent side code or we get the new order in the Joker exachage API respone. 
+WHat is the issue. The joker exchange only exchange the joker. 
+
+DONE - 15]
+When Joker exchange with the same seat exposure the rack have blank space after joker exchnage, it should be work properly and remove the gap from the rack.
+
+DONE -16]
+Sometime PICK button is not enable to pick the new tile on active current seat, it just show the instruction Pick a tile but button didn't enable for pick.
+[subscribePlay] data:  
+{
+    "claim": null,
+    "wall_count": 35,
+    "current_turn_seat_id": 6179,
+    "current_turn_rack_id": 1,
+    "phase": 3,
+    "pass": {},
+    "turn_stage": 1,
+    "seats": {
+        "6179": {
+            "game_id": 1169,
+            "gseattype_id": 1,
+            "u_id": 65,
+            "user_disconnected": null,
+            "active": null,
+            "updated": "2026-10-21T07:03:57.224Z",
+            "id": 6179,
+            "keyid": "01a15d46-1841-784f-9e2c-ae1a132ca686",
+            "created": "2026-10-21T07:03:57.224Z",
+            "deleted": null,
+            "racks": {
+                "1": {
+                    "gseat_id": 6179,
+                    "rack_id": 1,
+                    "is_dead": false,
+                    "is_locked": false,
+                    "is_mahjong": false,
+                    "exposures_meld": [
+                        {
+                            "kind": 17,
+                            "tile": {
+                                "tile_id": 80,
+                                "gseat_id": 6182,
+                                "in_rack_one": "2026-10-21T07:03:57.292Z",
+                                "in_exposer_one": null,
+                                "sort_exposer_one": null,
+                                "sort_rack_one": null,
+                                "in_exposer_two": null,
+                                "in_rack_two": null,
+                                "sort_exposer_two": null,
+                                "sort_rack_two": null,
+                                "active": null,
+                                "updated": "2026-10-21T07:03:57.224Z",
+                                "id": 156418,
+                                "keyid": "01a15d46-1857-7af3-a5fc-f3e33c690cb5",
+                                "created": "2026-10-21T07:03:57.224Z",
+                                "deleted": null
+                            },
+                            "from_seat": 6183,
+                            "to_seat": 6179,
+                            "tiles": [
+                                {
+                                    "tile_id": 80,
+                                    "gseat_id": 6182,
+                                    "in_rack_one": "2026-10-21T07:03:57.292Z",
+                                    "in_exposer_one": null,
+                                    "sort_exposer_one": null,
+                                    "sort_rack_one": null,
+                                    "in_exposer_two": null,
+                                    "in_rack_two": null,
+                                    "sort_exposer_two": null,
+                                    "sort_rack_two": null,
+                                    "active": null,
+                                    "updated": "2026-10-21T07:03:57.224Z",
+                                    "id": 156418,
+                                    "keyid": "01a15d46-1857-7af3-a5fc-f3e33c690cb5",
+                                    "created": "2026-10-21T07:03:57.224Z",
+                                    "deleted": null
+                                },
+                                {
+                                    "tile_id": 107,
+                                    "gseat_id": 6179,
+                                    "in_rack_one": "2026-10-21T07:03:57.292Z",
+                                    "in_exposer_one": null,
+                                    "sort_exposer_one": null,
+                                    "sort_rack_one": null,
+                                    "in_exposer_two": null,
+                                    "in_rack_two": null,
+                                    "sort_exposer_two": null,
+                                    "sort_rack_two": null,
+                                    "active": null,
+                                    "updated": "2026-10-21T07:03:57.224Z",
+                                    "id": 156536,
+                                    "keyid": "01a15d46-1859-7f6e-a930-5439dc787de4",
+                                    "created": "2026-10-21T07:03:57.224Z",
+                                    "deleted": null
+                                },
+                                {
+                                    "tile_id": 89,
+                                    "gseat_id": 6179,
+                                    "in_rack_one": "2026-10-21T07:03:57.292Z",
+                                    "in_exposer_one": "2026-10-21T07:20:23.257Z",
+                                    "sort_exposer_one": null,
+                                    "sort_rack_one": null,
+                                    "in_exposer_two": null,
+                                    "in_rack_two": null,
+                                    "sort_exposer_two": null,
+                                    "sort_rack_two": null,
+                                    "active": null,
+                                    "updated": "2026-10-21T07:03:57.224Z",
+                                    "id": 156471,
+                                    "keyid": "01a15d46-1858-7cd8-a25e-6964b3610165",
+                                    "created": "2026-10-21T07:03:57.224Z",
+                                    "deleted": null
+                                }
+                            ]
+                        },
+                        {
+                            "kind": 18,
+                            "tile": {
+                                "tile_id": 95,
+                                "gseat_id": 6182,
+                                "in_rack_one": "2026-10-21T07:03:57.292Z",
+                                "in_exposer_one": null,
+                                "sort_exposer_one": null,
+                                "sort_rack_one": null,
+                                "in_exposer_two": null,
+                                "in_rack_two": null,
+                                "sort_exposer_two": null,
+                                "sort_rack_two": null,
+                                "active": null,
+                                "updated": "2026-10-21T07:03:57.224Z",
+                                "id": 156553,
+                                "keyid": "01a15d46-185a-7417-a0c4-6cdf803e639a",
+                                "created": "2026-10-21T07:03:57.224Z",
+                                "deleted": null
+                            },
+                            "from_seat": 6180,
+                            "to_seat": 6179,
+                            "tiles": [
+                                {
+                                    "tile_id": 95,
+                                    "gseat_id": 6182,
+                                    "in_rack_one": "2026-10-21T07:03:57.292Z",
+                                    "in_exposer_one": null,
+                                    "sort_exposer_one": null,
+                                    "sort_rack_one": null,
+                                    "in_exposer_two": null,
+                                    "in_rack_two": null,
+                                    "sort_exposer_two": null,
+                                    "sort_rack_two": null,
+                                    "active": null,
+                                    "updated": "2026-10-21T07:03:57.224Z",
+                                    "id": 156553,
+                                    "keyid": "01a15d46-185a-7417-a0c4-6cdf803e639a",
+                                    "created": "2026-10-21T07:03:57.224Z",
+                                    "deleted": null
+                                },
+                                {
+                                    "tile_id": 104,
+                                    "gseat_id": 6179,
+                                    "in_rack_one": "2026-10-21T07:03:57.292Z",
+                                    "in_exposer_one": null,
+                                    "sort_exposer_one": null,
+                                    "sort_rack_one": 9,
+                                    "in_exposer_two": null,
+                                    "in_rack_two": null,
+                                    "sort_exposer_two": null,
+                                    "sort_rack_two": null,
+                                    "active": null,
+                                    "updated": "2026-10-21T07:03:57.224Z",
+                                    "id": 156554,
+                                    "keyid": "01a15d46-185a-7452-8bc1-e7f503daa4af",
+                                    "created": "2026-10-21T07:03:57.224Z",
+                                    "deleted": null
+                                },
+                                {
+                                    "tile_id": 113,
+                                    "gseat_id": 6179,
+                                    "in_rack_one": "2026-10-21T07:03:57.292Z",
+                                    "in_exposer_one": null,
+                                    "sort_exposer_one": null,
+                                    "sort_rack_one": 10,
+                                    "in_exposer_two": null,
+                                    "in_rack_two": null,
+                                    "sort_exposer_two": null,
+                                    "sort_rack_two": null,
+                                    "active": null,
+                                    "updated": "2026-10-21T07:03:57.224Z",
+                                    "id": 156542,
+                                    "keyid": "01a15d46-185a-70e7-9694-88aef49ba0b4",
+                                    "created": "2026-10-21T07:03:57.224Z",
+                                    "deleted": null
+                                },
+                                {
+                                    "tile_id": 150,
+                                    "gseat_id": 6179,
+                                    "in_rack_one": "2026-10-21T07:03:57.292Z",
+                                    "in_exposer_one": null,
+                                    "sort_exposer_one": null,
+                                    "sort_rack_one": 13,
+                                    "in_exposer_two": null,
+                                    "in_rack_two": null,
+                                    "sort_exposer_two": null,
+                                    "sort_rack_two": null,
+                                    "active": null,
+                                    "updated": "2026-10-21T07:03:57.224Z",
+                                    "id": 156562,
+                                    "keyid": "01a15d46-185a-763b-ba74-a1214b8f3800",
+                                    "created": "2026-10-21T07:03:57.224Z",
+                                    "deleted": null
+                                }
+                            ]
+                        }
+                    ]
+                }
+            }
+        },
+        "6180": {
+            "game_id": 1169,
+            "gseattype_id": 2,
+            "u_id": null,
+            "user_disconnected": null,
+            "active": null,
+            "updated": "2026-10-21T07:03:57.224Z",
+            "id": 6180,
+            "keyid": "01a15d46-1842-768c-bfa6-8cecad1a40a6",
+            "created": "2026-10-21T07:03:57.224Z",
+            "deleted": null,
+            "racks": {
+                "1": {
+                    "gseat_id": 6180,
+                    "rack_id": 1,
+                    "is_dead": false,
+                    "is_locked": false,
+                    "is_mahjong": false,
+                    "exposures_meld": [],
+                    "target_hypotheses": [
+                        {
+                            "ruleId": "NMJL_2026_WD_8_NN_EEE_2026_WWW_SS_C30",
+                            "distance": 6,
+                            "rawDistance": 6,
+                            "scarcityPenalty": 5,
+                            "isFeasible": true,
+                            "isConcealed": true,
+                            "assignment": {
+                                "S": "DOT"
+                            },
+                            "neededTiles": {
+                                "W:WIND_EAST": 1,
+                                "S:DOT:2": 1,
+                                "S:DOT:6": 1,
+                                "W:WIND_WEST": 3
+                            },
+                            "isExposureCompatible": true
+                        },
+                        {
+                            "ruleId": "NMJL_2026_WD_3_NNN_RRRR_RRRR_SSS_ODD_ANY2",
+                            "distance": 8,
+                            "rawDistance": 8,
+                            "scarcityPenalty": 0.5,
+                            "isFeasible": true,
+                            "isConcealed": false,
+                            "assignment": {
+                                "R": 7,
+                                "SA": "BAM",
+                                "SB": "DOT"
+                            },
+                            "neededTiles": {
+                                "W:WIND_NORTH": 1,
+                                "S:BAM:7": 3,
+                                "S:DOT:7": 3,
+                                "W:WIND_SOUTH": 1
+                            },
+                            "isExposureCompatible": true
+                        },
+                        {
+                            "ruleId": "NMJL_2026_13579_3_NS_ONLY_WITH_NUMS",
+                            "distance": 8,
+                            "rawDistance": 8,
+                            "scarcityPenalty": 4.5,
+                            "isFeasible": true,
+                            "isConcealed": false,
+                            "assignment": {
+                                "S": "CRAK"
+                            },
+                            "neededTiles": {
+                                "S:CRAK:5": 4,
+                                "S:CRAK:7": 1,
+                                "S:CRAK:9": 3
+                            },
+                            "isExposureCompatible": true
+                        },
+                        {
+                            "ruleId": "NMJL_2026_WD_7_FF_WINDKONGS_DD_DD",
+                            "distance": 8,
+                            "rawDistance": 8,
+                            "scarcityPenalty": 5,
+                            "isFeasible": true,
+                            "isConcealed": false,
+                            "assignment": {
+                                "D1": "DRAGON_GREEN",
+                                "D2": "DRAGON_WHITE"
+                            },
+                            "neededTiles": {
+                                "F": 2,
+                                "W:WIND_NORTH": 2,
+                                "W:WIND_SOUTH": 2,
+                                "D:DRAGON_GREEN": 1,
+                                "D:DRAGON_WHITE": 1
+                            },
+                            "isExposureCompatible": true
+                        },
+                        {
+                            "ruleId": "NMJL_2026_WD_6_1N_2EE_3WWW_4SSSS",
+                            "distance": 8,
+                            "rawDistance": 8,
+                            "scarcityPenalty": 6.5,
+                            "isFeasible": true,
+                            "isConcealed": false,
+                            "assignment": {
+                                "S": "DOT"
+                            },
+                            "neededTiles": {
+                                "S:DOT:1": 1,
+                                "S:DOT:3": 1,
+                                "W:WIND_WEST": 3,
+                                "S:DOT:4": 1,
+                                "W:WIND_SOUTH": 2
+                            },
+                            "isExposureCompatible": true
+                        }
+                    ],
+                    "last_eval_tile_count": 13,
+                    "last_eval_phase": 4
+                }
+            }
+        },
+        "6181": {
+            "game_id": 1169,
+            "gseattype_id": 5,
+            "u_id": null,
+            "user_disconnected": null,
+            "active": null,
+            "updated": "2026-10-21T07:03:57.224Z",
+            "id": 6181,
+            "keyid": "01a15d46-1842-7817-b3de-c05241750495",
+            "created": "2026-10-21T07:03:57.224Z",
+            "deleted": null,
+            "racks": {
+                "1": {
+                    "gseat_id": 6181,
+                    "rack_id": 1,
+                    "is_dead": false,
+                    "is_locked": false,
+                    "is_mahjong": false,
+                    "exposures_meld": []
+                }
+            }
+        },
+        "6182": {
+            "game_id": 1169,
+            "gseattype_id": 6,
+            "u_id": null,
+            "user_disconnected": null,
+            "active": null,
+            "updated": "2026-10-21T07:03:57.224Z",
+            "id": 6182,
+            "keyid": "01a15d46-1842-790c-918d-952c47a5667f",
+            "created": "2026-10-21T07:03:57.224Z",
+            "deleted": null,
+            "racks": {
+                "1": {
+                    "gseat_id": 6182,
+                    "rack_id": 1,
+                    "is_dead": false,
+                    "is_locked": false,
+                    "is_mahjong": false,
+                    "exposures_meld": [],
+                    "hand": {
+                        "1": {
+                            "tile_id": 1,
+                            "gseat_id": 6182,
+                            "in_rack_one": "2026-10-21T07:03:57.292Z",
+                            "in_exposer_one": null,
+                            "sort_exposer_one": null,
+                            "sort_rack_one": null,
+                            "in_exposer_two": null,
+                            "in_rack_two": null,
+                            "sort_exposer_two": null,
+                            "sort_rack_two": null,
+                            "active": null,
+                            "updated": "2026-10-21T07:03:57.224Z",
+                            "id": 156474,
+                            "keyid": "01a15d46-1858-7e1b-b92f-0896cab5ddcd",
+                            "created": "2026-10-21T07:03:57.224Z",
+                            "deleted": null
+                        },
+                        "3": {
+                            "tile_id": 3,
+                            "gseat_id": 6182,
+                            "in_rack_one": "2026-10-21T07:03:57.292Z",
+                            "in_exposer_one": null,
+                            "sort_exposer_one": null,
+                            "sort_rack_one": null,
+                            "in_exposer_two": null,
+                            "in_rack_two": null,
+                            "sort_exposer_two": null,
+                            "sort_rack_two": null,
+                            "active": null,
+                            "updated": "2026-10-21T07:03:57.224Z",
+                            "id": 156520,
+                            "keyid": "01a15d46-1859-7a2a-95ca-794e639018e1",
+                            "created": "2026-10-21T07:03:57.224Z",
+                            "deleted": null
+                        },
+                        "4": {
+                            "tile_id": 4,
+                            "gseat_id": 6182,
+                            "in_rack_one": "2026-10-21T07:03:57.292Z",
+                            "in_exposer_one": null,
+                            "sort_exposer_one": null,
+                            "sort_rack_one": null,
+                            "in_exposer_two": null,
+                            "in_rack_two": null,
+                            "sort_exposer_two": null,
+                            "sort_rack_two": null,
+                            "active": null,
+                            "updated": "2026-10-21T07:03:57.224Z",
+                            "id": 156462,
+                            "keyid": "01a15d46-1858-7a95-9914-583108c61381",
+                            "created": "2026-10-21T07:03:57.224Z",
+                            "deleted": null
+                        },
+                        "5": {
+                            "tile_id": 5,
+                            "gseat_id": 6182,
+                            "in_rack_one": "2026-10-21T07:03:57.292Z",
+                            "in_exposer_one": null,
+                            "sort_exposer_one": null,
+                            "sort_rack_one": null,
+                            "in_exposer_two": null,
+                            "in_rack_two": null,
+                            "sort_exposer_two": null,
+                            "sort_rack_two": null,
+                            "active": null,
+                            "updated": "2026-10-21T07:03:57.224Z",
+                            "id": 156523,
+                            "keyid": "01a15d46-1859-7ae8-a869-d493e1e72c85",
+                            "created": "2026-10-21T07:03:57.224Z",
+                            "deleted": null
+                        },
+                        "14": {
+                            "tile_id": 14,
+                            "gseat_id": 6182,
+                            "in_rack_one": "2026-10-21T07:03:57.292Z",
+                            "in_exposer_one": null,
+                            "sort_exposer_one": null,
+                            "sort_rack_one": null,
+                            "in_exposer_two": null,
+                            "in_rack_two": null,
+                            "sort_exposer_two": null,
+                            "sort_rack_two": null,
+                            "active": null,
+                            "updated": "2026-10-21T07:03:57.224Z",
+                            "id": 156456,
+                            "keyid": "01a15d46-1858-76ee-b255-f94b785c7be4",
+                            "created": "2026-10-21T07:03:57.224Z",
+                            "deleted": null
+                        },
+                        "15": {
+                            "tile_id": 15,
+                            "gseat_id": 6182,
+                            "in_rack_one": "2026-10-21T07:03:57.292Z",
+                            "in_exposer_one": null,
+                            "sort_exposer_one": null,
+                            "sort_rack_one": null,
+                            "in_exposer_two": null,
+                            "in_rack_two": null,
+                            "sort_exposer_two": null,
+                            "sort_rack_two": null,
+                            "active": null,
+                            "updated": "2026-10-21T07:03:57.224Z",
+                            "id": 156457,
+                            "keyid": "01a15d46-1858-772b-9cb1-04a4e1c3eaaf",
+                            "created": "2026-10-21T07:03:57.224Z",
+                            "deleted": null
+                        },
+                        "17": {
+                            "tile_id": 17,
+                            "gseat_id": 6182,
+                            "in_rack_one": "2026-10-21T07:03:57.292Z",
+                            "in_exposer_one": null,
+                            "sort_exposer_one": null,
+                            "sort_rack_one": null,
+                            "in_exposer_two": null,
+                            "in_rack_two": null,
+                            "sort_exposer_two": null,
+                            "sort_rack_two": null,
+                            "active": null,
+                            "updated": "2026-10-21T07:03:57.224Z",
+                            "id": 156415,
+                            "keyid": "01a15d46-1857-7a26-a77f-b174fcbb437b",
+                            "created": "2026-10-21T07:03:57.224Z",
+                            "deleted": null
+                        },
+                        "18": {
+                            "tile_id": 18,
+                            "gseat_id": 6182,
+                            "in_rack_one": "2026-10-21T07:03:57.292Z",
+                            "in_exposer_one": null,
+                            "sort_exposer_one": null,
+                            "sort_rack_one": null,
+                            "in_exposer_two": null,
+                            "in_rack_two": null,
+                            "sort_exposer_two": null,
+                            "sort_rack_two": null,
+                            "active": null,
+                            "updated": "2026-10-21T07:03:57.224Z",
+                            "id": 156557,
+                            "keyid": "01a15d46-185a-7508-8450-af1968ac07d8",
+                            "created": "2026-10-21T07:03:57.224Z",
+                            "deleted": null
+                        },
+                        "19": {
+                            "tile_id": 19,
+                            "gseat_id": 6182,
+                            "in_rack_one": "2026-10-21T07:03:57.292Z",
+                            "in_exposer_one": null,
+                            "sort_exposer_one": null,
+                            "sort_rack_one": null,
+                            "in_exposer_two": null,
+                            "in_rack_two": null,
+                            "sort_exposer_two": null,
+                            "sort_rack_two": null,
+                            "active": null,
+                            "updated": "2026-10-21T07:03:57.224Z",
+                            "id": 156461,
+                            "keyid": "01a15d46-1858-7a3e-8b7e-2ccdcc59aa57",
+                            "created": "2026-10-21T07:03:57.224Z",
+                            "deleted": null
+                        },
+                        "20": {
+                            "tile_id": 20,
+                            "gseat_id": 6182,
+                            "in_rack_one": "2026-10-21T07:03:57.292Z",
+                            "in_exposer_one": null,
+                            "sort_exposer_one": null,
+                            "sort_rack_one": null,
+                            "in_exposer_two": null,
+                            "in_rack_two": null,
+                            "sort_exposer_two": null,
+                            "sort_rack_two": null,
+                            "active": null,
+                            "updated": "2026-10-21T07:03:57.224Z",
+                            "id": 156468,
+                            "keyid": "01a15d46-1858-7c1c-930d-f875a7f83183",
+                            "created": "2026-10-21T07:03:57.224Z",
+                            "deleted": null
+                        },
+                        "22": {
+                            "tile_id": 22,
+                            "gseat_id": 6182,
+                            "in_rack_one": "2026-10-21T07:03:57.292Z",
+                            "in_exposer_one": null,
+                            "sort_exposer_one": null,
+                            "sort_rack_one": null,
+                            "in_exposer_two": null,
+                            "in_rack_two": null,
+                            "sort_exposer_two": null,
+                            "sort_rack_two": null,
+                            "active": null,
+                            "updated": "2026-10-21T07:03:57.224Z",
+                            "id": 156441,
+                            "keyid": "01a15d46-1858-7161-a01b-f0ba421b4695",
+                            "created": "2026-10-21T07:03:57.224Z",
+                            "deleted": null
+                        },
+                        "24": {
+                            "tile_id": 24,
+                            "gseat_id": 6182,
+                            "in_rack_one": "2026-10-21T07:03:57.292Z",
+                            "in_exposer_one": null,
+                            "sort_exposer_one": null,
+                            "sort_rack_one": null,
+                            "in_exposer_two": null,
+                            "in_rack_two": null,
+                            "sort_exposer_two": null,
+                            "sort_rack_two": null,
+                            "active": null,
+                            "updated": "2026-10-21T07:03:57.224Z",
+                            "id": 156414,
+                            "keyid": "01a15d46-1857-79e4-9de0-5450f57b12cd",
+                            "created": "2026-10-21T07:03:57.224Z",
+                            "deleted": null
+                        },
+                        "26": {
+                            "tile_id": 26,
+                            "gseat_id": 6182,
+                            "in_rack_one": "2026-10-21T07:03:57.292Z",
+                            "in_exposer_one": null,
+                            "sort_exposer_one": null,
+                            "sort_rack_one": 4,
+                            "in_exposer_two": null,
+                            "in_rack_two": null,
+                            "sort_exposer_two": null,
+                            "sort_rack_two": null,
+                            "active": null,
+                            "updated": "2026-10-21T07:03:57.224Z",
+                            "id": 156510,
+                            "keyid": "01a15d46-1859-77bf-b51e-95e81893ae13",
+                            "created": "2026-10-21T07:03:57.224Z",
+                            "deleted": null
+                        },
+                        "27": {
+                            "tile_id": 27,
+                            "gseat_id": 6182,
+                            "in_rack_one": "2026-10-21T07:03:57.292Z",
+                            "in_exposer_one": null,
+                            "sort_exposer_one": null,
+                            "sort_rack_one": null,
+                            "in_exposer_two": null,
+                            "in_rack_two": null,
+                            "sort_exposer_two": null,
+                            "sort_rack_two": null,
+                            "active": null,
+                            "updated": "2026-10-21T07:03:57.224Z",
+                            "id": 156417,
+                            "keyid": "01a15d46-1857-7ab6-89a5-b6b392821215",
+                            "created": "2026-10-21T07:03:57.224Z",
+                            "deleted": null
+                        },
+                        "29": {
+                            "tile_id": 29,
+                            "gseat_id": 6182,
+                            "in_rack_one": "2026-10-21T07:03:57.292Z",
+                            "in_exposer_one": null,
+                            "sort_exposer_one": null,
+                            "sort_rack_one": null,
+                            "in_exposer_two": null,
+                            "in_rack_two": null,
+                            "sort_exposer_two": null,
+                            "sort_rack_two": null,
+                            "active": null,
+                            "updated": "2026-10-21T07:03:57.224Z",
+                            "id": 156469,
+                            "keyid": "01a15d46-1858-7c5b-9f5e-adbfc5b6b000",
+                            "created": "2026-10-21T07:03:57.224Z",
+                            "deleted": null
+                        },
+                        "31": {
+                            "tile_id": 31,
+                            "gseat_id": 6182,
+                            "in_rack_one": "2026-10-21T07:03:57.292Z",
+                            "in_exposer_one": null,
+                            "sort_exposer_one": null,
+                            "sort_rack_one": null,
+                            "in_exposer_two": null,
+                            "in_rack_two": null,
+                            "sort_exposer_two": null,
+                            "sort_rack_two": null,
+                            "active": null,
+                            "updated": "2026-10-21T07:03:57.224Z",
+                            "id": 156432,
+                            "keyid": "01a15d46-1857-7ef9-a5d5-c12823712420",
+                            "created": "2026-10-21T07:03:57.224Z",
+                            "deleted": null
+                        },
+                        "32": {
+                            "tile_id": 32,
+                            "gseat_id": 6182,
+                            "in_rack_one": "2026-10-21T07:03:57.292Z",
+                            "in_exposer_one": null,
+                            "sort_exposer_one": null,
+                            "sort_rack_one": null,
+                            "in_exposer_two": null,
+                            "in_rack_two": null,
+                            "sort_exposer_two": null,
+                            "sort_rack_two": null,
+                            "active": null,
+                            "updated": "2026-10-21T07:03:57.224Z",
+                            "id": 156521,
+                            "keyid": "01a15d46-1859-7a6a-9b3e-b727e1a2b6da",
+                            "created": "2026-10-21T07:03:57.224Z",
+                            "deleted": null
+                        },
+                        "35": {
+                            "tile_id": 35,
+                            "gseat_id": 6182,
+                            "in_rack_one": "2026-10-21T07:03:57.292Z",
+                            "in_exposer_one": null,
+                            "sort_exposer_one": null,
+                            "sort_rack_one": null,
+                            "in_exposer_two": null,
+                            "in_rack_two": null,
+                            "sort_exposer_two": null,
+                            "sort_rack_two": null,
+                            "active": null,
+                            "updated": "2026-10-21T07:03:57.224Z",
+                            "id": 156472,
+                            "keyid": "01a15d46-1858-7d15-890c-733d13d1e046",
+                            "created": "2026-10-21T07:03:57.224Z",
+                            "deleted": null
+                        },
+                        "37": {
+                            "tile_id": 37,
+                            "gseat_id": 6182,
+                            "in_rack_one": "2026-10-21T07:03:57.292Z",
+                            "in_exposer_one": null,
+                            "sort_exposer_one": null,
+                            "sort_rack_one": 5,
+                            "in_exposer_two": null,
+                            "in_rack_two": null,
+                            "sort_exposer_two": null,
+                            "sort_rack_two": null,
+                            "active": null,
+                            "updated": "2026-10-21T07:03:57.224Z",
+                            "id": 156538,
+                            "keyid": "01a15d46-1859-7ff5-bc0f-d3dc83e93601",
+                            "created": "2026-10-21T07:03:57.224Z",
+                            "deleted": null
+                        },
+                        "38": {
+                            "tile_id": 38,
+                            "gseat_id": 6182,
+                            "in_rack_one": "2026-10-21T07:03:57.292Z",
+                            "in_exposer_one": null,
+                            "sort_exposer_one": null,
+                            "sort_rack_one": null,
+                            "in_exposer_two": null,
+                            "in_rack_two": null,
+                            "sort_exposer_two": null,
+                            "sort_rack_two": null,
+                            "active": null,
+                            "updated": "2026-10-21T07:03:57.224Z",
+                            "id": 156453,
+                            "keyid": "01a15d46-1858-75ef-a7fe-5dd599d0f36e",
+                            "created": "2026-10-21T07:03:57.224Z",
+                            "deleted": null
+                        },
+                        "41": {
+                            "tile_id": 41,
+                            "gseat_id": 6182,
+                            "in_rack_one": "2026-10-21T07:03:57.292Z",
+                            "in_exposer_one": null,
+                            "sort_exposer_one": null,
+                            "sort_rack_one": null,
+                            "in_exposer_two": null,
+                            "in_rack_two": null,
+                            "sort_exposer_two": null,
+                            "sort_rack_two": null,
+                            "active": null,
+                            "updated": "2026-10-21T07:03:57.224Z",
+                            "id": 156440,
+                            "keyid": "01a15d46-1858-710b-b8d6-b1e5e3b91150",
+                            "created": "2026-10-21T07:03:57.224Z",
+                            "deleted": null
+                        },
+                        "43": {
+                            "tile_id": 43,
+                            "gseat_id": 6182,
+                            "in_rack_one": "2026-10-21T07:03:57.292Z",
+                            "in_exposer_one": null,
+                            "sort_exposer_one": null,
+                            "sort_rack_one": null,
+                            "in_exposer_two": null,
+                            "in_rack_two": null,
+                            "sort_exposer_two": null,
+                            "sort_rack_two": null,
+                            "active": null,
+                            "updated": "2026-10-21T07:03:57.224Z",
+                            "id": 156445,
+                            "keyid": "01a15d46-1858-72a9-af25-b523757bc716",
+                            "created": "2026-10-21T07:03:57.224Z",
+                            "deleted": null
+                        },
+                        "44": {
+                            "tile_id": 44,
+                            "gseat_id": 6182,
+                            "in_rack_one": "2026-10-21T07:03:57.292Z",
+                            "in_exposer_one": null,
+                            "sort_exposer_one": null,
+                            "sort_rack_one": null,
+                            "in_exposer_two": null,
+                            "in_rack_two": null,
+                            "sort_exposer_two": null,
+                            "sort_rack_two": null,
+                            "active": null,
+                            "updated": "2026-10-21T07:03:57.224Z",
+                            "id": 156426,
+                            "keyid": "01a15d46-1857-7d6f-8f11-fcfa1d5c406a",
+                            "created": "2026-10-21T07:03:57.224Z",
+                            "deleted": null
+                        },
+                        "49": {
+                            "tile_id": 49,
+                            "gseat_id": 6182,
+                            "in_rack_one": "2026-10-21T07:03:57.292Z",
+                            "in_exposer_one": null,
+                            "sort_exposer_one": null,
+                            "sort_rack_one": null,
+                            "in_exposer_two": null,
+                            "in_rack_two": null,
+                            "sort_exposer_two": null,
+                            "sort_rack_two": null,
+                            "active": null,
+                            "updated": "2026-10-21T07:03:57.224Z",
+                            "id": 156470,
+                            "keyid": "01a15d46-1858-7c99-8a1d-8e5bf6c42f81",
+                            "created": "2026-10-21T07:03:57.224Z",
+                            "deleted": null
+                        },
+                        "54": {
+                            "tile_id": 54,
+                            "gseat_id": 6182,
+                            "in_rack_one": "2026-10-21T07:03:57.292Z",
+                            "in_exposer_one": null,
+                            "sort_exposer_one": null,
+                            "sort_rack_one": null,
+                            "in_exposer_two": null,
+                            "in_rack_two": null,
+                            "sort_exposer_two": null,
+                            "sort_rack_two": null,
+                            "active": null,
+                            "updated": "2026-10-21T07:03:57.224Z",
+                            "id": 156412,
+                            "keyid": "01a15d46-1857-793a-a136-c71920c9090c",
+                            "created": "2026-10-21T07:03:57.224Z",
+                            "deleted": null
+                        },
+                        "56": {
+                            "tile_id": 56,
+                            "gseat_id": 6182,
+                            "in_rack_one": "2026-10-21T07:03:57.292Z",
+                            "in_exposer_one": null,
+                            "sort_exposer_one": null,
+                            "sort_rack_one": null,
+                            "in_exposer_two": null,
+                            "in_rack_two": null,
+                            "sort_exposer_two": null,
+                            "sort_rack_two": null,
+                            "active": null,
+                            "updated": "2026-10-21T07:03:57.224Z",
+                            "id": 156455,
+                            "keyid": "01a15d46-1858-769d-b75f-312ee92d4911",
+                            "created": "2026-10-21T07:03:57.224Z",
+                            "deleted": null
+                        },
+                        "61": {
+                            "tile_id": 61,
+                            "gseat_id": 6182,
+                            "in_rack_one": "2026-10-21T07:03:57.292Z",
+                            "in_exposer_one": null,
+                            "sort_exposer_one": null,
+                            "sort_rack_one": null,
+                            "in_exposer_two": null,
+                            "in_rack_two": null,
+                            "sort_exposer_two": null,
+                            "sort_rack_two": null,
+                            "active": null,
+                            "updated": "2026-10-21T07:03:57.224Z",
+                            "id": 156513,
+                            "keyid": "01a15d46-1859-7876-8abe-ce1ef8e85254",
+                            "created": "2026-10-21T07:03:57.224Z",
+                            "deleted": null
+                        },
+                        "62": {
+                            "tile_id": 62,
+                            "gseat_id": 6182,
+                            "in_rack_one": "2026-10-21T07:03:57.292Z",
+                            "in_exposer_one": null,
+                            "sort_exposer_one": null,
+                            "sort_rack_one": null,
+                            "in_exposer_two": null,
+                            "in_rack_two": null,
+                            "sort_exposer_two": null,
+                            "sort_rack_two": null,
+                            "active": null,
+                            "updated": "2026-10-21T07:03:57.224Z",
+                            "id": 156452,
+                            "keyid": "01a15d46-1858-75ac-990a-bba8b59b1fc1",
+                            "created": "2026-10-21T07:03:57.224Z",
+                            "deleted": null
+                        },
+                        "64": {
+                            "tile_id": 64,
+                            "gseat_id": 6182,
+                            "in_rack_one": "2026-10-21T07:03:57.292Z",
+                            "in_exposer_one": null,
+                            "sort_exposer_one": null,
+                            "sort_rack_one": null,
+                            "in_exposer_two": null,
+                            "in_rack_two": null,
+                            "sort_exposer_two": null,
+                            "sort_rack_two": null,
+                            "active": null,
+                            "updated": "2026-10-21T07:03:57.224Z",
+                            "id": 156555,
+                            "keyid": "01a15d46-185a-7490-9b00-e9e69a716117",
+                            "created": "2026-10-21T07:03:57.224Z",
+                            "deleted": null
+                        },
+                        "65": {
+                            "tile_id": 65,
+                            "gseat_id": 6182,
+                            "in_rack_one": "2026-10-21T07:03:57.292Z",
+                            "in_exposer_one": null,
+                            "sort_exposer_one": null,
+                            "sort_rack_one": null,
+                            "in_exposer_two": null,
+                            "in_rack_two": null,
+                            "sort_exposer_two": null,
+                            "sort_rack_two": null,
+                            "active": null,
+                            "updated": "2026-10-21T07:03:57.224Z",
+                            "id": 156531,
+                            "keyid": "01a15d46-1859-7dd4-b86d-693d93fcae48",
+                            "created": "2026-10-21T07:03:57.224Z",
+                            "deleted": null
+                        },
+                        "66": {
+                            "tile_id": 66,
+                            "gseat_id": 6182,
+                            "in_rack_one": "2026-10-21T07:03:57.292Z",
+                            "in_exposer_one": null,
+                            "sort_exposer_one": null,
+                            "sort_rack_one": null,
+                            "in_exposer_two": null,
+                            "in_rack_two": null,
+                            "sort_exposer_two": null,
+                            "sort_rack_two": null,
+                            "active": null,
+                            "updated": "2026-10-21T07:03:57.224Z",
+                            "id": 156465,
+                            "keyid": "01a15d46-1858-7b5c-bed4-11a6a77035d3",
+                            "created": "2026-10-21T07:03:57.224Z",
+                            "deleted": null
+                        },
+                        "69": {
+                            "tile_id": 69,
+                            "gseat_id": 6182,
+                            "in_rack_one": "2026-10-21T07:03:57.292Z",
+                            "in_exposer_one": null,
+                            "sort_exposer_one": null,
+                            "sort_rack_one": null,
+                            "in_exposer_two": null,
+                            "in_rack_two": null,
+                            "sort_exposer_two": null,
+                            "sort_rack_two": null,
+                            "active": null,
+                            "updated": "2026-10-21T07:03:57.224Z",
+                            "id": 156416,
+                            "keyid": "01a15d46-1857-7a6e-a4fb-be7dd4ee3a69",
+                            "created": "2026-10-21T07:03:57.224Z",
+                            "deleted": null
+                        },
+                        "70": {
+                            "tile_id": 70,
+                            "gseat_id": 6182,
+                            "in_rack_one": "2026-10-21T07:03:57.292Z",
+                            "in_exposer_one": null,
+                            "sort_exposer_one": null,
+                            "sort_rack_one": null,
+                            "in_exposer_two": null,
+                            "in_rack_two": null,
+                            "sort_exposer_two": null,
+                            "sort_rack_two": null,
+                            "active": null,
+                            "updated": "2026-10-21T07:03:57.224Z",
+                            "id": 156549,
+                            "keyid": "01a15d46-185a-72a3-81ed-3eec382ede77",
+                            "created": "2026-10-21T07:03:57.224Z",
+                            "deleted": null
+                        },
+                        "71": {
+                            "tile_id": 71,
+                            "gseat_id": 6182,
+                            "in_rack_one": "2026-10-21T07:03:57.292Z",
+                            "in_exposer_one": null,
+                            "sort_exposer_one": null,
+                            "sort_rack_one": null,
+                            "in_exposer_two": null,
+                            "in_rack_two": null,
+                            "sort_exposer_two": null,
+                            "sort_rack_two": null,
+                            "active": null,
+                            "updated": "2026-10-21T07:03:57.224Z",
+                            "id": 156427,
+                            "keyid": "01a15d46-1857-7db9-818b-583629c9c077",
+                            "created": "2026-10-21T07:03:57.224Z",
+                            "deleted": null
+                        },
+                        "74": {
+                            "tile_id": 74,
+                            "gseat_id": 6182,
+                            "in_rack_one": "2026-10-21T07:03:57.292Z",
+                            "in_exposer_one": null,
+                            "sort_exposer_one": null,
+                            "sort_rack_one": 6,
+                            "in_exposer_two": null,
+                            "in_rack_two": null,
+                            "sort_exposer_two": null,
+                            "sort_rack_two": null,
+                            "active": null,
+                            "updated": "2026-10-21T07:03:57.224Z",
+                            "id": 156514,
+                            "keyid": "01a15d46-1859-78b3-8054-d3f6e6ec243c",
+                            "created": "2026-10-21T07:03:57.224Z",
+                            "deleted": null
+                        },
+                        "76": {
+                            "tile_id": 76,
+                            "gseat_id": 6182,
+                            "in_rack_one": "2026-10-21T07:03:57.292Z",
+                            "in_exposer_one": null,
+                            "sort_exposer_one": null,
+                            "sort_rack_one": null,
+                            "in_exposer_two": null,
+                            "in_rack_two": null,
+                            "sort_exposer_two": null,
+                            "sort_rack_two": null,
+                            "active": null,
+                            "updated": "2026-10-21T07:03:57.224Z",
+                            "id": 156433,
+                            "keyid": "01a15d46-1857-7f46-9f3a-a2940d8d068b",
+                            "created": "2026-10-21T07:03:57.224Z",
+                            "deleted": null
+                        },
+                        "81": {
+                            "tile_id": 81,
+                            "gseat_id": 6182,
+                            "in_rack_one": "2026-10-21T07:03:57.292Z",
+                            "in_exposer_one": null,
+                            "sort_exposer_one": null,
+                            "sort_rack_one": null,
+                            "in_exposer_two": null,
+                            "in_rack_two": null,
+                            "sort_exposer_two": null,
+                            "sort_rack_two": null,
+                            "active": null,
+                            "updated": "2026-10-21T07:03:57.224Z",
+                            "id": 156559,
+                            "keyid": "01a15d46-185a-7584-b301-f3f9b8c06e76",
+                            "created": "2026-10-21T07:03:57.224Z",
+                            "deleted": null
+                        },
+                        "82": {
+                            "tile_id": 82,
+                            "gseat_id": 6182,
+                            "in_rack_one": "2026-10-21T07:03:57.292Z",
+                            "in_exposer_one": null,
+                            "sort_exposer_one": null,
+                            "sort_rack_one": null,
+                            "in_exposer_two": null,
+                            "in_rack_two": null,
+                            "sort_exposer_two": null,
+                            "sort_rack_two": null,
+                            "active": null,
+                            "updated": "2026-10-21T07:03:57.224Z",
+                            "id": 156464,
+                            "keyid": "01a15d46-1858-7b1d-a2e6-d5d28605f13b",
+                            "created": "2026-10-21T07:03:57.224Z",
+                            "deleted": null
+                        },
+                        "85": {
+                            "tile_id": 85,
+                            "gseat_id": 6182,
+                            "in_rack_one": "2026-10-21T07:03:57.292Z",
+                            "in_exposer_one": null,
+                            "sort_exposer_one": null,
+                            "sort_rack_one": null,
+                            "in_exposer_two": null,
+                            "in_rack_two": null,
+                            "sort_exposer_two": null,
+                            "sort_rack_two": null,
+                            "active": null,
+                            "updated": "2026-10-21T07:03:57.224Z",
+                            "id": 156467,
+                            "keyid": "01a15d46-1858-7bdf-aa76-ba21552216fb",
+                            "created": "2026-10-21T07:03:57.224Z",
+                            "deleted": null
+                        },
+                        "92": {
+                            "tile_id": 92,
+                            "gseat_id": 6182,
+                            "in_rack_one": "2026-10-21T07:03:57.292Z",
+                            "in_exposer_one": null,
+                            "sort_exposer_one": null,
+                            "sort_rack_one": null,
+                            "in_exposer_two": null,
+                            "in_rack_two": null,
+                            "sort_exposer_two": null,
+                            "sort_rack_two": null,
+                            "active": null,
+                            "updated": "2026-10-21T07:03:57.224Z",
+                            "id": 156438,
+                            "keyid": "01a15d46-1858-7088-9964-174c90620a88",
+                            "created": "2026-10-21T07:03:57.224Z",
+                            "deleted": null
+                        },
+                        "94": {
+                            "tile_id": 94,
+                            "gseat_id": 6182,
+                            "in_rack_one": "2026-10-21T07:03:57.292Z",
+                            "in_exposer_one": null,
+                            "sort_exposer_one": null,
+                            "sort_rack_one": null,
+                            "in_exposer_two": null,
+                            "in_rack_two": null,
+                            "sort_exposer_two": null,
+                            "sort_rack_two": null,
+                            "active": null,
+                            "updated": "2026-10-21T07:03:57.224Z",
+                            "id": 156466,
+                            "keyid": "01a15d46-1858-7b9c-9693-5187a0822d21",
+                            "created": "2026-10-21T07:03:57.224Z",
+                            "deleted": null
+                        },
+                        "96": {
+                            "tile_id": 96,
+                            "gseat_id": 6182,
+                            "in_rack_one": "2026-10-21T07:03:57.292Z",
+                            "in_exposer_one": null,
+                            "sort_exposer_one": null,
+                            "sort_rack_one": null,
+                            "in_exposer_two": null,
+                            "in_rack_two": null,
+                            "sort_exposer_two": null,
+                            "sort_rack_two": null,
+                            "active": null,
+                            "updated": "2026-10-21T07:03:57.224Z",
+                            "id": 156428,
+                            "keyid": "01a15d46-1857-7df8-958a-bbbdd5e98b65",
+                            "created": "2026-10-21T07:03:57.224Z",
+                            "deleted": null
+                        },
+                        "97": {
+                            "tile_id": 97,
+                            "gseat_id": 0,
+                            "in_rack_one": "2026-10-21T07:03:57.292Z",
+                            "in_exposer_one": null,
+                            "sort_exposer_one": null,
+                            "sort_rack_one": null,
+                            "in_exposer_two": null,
+                            "in_rack_two": null,
+                            "sort_exposer_two": null,
+                            "sort_rack_two": null,
+                            "active": null,
+                            "updated": "2026-10-21T07:03:57.224Z",
+                            "id": 156551,
+                            "keyid": "01a15d46-185a-731d-ab01-a6ca856428d9",
+                            "created": "2026-10-21T07:03:57.224Z",
+                            "deleted": null
+                        },
+                        "103": {
+                            "tile_id": 103,
+                            "gseat_id": 6182,
+                            "in_rack_one": "2026-10-21T07:03:57.292Z",
+                            "in_exposer_one": null,
+                            "sort_exposer_one": null,
+                            "sort_rack_one": null,
+                            "in_exposer_two": null,
+                            "in_rack_two": null,
+                            "sort_exposer_two": null,
+                            "sort_rack_two": null,
+                            "active": null,
+                            "updated": "2026-10-21T07:03:57.224Z",
+                            "id": 156517,
+                            "keyid": "01a15d46-1859-7971-b18b-89e77f5c1e7a",
+                            "created": "2026-10-21T07:03:57.224Z",
+                            "deleted": null
+                        },
+                        "105": {
+                            "tile_id": 105,
+                            "gseat_id": 6182,
+                            "in_rack_one": "2026-10-21T07:03:57.292Z",
+                            "in_exposer_one": null,
+                            "sort_exposer_one": null,
+                            "sort_rack_one": null,
+                            "in_exposer_two": null,
+                            "in_rack_two": null,
+                            "sort_exposer_two": null,
+                            "sort_rack_two": null,
+                            "active": null,
+                            "updated": "2026-10-21T07:03:57.224Z",
+                            "id": 156436,
+                            "keyid": "01a15d46-1858-700c-83a3-77ec97be9245",
+                            "created": "2026-10-21T07:03:57.224Z",
+                            "deleted": null
+                        },
+                        "108": {
+                            "tile_id": 108,
+                            "gseat_id": 6182,
+                            "in_rack_one": "2026-10-21T07:03:57.292Z",
+                            "in_exposer_one": null,
+                            "sort_exposer_one": null,
+                            "sort_rack_one": null,
+                            "in_exposer_two": null,
+                            "in_rack_two": null,
+                            "sort_exposer_two": null,
+                            "sort_rack_two": null,
+                            "active": null,
+                            "updated": "2026-10-21T07:03:57.224Z",
+                            "id": 156434,
+                            "keyid": "01a15d46-1857-7f82-97b8-643127744f4e",
+                            "created": "2026-10-21T07:03:57.224Z",
+                            "deleted": null
+                        },
+                        "112": {
+                            "tile_id": 112,
+                            "gseat_id": 6182,
+                            "in_rack_one": "2026-10-21T07:03:57.292Z",
+                            "in_exposer_one": null,
+                            "sort_exposer_one": null,
+                            "sort_rack_one": null,
+                            "in_exposer_two": null,
+                            "in_rack_two": null,
+                            "sort_exposer_two": null,
+                            "sort_rack_two": null,
+                            "active": null,
+                            "updated": "2026-10-21T07:03:57.224Z",
+                            "id": 156446,
+                            "keyid": "01a15d46-1858-72ef-97c7-bc41f0dfb115",
+                            "created": "2026-10-21T07:03:57.224Z",
+                            "deleted": null
+                        },
+                        "118": {
+                            "tile_id": 118,
+                            "gseat_id": 6182,
+                            "in_rack_one": "2026-10-21T07:03:57.292Z",
+                            "in_exposer_one": null,
+                            "sort_exposer_one": null,
+                            "sort_rack_one": null,
+                            "in_exposer_two": null,
+                            "in_rack_two": null,
+                            "sort_exposer_two": null,
+                            "sort_rack_two": null,
+                            "active": null,
+                            "updated": "2026-10-21T07:03:57.224Z",
+                            "id": 156545,
+                            "keyid": "01a15d46-185a-71a4-a48c-8262c1c6fa4c",
+                            "created": "2026-10-21T07:03:57.224Z",
+                            "deleted": null
+                        },
+                        "119": {
+                            "tile_id": 119,
+                            "gseat_id": 6182,
+                            "in_rack_one": "2026-10-21T07:03:57.292Z",
+                            "in_exposer_one": null,
+                            "sort_exposer_one": null,
+                            "sort_rack_one": null,
+                            "in_exposer_two": null,
+                            "in_rack_two": null,
+                            "sort_exposer_two": null,
+                            "sort_rack_two": null,
+                            "active": null,
+                            "updated": "2026-10-21T07:03:57.224Z",
+                            "id": 156451,
+                            "keyid": "01a15d46-1858-7568-979d-d05952f0a723",
+                            "created": "2026-10-21T07:03:57.224Z",
+                            "deleted": null
+                        },
+                        "120": {
+                            "tile_id": 120,
+                            "gseat_id": 6182,
+                            "in_rack_one": "2026-10-21T07:03:57.292Z",
+                            "in_exposer_one": null,
+                            "sort_exposer_one": null,
+                            "sort_rack_one": null,
+                            "in_exposer_two": null,
+                            "in_rack_two": null,
+                            "sort_exposer_two": null,
+                            "sort_rack_two": null,
+                            "active": null,
+                            "updated": "2026-10-21T07:03:57.224Z",
+                            "id": 156449,
+                            "keyid": "01a15d46-1858-73be-a2ef-3be23354f7b6",
+                            "created": "2026-10-21T07:03:57.224Z",
+                            "deleted": null
+                        },
+                        "125": {
+                            "tile_id": 125,
+                            "gseat_id": 6182,
+                            "in_rack_one": "2026-10-21T07:03:57.292Z",
+                            "in_exposer_one": null,
+                            "sort_exposer_one": null,
+                            "sort_rack_one": null,
+                            "in_exposer_two": null,
+                            "in_rack_two": null,
+                            "sort_exposer_two": null,
+                            "sort_rack_two": null,
+                            "active": null,
+                            "updated": "2026-10-21T07:03:57.224Z",
+                            "id": 156561,
+                            "keyid": "01a15d46-185a-7600-982e-e8e2f852ca69",
+                            "created": "2026-10-21T07:03:57.224Z",
+                            "deleted": null
+                        },
+                        "128": {
+                            "tile_id": 128,
+                            "gseat_id": 6182,
+                            "in_rack_one": "2026-10-21T07:03:57.292Z",
+                            "in_exposer_one": null,
+                            "sort_exposer_one": null,
+                            "sort_rack_one": null,
+                            "in_exposer_two": null,
+                            "in_rack_two": null,
+                            "sort_exposer_two": null,
+                            "sort_rack_two": null,
+                            "active": null,
+                            "updated": "2026-10-21T07:03:57.224Z",
+                            "id": 156450,
+                            "keyid": "01a15d46-1858-74b5-87d7-357d83b5cf88",
+                            "created": "2026-10-21T07:03:57.224Z",
+                            "deleted": null
+                        },
+                        "131": {
+                            "tile_id": 131,
+                            "gseat_id": 6182,
+                            "in_rack_one": "2026-10-21T07:03:57.292Z",
+                            "in_exposer_one": null,
+                            "sort_exposer_one": null,
+                            "sort_rack_one": 12,
+                            "in_exposer_two": null,
+                            "in_rack_two": null,
+                            "sort_exposer_two": null,
+                            "sort_rack_two": null,
+                            "active": null,
+                            "updated": "2026-10-21T07:03:57.224Z",
+                            "id": 156550,
+                            "keyid": "01a15d46-185a-72e1-b45a-4a702c025b3f",
+                            "created": "2026-10-21T07:03:57.224Z",
+                            "deleted": null
+                        },
+                        "132": {
+                            "tile_id": 132,
+                            "gseat_id": 6182,
+                            "in_rack_one": "2026-10-21T07:03:57.292Z",
+                            "in_exposer_one": null,
+                            "sort_exposer_one": null,
+                            "sort_rack_one": null,
+                            "in_exposer_two": null,
+                            "in_rack_two": null,
+                            "sort_exposer_two": null,
+                            "sort_rack_two": null,
+                            "active": null,
+                            "updated": "2026-10-21T07:03:57.224Z",
+                            "id": 156442,
+                            "keyid": "01a15d46-1858-719d-b3d5-5f9c3ab81707",
+                            "created": "2026-10-21T07:03:57.224Z",
+                            "deleted": null
+                        },
+                        "133": {
+                            "tile_id": 133,
+                            "gseat_id": 6182,
+                            "in_rack_one": "2026-10-21T07:03:57.292Z",
+                            "in_exposer_one": null,
+                            "sort_exposer_one": null,
+                            "sort_rack_one": null,
+                            "in_exposer_two": null,
+                            "in_rack_two": null,
+                            "sort_exposer_two": null,
+                            "sort_rack_two": null,
+                            "active": null,
+                            "updated": "2026-10-21T07:03:57.224Z",
+                            "id": 156512,
+                            "keyid": "01a15d46-1859-7839-8a73-cf5ab467d153",
+                            "created": "2026-10-21T07:03:57.224Z",
+                            "deleted": null
+                        },
+                        "135": {
+                            "tile_id": 135,
+                            "gseat_id": 6182,
+                            "in_rack_one": "2026-10-21T07:03:57.292Z",
+                            "in_exposer_one": null,
+                            "sort_exposer_one": null,
+                            "sort_rack_one": null,
+                            "in_exposer_two": null,
+                            "in_rack_two": null,
+                            "sort_exposer_two": null,
+                            "sort_rack_two": null,
+                            "active": null,
+                            "updated": "2026-10-21T07:03:57.224Z",
+                            "id": 156533,
+                            "keyid": "01a15d46-1859-7ebc-be8e-d22755db9e20",
+                            "created": "2026-10-21T07:03:57.224Z",
+                            "deleted": null
+                        },
+                        "138": {
+                            "tile_id": 138,
+                            "gseat_id": 6182,
+                            "in_rack_one": "2026-10-21T07:03:57.292Z",
+                            "in_exposer_one": null,
+                            "sort_exposer_one": null,
+                            "sort_rack_one": null,
+                            "in_exposer_two": null,
+                            "in_rack_two": null,
+                            "sort_exposer_two": null,
+                            "sort_rack_two": null,
+                            "active": null,
+                            "updated": "2026-10-21T07:03:57.224Z",
+                            "id": 156463,
+                            "keyid": "01a15d46-1858-7ada-96a8-a2906da147ed",
+                            "created": "2026-10-21T07:03:57.224Z",
+                            "deleted": null
+                        },
+                        "139": {
+                            "tile_id": 139,
+                            "gseat_id": 6182,
+                            "in_rack_one": "2026-10-21T07:03:57.292Z",
+                            "in_exposer_one": null,
+                            "sort_exposer_one": null,
+                            "sort_rack_one": 1,
+                            "in_exposer_two": null,
+                            "in_rack_two": null,
+                            "sort_exposer_two": null,
+                            "sort_rack_two": null,
+                            "active": null,
+                            "updated": "2026-10-21T07:03:57.224Z",
+                            "id": 156526,
+                            "keyid": "01a15d46-1859-7c7d-9b21-5b9b0ea52e9e",
+                            "created": "2026-10-21T07:03:57.224Z",
+                            "deleted": null
+                        },
+                        "140": {
+                            "tile_id": 140,
+                            "gseat_id": 6182,
+                            "in_rack_one": "2026-10-21T07:03:57.292Z",
+                            "in_exposer_one": null,
+                            "sort_exposer_one": null,
+                            "sort_rack_one": null,
+                            "in_exposer_two": null,
+                            "in_rack_two": null,
+                            "sort_exposer_two": null,
+                            "sort_rack_two": null,
+                            "active": null,
+                            "updated": "2026-10-21T07:03:57.224Z",
+                            "id": 156473,
+                            "keyid": "01a15d46-1858-7d55-ae31-12a4360481e7",
+                            "created": "2026-10-21T07:03:57.224Z",
+                            "deleted": null
+                        },
+                        "141": {
+                            "tile_id": 141,
+                            "gseat_id": 6182,
+                            "in_rack_one": "2026-10-21T07:03:57.292Z",
+                            "in_exposer_one": null,
+                            "sort_exposer_one": null,
+                            "sort_rack_one": null,
+                            "in_exposer_two": null,
+                            "in_rack_two": null,
+                            "sort_exposer_two": null,
+                            "sort_rack_two": null,
+                            "active": null,
+                            "updated": "2026-10-21T07:03:57.224Z",
+                            "id": 156422,
+                            "keyid": "01a15d46-1857-7c1e-8c08-c7dfa66d033e",
+                            "created": "2026-10-21T07:03:57.224Z",
+                            "deleted": null
+                        },
+                        "142": {
+                            "tile_id": 142,
+                            "gseat_id": 6182,
+                            "in_rack_one": "2026-10-21T07:03:57.292Z",
+                            "in_exposer_one": null,
+                            "sort_exposer_one": null,
+                            "sort_rack_one": null,
+                            "in_exposer_two": null,
+                            "in_rack_two": null,
+                            "sort_exposer_two": null,
+                            "sort_rack_two": null,
+                            "active": null,
+                            "updated": "2026-10-21T07:03:57.224Z",
+                            "id": 156458,
+                            "keyid": "01a15d46-1858-7793-955a-aa5125f5749d",
+                            "created": "2026-10-21T07:03:57.224Z",
+                            "deleted": null
+                        },
+                        "143": {
+                            "tile_id": 143,
+                            "gseat_id": 6182,
+                            "in_rack_one": "2026-10-21T07:03:57.292Z",
+                            "in_exposer_one": null,
+                            "sort_exposer_one": null,
+                            "sort_rack_one": null,
+                            "in_exposer_two": null,
+                            "in_rack_two": null,
+                            "sort_exposer_two": null,
+                            "sort_rack_two": null,
+                            "active": null,
+                            "updated": "2026-10-21T07:03:57.224Z",
+                            "id": 156413,
+                            "keyid": "01a15d46-1857-799d-b52c-7030deffbb14",
+                            "created": "2026-10-21T07:03:57.224Z",
+                            "deleted": null
+                        },
+                        "144": {
+                            "tile_id": 144,
+                            "gseat_id": 6182,
+                            "in_rack_one": "2026-10-21T07:03:57.292Z",
+                            "in_exposer_one": null,
+                            "sort_exposer_one": null,
+                            "sort_rack_one": null,
+                            "in_exposer_two": null,
+                            "in_rack_two": null,
+                            "sort_exposer_two": null,
+                            "sort_rack_two": null,
+                            "active": null,
+                            "updated": "2026-10-21T07:03:57.224Z",
+                            "id": 156419,
+                            "keyid": "01a15d46-1857-7b37-975f-64e55f33e07f",
+                            "created": "2026-10-21T07:03:57.224Z",
+                            "deleted": null
+                        },
+                        "145": {
+                            "tile_id": 145,
+                            "gseat_id": 6182,
+                            "in_rack_one": "2026-10-21T07:03:57.292Z",
+                            "in_exposer_one": null,
+                            "sort_exposer_one": null,
+                            "sort_rack_one": null,
+                            "in_exposer_two": null,
+                            "in_rack_two": null,
+                            "sort_exposer_two": null,
+                            "sort_rack_two": null,
+                            "active": null,
+                            "updated": "2026-10-21T07:03:57.224Z",
+                            "id": 156448,
+                            "keyid": "01a15d46-1858-737e-a56c-fa7a94b9a6ec",
+                            "created": "2026-10-21T07:03:57.224Z",
+                            "deleted": null
+                        },
+                        "158": {
+                            "tile_id": 158,
+                            "gseat_id": 6182,
+                            "in_rack_one": "2026-10-21T07:03:57.292Z",
+                            "in_exposer_one": null,
+                            "sort_exposer_one": null,
+                            "sort_rack_one": null,
+                            "in_exposer_two": null,
+                            "in_rack_two": null,
+                            "sort_exposer_two": null,
+                            "sort_rack_two": null,
+                            "active": null,
+                            "updated": "2026-10-21T07:03:57.224Z",
+                            "id": 156447,
+                            "keyid": "01a15d46-1858-733f-9245-a067cd2a7f35",
+                            "created": "2026-10-21T07:03:57.224Z",
+                            "deleted": null
+                        }
+                    },
+                    "hand_order": [
+                        125,
+                        118,
+                        54,
+                        103,
+                        24,
+                        97,
+                        69,
+                        143,
+                        26,
+                        3,
+                        133,
+                        17,
+                        32,
+                        144,
+                        131,
+                        135,
+                        44,
+                        71,
+                        96,
+                        65,
+                        141,
+                        64,
+                        31,
+                        76,
+                        108,
+                        18,
+                        105,
+                        74,
+                        92,
+                        27,
+                        41,
+                        22,
+                        139,
+                        132,
+                        70,
+                        43,
+                        112,
+                        37,
+                        145,
+                        120,
+                        128,
+                        158,
+                        62,
+                        38,
+                        81,
+                        56,
+                        14,
+                        15,
+                        142,
+                        119,
+                        61,
+                        19,
+                        4,
+                        138,
+                        82,
+                        66,
+                        94,
+                        5,
+                        20,
+                        29,
+                        49,
+                        85,
+                        35,
+                        140,
+                        1
+                    ]
+                }
+            }
+        },
+        "6183": {
+            "game_id": 1169,
+            "gseattype_id": 3,
+            "u_id": null,
+            "user_disconnected": null,
+            "active": null,
+            "updated": "2026-10-21T07:03:57.224Z",
+            "id": 6183,
+            "keyid": "01a15d46-1842-7a09-bcf1-166e9808c830",
+            "created": "2026-10-21T07:03:57.224Z",
+            "deleted": null,
+            "racks": {
+                "1": {
+                    "gseat_id": 6183,
+                    "rack_id": 1,
+                    "is_dead": false,
+                    "is_locked": false,
+                    "is_mahjong": false,
+                    "exposures_meld": [
+                        {
+                            "kind": 17,
+                            "tile": {
+                                "tile_id": 50,
+                                "gseat_id": 6183,
+                                "in_rack_one": "2026-10-21T07:03:57.292Z",
+                                "in_exposer_one": null,
+                                "sort_exposer_one": null,
+                                "sort_rack_one": 8,
+                                "in_exposer_two": null,
+                                "in_rack_two": null,
+                                "sort_exposer_two": null,
+                                "sort_rack_two": null,
+                                "active": null,
+                                "updated": "2026-10-21T07:03:57.224Z",
+                                "id": 156522,
+                                "keyid": "01a15d46-1859-7aa8-9c31-23a26346a225",
+                                "created": "2026-10-21T07:03:57.224Z",
+                                "deleted": null
+                            },
+                            "from_seat": 6179,
+                            "to_seat": 6183,
+                            "tiles": [
+                                {
+                                    "tile_id": 50,
+                                    "gseat_id": 6183,
+                                    "in_rack_one": "2026-10-21T07:03:57.292Z",
+                                    "in_exposer_one": null,
+                                    "sort_exposer_one": null,
+                                    "sort_rack_one": 8,
+                                    "in_exposer_two": null,
+                                    "in_rack_two": null,
+                                    "sort_exposer_two": null,
+                                    "sort_rack_two": null,
+                                    "active": null,
+                                    "updated": "2026-10-21T07:03:57.224Z",
+                                    "id": 156522,
+                                    "keyid": "01a15d46-1859-7aa8-9c31-23a26346a225",
+                                    "created": "2026-10-21T07:03:57.224Z",
+                                    "deleted": null
+                                },
+                                {
+                                    "tile_id": 68,
+                                    "gseat_id": 6183,
+                                    "in_rack_one": "2026-10-21T07:03:57.292Z",
+                                    "in_exposer_one": null,
+                                    "sort_exposer_one": null,
+                                    "sort_rack_one": null,
+                                    "in_exposer_two": null,
+                                    "in_rack_two": null,
+                                    "sort_exposer_two": null,
+                                    "sort_rack_two": null,
+                                    "active": null,
+                                    "updated": "2026-10-21T07:03:57.224Z",
+                                    "id": 156529,
+                                    "keyid": "01a15d46-1859-7d45-a757-437fd88fb0d9",
+                                    "created": "2026-10-21T07:03:57.224Z",
+                                    "deleted": null
+                                },
+                                {
+                                    "tile_id": 152,
+                                    "gseat_id": 6183,
+                                    "in_rack_one": "2026-10-21T07:03:57.292Z",
+                                    "in_exposer_one": null,
+                                    "sort_exposer_one": null,
+                                    "sort_rack_one": null,
+                                    "in_exposer_two": null,
+                                    "in_rack_two": null,
+                                    "sort_exposer_two": null,
+                                    "sort_rack_two": null,
+                                    "active": null,
+                                    "updated": "2026-10-21T07:03:57.224Z",
+                                    "id": 156532,
+                                    "keyid": "01a15d46-1859-7e7b-87ca-12d382f09e98",
+                                    "created": "2026-10-21T07:03:57.224Z",
+                                    "deleted": null
+                                }
+                            ]
+                        }
+                    ],
+                    "target_hypotheses": [
+                        {
+                            "ruleId": "NMJL_2026_2468_2468_RRRR_D_RRRR_D",
+                            "distance": 5,
+                            "rawDistance": 5,
+                            "scarcityPenalty": 0.5,
+                            "isFeasible": true,
+                            "isConcealed": false,
+                            "assignment": {
+                                "S_DIG": "DOT",
+                                "S_A": "CRAK",
+                                "S_B": "BAM",
+                                "R": 2,
+                                "D_A": "DRAGON_RED",
+                                "D_B": "DRAGON_GREEN"
+                            },
+                            "neededTiles": {
+                                "S:CRAK:2": 1,
+                                "D:DRAGON_RED": 1,
+                                "S:BAM:2": 2,
+                                "D:DRAGON_GREEN": 1
+                            },
+                            "isExposureCompatible": true
+                        },
+                        {
+                            "ruleId": "NMJL_2026_2468_FFF_2468_FFF_RRRR",
+                            "distance": 7,
+                            "rawDistance": 7,
+                            "scarcityPenalty": 0,
+                            "isFeasible": true,
+                            "isConcealed": false,
+                            "assignment": {
+                                "S_DIG": "DOT",
+                                "S_K": "BAM",
+                                "R": 2
+                            },
+                            "neededTiles": {
+                                "F": 6,
+                                "S:BAM:2": 1
+                            },
+                            "isExposureCompatible": true
+                        },
+                        {
+                            "ruleId": "NMJL_2026_2468_EE_22_444_666_88_WW",
+                            "distance": 7,
+                            "rawDistance": 7,
+                            "scarcityPenalty": 0.75,
+                            "isFeasible": true,
+                            "isConcealed": false,
+                            "assignment": {
+                                "S": "DOT"
+                            },
+                            "neededTiles": {
+                                "W:WIND_EAST": 2,
+                                "S:DOT:2": 1,
+                                "S:DOT:4": 1,
+                                "S:DOT:6": 2,
+                                "S:DOT:8": 1
+                            },
+                            "isExposureCompatible": true
+                        },
+                        {
+                            "ruleId": "NMJL_2026_WD_4_EEE_RRRR_RRRR_WWW_EVEN_ANY2",
+                            "distance": 7,
+                            "rawDistance": 7,
+                            "scarcityPenalty": 2.25,
+                            "isFeasible": true,
+                            "isConcealed": false,
+                            "assignment": {
+                                "R": 2,
+                                "SA": "BAM",
+                                "SB": "CRAK"
+                            },
+                            "neededTiles": {
+                                "W:WIND_EAST": 2,
+                                "S:BAM:2": 2,
+                                "S:CRAK:2": 2,
+                                "W:WIND_WEST": 1
+                            },
+                            "isExposureCompatible": true
+                        },
+                        {
+                            "ruleId": "NMJL_2026_YEAR_FFF_2026_222_6666",
+                            "distance": 8,
+                            "rawDistance": 8,
+                            "scarcityPenalty": 0,
+                            "isFeasible": true,
+                            "isConcealed": false,
+                            "assignment": {
+                                "S_Y": "BAM",
+                                "S_2": "CRAK",
+                                "S_6": "DOT"
+                            },
+                            "neededTiles": {
+                                "F": 3,
+                                "D:DRAGON_WHITE": 1,
+                                "S:BAM:6": 1,
+                                "S:DOT:6": 3
+                            },
+                            "isExposureCompatible": true
+                        }
+                    ],
+                    "last_eval_tile_count": 10,
+                    "last_eval_phase": 4
+                }
+            }
+        },
+        "6184": {
+            "game_id": 1169,
+            "gseattype_id": 4,
+            "u_id": null,
+            "user_disconnected": null,
+            "active": null,
+            "updated": "2026-10-21T07:03:57.224Z",
+            "id": 6184,
+            "keyid": "01a15d46-1842-7aee-aab9-4fe415d81ca5",
+            "created": "2026-10-21T07:03:57.224Z",
+            "deleted": null,
+            "racks": {
+                "1": {
+                    "gseat_id": 6184,
+                    "rack_id": 1,
+                    "is_dead": false,
+                    "is_locked": false,
+                    "is_mahjong": false,
+                    "exposures_meld": [],
+                    "target_hypotheses": [
+                        {
+                            "ruleId": "NMJL_2026_RUN_8_1_22_333_X2_44",
+                            "distance": 4,
+                            "rawDistance": 4,
+                            "scarcityPenalty": 0.75,
+                            "isFeasible": true,
+                            "isConcealed": true,
+                            "assignment": {
+                                "N": 4,
+                                "S_A": "DOT",
+                                "S_B": "CRAK",
+                                "S_44": "BAM"
+                            },
+                            "neededTiles": {
+                                "S:DOT:5": 1,
+                                "S:DOT:6": 2,
+                                "S:CRAK:5": 1
+                            },
+                            "isExposureCompatible": true
+                        },
+                        {
+                            "ruleId": "NMJL_2026_RUN_4_P_P_K_K_CONSEC4",
+                            "distance": 7,
+                            "rawDistance": 7,
+                            "scarcityPenalty": 2.25,
+                            "isFeasible": true,
+                            "isConcealed": false,
+                            "assignment": {
+                                "N": 3,
+                                "S_P": "CRAK",
+                                "S_K": "CRAK"
+                            },
+                            "neededTiles": {
+                                "S:CRAK:3": 2,
+                                "S:CRAK:4": 1,
+                                "S:CRAK:5": 3,
+                                "S:CRAK:6": 1
+                            },
+                            "isExposureCompatible": true
+                        },
+                        {
+                            "ruleId": "NMJL_2026_RUN_3_PAIR_PAIR_PUNG_PUNG_KONG_CONSEC3",
+                            "distance": 8,
+                            "rawDistance": 8,
+                            "scarcityPenalty": 0,
+                            "isFeasible": true,
+                            "isConcealed": false,
+                            "assignment": {
+                                "N": 5,
+                                "S1": "CRAK",
+                                "S2": "CRAK",
+                                "S3": "BAM"
+                            },
+                            "neededTiles": {
+                                "S:CRAK:5": 4,
+                                "S:CRAK:6": 2,
+                                "S:BAM:7": 2
+                            },
+                            "isExposureCompatible": true
+                        },
+                        {
+                            "ruleId": "NMJL_2026_SP_4_7_CONSEC_PAIRS_C50",
+                            "distance": 8,
+                            "rawDistance": 8,
+                            "scarcityPenalty": 1,
+                            "isFeasible": true,
+                            "isConcealed": true,
+                            "assignment": {
+                                "N": 3,
+                                "S": "CRAK"
+                            },
+                            "neededTiles": {
+                                "S:CRAK:3": 1,
+                                "S:CRAK:5": 1,
+                                "S:CRAK:7": 2,
+                                "S:CRAK:8": 2,
+                                "S:CRAK:9": 2
+                            },
+                            "isExposureCompatible": true
+                        },
+                        {
+                            "ruleId": "NMJL_2026_RUN_5_FFF_11_22_333_DDDD",
+                            "distance": 8,
+                            "rawDistance": 8,
+                            "scarcityPenalty": 1.375,
+                            "isFeasible": true,
+                            "isConcealed": false,
+                            "assignment": {
+                                "N": 4,
+                                "S_A": "CRAK",
+                                "S_M": "DOT",
+                                "D": "DRAGON_WHITE"
+                            },
+                            "neededTiles": {
+                                "F": 3,
+                                "S:DOT:5": 1,
+                                "D:DRAGON_WHITE": 4
+                            },
+                            "isExposureCompatible": true
+                        }
+                    ],
+                    "last_eval_tile_count": 13,
+                    "last_eval_phase": 4
+                }
+            }
+        }
+    },
+    "last_claim": {
+        "tile": {
+            "tile_id": 1,
+            "gseat_id": 6182,
+            "in_rack_one": "2026-10-21T07:03:57.292Z",
+            "in_exposer_one": null,
+            "sort_exposer_one": null,
+            "sort_rack_one": null,
+            "in_exposer_two": null,
+            "in_rack_two": null,
+            "sort_exposer_two": null,
+            "sort_rack_two": null,
+            "active": null,
+            "updated": "2026-10-21T07:03:57.224Z",
+            "id": 156474,
+            "keyid": "01a15d46-1858-7e1b-b92f-0896cab5ddcd",
+            "created": "2026-10-21T07:03:57.224Z",
+            "deleted": null
+        },
+        "from_seat": 6184,
+        "deadline_at": 1792567361179,
+        "intents": {
+            "6179": {
+                "kind": 48,
+                "rack_id": 1
+            },
+            "6180": {
+                "kind": 48,
+                "rack_id": 1
+            },
+            "6183": {
+                "kind": 48,
+                "rack_id": 1
+            }
+        },
+        "target_seat": [
+            6179
+        ],
+        "submissions": {
+            "6179": false,
+            "6180": false,
+            "6183": false
+        }
+    },
+    "last_joker_exchange": {
+        "from_gseat_id": 6179,
+        "to_gseat_id": 6179,
+        "from_tile_id": 89,
+        "joker_tile_id": 153
+    },
+}
