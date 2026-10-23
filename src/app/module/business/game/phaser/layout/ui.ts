@@ -22,10 +22,16 @@ export class PhaserLayoutUi {
   hudMenuOpen = false;
   hudMenuItems: Phaser.GameObjects.Text[] = [];
   hudBg?: Phaser.GameObjects.Rectangle;
+  /* OLDCODE
+  private lastActiveSeat?: TableSeat | null;
+  private lastCalledSeat?: TableSeat | null;
+  private lastExposureStatus?: "building" | "complete" | null;
+  OLDCODE */
   /* NEWCODE */
   private lastActiveSeat?: TableSeat | null;
   private lastCalledSeat?: TableSeat | null;
   private lastExposureStatus?: "building" | "complete" | null;
+  private isCurrentTurnSeat: boolean = false;
   /* NEWCODE */
 
 
@@ -96,7 +102,22 @@ export class PhaserLayoutUi {
   private instructionMessage = "";
   private instructionPhase?: GamePhaseEnum;
   private charlestonStage?: GameCharlestoneStageEnum;
+/* OLDCODE
   private isClaimWindowVisible: boolean = false;
+OLDCODE */
+/* NEWCODE */
+  private isClaimWindowVisible: boolean = false;
+  private isManualCallOfferVisible: boolean = false;
+
+  public isCallOptionAvailable(): boolean {
+    return this.isClaimWindowVisible || this.isManualCallOfferVisible;
+  }
+
+  public setManualCallOfferVisible(visible: boolean): void {
+    this.isManualCallOfferVisible = visible;
+    this.publishInstructionPanel();
+  }
+/* NEWCODE */
   private passButtonLabel: string = "PASS";
 
   public claimTileRect?: { x: number, y: number, width: number, height: number };
@@ -2040,6 +2061,7 @@ OLDCODE */
     const effectiveCalledSeat = (calledSeat !== undefined && calledSeat !== null) ? calledSeat : null;
     const effectiveExposureStatus = exposureStatus !== undefined ? exposureStatus : this.lastExposureStatus;
 
+/* OLDCODE
     if (phase !== GamePhaseEnum.PASSING && phase !== GamePhaseEnum.LOBBY) {
       const isGameplay = phase === GamePhaseEnum.PLAYING || phase === GamePhaseEnum.CLAIM;
       if (isGameplay) {
@@ -2068,6 +2090,87 @@ OLDCODE */
       this.publishInstructionPanel();
       return;
     }
+OLDCODE */
+/* NEWCODE */
+/* OLDCODE
+    if (phase !== GamePhaseEnum.PASSING && phase !== GamePhaseEnum.LOBBY) {
+      const isGameplay = phase === GamePhaseEnum.PLAYING || phase === GamePhaseEnum.CLAIM;
+      if (isGameplay) {
+        if (effectiveCalledSeat && effectiveCalledSeat !== "bottom") {
+          const callerName = this.getPlayerName(effectiveCalledSeat);
+          this.instructionMessage = `${callerName} Called`;
+          this.isCurrentTurnSeat = false;
+        } else if (isPersonalTurn) {
+          if (effectiveExposureStatus === "building") {
+            this.instructionMessage = "Complete the exposure, then discard a tile";
+          } else if (effectiveExposureStatus === "complete") {
+            this.instructionMessage = "Discard a tile";
+          } else if (!canDiscard) {
+            this.instructionMessage = "Pick a tile";
+          } else {
+            this.instructionMessage = "Discard a tile";
+          }
+          this.isCurrentTurnSeat = true;
+        } else if (effectiveActiveSeat && effectiveActiveSeat !== "bottom") {
+          const playerName = this.getPlayerName(effectiveActiveSeat);
+          this.instructionMessage = `${playerName}’s Turn`;
+          this.isCurrentTurnSeat = false;
+        } else {
+          this.instructionMessage = "";
+          this.isCurrentTurnSeat = false;
+        }
+      } else {
+        this.instructionMessage = "";
+        this.isCurrentTurnSeat = false;
+      }
+      this.publishInstructionPanel();
+      return;
+    }
+    this.isCurrentTurnSeat = false;
+OLDCODE */
+/* NEWCODE */
+    if (phase !== GamePhaseEnum.PASSING && phase !== GamePhaseEnum.LOBBY) {
+      const isGameplay = phase === GamePhaseEnum.PLAYING || phase === GamePhaseEnum.CLAIM;
+      if (isGameplay) {
+        if (effectiveCalledSeat && effectiveCalledSeat !== "bottom") {
+          const callerName = this.getPlayerName(effectiveCalledSeat);
+          this.instructionMessage = `${callerName} Called`;
+          this.isCurrentTurnSeat = false;
+          this.lastExposureStatus = null;
+        } else if (isPersonalTurn) {
+          if (!canDiscard) {
+            this.instructionMessage = "Pick a tile";
+            this.lastExposureStatus = null;
+          } else if (effectiveExposureStatus === "building") {
+            this.instructionMessage = "Complete the exposure, then discard a tile";
+          } else if (effectiveExposureStatus === "complete") {
+            this.instructionMessage = "Discard a tile";
+          } else {
+            this.instructionMessage = "Discard a tile";
+          }
+          this.isCurrentTurnSeat = true;
+        } else if (effectiveActiveSeat && effectiveActiveSeat !== "bottom") {
+          const playerName = this.getPlayerName(effectiveActiveSeat);
+          this.instructionMessage = `${playerName}’s Turn`;
+          this.isCurrentTurnSeat = false;
+          this.lastExposureStatus = null;
+        } else {
+          this.instructionMessage = "";
+          this.isCurrentTurnSeat = false;
+          this.lastExposureStatus = null;
+        }
+      } else {
+        this.instructionMessage = "";
+        this.isCurrentTurnSeat = false;
+        this.lastExposureStatus = null;
+      }
+      this.publishInstructionPanel();
+      return;
+    }
+    this.isCurrentTurnSeat = false;
+    this.lastExposureStatus = null;
+/* NEWCODE */
+/* NEWCODE */
 /* NEWCODE */
 
     if (charlestonStage === GameCharlestoneStageEnum.SECOND_DECISION) {
@@ -2094,6 +2197,7 @@ OLDCODE */
     const layout = this.lastLayout;
     if (!layout) return;
 
+/* OLDCODE
     if (!this.instructionMessage) {
       this.callbacks.onInstructionPanelOverlay?.({
         visible: false,
@@ -2104,6 +2208,42 @@ OLDCODE */
       });
       return;
     }
+OLDCODE */
+/* OLDCODE
+    if (!this.instructionMessage) {
+      this.callbacks.onInstructionPanelOverlay?.({
+        visible: false,
+        x: 0, y: 0, width: 0, height: 0, radius: 0, borderWidth: 0,
+        shadowY: 0, shadowBlur: 0, title: "", titleFontSize: 0, body: "", bodyFontSize: 0,
+        contentTop: 0, contentBottom: 0, titleGap: 0,
+        button: { label: "", enabled: false, action: "pass", x: 0, y: 0, width: 0, height: 0, radius: 0, fontSize: 0, shadowY: 0, shadowBlur: 0 },
+        isPersonalTurn: false,
+        pulse: false,
+        backgroundColor: "transparent",
+        textColor: COLOR_BLUE,
+      });
+      return;
+    }
+OLDCODE */
+/* NEWCODE */
+    const isGameplay = this.instructionPhase === GamePhaseEnum.PLAYING || this.instructionPhase === GamePhaseEnum.CLAIM;
+    const isCallAvailable = isGameplay && this.isCallOptionAvailable();
+
+    if (!this.instructionMessage && !isCallAvailable) {
+      this.callbacks.onInstructionPanelOverlay?.({
+        visible: false,
+        x: 0, y: 0, width: 0, height: 0, radius: 0, borderWidth: 0,
+        shadowY: 0, shadowBlur: 0, title: "", titleFontSize: 0, body: "", bodyFontSize: 0,
+        contentTop: 0, contentBottom: 0, titleGap: 0,
+        button: { label: "", enabled: false, action: "pass", x: 0, y: 0, width: 0, height: 0, radius: 0, fontSize: 0, shadowY: 0, shadowBlur: 0 },
+        isPersonalTurn: false,
+        pulse: false,
+        backgroundColor: "transparent",
+        textColor: COLOR_BLUE,
+      });
+      return;
+    }
+/* NEWCODE */
 
     const card = layout.instructionBar;
     const button = layout.passButton;
@@ -2197,12 +2337,22 @@ OLDCODE */
       buttonFontSize = Math.round(buttonFontSize * 0.85); // Shrink button text slightly
     }
 
+/* OLDCODE
     let instructionMessage = this.instructionMessage;
 
     if (!isPassing) {
       // Remove newlines so the text flows horizontally in the tray for non-passing phases
       instructionMessage = instructionMessage.replace(/\n/g, " ");
     }
+OLDCODE */
+/* NEWCODE */
+    let instructionMessage = isCallAvailable ? "You must call or skip" : this.instructionMessage;
+
+    if (!isPassing) {
+      // Remove newlines so the text flows horizontally in the tray for non-passing phases
+      instructionMessage = instructionMessage.replace(/\n/g, " ");
+    }
+/* NEWCODE */
 
     const [titleSegment, ...bodySegments] = instructionMessage.split("|");
     const title = titleSegment;
@@ -2345,6 +2495,7 @@ OLDCODE */
       };
     }
 
+/* OLDCODE
     this.callbacks.onInstructionPanelOverlay?.({
       visible: true,
       x: Math.round(cardX),
@@ -2365,15 +2516,105 @@ OLDCODE */
       button: buttonConfig,
       secondaryButton: secondaryButtonConfig,
     });
+OLDCODE */
+/* NEWCODE */
+/* OLDCODE
+    const isLobby = this.instructionPhase === GamePhaseEnum.LOBBY;
+    const isGameplay = this.instructionPhase === GamePhaseEnum.PLAYING || this.instructionPhase === GamePhaseEnum.CLAIM;
+
+    let backgroundColor: string;
+    let textColor: string;
+    let pulse: boolean = false;
+
+    if (isPassing || isLobby) {
+      backgroundColor = "#f4f2ec";
+      textColor = COLOR_BLUE;
+      pulse = false;
+    } else if (isGameplay) {
+      const isCallAvailable = this.isCallOptionAvailable();
+      if (this.isCurrentTurnSeat || isCallAvailable) {
+        backgroundColor = COLOR_AVOCADO;
+        textColor = COLOR_BLUE;
+        pulse = true;
+      } else {
+        backgroundColor = COLOR_BLUE;
+        textColor = COLOR_AVOCADO;
+        pulse = false;
+      }
+    } else {
+OLDCODE */
+/* NEWCODE */
+    const isLobby = this.instructionPhase === GamePhaseEnum.LOBBY;
+
+    let backgroundColor: string;
+    let textColor: string;
+    let pulse: boolean = false;
+
+    if (isPassing || isLobby) {
+      backgroundColor = "#f4f2ec";
+      textColor = COLOR_BLUE;
+      pulse = false;
+    } else if (isGameplay) {
+      if (this.isCurrentTurnSeat || isCallAvailable) {
+        backgroundColor = COLOR_AVOCADO;
+        textColor = COLOR_BLUE;
+        pulse = true;
+      } else {
+        backgroundColor = COLOR_BLUE;
+        textColor = COLOR_AVOCADO;
+        pulse = false;
+      }
+    } else {
+/* NEWCODE */
+      backgroundColor = "transparent";
+      textColor = COLOR_BLUE;
+      pulse = false;
+    }
+
+    this.callbacks.onInstructionPanelOverlay?.({
+      visible: true,
+      x: Math.round(cardX),
+      y: Math.round(cardY),
+      width: Math.round(cardWidth),
+      height: Math.round(cardHeight),
+      radius,
+      borderWidth,
+      shadowY: Math.max(6, Math.round(cardHeight * 0.045)),
+      shadowBlur: Math.max(12, Math.round(cardHeight * 0.10)),
+      title: title ?? "",
+      titleFontSize,
+      body,
+      bodyFontSize: bodyFitted,
+      contentTop,
+      contentBottom,
+      titleGap,
+      button: buttonConfig,
+      secondaryButton: secondaryButtonConfig,
+      isPersonalTurn: this.isCurrentTurnSeat,
+      pulse,
+      backgroundColor,
+      textColor,
+    });
+/* NEWCODE */
   }
 
   private claimTileDataUrl?: string;
 
+/* OLDCODE
   updateClaimWindow(show: boolean, dataUrl?: string): void {
     this.isClaimWindowVisible = show;
     this.claimTileDataUrl = dataUrl;
     this.publishClaimPanel();
   }
+OLDCODE */
+/* NEWCODE */
+  updateClaimWindow(show: boolean, dataUrl?: string): void {
+    this.isClaimWindowVisible = show;
+    this.claimTileDataUrl = dataUrl;
+    this.publishClaimPanel();
+    this.publishInstructionPanel();
+  }
+/* NEWCODE */
 
   private publishClaimPanel(): void {
     const layout = this.lastLayout;

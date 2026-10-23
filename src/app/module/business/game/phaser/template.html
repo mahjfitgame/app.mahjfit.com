@@ -48,7 +48,7 @@
     [style.borderColor]="'transparent'"
     >
   OLDCODE -->
-  <!-- NEWCODE -->
+  <!-- OLDCODE
   <div class="instruction-panel" aria-hidden="false" [style.display]="'block'" [style.left.px]="state.x"
     [style.top.px]="state.y" [style.width.px]="state.width" [style.height.px]="state.height"
     [style.borderWidth.px]="state.borderWidth" [style.borderRadius.px]="state.radius"
@@ -56,7 +56,6 @@
     [style.borderColor]="state.borderWidth === 0 ? 'transparent' : '#c7c22e'"
     [style.pointerEvents]="state.borderWidth === 0 ? 'none' : 'auto'"
     >
-  <!-- NEWCODE -->
   <div class="instruction-panel__content" [style.left.px]="-state.borderWidth" [style.width.px]="state.width"
     [style.top.px]="state.contentTop - state.borderWidth"
     [style.flexDirection]="state.borderWidth === 0 ? 'row' : 'column'"
@@ -65,6 +64,45 @@
       [style.marginRight.px]="state.body ? state.titleGap : 0">{{ state.title }}</div>
     <div class="instruction-panel__body" [style.fontSize.px]="state.bodyFontSize">{{ state.body }}</div>
   </div>
+  OLDCODE -->
+  <!-- OLDCODE
+  <div class="instruction-panel" [class.instruction-panel--pulse]="state.pulse"
+    aria-hidden="false" [style.display]="'block'" [style.left.px]="state.x"
+    [style.top.px]="state.y" [style.width.px]="state.width" [style.height.px]="state.height"
+    [style.borderWidth.px]="state.borderWidth" [style.borderRadius.px]="state.radius"
+    [style.background]="state.backgroundColor || (state.borderWidth === 0 ? 'transparent' : '#f4f2ec')"
+    [style.borderColor]="state.borderWidth === 0 ? 'transparent' : '#c7c22e'"
+    [style.pointerEvents]="state.borderWidth === 0 ? 'none' : 'auto'"
+    >
+  <div class="instruction-panel__content" [style.left.px]="-state.borderWidth" [style.width.px]="state.width"
+    [style.top.px]="state.contentTop - state.borderWidth"
+    [style.flexDirection]="state.borderWidth === 0 ? 'row' : 'column'"
+    [style.color]="state.textColor || '#264089'"
+    [style.height.px]="state.contentBottom - state.contentTop > 0 ? state.contentBottom - state.contentTop : 0">
+    <div class="instruction-panel__title" [style.fontSize.px]="state.titleFontSize"
+      [style.marginRight.px]="state.body ? state.titleGap : 0">{{ state.title }}</div>
+    <div class="instruction-panel__body" [style.fontSize.px]="state.bodyFontSize">{{ state.body }}</div>
+  </div>
+  OLDCODE -->
+  <!-- NEWCODE -->
+  <div class="instruction-panel" [class.instruction-panel--pulse]="state.pulse"
+    aria-hidden="false" [style.display]="'block'" [style.left.px]="state.x"
+    [style.top.px]="state.y" [style.width.px]="state.width" [style.height.px]="state.height"
+    [style.borderWidth.px]="state.borderWidth" [style.borderRadius.px]="state.radius"
+    [style.background]="state.borderWidth === 0 ? 'transparent' : (state.backgroundColor || '#f4f2ec')"
+    [style.borderColor]="state.borderWidth === 0 ? 'transparent' : '#c7c22e'"
+    [style.pointerEvents]="state.borderWidth === 0 ? 'none' : 'auto'"
+    >
+  <div class="instruction-panel__content" [style.left.px]="-state.borderWidth" [style.width.px]="state.width"
+    [style.top.px]="state.contentTop - state.borderWidth"
+    [style.flexDirection]="state.borderWidth === 0 ? 'row' : 'column'"
+    [style.color]="state.textColor || '#264089'"
+    [style.height.px]="state.contentBottom - state.contentTop > 0 ? state.contentBottom - state.contentTop : 0">
+    <div class="instruction-panel__title" [style.fontSize.px]="state.titleFontSize"
+      [style.marginRight.px]="state.body ? state.titleGap : 0">{{ state.title }}</div>
+    <div class="instruction-panel__body" [style.fontSize.px]="state.bodyFontSize">{{ state.body }}</div>
+  </div>
+  <!-- NEWCODE -->
   @if (state.button && state.button.width > 0 && state.button.label) {
   <button type="button" class="instruction-panel__button btn-primary" [style.left.px]="state.button.x - state.borderWidth"
     [style.top.px]="state.button.y - state.borderWidth" [style.width.px]="state.button.width"

@@ -45,13 +45,285 @@ https://chatgpt.com/c/6acdd922-2f4c-83ec-b50f-38bf5819610d
 
 [tech][Frontend development][D1] Game Play - Current logic assessment and upgrade plan
 
+[tech][Frontend development][D1] Game Play - Upgrade the tile assignment at initial and bot charleston round to pass the tiles and wall seat randomness
+
 
 Analyse the current game play logic and plan further upgradation  
 Game Play - Current logic assesmet and plan next upgratation
 
+https://chatgpt.com/g/g-p-6960cc6488908191b0256b5406fc249e-sd-mahjong-game/c/6ad99bc5-7868-83e8-9de8-c1cbfe4ea413
+
+========== POINTS ========== 
+
+========== PRMP ========== 
+#]
+BOT WIN 
+Rack tiles:
+"46": "D5",
+"47": "D6",
+"57": "D7",
+"65": "D6",
+"66": "D7",
+"73": "D5",
+"75": "D7",
+"120": "DW",
+"139": "FL",
+"140": "FL",
+"144": "FL"
+
+Exposure tiles
+121 DW
+119 DW
+148 J
+
+EXPOSURE "kind": 17,
+DW DW J (PUNG but required KONG)
+
+In rack:
+FFF + D5 D5 + D6 D6 + D7 D7 D7 + DW
+
+
+Following winning hand as per the rule
+FFF 11 22 333 DDDD - Which is right
+
+But as per the checking the data of the bot seat there is one issue
+The exposure must be kind 18 which is WHITE DRAGON kong but as we see its PUNG in the exposure and one DRAGON WHITE in rack tile, so basically this is not the wining hand this make the wrong mahjong as required KONG and bot seat make the PUNG and used one tile from rack which is not valid winning combination, why bot take this king of decision, bot never make this king of mistakes, this mistakes is kind of DEAD hand, but bot never DEAD hand. So the issue is in bot decision or mahjong checking.
+
+
+#]
+Need to cross check the hand, this is the tiles of bot seat rack and exposure, is it following any wininig hand from the rule
+"44": "D3",
+              "66": "D7",
+              "78": "C1",
+              "127": "WS",
+              "141": "FL",
+              "143": "FL",
+              "146": "FL"
+
+
+C3 C3 J
+F F F
+
+F F F + D3 D7 + C1 + WS
+
+++++++++++++++
+Exposure:
+3 CRAK KONG + 1 BAM KONG in exposure 
+
+Rack:
+B4 C7 C7 J J
+"actual_tiles": {
+              "18": "B4",
+              "102": "C7",
+              "111": "C7",
+              "148": "J",
+              "149": "J"
+            }
+
+
+========== REPLY ========== 
+Quick notes- 
+1. the computer can win games. I have played about 7 and the computer has not won. 
+2. slow the discards from the other players down just by about 1 seconds. 
+For the most difficult level, this speed is good, but for enrty level this is too fast.
+
+FOR CLIENT]
+Okay, I added this points to the point list and will cover this one by one.
+
+Thank you!
+
+
+Thank you for sending these over. Let's use 390px for mobile and 1440px for desktop as the reference widths.
+
+I'm happy to review anything implemented and provide feedback on any adjustments needed.
+
+Thank you so much, Carolyn
+
+FOR CLIENT]
+Today, I worked on the initial shuffle tile setup and implemented the bot’s Charleston round selection and tile-passing logic according to the rules. 
+I also improved wall seat tile randomness to prevent the same seat from receiving multiple Joker tiles. 
+
+On the frontend, I updated the UI/UX by adding a pulse effect to messages when an action occurs, such as discarding a tile. 
+Additionally, I added a new instruction message, “You must call or skip,” when a claim is available. Finally, I updated the instruction panel colors based on the turn: blue background with yellow text when it is another player’s turn, and yellow background with blue text when it is the current player’s turn.
+
+I will keep you posted on the work progress. 
+Thank you!
+
+========== Progress meeting: 21 OCT 2026 5 PM PDT ==========
+https://meet.google.com/eeh-tqpv-dfn
+
+1]
+Started to implement the design as per designer email.
+Its on going work, not completed.
+check url: https://mahjfit-com.thatsend.dev/
+
+2]
+Fixed the delay during tile discard and turn change.
+During previous meeting it was taking time during game play when we discard the tile. Behaviour was like it pause and after process. Issue was its was taking time to process the request, so changed the code and now response time is fast.
+
+3]
+Make instructions on the rack very clear: The instructions should repeat exactly what is happening in the game, reference Real Mahjong instructions during play:
+For example:
+* Discard a Tile
+* Player 1’s Turn
+* Player 2’s Turn
+* Player’s 3 Turn
+* Pick a tile
+* Discard a tile
+* Player 1 Called 
+* Player 2 Called
+* Player 3 Called
+
+
+
+
+Instructions for when I call:
+“Complete the exposure, then discard a tile”
+(The computer should know when the exposure is complete based on:
+- the other hands in the rack 
+- if there are no other tiles on the rack, the exposure can be 3, 4, or 5 of the same tile
+
+4]
+Discard area scrolling to prevent it from overlapping the top section. 
+We might require some improvements in future as per screen size, its possible that wemight have missed some view port. Will be covered in testing.
+
+5]
+Test the debug email process and it works but due to long JSON data, it take time to paste so we reduced the json size and it works fine.
+Added one more unit testing file for the mahjong test.
+
+6]
+Joker swap animation issue fixed, and verified the process of moving tiles to the rack to make an exposure, along with the related animations.
+Swap using double click on joker is working fine.
+Some time it behave anonyig, that we will fix.
+
+7]
+Tile Passing Animation: 
+Added an animation when a tile is passed to the rack, so it disappears with a visual effect, such as a flash.
+
+8]
+Mahjong Button Behavior: 
+If the Mahjong button is clicked and no Mahjong is detected, the button shakes or wiggles to indicate that the action is complete. The button is then enabled again.
+
+9]
+Tile Distribution During Charleston: 
+Updated the tile distribution to make the tiles appear more randomly mixed and drawn. 
+As shown in Attachment 2, getting so many Winds during the Charleston round is highly unlikely, although not impossible. 
+Now we need to test multiple gameplay sessions to verify that the Charleston tile distribution is working correctly or not.
+
+10]
+Rack UI Improvement: 
+Fixed a frontend issue where exchanging a Joker with an exposed tile in the same seat sometimes left an empty space in the rack. 
+The UI has been updated to remove the gap and keep the rack layout consistent.
+
+Pending Task]
+Bot Exposure Decisions: 
+We need to review and verify how the bot decides works in terms of which tiles to group together for exposure. 
+So this is detaild testing as there are too too too many use cases.
+
+System (Computer) Dead Hand Decisions: 
+We need to review and verify the Dead Hand Decision of computer. 
+Becuase with some hand have winning possibility but system make the hand DEAD.
+
+So basically we completed few point and then test also. 
+
+I am working on multiple tasks simultaneously, including the required backend and frontend code updates as per game testing and I will also go for remain development.
+
+
+ISSUES]
+- Dead hand issue 
+Trued to point dead hand with player 1 but its not doing anything.
+- Pulse with message in yellow area - game instructions
+- Send email to carolyn regarding space management in design layout.
+- Layout issue with close button with screen size
+- Organise the layout properly with different screen size
+- Desig with space issue - its too much - we might get some idea from client to arrange things in right way.
+
+========== POINTS ========== 
+1]
+Make instructions on the rack very clear: The instructions should repeat exactly what is happening in the game, reference Real Mahjong instructions during play:
+ 
+For example:
+ 
+* Discard a Tile
+* Player 1’s Turn
+* Player 2’s Turn
+* Player’s 3 Turn
+* Pick a tile
+* Discard a tile
+* Player 1 Called 
+* Player 2 Called
+* Player 3 Called
+
+
+Instructions for when I call:
+“Complete the exposure, then discard a tile”
+ (The computer should know when the exposure is complete based on:
+- the other hands in the rack 
+- if there are no other tiles on the rack, the exposure can be 3, 4, or 5 of the same tile
+
+2]
+Discard area scrolling to prevent it from overlapping the top section. I still need to test it on different devices and in responsive mode. The scrolling also needs some further improvements to make it smoother.
+
+3]
+Test the debug email process and it works but due to long JSON data it take time to paste so I reduced the json size and it works fine.
+Added one more unit testing file for the mahjong test.
+
+4]
+Tested the Joker swap animation, and verified the process of moving tiles to the rack to make an exposure, along with the related animations.
+
+5]
+Tile Passing Animation: 
+Added an animation when a tile is passed to the rack, so it disappears with a visual effect, such as a flash.
+
+6]
+Mahjong Button Behavior: 
+If the Mahjong button is clicked and no Mahjong is detected, the button shakes or wiggles to indicate that the action is complete. The button is then enabled again.
+
+7]
+Tile Distribution During Charleston: 
+Updated the tile distribution to make the tiles appear more randomly mixed and drawn. As shown in Attachment 2, getting so many Winds during the Charleston round is highly unlikely, although not impossible. I need to test multiple gameplay sessions to verify that the Charleston tile distribution is working correctly.
+
+8]
+Rack UI Improvement: 
+Fixed a frontend issue where exchanging a Joker with an exposed tile in the same seat sometimes left an empty space in the rack. The UI has been updated to remove the gap and keep the rack layout consistent.
+
+Pending Task:
+Bot Exposure Decisions: 
+We need to review and verify how the bot decides works in turms of which tiles to group together for exposure. So this is detaild testing as there are too too too many use cases.
+
+System (Computer) Dead Hand Decisions: 
+We need to review and verify the Dead Hand Decision of computer. Becuase with some hand have winning possibility but system make the hand DEAD.
+
+So basically I completed the point and then test the recenet completed point as well as other completed point I done while game play tesing. If I found something then I will first fixed this and move to the next point. 
+I worked on multiple tasks simultaneously, including the required backend and frontend code updates as per game testing and I will also go for remain development.
 
 
 ============= REPLY ==============
+FOR CLIENT]
+Today, I worked on multiple tasks simultaneously, including the required backend and frontend code updates as per game testing and I will also go for remain development.
+
+I completed the following updates:
+
+Tile Passing Animation: 
+Added an animation when a tile is passed to the rack, so it disappears with a visual effect, such as a flash.
+Mahjong Button Behavior: 
+If the Mahjong button is clicked and no Mahjong is detected, the button shakes or wiggles to indicate that the action is complete. The button is then enabled again.
+Tile Distribution During Charleston: 
+Updated the tile distribution to make the tiles appear more randomly mixed and drawn. As shown in Attachment 2, getting so many Winds during the Charleston round is highly unlikely, although not impossible. I need to test multiple gameplay sessions to verify that the Charleston tile distribution is working correctly.
+Rack UI Improvement: 
+Fixed a frontend issue where exchanging a Joker with an exposed tile in the same seat sometimes left an empty space in the rack. The UI has been updated to remove the gap and keep the rack layout consistent.
+Pending Task:
+
+Bot Exposure Decisions: 
+We need to review and verify how the bot decides works in turms of which tiles to group together for exposure. So this is detaild testing as there are too too too many use cases.
+
+System (Computer) Dead Hand Decisions: 
+We need to review and verify the Dead Hand Decision of computer. Becuase with some hand have winning possibility but system make the hand DEAD.
+
+I will keep you posted on the work progress. 
+Thank you!
+
+
 FOR CLIENT]
 I haven’t made any changes to the audio files because I’m a bit confused about the new sounds, which sound should be used, and which action each sound is associated with.
 I need your guidance on this. Based on my understanding, I will use the following sound files for the respective actions.
@@ -99,7 +371,7 @@ Thanks you!
 Hi Raj,
 
 Thank you for putting together the header examples.
- I agree with using a consistent header structure across the site:
+I agree with using a consistent header structure across the site:
 Hamburger menu on the left
 Centered Mahjfit logo
 Sign In / Sign Up when logged out on the right 
@@ -124,29 +396,7 @@ Let me know if you have any questions.
 Thanks! Carolyn
 
 ++++++++++++
-FOR CLIENT]
-Today, I worked on multiple tasks simultaneously, including the required backend and frontend code updates as per game testing and I will also go for remain development.
 
-I completed the following updates:
-
-Tile Passing Animation: 
-Added an animation when a tile is passed to the rack, so it disappears with a visual effect, such as a flash.
-Mahjong Button Behavior: 
-If the Mahjong button is clicked and no Mahjong is detected, the button shakes or wiggles to indicate that the action is complete. The button is then enabled again.
-Tile Distribution During Charleston: 
-Updated the tile distribution to make the tiles appear more randomly mixed and drawn. As shown in Attachment 2, getting so many Winds during the Charleston round is highly unlikely, although not impossible. I need to test multiple gameplay sessions to verify that the Charleston tile distribution is working correctly.
-Rack UI Improvement: 
-Fixed a frontend issue where exchanging a Joker with an exposed tile in the same seat sometimes left an empty space in the rack. The UI has been updated to remove the gap and keep the rack layout consistent.
-Pending Task:
-
-Bot Exposure Decisions: 
-We need to review and verify how the bot decides works in turms of which tiles to group together for exposure. So this is detaild testing as there are too too too many use cases.
-
-System (Computer) Dead Hand Decisions: 
-We need to review and verify the Dead Hand Decision of computer. Becuase with some hand have winning possibility but system make the hand DEAD.
-
-I will keep you posted on the work progress. 
-Thank you!
 
 
 FOR CLIENT]

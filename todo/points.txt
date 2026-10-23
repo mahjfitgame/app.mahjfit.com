@@ -1,4 +1,23 @@
+
 COMPLETED
+========================================================
+
+================ MEETING POINTS ================
+6]
+- Pulse effect of message when action arrive - like discards.
+DONE
+
+Also added one more instruction when CLAIM is available.
+Msg: "You must call or skip"
+
+Update the instruction panel when other player turn the instruction panel is in primary color (Blue) and text in yellow 
+and when current turn the instruction panel is in yellow color and text in primary color (Blue).
+
+
+
+
+############################################
+###################### COMPLETED UPTO 22 OCT 2026 ######################
 ========================================================
 6]
 Make instructions on the rack very clear: The instructions should repeat exactly what is happening in the game, reference Real Mahjong instructions during play:
@@ -376,6 +395,7 @@ DONE
 - There are some screen shot of issues of exposure we fixed during last week but seems like still an issue. 
 6]
 - Pulse effect of message when action arrive - like discards.
+DONE
 7]
 - Do not allow to expose wrong tiles - if it is then dead hand. if 1+4 then end the game and if multiple human players then mark player as dead. So exposure only allow winning hand for bot and humans.
 DONE

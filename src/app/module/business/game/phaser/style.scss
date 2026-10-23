@@ -124,6 +124,7 @@
        * Centre "YOUR TURN" card. Phaser supplies every coordinate; the browser
        * paints it so the copy and button label stay sharp at any pixel ratio.
        */
+/* OLDCODE
 .instruction-panel {
     position: absolute;
     z-index: 25;
@@ -134,6 +135,20 @@
     border-style: solid;
     border-color: #c7c22e;
 }
+OLDCODE */
+/* NEWCODE */
+.instruction-panel {
+    position: absolute;
+    z-index: 25;
+    display: none;
+    box-sizing: border-box;
+    pointer-events: auto;
+    background: #f4f2ec;
+    border-style: solid;
+    border-color: #c7c22e;
+    transition: background-color 0.2s ease, color 0.2s ease;
+}
+/* NEWCODE */
 
 /*
        * Copy occupies the band between the top inset and the button, and is
@@ -222,6 +237,25 @@
     }
     90% {
         transform: translate3d(2px, 0, 0) rotate(0.5deg);
+    }
+}
+/* NEWCODE */
+
+/* NEWCODE */
+.instruction-panel--pulse .instruction-panel__content {
+    animation: instructionMessagePulse 1.6s ease-in-out infinite;
+    transform-origin: center center;
+    will-change: transform, opacity;
+}
+
+@keyframes instructionMessagePulse {
+    0%, 100% {
+        transform: scale(1);
+        opacity: 1;
+    }
+    50% {
+        transform: scale(1.05);
+        opacity: 0.86;
     }
 }
 /* NEWCODE */

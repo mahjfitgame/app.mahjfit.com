@@ -351,6 +351,29 @@ export interface InstructionPanelButtonState {
  * engine; the browser paints the card, its text, and its button so the copy
  * stays sharp at any device pixel ratio.
  */
+// OLDCODE
+// export interface InstructionPanelOverlayState {
+//   readonly visible: boolean;
+//   readonly x: number;
+//   readonly y: number;
+//   readonly width: number;
+//   readonly height: number;
+//   readonly radius: number;
+//   readonly borderWidth: number;
+//   readonly shadowY: number;
+//   readonly shadowBlur: number;
+//   readonly title: string;
+//   readonly titleFontSize: number;
+//   readonly body: string;
+//   readonly bodyFontSize: number;
+//   readonly contentTop: number;
+//   readonly contentBottom: number;
+//   readonly titleGap: number;
+//   readonly button: InstructionPanelButtonState;
+//   readonly secondaryButton?: InstructionPanelButtonState;
+// }
+// OLDCODE
+/* NEWCODE */
 export interface InstructionPanelOverlayState {
   readonly visible: boolean;
   readonly x: number;
@@ -377,7 +400,12 @@ export interface InstructionPanelOverlayState {
   readonly titleGap: number;
   readonly button: InstructionPanelButtonState;
   readonly secondaryButton?: InstructionPanelButtonState;
+  readonly isPersonalTurn?: boolean;
+  readonly pulse?: boolean;
+  readonly backgroundColor?: string;
+  readonly textColor?: string;
 }
+/* NEWCODE */
 
 export interface ClaimPanelOverlayState {
   readonly visible: boolean;

@@ -2,14 +2,24 @@
 import Phaser from "phaser";
 //import { ExposurePanelMode, PassAnimationItem, PassDirection, Point, Rect, SafeAreaInsets, TableLayout } from "../type"; // OLDCODE
 import { ExposurePanelMode, GameTableConfig, PassAnimationItem, PassDirection, Point, Rect, SafeAreaInsets, TableLayout } from "../type";
+/* OLDCODE
 import { GameCharlestoneStageEnum, GamePhaseEnum, GameTileEntityGSDto, TileCategoryEnumAddon, GamePhaseFirstRoundDirectionEnum, GamePhaseSecondRoundDirectionEnum, GameTurnStageEnum, GameTurnStageEnuAddon, GamePlayActionEnumAddon } from "@bfw/api-sdk/graphql/endpoints/business";
+OLDCODE */
+/* NEWCODE */
+import { GameCharlestoneStageEnum, GamePhaseEnum, GameTileEntityGSDto, TileCategoryEnumAddon, GamePhaseFirstRoundDirectionEnum, GamePhaseSecondRoundDirectionEnum, GameTurnStageEnum, GameTurnStageEnuAddon, GamePlayActionEnumAddon, GamePlayActionEnum } from "@bfw/api-sdk/graphql/endpoints/business";
+/* NEWCODE */
 import { PhaserAnimation } from "../animation";
 import { PhaserFlow } from "../flow";
 import { PhaserSound } from "../sound";
 import { PhaserState } from "../state";
 import { PhaserInteraction } from "../interaction";
 import { PhaserLayoutUi } from "../layout/ui";
+/* OLDCODE
 import { ANIMATION_SPEED, CLAIM_DISCARD_FLIGHT_MS, CLAIM_RECOGNITION_BEAT_MS, CLAIM_TRANSFER_FLIGHT_MS, COLOR_BLUE, COLOR_BLUE_NUM, COLOR_FUSHIA, COLOR_FUSHIA_NUM, COLOR_GRAY_NUM, COLOR_LAVENDER_NUM, FONT_FAMILY, GAME_TABLE_CONFIG, ICON_DEADHAND_HOVER, ICON_DEADHAND_NORMAL, ICON_DEADHAND_PRESSED, ICON_HELP_HOVER, ICON_HELP_NORMAL, ICON_HELP_PRESSED, ICON_HINT_HOVER, ICON_HINT_NORMAL, ICON_HINT_PRESSED, ICON_SETTINGS_HOVER, ICON_SETTINGS_NORMAL, ICON_SETTINGS_PRESSED, ICON_SORT_HOVER, ICON_SORT_NORMAL, ICON_SORT_PRESSED } from "../const";
+OLDCODE */
+/* NEWCODE */
+import { ANIMATION_SPEED, CLAIM_DISCARD_FLIGHT_MS, CLAIM_RECOGNITION_BEAT_MS, CLAIM_TRANSFER_FLIGHT_MS, COLOR_AVOCADO_NUM, COLOR_BLUE, COLOR_BLUE_NUM, COLOR_FUSHIA, COLOR_FUSHIA_NUM, COLOR_GRAY_NUM, COLOR_LAVENDER_NUM, FONT_FAMILY, GAME_TABLE_CONFIG, ICON_DEADHAND_HOVER, ICON_DEADHAND_NORMAL, ICON_DEADHAND_PRESSED, ICON_HELP_HOVER, ICON_HELP_NORMAL, ICON_HELP_PRESSED, ICON_HINT_HOVER, ICON_HINT_NORMAL, ICON_HINT_PRESSED, ICON_SETTINGS_HOVER, ICON_SETTINGS_NORMAL, ICON_SETTINGS_PRESSED, ICON_SORT_HOVER, ICON_SORT_NORMAL, ICON_SORT_PRESSED } from "../const";
+/* NEWCODE */
 import { BotPassVisualTile, CharlestonVisualTransfer, DemoDiscardRequest, DiscardGrid, HamburgerMenuActionKey, HudActionKey, MahjongWinCelebration, ResolvedClaimPresentation, TableOverlayBlockLevel, TableSceneCallbacks, TableSeat, TileCallOffer, TileRuntime, TableSfxConfig, TableSfxId } from "./type";
 import { PhaserLayoutGame } from "../layout/game";
 import { inject } from "@angular/core";
@@ -560,7 +570,7 @@ export class PhaserScene extends Phaser.Scene {
       this.updateExposureCloseButtonsState();
     }, this);
 OLDCODE */
-/* NEWCODE */
+/* OLDCODE
     this.game.events.on("table:turn_stage", (stage: any) => {
       this.turnStage = stage;
       if (stage !== GameTurnStageEnum.NEED_EXPOSURE) {
@@ -571,16 +581,42 @@ OLDCODE */
       this.updateExposureCloseButtonsState();
       this.updateInstructionText();
     }, this);
+OLDCODE */
+/* NEWCODE */
+    this.game.events.on("table:turn_stage", (stage: any) => {
+      this.turnStage = stage;
+      const isExposureStage = stage === GameTurnStageEnum.NEED_EXPOSURE
+        || stage === GameTurnStageEnuAddon.NEED_EXPOSURE
+        || stage === 3
+        || stage === "3";
+      if (!isExposureStage) {
+        this.pendingCallTileId = undefined;
+        this.pendingCallHasExposedRackTile = false;
+      }
+      setTimeout(() => this.processPendingClaimTile(), 50);
+      this.updateExposureCloseButtonsState();
+      this.updateInstructionText();
+    }, this);
 /* NEWCODE */
     this.game.events.on("table:safe-area", this.setSafeAreaInsets, this);
     this.game.events.on("table:active-seat", this.setActiveSeat, this);
+/* OLDCODE
     this.game.events.on("ui:set-is-personal-turn", (isPersonalTurn: boolean) => {
       this.stateManager.isPersonalTurn = isPersonalTurn;
       this.updateInstructionText();
     }, this);
+OLDCODE */
+/* NEWCODE */
+    this.game.events.on("ui:set-is-personal-turn", (isPersonalTurn: boolean) => {
+      this.stateManager.isPersonalTurn = isPersonalTurn;
+      this.updateInstructionText();
+      this.updateExposureCloseButtonsState();
+    }, this);
+/* NEWCODE */
 
     this.game.events.on("ui:show-claim-window", (payload: { tile: any }) => this.showClaimWindow(payload.tile), this);
     this.game.events.on("ui:hide-claim-window", this.hideClaimWindow, this);
+/* OLDCODE
     this.game.events.on("ui:claim-submitted", (payload: { tile_id: number, action?: string }) => {
       if (payload.action === "call") {
         this.playSfx("call");
@@ -590,6 +626,23 @@ OLDCODE */
         this.exposureBuildAsset = this.gameService.assetBaseName(this.allTiles[payload.tile_id]);
       }
     }, this);
+OLDCODE */
+/* NEWCODE */
+    this.game.events.on("ui:claim-submitted", (payload: { tile_id: number, action?: string }) => {
+      if (payload.action === "call") {
+        this.playSfx("call");
+        this.pendingCallTileId = payload.tile_id;
+        this.pendingCallHasExposedRackTile = false;
+        this.turnStage = GameTurnStageEnum.NEED_EXPOSURE;
+        this.activeSeat = "bottom";
+        this.stateManager.isPersonalTurn = true;
+      }
+      this.pendingClaimTileId = payload.tile_id;
+      if (this.allTiles[payload.tile_id]) {
+        this.exposureBuildAsset = this.gameService.assetBaseName(this.allTiles[payload.tile_id]);
+      }
+    }, this);
+/* NEWCODE */
 
     this.game.events.on("tileCall:offer", this.setTileCallOffer, this);
     this.game.events.on("allTiles:set", this.setAllTiles, this);
@@ -926,11 +979,21 @@ OLDCODE */
     }
 /* NEWCODE */
 
+/* OLDCODE
     if (this.layout && this.graphics) {
       this.drawTable();
       this.layoutStaticUi();
       this.updateInstructionText();
     }
+OLDCODE */
+/* NEWCODE */
+    if (this.layout && this.graphics) {
+      this.drawTable();
+      this.layoutStaticUi();
+      this.updateInstructionText();
+      this.updateExposureCloseButtonsState();
+    }
+/* NEWCODE */
   }
   private updatePhaseUi(): void {
     this.updateInstructionText();
@@ -1514,6 +1577,7 @@ OLDCODE */
     if (index >= 0) this.discardSlotOrder.splice(index, 1);
   }
 
+/* OLDCODE
   private removeTileFromDiscardArea(tileId: number): { x: number, y: number } | undefined {
     const numericId = Number(tileId);
     let discardPos: { x: number, y: number } | undefined;
@@ -1539,6 +1603,46 @@ OLDCODE */
     this.removeFromDiscardOrder(numericId);
     return discardPos;
   }
+OLDCODE */
+/* NEWCODE */
+  private removeTileFromDiscardArea(tileId: number): { x: number, y: number } | undefined {
+    const numericId = Number(tileId);
+    let discardPos: { x: number, y: number } | undefined;
+
+    // Prefer exact discard grid slot position to ensure smooth transfer from discard area
+    const grid = this.discardGrid();
+    const slotIdx = this.discardSlotIndex(numericId, -1);
+    if (slotIdx >= 0) {
+      const slot = this.discardSlotFor(slotIdx, grid);
+      discardPos = { x: Math.round(slot.x), y: Math.round(slot.y) };
+    }
+
+    // 1. Remove from opponent discard sprites
+    const opponentDiscardIndex = this.opponentDiscardTiles.findIndex((img) => Number(img.getData("discard-id")) === numericId);
+    if (opponentDiscardIndex >= 0) {
+      const img = this.opponentDiscardTiles[opponentDiscardIndex];
+      if (!discardPos) {
+        discardPos = { x: img.x, y: img.y };
+      }
+      img.destroy();
+      this.opponentDiscardTiles.splice(opponentDiscardIndex, 1);
+    }
+
+    // 2. Remove personal discard sprite if present
+    const runtime = this.tileMap.get(numericId);
+    if (runtime && runtime.zone === "discard") {
+      if (!discardPos) {
+        discardPos = { x: runtime.image.x, y: runtime.image.y };
+      }
+      runtime.image.destroy();
+      this.tileMap.delete(numericId);
+    }
+
+    // 3. Remove from personal discarded slot order
+    this.removeFromDiscardOrder(numericId);
+    return discardPos;
+  }
+/* NEWCODE */
 
   private discardSlotIndex(tileId: number, fallback: number): number {
     // OLDCODE
@@ -2440,10 +2544,25 @@ OLDCODE */
     const stripHighlight = (active && !isBottom) ? 0xf0eb78 : 0x3c63bb;
     const dividerFill = (active && !isBottom) ? 0x9b9722 : 0x8ea4d0;
 
+/* OLDCODE
     const isPassing = this.tablePhase === GamePhaseEnum.PASSING;
     const isActiveBottomLip = active && isBottom && !isPassing;
     const lipFill = isActiveBottomLip ? 0xd7d33a : 0x3159aa;
     const lipHighlight = isActiveBottomLip ? 0xf0eb78 : 0x5e82d5;
+OLDCODE */
+/* OLDCODE
+    const isPassing = this.tablePhase === GamePhaseEnum.PASSING;
+    const isActiveBottomLip = active && isBottom && !isPassing;
+    const lipFill = isActiveBottomLip ? COLOR_AVOCADO_NUM : COLOR_BLUE_NUM;
+    const lipHighlight = isActiveBottomLip ? 0xf0eb78 : 0x3c63bb;
+OLDCODE */
+/* NEWCODE */
+    const isPassing = this.tablePhase === GamePhaseEnum.PASSING;
+    const isCallAvailable = this.uiLayoutManager?.isCallOptionAvailable() ?? false;
+    const isActiveBottomLip = (active || isCallAvailable) && isBottom && !isPassing;
+    const lipFill = isActiveBottomLip ? COLOR_AVOCADO_NUM : COLOR_BLUE_NUM;
+    const lipHighlight = isActiveBottomLip ? 0xf0eb78 : 0x3c63bb;
+/* NEWCODE */
 
     // --- FIXED SHADOW SYSTEM ---
     const isMobile = this.layout.tableOuter.width < 640;
@@ -2590,6 +2709,7 @@ OLDCODE */
     this.game.events.on("play-stop-charleston", () => this.soundManager.playCharlestonStopVoice(), this);
 
     this.instructionPanelBg = this.add.graphics().setDepth(50);
+/* OLDCODE
     this.game.events.on("instruction-panel:sync", (state: any) => {
       this.instructionPanelBg?.clear();
       if (state && state.visible) {
@@ -2601,9 +2721,34 @@ OLDCODE */
         }
       }
     });
+OLDCODE */
+/* NEWCODE */
+    this.game.events.on("instruction-panel:sync", (state: any) => {
+      this.instructionPanelBg?.clear();
+      if (state && state.visible) {
+        let bgHex = 0xc7c22e;
+        if (state.backgroundColor) {
+          if (typeof state.backgroundColor === "number") {
+            bgHex = state.backgroundColor;
+          } else if (typeof state.backgroundColor === "string" && state.backgroundColor.startsWith("#")) {
+            bgHex = parseInt(state.backgroundColor.slice(1), 16);
+          }
+        } else if (state.borderWidth > 0) {
+          bgHex = 0xf4f2ec;
+        }
+        this.instructionPanelBg?.fillStyle(bgHex);
+        this.instructionPanelBg?.fillRoundedRect(state.x, state.y, state.width, state.height, state.radius);
+        if (state.borderWidth > 0) {
+          this.instructionPanelBg?.lineStyle(state.borderWidth, 0xc7c22e);
+          this.instructionPanelBg?.strokeRoundedRect(state.x, state.y, state.width, state.height, state.radius);
+        }
+      }
+    });
+/* NEWCODE */
 
     this.layoutStaticUi();
   }
+/* OLDCODE
   private handleHtmlMahjongAction(): void {
     if (this.turnStage === GameTurnStageEnum.NEED_EXPOSURE && this.activeExposureBuildTileIds.length > 0) {
       this.callbacks.onLocalPlayerExposureCreate?.([...this.activeExposureBuildTileIds]);
@@ -2621,6 +2766,27 @@ OLDCODE */
       this.callbacks.onMahjongDeclare?.();
     }
   }
+OLDCODE */
+/* NEWCODE */
+  private handleHtmlMahjongAction(): void {
+    if (this.turnStage === GameTurnStageEnum.NEED_EXPOSURE && this.activeExposureBuildTileIds.length > 0) {
+      this.callbacks.onLocalPlayerExposureCreate?.([...this.activeExposureBuildTileIds]);
+      this.activeExposureBuildTileIds = [];
+      this.turnStage = GameTurnStageEnum.NEED_DISCARD;
+      for (const button of this.exposureCloseButtons.values()) {
+        button.destroy();
+      }
+      this.exposureCloseButtons.clear();
+
+      // Delay the mahjong declare slightly to ensure backend processes the exposure first
+      setTimeout(() => {
+        this.callbacks.onMahjongDeclare?.();
+      }, 500);
+    } else {
+      this.callbacks.onMahjongDeclare?.();
+    }
+  }
+/* NEWCODE */
 
   private layoutStaticUi(): void {
     if (!this.layout) return;
@@ -2694,6 +2860,7 @@ OLDCODE */
     });
   }
 
+/* OLDCODE
   private showClaimWindow(tile: any): void {
     if (!tile) return;
     const texture = this.resolveTileTexture(tile);
@@ -2710,11 +2877,37 @@ OLDCODE */
   private hideClaimWindow(): void {
     this.uiLayoutManager.updateClaimWindow(false);
   }
+OLDCODE */
+/* NEWCODE */
+  private showClaimWindow(tile: any): void {
+    if (!tile) return;
+    const texture = this.resolveTileTexture(tile);
+    const dataUrl = this.getFrameDataUrl(texture.atlasKey, texture.frameKey);
+
+    if (!dataUrl) {
+      setTimeout(() => this.showClaimWindow(tile), 200);
+      return;
+    }
+
+    this.uiLayoutManager.updateClaimWindow(true, dataUrl);
+    if (this.layout && this.graphics) {
+      this.drawTable();
+    }
+  }
+
+  private hideClaimWindow(): void {
+    this.uiLayoutManager.updateClaimWindow(false);
+    if (this.layout && this.graphics) {
+      this.drawTable();
+    }
+  }
+/* NEWCODE */
 
   private layoutClaimTileSprite(): void {
     // We now use HTML for rendering the claim tile, so we don't position a Phaser sprite.
   }
 
+/* OLDCODE
   private processPendingClaimTile(): void {
     if (this.pendingClaimTileId) {
       if (this.turnStage === GameTurnStageEnum.NEED_EXPOSURE) {
@@ -2763,6 +2956,63 @@ OLDCODE */
       }
     }
   }
+OLDCODE */
+/* NEWCODE */
+  private processPendingClaimTile(): void {
+    if (this.pendingClaimTileId) {
+      const isExposureStage = this.turnStage === GameTurnStageEnum.NEED_EXPOSURE
+        || (this.turnStage as any) === GameTurnStageEnuAddon.NEED_EXPOSURE
+        || (this.turnStage as any) === 3
+        || (this.turnStage as any) === "3";
+      if (isExposureStage) {
+        const runtime = this.tileMap.get(this.pendingClaimTileId);
+        if (runtime && (runtime.zone === "rack" || runtime.zone === "discard")) {
+          const seat = this.activeSeat;
+          if (seat === "bottom" || this.stateManager.isPersonalTurn) {
+            // Local player won the claim
+            if (!this.exposureBuildAsset && runtime.vm && runtime.vm.tile_id) {
+              this.exposureBuildAsset = this.gameService.assetBaseName(this.allTiles[runtime.vm.tile_id]);
+            }
+            if (runtime.zone === "discard") {
+              if (!this.rackOrder.includes(runtime.vm.tile_id!)) {
+                this.rackOrder.push(runtime.vm.tile_id!);
+              }
+              runtime.zone = "rack"; // Temporarily treat as rack so it can be moved to the exposure
+            }
+            if (this.layout?.discardArea) {
+              const center = this.layout.discardArea;
+              runtime.image.setPosition(
+                Math.round(center.x + center.width / 2),
+                Math.round(center.y + center.height / 2)
+              );
+            }
+            this.pendingCallTileId = runtime.vm.tile_id!;
+            this.pendingCallHasExposedRackTile = false;
+            this.moveRackTileToBottomExposure(runtime);
+          } else {
+            // Opponent won the claim
+            const rect = this.exposureRectForSeat(seat);
+            this.tweens.add({
+              targets: runtime.image,
+              x: rect.x + rect.width / 2,
+              y: rect.y + rect.height / 2,
+              duration: ANIMATION_SPEED,
+              ease: "Cubic.Out",
+              onComplete: () => {
+                // Hide it after animating; handleExposuresSet should render their exposure.
+                runtime.image.setAlpha(0);
+              }
+            });
+          }
+          this.pendingClaimTileId = undefined;
+        }
+      } else if (this.tablePhase !== GamePhaseEnum.CLAIM && (this.tablePhase as any) !== 4) {
+        // If we are no longer in the CLAIM phase and didn't get NEED_EXPOSURE, clear it
+        this.pendingClaimTileId = undefined;
+      }
+    }
+  }
+/* NEWCODE */
 
   private resolveTileTexture(tile: any): { atlasKey: string; frameKey: string } {
     const tileWidth = Math.round(this.layout.bottomTileLayout.width);
@@ -2904,9 +3154,28 @@ OLDCODE */
           }
         }
 
-        // Recover incomplete CALL melds (active claims) during the exposure turn stage.
-        // Completed exposures will have length >= 3 and should not be recovered.
-        if (meld.kind === 15 /* CALL */ && tilesToProcess.length < 3 && this.turnStage === GameTurnStageEnum.NEED_EXPOSURE) {
+// OLDCODE         // Recover incomplete CALL melds (active claims) during the exposure turn stage.
+// OLDCODE         // Completed exposures will have length >= 3 and should not be recovered.
+// OLDCODE         if (meld.kind === 15 /* CALL */ && tilesToProcess.length < 3 && this.turnStage === GameTurnStageEnum.NEED_EXPOSURE) {
+// OLDCODE           if (this.pendingCallTileId !== tile.tile_id) {
+// OLDCODE             this.pendingCallTileId = tile.tile_id;
+// OLDCODE             this.pendingCallHasExposedRackTile = false;
+// OLDCODE           }
+// OLDCODE           if (!this.exposureBuildAsset) {
+// OLDCODE             this.exposureBuildAsset = meldAsset || this.gameService.assetBaseName(this.allTiles[tile.tile_id]);
+// OLDCODE           }
+// OLDCODE           if (!this.activeExposureBuildTileIds.includes(tile.tile_id)) {
+// OLDCODE             this.activeExposureBuildTileIds.push(tile.tile_id);
+// OLDCODE           }
+// OLDCODE           this.ensureExposureCloseButton(tile.tile_id);
+// OLDCODE         }
+/* NEWCODE */
+        const isCallMeld = meld.kind === GamePlayActionEnum.CALL
+          || meld.kind === "CALL"
+          || (meld.kind as any) === 15
+          || (meld.kind as any) === "15"
+          || (tilesToProcess.length < 3 && (this.turnStage === GameTurnStageEnum.NEED_EXPOSURE || (this.turnStage as any) === 3 || (this.turnStage as any) === "3"));
+        if (isCallMeld && tilesToProcess.length < 3 && (this.turnStage === GameTurnStageEnum.NEED_EXPOSURE || (this.turnStage as any) === 3 || (this.turnStage as any) === "3")) {
           if (this.pendingCallTileId !== tile.tile_id) {
             this.pendingCallTileId = tile.tile_id;
             this.pendingCallHasExposedRackTile = false;
@@ -2917,8 +3186,12 @@ OLDCODE */
           if (!this.activeExposureBuildTileIds.includes(tile.tile_id)) {
             this.activeExposureBuildTileIds.push(tile.tile_id);
           }
-          this.ensureExposureCloseButton(tile.tile_id);
+          if (!this.pendingCallHasExposedRackTile) {
+            this.ensureExposureCloseButton(tile.tile_id);
+            this.positionExposureCloseButton(tile.tile_id);
+          }
         }
+/* NEWCODE */
 
         this.removeTileTextureFilter(runtime.image);
         runtime.image.setData("exposure-asset", meldAsset);
@@ -3176,6 +3449,7 @@ OLDCODE */
       children.push(button, buttonText);
     };
 
+/* OLDCODE
     addButton(0, "CALL", COLOR_FUSHIA_NUM, () => {
       // Confirm that the discarded tile has been called before it animates
       // into the local exposure.
@@ -3188,17 +3462,36 @@ OLDCODE */
         action: "call",
         tileIds,
       });
-/* OLDCODE
-      this.pendingTileCallOffer = undefined;
-      this.closeTileCallWindow();
-    });
-OLDCODE */
-/* NEWCODE */
       this.turnStage = GameTurnStageEnum.NEED_EXPOSURE;
       this.pendingTileCallOffer = undefined;
       this.closeTileCallWindow();
       this.updateInstructionText();
     });
+OLDCODE */
+/* NEWCODE */
+    addButton(0, "CALL", COLOR_FUSHIA_NUM, () => {
+      // Confirm that the discarded tile has been called before it animates
+      // into the local exposure.
+      this.playHaptic("tile-discard");
+      this.playSfx("call");
+      const tileId = offer.discard.tile_id!;
+      this.pendingCallTileId = tileId;
+      this.pendingCallHasExposedRackTile = false;
+      this.turnStage = GameTurnStageEnum.NEED_EXPOSURE;
+      this.activeSeat = "bottom";
+      this.stateManager.isPersonalTurn = true;
+      this.animateCalledDiscardToBottomExposure();
+      this.callbacks.onTileCallDecision({
+        discardId: tileId,
+        discardedBy: offer.discardedBy,
+        action: "call",
+        tileIds,
+      });
+      this.pendingTileCallOffer = undefined;
+      this.closeTileCallWindow();
+      this.updateInstructionText();
+    });
+/* NEWCODE */
 /* NEWCODE */
 
     addButton(1, "SKIP", 0x475569, () => {
@@ -3211,8 +3504,23 @@ OLDCODE */
       this.closeTileCallWindow();
     });
 
+// OLDCODE
+//     this.tileCallWindow = this.add.container(x, y, children).setDepth(500);
+//     this.syncTableOverlayBlockLevel();
+//   }
+//   private closeTileCallWindow(): void {
+//     this.tileCallWindow?.destroy(true);
+//     this.tileCallWindow = undefined;
+//     this.syncTableOverlayBlockLevel();
+//   }
+// OLDCODE
+/* NEWCODE */
     this.tileCallWindow = this.add.container(x, y, children).setDepth(500);
     this.syncTableOverlayBlockLevel();
+    this.uiLayoutManager.setManualCallOfferVisible(true);
+    if (this.layout && this.graphics) {
+      this.drawTable();
+    }
   }
 
   /** Removes the call popup and its buttons from the scene. */
@@ -3220,7 +3528,12 @@ OLDCODE */
     this.tileCallWindow?.destroy(true);
     this.tileCallWindow = undefined;
     this.syncTableOverlayBlockLevel();
+    this.uiLayoutManager.setManualCallOfferVisible(false);
+    if (this.layout && this.graphics) {
+      this.drawTable();
+    }
   }
+/* NEWCODE */
 
   /**
    * Creates a popup button with the same rounded shape, shadow and highlight
@@ -3267,15 +3580,76 @@ OLDCODE */
   }
 
   /** Moves the called discard from the table into the local player's exposure. */
+// OLDCODE   private animateCalledDiscardToBottomExposure(): void {
+// OLDCODE     // console.log(`[DEBUG EXPOSURE] animateCalledDiscardToBottomExposure START. pendingTileCallImage:`, !!this.pendingTileCallImage, `pendingTileCallOffer:`, !!this.pendingTileCallOffer);
+// OLDCODE 
+// OLDCODE     // 1. ALWAYS update the logical state even if the visual image doesn't exist
+// OLDCODE     if (this.pendingTileCallOffer) {
+// OLDCODE       const tileId = this.pendingTileCallOffer.discard.tile_id!;
+// OLDCODE       this.removeDiscardSlot(tileId);
+// OLDCODE       this.activeExposureBuildTileIds.push(tileId);
+// OLDCODE       // console.log(`[DEBUG EXPOSURE] Pushed discard tile to activeExposureBuildTileIds:`, tileId);
+// OLDCODE 
+// OLDCODE       if (this.pendingTileCallImage) {
+// OLDCODE         this.tileMap.set(tileId, {
+// OLDCODE           vm: this.pendingTileCallOffer.discard,
+// OLDCODE           image: this.pendingTileCallImage,
+// OLDCODE           zone: "exposure",
+// OLDCODE           selected: false,
+// OLDCODE           isDragging: false,
+// OLDCODE           slotIndex: -1,
+// OLDCODE         });
+// OLDCODE       }
+// OLDCODE     }
+// OLDCODE 
+// OLDCODE     // 2. Animate the visual image if it exists
+// OLDCODE     const image = this.pendingTileCallImage;
+// OLDCODE     if (!image || !this.layout) {
+// OLDCODE       // console.log(`[DEBUG EXPOSURE] Exited early from visuals! image:`, !!image, `layout:`, !!this.layout);
+// OLDCODE       return;
+// OLDCODE     }
+// OLDCODE 
+// OLDCODE     this.tweens.killTweensOf(image);
+// OLDCODE     const discardIndex = this.opponentDiscardTiles.indexOf(image);
+// OLDCODE     if (discardIndex >= 0) {
+// OLDCODE       this.opponentDiscardTiles.splice(discardIndex, 1);
+// OLDCODE       this.layoutOpponentDiscardTiles();
+// OLDCODE     }
+// OLDCODE     this.sanitizeBottomExposureTiles();
+// OLDCODE     this.calledBottomExposureTiles.push(image);
+// OLDCODE     this.removeTileTextureFilter(image);
+// OLDCODE     this.pendingTileCallImage = undefined;
+// OLDCODE     this.exposureBuildAsset = this.pendingTileCallOffer ? this.gameService.assetBaseName(this.allTiles[this.pendingTileCallOffer.discard.tile_id!]) : undefined;
+// OLDCODE     image.setData("exposure-asset", this.exposureBuildAsset);
+// OLDCODE     const target = this.calledBottomExposureTilePosition(
+// OLDCODE       this.calledBottomExposureTiles.length - 1,
+// OLDCODE     );
+// OLDCODE     const tileSize = this.calledBottomExposureTileSize();
+// OLDCODE     image.setDisplaySize(tileSize.width, tileSize.height);
+// OLDCODE     this.tweens.add({
+// OLDCODE       targets: image,
+// OLDCODE       x: target.x,
+// OLDCODE       y: target.y,
+// OLDCODE       duration: ANIMATION_SPEED,
+// OLDCODE       ease: "Cubic.Out",
+// OLDCODE       onComplete: () => {
+// OLDCODE         image.setDepth(42);
+// OLDCODE       },
+// OLDCODE     });
+// OLDCODE     this.updateInstructionText();
+// OLDCODE   }
+/* NEWCODE */
   private animateCalledDiscardToBottomExposure(): void {
-    // console.log(`[DEBUG EXPOSURE] animateCalledDiscardToBottomExposure START. pendingTileCallImage:`, !!this.pendingTileCallImage, `pendingTileCallOffer:`, !!this.pendingTileCallOffer);
+    let callTileId: number | undefined;
 
     // 1. ALWAYS update the logical state even if the visual image doesn't exist
     if (this.pendingTileCallOffer) {
       const tileId = this.pendingTileCallOffer.discard.tile_id!;
+      callTileId = tileId;
       this.removeDiscardSlot(tileId);
       this.activeExposureBuildTileIds.push(tileId);
-      // console.log(`[DEBUG EXPOSURE] Pushed discard tile to activeExposureBuildTileIds:`, tileId);
+      this.pendingCallTileId = tileId;
+      this.pendingCallHasExposedRackTile = false;
 
       if (this.pendingTileCallImage) {
         this.tileMap.set(tileId, {
@@ -3287,12 +3661,20 @@ OLDCODE */
           slotIndex: -1,
         });
       }
+
+      this.ensureExposureCloseButton(tileId);
+      this.updateExposureCloseButtonsState();
+      this.positionExposureCloseButton(tileId);
     }
 
     // 2. Animate the visual image if it exists
     const image = this.pendingTileCallImage;
     if (!image || !this.layout) {
-      // console.log(`[DEBUG EXPOSURE] Exited early from visuals! image:`, !!image, `layout:`, !!this.layout);
+      if (callTileId !== undefined) {
+        this.ensureExposureCloseButton(callTileId);
+        this.updateExposureCloseButtonsState();
+        this.positionExposureCloseButton(callTileId);
+      }
       return;
     }
 
@@ -3302,17 +3684,6 @@ OLDCODE */
       this.opponentDiscardTiles.splice(discardIndex, 1);
       this.layoutOpponentDiscardTiles();
     }
-/* OLDCODE
-    this.calledBottomExposureTiles.push(image);
-    this.removeTileTextureFilter(image);
-    this.pendingTileCallImage = undefined;
-    this.exposureBuildAsset = this.pendingTileCallOffer ? this.gameService.assetBaseName(this.allTiles[this.pendingTileCallOffer.discard.tile_id!]) : undefined;
-    image.setData("exposure-asset", this.exposureBuildAsset);
-    const target = this.calledBottomExposureTilePosition(
-      this.calledBottomExposureTiles.length - 1,
-    );
-OLDCODE */
-/* NEWCODE */
     this.sanitizeBottomExposureTiles();
     this.calledBottomExposureTiles.push(image);
     this.removeTileTextureFilter(image);
@@ -3322,25 +3693,32 @@ OLDCODE */
     const target = this.calledBottomExposureTilePosition(
       this.calledBottomExposureTiles.length - 1,
     );
-/* NEWCODE */
     const tileSize = this.calledBottomExposureTileSize();
     image.setDisplaySize(tileSize.width, tileSize.height);
+
+    if (callTileId !== undefined) {
+      this.ensureExposureCloseButton(callTileId);
+      this.updateExposureCloseButtonsState();
+      this.positionExposureCloseButton(callTileId);
+    }
+
     this.tweens.add({
       targets: image,
       x: target.x,
       y: target.y,
       duration: ANIMATION_SPEED,
       ease: "Cubic.Out",
-/* OLDCODE
-      onComplete: () => {
-        image.setDepth(42);
+      onUpdate: () => {
+        if (callTileId !== undefined) {
+          this.positionExposureCloseButton(callTileId);
+        }
       },
-    });
-  }
-OLDCODE */
-/* NEWCODE */
       onComplete: () => {
         image.setDepth(42);
+        if (callTileId !== undefined) {
+          this.positionExposureCloseButton(callTileId);
+          this.updateExposureCloseButtonsState();
+        }
       },
     });
     this.updateInstructionText();
@@ -3732,6 +4110,7 @@ OLDCODE */
   private moveRackTileToBottomExposure(runtime: TileRuntime): void {
     if (!this.canAddTileToBottomExposure(runtime.vm)) return;
 
+/* OLDCODE
     // NMJL: once any rack tile has been exposed with a called tile, the call
     // cannot be reversed—even if that rack tile is later returned in the UI.
     if (
@@ -3741,6 +4120,27 @@ OLDCODE */
     ) {
       this.pendingCallHasExposedRackTile = true;
     }
+OLDCODE */
+/* NEWCODE */
+    // NMJL: once any rack tile has been exposed with a called tile, the call
+    // cannot be reversed—even if that rack tile is later returned in the UI.
+    const isNeedExposure = this.turnStage === GameTurnStageEnum.NEED_EXPOSURE
+      || (this.turnStage as any) === GameTurnStageEnuAddon.NEED_EXPOSURE
+      || (this.turnStage as any) === 3
+      || (this.turnStage as any) === "3";
+    if (
+      isNeedExposure
+      && this.pendingCallTileId != null
+      && runtime.vm.tile_id !== this.pendingCallTileId
+    ) {
+      this.pendingCallHasExposedRackTile = true;
+      const claimedClose = this.exposureCloseButtons.get(this.pendingCallTileId);
+      if (claimedClose) {
+        claimedClose.destroy();
+        this.exposureCloseButtons.delete(this.pendingCallTileId);
+      }
+    }
+/* NEWCODE */
 
     // Use the same clearly noticeable feedback as a discard. `tile-tap`
     // uses native selectionChanged(), which is too subtle on many devices.
@@ -3870,8 +4270,17 @@ OLDCODE */
   }
 /* NEWCODE */
 
+/* OLDCODE
   private ensureExposureCloseButton(tileId: number): void {
     if (this.exposureCloseButtons.has(tileId)) return;
+OLDCODE */
+/* NEWCODE */
+  private ensureExposureCloseButton(tileId: number): void {
+    if (this.exposureCloseButtons.has(tileId)) return;
+    if (tileId === this.pendingCallTileId && this.pendingCallHasExposedRackTile) {
+      return;
+    }
+/* NEWCODE */
 
     const radius = this.passCloseButtonRadius();
 
@@ -3901,6 +4310,7 @@ OLDCODE */
     this.exposureCloseButtons.set(tileId, button);
   }
 
+/* OLDCODE
   private updateExposureCloseButtonsState(): void {
     const isBuilding = this.tablePhase === GamePhaseEnum.PLAYING && this.turnStage === GameTurnStageEnum.NEED_EXPOSURE;
     if (!isBuilding) this.reverseCallInFlight = false;
@@ -3923,7 +4333,42 @@ OLDCODE */
       }
     }
   }
+OLDCODE */
+/* NEWCODE */
+  private updateExposureCloseButtonsState(): void {
+    const isBuilding = (this.tablePhase === GamePhaseEnum.PLAYING || this.tablePhase === GamePhaseEnum.CLAIM || (this.tablePhase as any) === 3 || (this.tablePhase as any) === 4)
+      && (this.turnStage === GameTurnStageEnum.NEED_EXPOSURE || (this.turnStage as any) === GameTurnStageEnuAddon.NEED_EXPOSURE || (this.turnStage as any) === 3 || (this.turnStage as any) === "3");
+    if (!isBuilding) this.reverseCallInFlight = false;
+    const lastTileId = this.activeExposureBuildTileIds.length > 0
+      ? this.activeExposureBuildTileIds[this.activeExposureBuildTileIds.length - 1]
+      : undefined;
 
+    for (const [id, button] of this.exposureCloseButtons.entries()) {
+      const isClaimedCallTile = id === this.pendingCallTileId;
+      if (isClaimedCallTile && this.pendingCallHasExposedRackTile) {
+        button.disableInteractive();
+        button.setVisible(false);
+        button.destroy();
+        this.exposureCloseButtons.delete(id);
+        continue;
+      }
+      const canRemoveThisTile = isBuilding
+        && id === lastTileId
+        && (!isClaimedCallTile || this.isReversiblePendingCall(id));
+      if (canRemoveThisTile) {
+        button.setInteractive(new Phaser.Geom.Circle(0, 0, this.passCloseButtonRadius() * 1.5), Phaser.Geom.Circle.Contains);
+        button.setAlpha(1);
+        button.setVisible(true);
+        this.positionExposureCloseButton(id);
+      } else {
+        button.disableInteractive();
+        button.setVisible(false);
+      }
+    }
+  }
+/* NEWCODE */
+
+/* OLDCODE
   private isReversiblePendingCall(tileId: number): boolean {
     return Boolean(
       this.callbacks.onLocalPlayerReverseCall
@@ -3936,6 +4381,37 @@ OLDCODE */
       && !this.pendingCallHasExposedRackTile,
     );
   }
+OLDCODE */
+/* NEWCODE */
+/* OLDCODE
+  private isReversiblePendingCall(tileId: number): boolean {
+    return Boolean(
+      this.callbacks.onLocalPlayerReverseCall
+      && this.tablePhase === GamePhaseEnum.PLAYING
+      && this.turnStage === GameTurnStageEnum.NEED_EXPOSURE
+      && (this.activeSeat === "bottom" || this.stateManager.isPersonalTurn || this.pendingCallTileId === tileId)
+      && this.activeExposureBuildTileIds.length === 1
+      && this.activeExposureBuildTileIds[0] === tileId
+      && this.pendingCallTileId === tileId
+      && !this.pendingCallHasExposedRackTile,
+    );
+  }
+OLDCODE */
+/* NEWCODE */
+  private isReversiblePendingCall(tileId: number): boolean {
+    return Boolean(
+      this.callbacks.onLocalPlayerReverseCall
+      && (this.tablePhase === GamePhaseEnum.PLAYING || this.tablePhase === GamePhaseEnum.CLAIM || (this.tablePhase as any) === 3 || (this.tablePhase as any) === 4)
+      && (this.turnStage === GameTurnStageEnum.NEED_EXPOSURE || (this.turnStage as any) === GameTurnStageEnuAddon.NEED_EXPOSURE || (this.turnStage as any) === 3 || (this.turnStage as any) === "3")
+      && (this.activeSeat === "bottom" || this.stateManager.isPersonalTurn || this.pendingCallTileId === tileId)
+      && this.activeExposureBuildTileIds.length === 1
+      && this.activeExposureBuildTileIds[0] === tileId
+      && this.pendingCallTileId === tileId
+      && !this.pendingCallHasExposedRackTile,
+    );
+  }
+/* NEWCODE */
+/* NEWCODE */
 
   private reversePendingCall(tileId: number): void {
     if (this.reverseCallInFlight || !this.callbacks.onLocalPlayerReverseCall) return;
@@ -3971,10 +4447,27 @@ OLDCODE */
       Math.round(cornerX + (outwardX / length) * (closeRadius * 0.3)),
       Math.round(cornerY + (outwardY / length) * (closeRadius * 0.3)),
     );
+/* OLDCODE
     // NEWCODE
     // Position updates run during tile tweens. Do not let a tween re-show a
     // close button that the call-reversibility state deliberately hid.
     close.setVisible(close.visible && runtime.image.visible);
+OLDCODE */
+/* NEWCODE */
+    const isBuilding = (this.tablePhase === GamePhaseEnum.PLAYING || this.tablePhase === GamePhaseEnum.CLAIM || (this.tablePhase as any) === 3 || (this.tablePhase as any) === 4)
+      && (this.turnStage === GameTurnStageEnum.NEED_EXPOSURE || (this.turnStage as any) === GameTurnStageEnuAddon.NEED_EXPOSURE || (this.turnStage as any) === 3 || (this.turnStage as any) === "3");
+    const lastTileId = this.activeExposureBuildTileIds.length > 0
+      ? this.activeExposureBuildTileIds[this.activeExposureBuildTileIds.length - 1]
+      : undefined;
+    const isClaimedCallTile = tileId === this.pendingCallTileId;
+    const shouldBeVisible = isBuilding
+      && tileId === lastTileId
+      && (!isClaimedCallTile || this.isReversiblePendingCall(tileId))
+      && !(isClaimedCallTile && this.pendingCallHasExposedRackTile)
+      && runtime.image.visible;
+
+    close.setVisible(shouldBeVisible);
+/* NEWCODE */
 
     this.resizePassCloseButton(close);
   }
@@ -4555,12 +5048,28 @@ OLDCODE */
   }
   OLDCODE */
   /* NEWCODE */
+/* OLDCODE
   private findDiscardImage(tileId: number): Phaser.GameObjects.Image | undefined {
     const numericId = Number(tileId);
     return this.opponentDiscardTiles.find(
       (image) => image.active && Number(image.getData("discard-id")) === numericId
     );
   }
+OLDCODE */
+/* NEWCODE */
+  private findDiscardImage(tileId: number): Phaser.GameObjects.Image | undefined {
+    const numericId = Number(tileId);
+    const opponentImg = this.opponentDiscardTiles.find(
+      (image) => image.active && Number(image.getData("discard-id")) === numericId
+    );
+    if (opponentImg) return opponentImg;
+    const runtime = this.tileMap.get(numericId);
+    if (runtime && runtime.zone === "discard" && runtime.image && runtime.image.active) {
+      return runtime.image;
+    }
+    return undefined;
+  }
+/* NEWCODE */
 
   private handleResolvedClaimPresentation(payload: ResolvedClaimPresentation): void {
     if (this.activeClaimPresentation) {
@@ -4568,20 +5077,11 @@ OLDCODE */
       return;
     }
     /* NEWCODE */
+/* OLDCODE
     if (payload.calledBy) {
       this.activeCallPresentationSeat = payload.calledBy;
       this.updateInstructionText();
 
-/* OLDCODE
-      this.callPresentationTimer?.remove(false);
-      this.callPresentationTimer = this.time.delayedCall(2200, () => {
-        if (this.activeCallPresentationSeat === payload.calledBy) {
-          this.activeCallPresentationSeat = undefined;
-          this.updateInstructionText();
-        }
-      });
-OLDCODE */
-/* NEWCODE */
       if (this.callPresentationTimer) {
         clearTimeout(this.callPresentationTimer);
       }
@@ -4591,14 +5091,37 @@ OLDCODE */
           this.updateInstructionText();
         }
       }, 1800);
-/* NEWCODE */
     }
+OLDCODE */
+/* NEWCODE */
+    if (payload.calledBy) {
+      this.activeCallPresentationSeat = payload.calledBy;
+      if (this.layout && this.graphics) {
+        this.drawTable();
+      }
+      this.updateInstructionText();
+
+      if (this.callPresentationTimer) {
+        clearTimeout(this.callPresentationTimer);
+      }
+      this.callPresentationTimer = setTimeout(() => {
+        if (this.activeCallPresentationSeat === payload.calledBy) {
+          this.activeCallPresentationSeat = undefined;
+          if (this.layout && this.graphics) {
+            this.drawTable();
+          }
+          this.updateInstructionText();
+        }
+      }, 1800);
+    }
+/* NEWCODE */
     /* NEWCODE */
     if (!this.layout || payload.tile.tile_id == null) return;
 
     const tileId = Number(payload.tile.tile_id);
     const existingImage = this.findDiscardImage(tileId);
 
+/* OLDCODE
     if (existingImage) {
       this.tweens.killTweensOf(existingImage);
       const grid = this.discardGrid();
@@ -4610,6 +5133,39 @@ OLDCODE */
       this.triggerClaimRecognitionBeat(payload, existingImage);
       return;
     }
+OLDCODE */
+/* NEWCODE */
+    if (existingImage) {
+      this.tweens.killTweensOf(existingImage);
+      const grid = this.discardGrid();
+      const oppIdx = this.opponentDiscardTiles.indexOf(existingImage);
+      const fallbackIdx = oppIdx >= 0 ? oppIdx : Math.max(0, this.discardSlotOrder.length - 1);
+      const slotIndex = this.discardSlotIndex(tileId, fallbackIdx);
+      const slot = this.discardSlotFor(slotIndex, grid);
+
+      this.activeClaimPresentation = payload;
+
+      const dist = Phaser.Math.Distance.Between(existingImage.x, existingImage.y, slot.x, slot.y);
+      if (dist > 10) {
+        existingImage.setDisplaySize(grid.tileWidth, grid.tileHeight);
+        this.tweens.add({
+          targets: existingImage,
+          x: Math.round(slot.x),
+          y: Math.round(slot.y),
+          duration: CLAIM_DISCARD_FLIGHT_MS,
+          ease: "Cubic.Out",
+          onComplete: () => {
+            if (this.activeClaimPresentation?.key !== payload.key) return;
+            this.triggerClaimRecognitionBeat(payload, existingImage);
+          },
+        });
+      } else {
+        existingImage.setPosition(slot.x, slot.y);
+        this.triggerClaimRecognitionBeat(payload, existingImage);
+      }
+      return;
+    }
+/* NEWCODE */
 
     const tile = this.allTiles[tileId] ?? payload.tile;
     const grid = this.discardGrid();
@@ -5449,6 +6005,7 @@ OLDCODE */
     return count;
   }
 
+/* OLDCODE
   private getLocalExposureStatus(): "building" | "complete" | null {
     if (this.tablePhase !== GamePhaseEnum.PLAYING || !this.stateManager.isPersonalTurn) {
       return null;
@@ -5478,6 +6035,41 @@ OLDCODE */
 
     return "building";
   }
+OLDCODE */
+/* NEWCODE */
+  private getLocalExposureStatus(): "building" | "complete" | null {
+    if (this.tablePhase !== GamePhaseEnum.PLAYING || !this.stateManager.isPersonalTurn || !this.canDiscard) {
+      return null;
+    }
+    const isNeedExposure = this.turnStage === GameTurnStageEnum.NEED_EXPOSURE;
+    const hasActiveExposureBuild = this.activeExposureBuildTileIds.length > 0;
+
+    if (!isNeedExposure && !hasActiveExposureBuild) {
+      return null;
+    }
+
+    const count = this.activeExposureBuildTileIds.length;
+    if (count === 0) {
+      return null;
+    }
+    // An exposure must have at least 3 tiles (Pung: 3, Kong: 4, Quint: 5)
+    if (count < 3) {
+      return "building";
+    }
+
+    if (count >= 5) {
+      return "complete";
+    }
+
+    // If there are no other tiles on the rack of the same tile, the exposure can be 3, 4, or 5 and is complete
+    const sameTilesOnRack = this.countSameTilesOnRack();
+    if (sameTilesOnRack === 0) {
+      return "complete";
+    }
+
+    return "building";
+  }
+/* NEWCODE */
 
   private updateInstructionText(): void {
     const isBlindPassAllowed = this.passFlowManager?.isBlindPassAllowed ? this.passFlowManager.isBlindPassAllowed() : false;
@@ -5916,6 +6508,7 @@ OLDCODE */
       return;
     }
 
+/* OLDCODE
     if (this.turnStage === GameTurnStageEnum.NEED_EXPOSURE) {
       // console.log(`[DEBUG EXPOSURE] Attempting discard. activeExposureBuildTileIds:`, this.activeExposureBuildTileIds);
       if (this.activeExposureBuildTileIds.length < 3) {
@@ -5938,6 +6531,33 @@ OLDCODE */
     // Always clear the exposure build state on discard, as the turn is over
     this.activeExposureBuildTileIds = [];
     this.exposureBuildAsset = undefined;
+OLDCODE */
+/* NEWCODE */
+    if (this.turnStage === GameTurnStageEnum.NEED_EXPOSURE) {
+      // console.log(`[DEBUG EXPOSURE] Attempting discard. activeExposureBuildTileIds:`, this.activeExposureBuildTileIds);
+      if (this.activeExposureBuildTileIds.length < 3) {
+        // console.log(`[DEBUG EXPOSURE] BLOCKED! Length is ${this.activeExposureBuildTileIds.length} which is < 3`);
+        // Must build a valid group of 3 or 4 tiles before discarding
+        this.returnTileToSlot(runtime);
+        return;
+      }
+      // console.log(`[DEBUG EXPOSURE] SUCCESS! Confirming exposure with IDs:`, this.activeExposureBuildTileIds);
+      // Confirm the exposure
+      this.callbacks.onLocalPlayerExposureCreate?.([...this.activeExposureBuildTileIds]);
+      this.activeExposureBuildTileIds = [];
+      this.turnStage = GameTurnStageEnum.NEED_DISCARD;
+
+      for (const button of this.exposureCloseButtons.values()) {
+        button.destroy();
+      }
+      this.exposureCloseButtons.clear();
+    }
+
+    // Always clear the exposure build state on discard, as the turn is over
+    this.turnStage = GameTurnStageEnum.NEED_DISCARD;
+    this.activeExposureBuildTileIds = [];
+    this.exposureBuildAsset = undefined;
+/* NEWCODE */
 
     this.removeFromRackOrder(runtime.vm.tile_id!);
 
@@ -5952,9 +6572,17 @@ OLDCODE */
     runtime.selected = false;
     runtime.isDragging = false;
     this.selectedIds.delete(runtime.vm.tile_id!);
+/* OLDCODE
     runtime.image.clearTint();
     this.removeTileTextureFilter(runtime.image);
     runtime.image.disableInteractive();
+OLDCODE */
+/* NEWCODE */
+    runtime.image.clearTint();
+    this.removeTileTextureFilter(runtime.image);
+    runtime.image.disableInteractive();
+    runtime.image.setData("discard-id", runtime.vm.tile_id!);
+/* NEWCODE */
     const grid = this.discardGrid();
     const slot = this.discardSlotFor(
       this.discardSlotIndex(
