@@ -474,11 +474,21 @@ export class PhaserScene extends Phaser.Scene {
       }
     });
 
+/* OLDCODE
     this.input.on('pointerup', () => {
       this.isScrollingDiscard = false;
       // NEWCODE
       this.isScrollingExposure = "none";
     });
+OLDCODE */
+/* NEWCODE */
+    this.input.on('pointerup', () => {
+      this.isScrollingDiscard = false;
+      // NEWCODE
+      this.isScrollingExposure = "none";
+      this.hideDragProxy();
+    });
+/* NEWCODE */
 
     this.game.events.on("rack:set", this.setRack, this);
     /* OLDCODE
@@ -1061,8 +1071,15 @@ OLDCODE */
     this.layoutPassWaitingTiles(false);
     this.relayoutBotPassVisualTilesAfterResize();
     this.updatePassButtonState();
+/* OLDCODE
     this.refreshRackTexturesIfAtlasChanged();
   }
+OLDCODE */
+/* NEWCODE */
+    this.refreshRackTexturesIfAtlasChanged();
+    this.hideDragProxy();
+  }
+/* NEWCODE */
 
   private activeRackLayoutTileCount(): number {
     return Math.max(14, this.rackOrder.length);
@@ -1725,7 +1742,13 @@ OLDCODE */
         this.callbacks.onSelectionChanged([...this.selectedIds]);
       }
 
+/* OLDCODE
       runtime.image.setPosition(Math.round(dragX), Math.round(dragY));
+OLDCODE */
+/* NEWCODE */
+      runtime.image.setPosition(Math.round(dragX), Math.round(dragY));
+      this.updateDragProxy(runtime, dragX, dragY);
+/* NEWCODE */
 
       if (runtime.zone === "rack") {
         const isPassingDropTarget =
@@ -1818,9 +1841,15 @@ OLDCODE */
 
       if (shouldSuppressTap) return;
     */
-    // NEWCODE
+/* OLDCODE
     this.tileInteractionManager.onDragEnd(runtime.image, (pointer: Phaser.Input.Pointer) => {
       this.tileInteractionManager.handleDrop(runtime, pointer, () => {
+OLDCODE */
+/* NEWCODE */
+    this.tileInteractionManager.onDragEnd(runtime.image, (pointer: Phaser.Input.Pointer) => {
+      this.hideDragProxy();
+      this.tileInteractionManager.handleDrop(runtime, pointer, () => {
+/* NEWCODE */
         const tileId = runtime.vm.tile_id ?? (runtime.vm as any).id;
         try {
           runtime.image.setDepth(30);
@@ -1881,8 +1910,15 @@ OLDCODE */
       });
     });
 
+/* OLDCODE
     this.tileInteractionManager.onPointerUp(runtime.image, () => {
       this.activeDragTile = undefined;
+OLDCODE */
+/* NEWCODE */
+    this.tileInteractionManager.onPointerUp(runtime.image, () => {
+      this.hideDragProxy();
+      this.activeDragTile = undefined;
+/* NEWCODE */
       const tileId = runtime.vm.tile_id ?? (runtime.vm as any).id;
       const shouldSuppressTap = tileId != null ? this.suppressTapByTileId.delete(tileId) : false;
       if (tileId != null) {
@@ -3039,6 +3075,82 @@ OLDCODE */
     return canvas.toDataURL();
   }
 
+/* NEWCODE */
+  private dragProxyElement: HTMLImageElement | null = null;
+  private tileDataUrlCache = new Map<string, string>();
+
+  private getDragProxy(): HTMLImageElement | null {
+    if (this.dragProxyElement && this.dragProxyElement.isConnected) {
+      return this.dragProxyElement;
+    }
+    if (typeof document === "undefined") return null;
+    let el = document.getElementById("phaser-drag-tile-proxy") as HTMLImageElement | null;
+    if (!el) {
+      el = document.createElement("img");
+      el.id = "phaser-drag-tile-proxy";
+      el.className = "drag-tile-proxy";
+      el.alt = "";
+      el.style.position = "absolute";
+      el.style.top = "0";
+      el.style.left = "0";
+      el.style.zIndex = "1000";
+      el.style.pointerEvents = "none";
+      el.style.display = "none";
+      el.style.userSelect = "none";
+      el.style.webkitUserSelect = "none";
+      el.style.willChange = "transform";
+      const hostContainer = this.game?.canvas?.parentElement?.parentElement || this.game?.canvas?.parentElement || document.body;
+      hostContainer.appendChild(el);
+    }
+    this.dragProxyElement = el;
+    return el;
+  }
+
+  private showDragProxy(runtime: TileRuntime, dragX: number, dragY: number): void {
+    const proxy = this.getDragProxy();
+    if (!proxy) return;
+
+    const texture = this.resolveTileTexture(runtime.vm);
+    const cacheKey = `${texture.atlasKey}:${texture.frameKey}`;
+    let dataUrl = this.tileDataUrlCache.get(cacheKey);
+    if (!dataUrl) {
+      dataUrl = this.getFrameDataUrl(texture.atlasKey, texture.frameKey);
+      if (dataUrl) {
+        this.tileDataUrlCache.set(cacheKey, dataUrl);
+      }
+    }
+
+    if (dataUrl && proxy.src !== dataUrl) {
+      proxy.src = dataUrl;
+    }
+
+    const width = Math.round(runtime.image.displayWidth);
+    const height = Math.round(runtime.image.displayHeight);
+    proxy.style.width = `${width}px`;
+    proxy.style.height = `${height}px`;
+    proxy.style.transform = `translate3d(${Math.round(dragX - width / 2)}px, ${Math.round(dragY - height / 2)}px, 0)`;
+    proxy.style.display = "block";
+  }
+
+  private updateDragProxy(runtime: TileRuntime, dragX: number, dragY: number): void {
+    const proxy = this.getDragProxy();
+    if (!proxy || proxy.style.display === "none") {
+      this.showDragProxy(runtime, dragX, dragY);
+      return;
+    }
+    const width = Math.round(runtime.image.displayWidth);
+    const height = Math.round(runtime.image.displayHeight);
+    proxy.style.transform = `translate3d(${Math.round(dragX - width / 2)}px, ${Math.round(dragY - height / 2)}px, 0)`;
+  }
+
+  private hideDragProxy(): void {
+    const proxy = this.getDragProxy();
+    if (proxy) {
+      proxy.style.display = "none";
+    }
+  }
+/* NEWCODE */
+
   private latestExposures: { bottom: any[], right: any[], top: any[], left: any[] } | null = null;
   private previousTotalExposures = 0;
   private initialExposuresLoaded = false;
@@ -3247,8 +3359,15 @@ OLDCODE */
           const discardPos = this.removeTileFromDiscardArea(tile.tile_id);
           if (discardPos) discardAreaChanged = true;
 
+          /* OLDCODE
           // Prevent rendering tiles that are actually in our rack
           if (this.rackOrder.includes(tile.tile_id)) continue;
+          OLDCODE */
+          /* NEWCODE */
+          // Prevent rendering tiles that are confirmed in our authoritative rack hand
+          const isTileInOurRack = this.rackTiles.some(t => t.tile_id === tile.tile_id);
+          if (isTileInOurRack) continue;
+          /* NEWCODE */
 
           const fullTile = this.allTiles[tile.tile_id];
           if (!fullTile) continue;
@@ -4505,11 +4624,15 @@ OLDCODE */
   }
 
   private async executeJokerSwapForDoubleTap(jokerImage: Phaser.GameObjects.Image): Promise<void> {
-    // OLDCODE
+    /* OLDCODE
     // if (this.tablePhase !== GamePhaseEnum.PLAYING || this.activeSeat !== "bottom") return;
-    // NEWCODE
     // Rule: You must draw or successfully call a discarded tile to complete a brand-new exposure BEFORE you execute a swap.
     if (this.tablePhase !== GamePhaseEnum.PLAYING || this.activeSeat !== "bottom" || this.turnStage === GameTurnStageEnum.NEED_EXPOSURE) return;
+    OLDCODE */
+    /* NEWCODE */
+    // Joker exchange is only legally permitted during your turn after picking a tile (NEED_DISCARD).
+    if (this.tablePhase !== GamePhaseEnum.PLAYING || this.activeSeat !== "bottom" || this.turnStage !== GameTurnStageEnum.NEED_DISCARD) return;
+    /* NEWCODE */
 
     const exposedAsset = jokerImage.getData("exposure-asset") as string | undefined;
     if (!exposedAsset) return;
@@ -4633,6 +4756,7 @@ OLDCODE */
     return false;
   }
 
+  /* OLDCODE
   private async executeJokerSwap(jokerImage: Phaser.GameObjects.Image, replacement: TileRuntime): Promise<void> {
     if (this.tablePhase !== GamePhaseEnum.PLAYING || this.activeSeat !== "bottom") return;
 
@@ -4652,16 +4776,6 @@ OLDCODE */
     const rackReplacementTileId = replacement.vm.tile_id ?? (replacement.vm as any).id;
     if (rackReplacementTileId == null) return;
 
-    /* OLDCODE
-    // Play visual update instantly to feel responsive
-    this.playHaptic("tile-discard");
-
-    // Call backend via callbacks
-    if (this.callbacks.onLocalPlayerJokerExchange) {
-      await this.callbacks.onLocalPlayerJokerExchange(targetJokerTileId, rackReplacementTileId as number, targetSeat);
-    }
-    OLDCODE */
-    /* NEWCODE */
     // Record swap info and optimistically swap in-place in rackOrder to preserve exact rack slot
     const rackIndex = this.rackOrder.indexOf(rackReplacementTileId as number);
     if (rackIndex !== -1) {
@@ -4681,7 +4795,6 @@ OLDCODE */
     if (this.callbacks.onLocalPlayerJokerExchange) {
       await this.callbacks.onLocalPlayerJokerExchange(targetJokerTileId, rackReplacementTileId as number, targetSeat);
     }
-    /* NEWCODE */
   }
 
   private handleJokerSwapDrop(pointerX: number, pointerY: number, droppedTile: TileRuntime): boolean {
@@ -4717,6 +4830,100 @@ OLDCODE */
 
     return false;
   }
+  OLDCODE */
+  /* NEWCODE */
+  private async executeJokerSwap(jokerImage: Phaser.GameObjects.Image, replacement: TileRuntime): Promise<void> {
+    // Only allow Joker exchange when it is the local player's turn and the player has already picked a tile (NEED_DISCARD).
+    if (this.tablePhase !== GamePhaseEnum.PLAYING || this.activeSeat !== "bottom" || this.turnStage !== GameTurnStageEnum.NEED_DISCARD) return;
+
+    const exposedAsset = jokerImage.getData("exposure-asset") as string | undefined;
+    if (!exposedAsset) return;
+
+    // Validate replacement matches the exposure
+    if (!this.isMatchingJokerReplacement(replacement.vm, exposedAsset)) {
+      return;
+    }
+
+    const targetJokerTileId = jokerImage.getData("joker-tile-id") as number;
+    const targetSeat = jokerImage.getData("joker-seat") as TableSeat;
+
+    if (!targetJokerTileId || !targetSeat) return;
+
+    const rackReplacementTileId = replacement.vm.tile_id ?? (replacement.vm as any).id;
+    if (rackReplacementTileId == null) return;
+
+    // Record swap info without mutating rackOrder prematurely.
+    // The server is authoritative (INV-001); mutating rackOrder before server confirmation
+    // causes gaps and hides opponent exposure tiles if the exchange is rejected.
+    const rackIndex = this.rackOrder.indexOf(rackReplacementTileId as number);
+    if (rackIndex !== -1) {
+      this.pendingLocalJokerSwap = {
+        fromTileId: rackReplacementTileId as number,
+        jokerTileId: targetJokerTileId,
+        rackIndex: rackIndex,
+      };
+    }
+
+    // Play visual update instantly to feel responsive
+    this.playHaptic("tile-discard");
+
+    // Fallback timer to return tile if server never confirms
+    const fallbackTimer = setTimeout(() => {
+      if (this.pendingLocalJokerSwap && this.pendingLocalJokerSwap.jokerTileId === targetJokerTileId) {
+        console.warn("[PhaserScene] Joker exchange timed out; returning tile to rack");
+        this.pendingLocalJokerSwap = undefined;
+        this.returnTileToSlot(replacement);
+      }
+    }, 4000);
+
+    // Call backend via callbacks with error rollback
+    if (this.callbacks.onLocalPlayerJokerExchange) {
+      try {
+        await this.callbacks.onLocalPlayerJokerExchange(targetJokerTileId, rackReplacementTileId as number, targetSeat);
+      } catch (err) {
+        console.error("[PhaserScene] Joker exchange failed on backend:", err);
+        clearTimeout(fallbackTimer);
+        this.pendingLocalJokerSwap = undefined;
+        this.returnTileToSlot(replacement);
+      }
+    }
+  }
+
+  private handleJokerSwapDrop(pointerX: number, pointerY: number, droppedTile: TileRuntime): boolean {
+    // Only allow Joker exchange when it is the local player's turn and the player has already picked a tile (NEED_DISCARD).
+    if (this.tablePhase !== GamePhaseEnum.PLAYING || this.activeSeat !== "bottom" || this.turnStage !== GameTurnStageEnum.NEED_DISCARD) return false;
+    if (droppedTile.zone !== "rack") return false;
+
+    // Helper to check and execute swap on an exposure image
+    const checkSwap = (image: Phaser.GameObjects.Image): boolean => {
+      if (!image.getData("joker-swap-enabled")) return false;
+
+      const bounds = image.getBounds();
+      // Increase hit area slightly for easier dropping
+      const hitArea = new Phaser.Geom.Rectangle(bounds.x - 10, bounds.y - 10, bounds.width + 20, bounds.height + 20);
+
+      if (hitArea.contains(pointerX, pointerY)) {
+        if (this.isMatchingJokerReplacement(droppedTile.vm, image.getData("exposure-asset"))) {
+          this.executeJokerSwap(image, droppedTile);
+          return true;
+        }
+      }
+      return false;
+    };
+
+    for (const image of this.calledBottomExposureTiles) {
+      if (checkSwap(image)) return true;
+    }
+
+    for (const seat of ["top", "left", "right"] as const) {
+      for (const image of this.calledOpponentExposureTiles[seat]) {
+        if (checkSwap(image)) return true;
+      }
+    }
+
+    return false;
+  }
+  /* NEWCODE */
 
 
   // OLDCODE

@@ -55,7 +55,65 @@ https://chatgpt.com/g/g-p-6960cc6488908191b0256b5406fc249e-sd-mahjong-game/c/6ad
 
 ========== POINTS ========== 
 
+
+
+
+ 
+
+========== CURRNT BOT LOGIC ========== 
+
+Incident: Bot Wins With an Invalid White Dragon Exposure (kind: 17)
+1. Executive Conclusion
+The incident is caused by a two-stage failure across both Bot Claim Decision-Making and Mahjong Hand Validation:
+
+Stage 1 (Bot Claim & Exposure Decision): 
+When a White Dragon was discarded, the bot only held 1 natural White Dragon (119) and 1 Joker (148) in its rack. 
+It could not legally claim a Kong (can_kong: false), but could legally claim a Pung (can_pung: true). 
+The bot's candidate evaluator (doesMeldFitTargetHypotheses) approved the Pung claim for target hand 
+Rule #23 (FFF 11 22 333 DDDD) because:
+doExposuresMatchCard only checked if an exposed Pung of White Dragons is valid for any open hand on the NMJL card (which matches other hands like Rule #38), rather than testing compatibility against the bot's target hand.
+isTileSetCompatibleWithRuleId aggregated the proposed meld into an unsegmented bag of tiles and checked distance <= 6, ignoring that the meld being exposed was a Pung (size 3) while the target hand required a Kong (size 4). Consequently, the bot committed an exposed Pung (kind: 17, tiles [121, 119, 148]).
+
+Stage 2 (Mahjong Win Validation): Later in the game, the bot obtained the 4th White Dragon (120) in its concealed rack (either picked from the wall or claimed for Mahjong). 
+When the bot called Mahjong, isMahjongForRack and findMatchingRuleHands aggregated all 11 rack tiles and all 3 exposure tiles into a single flat bag of 14 tiles. The win validator never checked whether the exposed melds match the group structure of Rule #23. Because the pooled bag contained 3 natural White Dragons and 1 Joker (4 total), it satisfied the 4-dragon requirement of Rule #23 and declared Mahjong, completely ignoring that the Dragon group was illegally split between a 3-tile exposed Pung and 1 concealed tile in the rack.
+
+Neither Redis cache corruption nor network synchronization caused this bug. The enums, tile counts, and state transitions behaved deterministically according to the code.
+
+
+++++++++++++++++++++++++
+Another issue,
+Bot first check the big group when make any exposure, so this is not as per the possible wininig hand.
+Bot must make the PUNG, KONG which takes closer to the wininig hand
+
+
++++++++ IMP ++++++
+
+This is the huge and main gameplay mechanics and logic updates. I don't want any mistakes.
+I upgrade this logic to help of AI Agent, AI Agent is update the code. 
+So when make planing for the upgrdation make the proper planing which AI Agent can easly understand and don't make any mistakes. 
+
+
+
+I don't want to 100% dependent on the AI Agent code. Because it make many mistakes and to identify this is too confusing.
+
+I want
+standard code which follow specific structure so I can easly understand.
+simple code which easy to undestandable and simple code not complecated code. 
+with 100% accuracy and working solution
+
+When required to analyse and trace the code manually it should be easy to undestandble. So developer can easly understand the logic and if required then do the modification.
+
 ========== PRMP ========== 
+#]
+Do not change in the code, just do analysis and give the best possible solution.
+To preventing the missbehaviour of joker exchange.
+Here we can do one thing we can only allow the joker exchnage and make API request only if the turn_stage is NEED_DISCARD or NEED_EXPOSURE. What do you thing, what is the best possible option?
+
+#]
+target_hypotheses when its create, update.
+How it create?
+When and how it update?
+
 #]
 BOT WIN 
 Rack tiles:
@@ -122,6 +180,43 @@ B4 C7 C7 J J
 
 
 ========== REPLY ========== 
+FOR CLIENT]
+[tech][Frontend development][D1] Game Play - Bot mahjong analyses and upgradation
+[tech][Frontend development][D1] Game Play - Test upgraded functionality tile assignment at initial and bot charleston round to pass the tiles and wall seat randomness
+[tech][Frontend development][D1] Game Play - Upgrade the tile assignment at initial and bot charleston round to pass the tiles and wall seat randomness
+
+Today, I reviewed the code and implemented the updated tile assignment logic for the initial and bot Charleston rounds to ensure random distribution of tiles and wall tiles. After that, I deployed the changes to the demo server, tested the functionality, and documented the improvements.
+
+I then started working on the existing bot decision-making logic and Mahjong calls to win the game. I am currently working on this functionality.
+
+I will keep you updated on the progress.
+
+Thank you!
+FOR CLIENT]
+I have a question about the concealed hand and Joker rules.
+
+WINDS – DRAGONS
+
+According to the rule:
+NN EEE 2026 WWW SS (2026: Any 1 Suit) C 30
+
+Since this is a concealed hand, can we use Jokers to form a Pung or Kong?
+
+For example, is the following a valid winning hand?
+NN EJJ 2026 WWW SS
+
+Here, EJJ (East + Joker + Joker) is used to form a Pung.
+
+Can this hand be considered a valid concealed winning hand?
+
+
+
+
+
+
+
+
++++++
 Quick notes- 
 1. the computer can win games. I have played about 7 and the computer has not won. 
 2. slow the discards from the other players down just by about 1 seconds. 
