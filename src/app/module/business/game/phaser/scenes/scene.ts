@@ -519,7 +519,7 @@ OLDCODE */
       }
     }, this);
     OLDCODE */
-    /* NEWCODE */
+    /* OLDCODE
     this.game.events.on("rack:order", (order: number[]) => {
       const orderStr = order.join(',');
       const isInitial = !this.hasAppliedInitialRackOrder;
@@ -544,6 +544,40 @@ OLDCODE */
           // Add any tiles that were in rackOrder but missing from the server order
           for (const id of this.rackOrder) {
             if (!newRackOrder.includes(id)) {
+              newRackOrder.push(id);
+            }
+          }
+          this.rackOrder = newRackOrder;
+          this.reindexRackRuntimeSlots();
+          this.layoutRackTiles(true);
+        }
+      }
+    }, this);
+    OLDCODE */
+    /* NEWCODE */
+    // Apply rack order sent from the server API response
+    this.game.events.on("rack:order", (order: number[]) => {
+      const orderStr = order.join(',');
+      const isInitial = !this.hasAppliedInitialRackOrder;
+      const isExplicitSort = this.isExplicitSortRequested;
+      const isServerOrderChanged = this.lastServerOrder !== orderStr;
+
+      if (isServerOrderChanged || isExplicitSort || isInitial) {
+        this.lastServerOrder = orderStr;
+        this.isExplicitSortRequested = false;
+        this.hasAppliedInitialRackOrder = true;
+
+        if (order && order.length > 0) {
+          // Follow the exact rack tile order received from API response
+          const newRackOrder: number[] = [];
+          for (const id of order) {
+            if (!this.isTileInAnyExposure(id) && !this.discardedTileIds.includes(id)) {
+              newRackOrder.push(id);
+            }
+          }
+          // Append any remaining active rack tiles not listed in server order
+          for (const id of this.rackOrder) {
+            if (!newRackOrder.includes(id) && !this.isTileInAnyExposure(id) && !this.discardedTileIds.includes(id)) {
               newRackOrder.push(id);
             }
           }
@@ -592,6 +626,22 @@ OLDCODE */
       this.updateInstructionText();
     }, this);
 OLDCODE */
+/* OLDCODE
+    this.game.events.on("table:turn_stage", (stage: any) => {
+      this.turnStage = stage;
+      const isExposureStage = stage === GameTurnStageEnum.NEED_EXPOSURE
+        || stage === GameTurnStageEnuAddon.NEED_EXPOSURE
+        || stage === 3
+        || stage === "3";
+      if (!isExposureStage) {
+        this.pendingCallTileId = undefined;
+        this.pendingCallHasExposedRackTile = false;
+      }
+      setTimeout(() => this.processPendingClaimTile(), 50);
+      this.updateExposureCloseButtonsState();
+      this.updateInstructionText();
+    }, this);
+OLDCODE */
 /* NEWCODE */
     this.game.events.on("table:turn_stage", (stage: any) => {
       this.turnStage = stage;
@@ -602,6 +652,8 @@ OLDCODE */
       if (!isExposureStage) {
         this.pendingCallTileId = undefined;
         this.pendingCallHasExposedRackTile = false;
+        this.exposureBuildAsset = undefined;
+        this.activeExposureBuildTileIds = [];
       }
       setTimeout(() => this.processPendingClaimTile(), 50);
       this.updateExposureCloseButtonsState();
@@ -938,6 +990,7 @@ OLDCODE */
       this.closeDeadHandSeatSelection();
     }
 
+/* OLDCODE
     if (phase !== GamePhaseEnum.PASSING) {
       this.clearBotPassVisualTiles();
       this.isBotPassVisualAnimating = false;
@@ -945,6 +998,62 @@ OLDCODE */
       this.lastSubmittedPassDestination = undefined;
       this.botAutoStagedDestination = undefined;
     }
+OLDCODE */
+/* OLDCODE
+    if (phase !== GamePhaseEnum.PASSING) {
+      this.clearBotPassVisualTiles();
+      this.isBotPassVisualAnimating = false;
+      this.hasCompletedFirstCharlestonVisualPass = false;
+      this.lastSubmittedPassDestination = undefined;
+      this.botAutoStagedDestination = undefined;
+      this.stateManager.optimisticPassTileIds.length = 0;
+    }
+OLDCODE */
+/* NEWCODE */
+    if (phase !== GamePhaseEnum.PASSING) {
+      this.clearBotPassVisualTiles();
+      this.isBotPassVisualAnimating = false;
+      this.hasCompletedFirstCharlestonVisualPass = false;
+      this.lastSubmittedPassDestination = undefined;
+      this.botAutoStagedDestination = undefined;
+      this.stateManager.optimisticPassTileIds.length = 0;
+
+/* OLDCODE
+      // Restore any remaining pass tiles back to rack when Charleston ends
+      for (const runtime of this.tileMap.values()) {
+        if (runtime.zone === "pass") {
+          runtime.zone = "rack";
+          this.tweens.killTweensOf(runtime.image);
+          runtime.image.setVisible(true);
+          runtime.image.setScale(1);
+          runtime.image.setAlpha(1);
+          runtime.image.setInteractive();
+        }
+      }
+      this.layoutRackTiles(true);
+OLDCODE */
+/* NEWCODE */
+      // Clean up pass tiles when Charleston ends: destroy tiles passed away to opponents
+      const validRackIds = new Set(this.rackTiles.map((t) => t.tile_id!));
+      for (const [id, runtime] of this.tileMap.entries()) {
+        if (runtime.zone === "pass") {
+          if (!validRackIds.has(id)) {
+            runtime.image.destroy();
+            this.tileMap.delete(id);
+          } else {
+            runtime.zone = "rack";
+            this.tweens.killTweensOf(runtime.image);
+            runtime.image.setVisible(true);
+            runtime.image.setScale(1);
+            runtime.image.setAlpha(1);
+            runtime.image.setInteractive();
+          }
+        }
+      }
+      this.layoutRackTiles(true);
+/* NEWCODE */
+    }
+/* NEWCODE */
 
     this.updatePhaseUi();
   }
@@ -1199,12 +1308,23 @@ OLDCODE */
   private setPassDirection(direction: PassDirection): void {
     if (this.passDirection === direction) return;
 
+/* OLDCODE
     // Explicitly reset auto-stage states when moving to a new pass direction
     this.botAutoStagedDestination = undefined;
     this.isBotPassVisualAnimating = false;
     this.isPassAnimating = false;
 
     this.passFlowManager.setPassDirection(direction);
+OLDCODE */
+/* NEWCODE */
+    // Explicitly reset auto-stage states when moving to a new pass direction
+    this.botAutoStagedDestination = undefined;
+    this.isBotPassVisualAnimating = false;
+    this.isPassAnimating = false;
+    this.stateManager.optimisticPassTileIds.length = 0;
+
+    this.passFlowManager.setPassDirection(direction);
+/* NEWCODE */
 
     /* console.log("[TableScene] pass direction received:", {
       direction: this.passDirection,
@@ -1236,6 +1356,7 @@ OLDCODE */
 
     if (!needs1xAtlas && !needs2xAtlas) {
       this.reconcileRackTiles(animate);
+/* OLDCODE
       if (this.pendingLocalPickRuntime) {
         const runtime = this.pendingLocalPickRuntime;
         this.pendingLocalPickRuntime = undefined;
@@ -1248,6 +1369,28 @@ OLDCODE */
           this.updateInstructionText();
         });
       }
+OLDCODE */
+/* NEWCODE */
+      if (this.pendingLocalPickRuntime) {
+        const runtime = this.pendingLocalPickRuntime;
+        this.pendingLocalPickRuntime = undefined;
+
+        const targetPoint = this.slotFor(runtime);
+        const safetyTimer = this.time.delayedCall(800, () => {
+          runtime.image.setAlpha(1);
+          this.isPickAnimating = false;
+          this.updatePassButtonState();
+          this.updateInstructionText();
+        });
+        this.animateWallTileToSeat("bottom", runtime.vm, targetPoint, () => {
+          safetyTimer.remove();
+          runtime.image.setAlpha(1);
+          this.isPickAnimating = false;
+          this.updatePassButtonState();
+          this.updateInstructionText();
+        });
+      }
+/* NEWCODE */
       const tileWidth = Math.round(this.layout.bottomTileLayout.width);
       this.activeRackAtlasKey = this.gameService.selectTileAtlas(tileWidth).atlasKey;
 
@@ -1279,6 +1422,7 @@ OLDCODE */
 
     this.load.once(Phaser.Loader.Events.COMPLETE, () => {
       this.reconcileRackTiles(animate);
+/* OLDCODE
       if (this.pendingLocalPickRuntime) {
         const runtime = this.pendingLocalPickRuntime;
         this.pendingLocalPickRuntime = undefined;
@@ -1291,6 +1435,28 @@ OLDCODE */
           this.updateInstructionText();
         });
       }
+OLDCODE */
+/* NEWCODE */
+      if (this.pendingLocalPickRuntime) {
+        const runtime = this.pendingLocalPickRuntime;
+        this.pendingLocalPickRuntime = undefined;
+
+        const targetPoint = this.slotFor(runtime);
+        const safetyTimer = this.time.delayedCall(800, () => {
+          runtime.image.setAlpha(1);
+          this.isPickAnimating = false;
+          this.updatePassButtonState();
+          this.updateInstructionText();
+        });
+        this.animateWallTileToSeat("bottom", runtime.vm, targetPoint, () => {
+          safetyTimer.remove();
+          runtime.image.setAlpha(1);
+          this.isPickAnimating = false;
+          this.updatePassButtonState();
+          this.updateInstructionText();
+        });
+      }
+/* NEWCODE */
       const tileWidth = Math.round(this.layout.bottomTileLayout.width);
       this.activeRackAtlasKey = this.gameService.selectTileAtlas(tileWidth).atlasKey;
 
@@ -1356,6 +1522,7 @@ OLDCODE */
       if (existingRuntime) continue;
     */
     // NEWCODE
+/* OLDCODE
     for (const tile of this.rackTiles) {
       const existingRuntime = this.tileMap.get(tile.tile_id!);
 
@@ -1374,12 +1541,6 @@ OLDCODE */
         this.applyTileTextureFilter(existingRuntime.image, true);
         existingRuntime.image.removeAllListeners();
         this.registerTileInput(existingRuntime);
-        /* OLDCODE
-        if (!this.rackOrder.includes(tile.tile_id!)) {
-          this.rackOrder.push(tile.tile_id!);
-        }
-        OLDCODE */
-        /* NEWCODE */
         if (!this.rackOrder.includes(tile.tile_id!)) {
           if (this.pendingLocalJokerSwap && this.pendingLocalJokerSwap.jokerTileId === tile.tile_id!) {
             const safeIdx = Phaser.Math.Clamp(this.pendingLocalJokerSwap.rackIndex, 0, this.rackOrder.length);
@@ -1388,25 +1549,10 @@ OLDCODE */
             this.rackOrder.push(tile.tile_id!);
           }
         }
-        /* NEWCODE */
       } else if (existingRuntime && existingRuntime.zone === "rack" && !existingRuntime.image.getData("hasShadow")) {
         this.applyTileTextureFilter(existingRuntime.image, true);
       }
 
-      // `rackTiles` is the source hand and still contains tiles that have
-      // moved to an exposure. Never add those IDs back as invisible rack
-      // slots when a later Pick refreshes the hand.
-      /* OLDCODE
-      if (
-        !this.rackOrder.includes(tile.tile_id!) &&
-        !this.discardedTileIds.includes(tile.tile_id!) &&
-        !this.stateManager.optimisticPassTileIds.includes(tile.tile_id!) &&
-        existingRuntime?.zone !== "exposure"
-      ) {
-        this.rackOrder.push(tile.tile_id!);
-      }
-      OLDCODE */
-      /* NEWCODE */
       if (
         !this.rackOrder.includes(tile.tile_id!) &&
         !this.discardedTileIds.includes(tile.tile_id!) &&
@@ -1420,9 +1566,127 @@ OLDCODE */
           this.rackOrder.push(tile.tile_id!);
         }
       }
-      /* NEWCODE */
 
       if (existingRuntime) continue;
+OLDCODE */
+/* NEWCODE */
+    // Clean up any stale optimisticPassTileIds for tiles the server confirms in the hand
+    for (const tile of this.rackTiles) {
+      const optIdx = this.stateManager.optimisticPassTileIds.indexOf(tile.tile_id!);
+      if (optIdx !== -1) {
+        this.stateManager.optimisticPassTileIds.splice(optIdx, 1);
+      }
+    }
+
+    /* OLDCODE
+    for (const tile of this.rackTiles) {
+      const existingRuntime = this.tileMap.get(tile.tile_id!);
+
+      if (existingRuntime && existingRuntime.zone === "exposure" && !this.isTileInAnyExposure(tile.tile_id!)) {
+        // Tile was swapped or returned from exposure to rack
+        existingRuntime.zone = "rack";
+        existingRuntime.selected = false;
+        existingRuntime.isDragging = false;
+        existingRuntime.image.clearTint();
+        existingRuntime.image.setData("joker-swap-enabled", false);
+        existingRuntime.image.setData("exposure-asset", undefined);
+        existingRuntime.image.setData("joker-tile-id", undefined);
+        existingRuntime.image.setData("joker-seat", undefined);
+        existingRuntime.image.off("pointerup");
+        existingRuntime.image.setDepth(30);
+        this.applyTileTextureFilter(existingRuntime.image, true);
+        existingRuntime.image.removeAllListeners();
+        this.registerTileInput(existingRuntime);
+        if (!this.rackOrder.includes(tile.tile_id!)) {
+          if (this.pendingLocalJokerSwap && this.pendingLocalJokerSwap.jokerTileId === tile.tile_id!) {
+            const safeIdx = Phaser.Math.Clamp(this.pendingLocalJokerSwap.rackIndex, 0, this.rackOrder.length);
+            this.rackOrder.splice(safeIdx, 0, tile.tile_id!);
+          } else {
+            this.rackOrder.push(tile.tile_id!);
+          }
+        }
+      } else if (existingRuntime && existingRuntime.zone === "rack") {
+        existingRuntime.image.setVisible(true);
+        existingRuntime.image.setInteractive();
+        if (!this.isPickAnimating || existingRuntime !== this.pendingLocalPickRuntime) {
+          existingRuntime.image.setAlpha(1);
+        }
+        if (!existingRuntime.image.getData("hasShadow")) {
+          this.applyTileTextureFilter(existingRuntime.image, true);
+        }
+      }
+
+      // Include new tile into rack order so it is displayed on the rack
+      const isOptimisticPassing = this.tablePhase === GamePhaseEnum.PASSING && this.stateManager.optimisticPassTileIds.includes(tile.tile_id!);
+      if (
+        !this.rackOrder.includes(tile.tile_id!) &&
+        !this.discardedTileIds.includes(tile.tile_id!) &&
+        !isOptimisticPassing &&
+        existingRuntime?.zone !== "exposure"
+      ) {
+        this.rackOrder.push(tile.tile_id!);
+      }
+
+      if (existingRuntime) continue;
+    OLDCODE */
+    /* NEWCODE */
+    // Ensure all tiles confirmed in rack by server are visible, interactive, and set to rack zone
+    for (const tile of this.rackTiles) {
+      const existingRuntime = this.tileMap.get(tile.tile_id!);
+
+      if (existingRuntime) {
+        // Hide close button if tile was in pass waiting
+        const closeBtn = this.passCloseButtons.get(tile.tile_id!);
+        if (closeBtn) {
+          closeBtn.disableInteractive();
+          closeBtn.setVisible(false);
+        }
+
+        // Skip tiles that belong to an active exposure or are being built into an exposure
+        const isExposed = this.isTileInAnyExposure(tile.tile_id!) || this.activeExposureBuildTileIds.includes(tile.tile_id!);
+        if (isExposed || existingRuntime.zone === "exposure") {
+          continue;
+        }
+
+        // Restore zone to rack if it was in pass waiting
+        if (existingRuntime.zone === "pass") {
+          existingRuntime.zone = "rack";
+          existingRuntime.selected = false;
+          existingRuntime.isDragging = false;
+          existingRuntime.image.clearTint();
+          existingRuntime.image.setDepth(30);
+          this.applyTileTextureFilter(existingRuntime.image, true);
+          existingRuntime.image.removeAllListeners();
+          this.registerTileInput(existingRuntime);
+        }
+
+        // Stop any pass animation tweens and restore visibility and scale for rack tiles
+        this.tweens.killTweensOf(existingRuntime.image);
+        existingRuntime.image.setVisible(true);
+        existingRuntime.image.setScale(1);
+        existingRuntime.image.setInteractive();
+
+        if (!this.isPickAnimating || existingRuntime !== this.pendingLocalPickRuntime) {
+          existingRuntime.image.setAlpha(1);
+        }
+        if (!existingRuntime.image.getData("hasShadow")) {
+          this.applyTileTextureFilter(existingRuntime.image, true);
+        }
+      }
+
+      // Include new tile into rack order so it is displayed on the rack
+      const isOptimisticPassing = this.tablePhase === GamePhaseEnum.PASSING && this.stateManager.optimisticPassTileIds.includes(tile.tile_id!);
+      if (
+        !this.rackOrder.includes(tile.tile_id!) &&
+        !this.discardedTileIds.includes(tile.tile_id!) &&
+        !isOptimisticPassing &&
+        existingRuntime?.zone !== "exposure"
+      ) {
+        this.rackOrder.push(tile.tile_id!);
+      }
+
+      if (existingRuntime) continue;
+    /* NEWCODE */
 
       const tileWidth = Math.round(this.layout.bottomTileLayout.width);
       const tileHeight = Math.round(this.layout.bottomTileLayout.height);
@@ -1475,17 +1739,58 @@ OLDCODE */
 
       this.tileMap.set(tile.tile_id!, runtime);
       this.registerTileInput(runtime);
+/* OLDCODE
     }
 
     this.reindexRackRuntimeSlots();
-    /* NEWCODE */
+OLDCODE */
+/* NEWCODE */
+    }
+
+    if (this.isWaitingForPickResponse) {
+      this.isWaitingForPickResponse = false;
+      this.isPickAnimating = false;
+    }
+
+    /* OLDCODE
+    this.reindexRackRuntimeSlots();
     if (!this.hasAppliedInitialRackOrder && this.rackOrder.length > 0) {
       this.hasAppliedInitialRackOrder = true;
     }
-    /* NEWCODE */
     this.selectedIds.clear();
     this.callbacks.onSelectionChanged([]);
     this.resize(this.scale.width, this.scale.height, animate);
+    OLDCODE */
+    /* NEWCODE */
+    // Sync rackOrder to follow the API tiles order received from server
+    const apiOrderIds = this.rackTiles
+      .map((t) => t.tile_id!)
+      .filter((id) => !this.discardedTileIds.includes(id) && !this.isTileInAnyExposure(id));
+
+    if (apiOrderIds.length > 0) {
+      const syncedOrder: number[] = [];
+      for (const id of apiOrderIds) {
+        if (!syncedOrder.includes(id)) {
+          syncedOrder.push(id);
+        }
+      }
+      // Keep any remaining rack tiles
+      for (const id of this.rackOrder) {
+        if (!syncedOrder.includes(id) && !this.discardedTileIds.includes(id) && !this.isTileInAnyExposure(id)) {
+          syncedOrder.push(id);
+        }
+      }
+      this.rackOrder = syncedOrder;
+    }
+
+    this.reindexRackRuntimeSlots();
+    if (!this.hasAppliedInitialRackOrder && this.rackOrder.length > 0) {
+      this.hasAppliedInitialRackOrder = true;
+    }
+    this.selectedIds.clear();
+    this.callbacks.onSelectionChanged([]);
+    this.resize(this.scale.width, this.scale.height, animate);
+    /* NEWCODE */
   }
   private refreshRackTileTextures(): void {
     const tileWidth = Math.round(this.layout.bottomTileLayout.width);
@@ -2024,6 +2329,7 @@ OLDCODE */
     return Math.max(0, totalWidth - bounds.width);
   }
 
+/* OLDCODE
   private slotFor(runtime: TileRuntime): Point {
     const index = this.rackOrder.indexOf(runtime.vm.tile_id!);
     const slot = this.layout.bottomTileLayout.slots[index];
@@ -2051,6 +2357,37 @@ OLDCODE */
     //   y: this.layout.bottomRack.y + this.layout.bottomRack.height / 2,
     // };
   }
+OLDCODE */
+/* NEWCODE */
+  private slotFor(runtime: TileRuntime): Point {
+    let index = this.rackOrder.indexOf(runtime.vm.tile_id!);
+    if (index === -1 && runtime.zone === "rack") {
+      this.rackOrder.push(runtime.vm.tile_id!);
+      this.reindexRackRuntimeSlots();
+      index = this.rackOrder.length - 1;
+    }
+
+    const slotIndex = Math.max(0, index);
+    const slot = this.layout.bottomTileLayout.slots[slotIndex];
+
+    const tileWidth = this.layout.bottomTileLayout.width;
+    const finalGap = this.layout.bottomTileLayout.gap;
+    const totalWidth = this.rackOrder.length * tileWidth + finalGap * (this.rackOrder.length - 1);
+    const bounds = this.getRackBounds();
+
+    let baseStartX = bounds.x + tileWidth / 2;
+    if (totalWidth < bounds.width) {
+      baseStartX = bounds.x + bounds.width / 2 - totalWidth / 2 + tileWidth / 2;
+    }
+
+    const slotX = baseStartX + slotIndex * (tileWidth + finalGap) - this.rackScrollX;
+
+    return {
+      x: slotX,
+      y: slot ? slot.y : this.layout.bottomRack.y + this.layout.bottomRack.height / 2,
+    };
+  }
+/* NEWCODE */
   private drawTable(): void {
     const gBg = this.bgGraphics;
     const g = this.graphics;
@@ -2803,11 +3140,32 @@ OLDCODE */
     }
   }
 OLDCODE */
+/* OLDCODE
+  private handleHtmlMahjongAction(): void {
+    if (this.turnStage === GameTurnStageEnum.NEED_EXPOSURE && this.activeExposureBuildTileIds.length > 0) {
+      this.callbacks.onLocalPlayerExposureCreate?.([...this.activeExposureBuildTileIds]);
+      this.activeExposureBuildTileIds = [];
+      this.turnStage = GameTurnStageEnum.NEED_DISCARD;
+      for (const button of this.exposureCloseButtons.values()) {
+        button.destroy();
+      }
+      this.exposureCloseButtons.clear();
+
+      // Delay the mahjong declare slightly to ensure backend processes the exposure first
+      setTimeout(() => {
+        this.callbacks.onMahjongDeclare?.();
+      }, 500);
+    } else {
+      this.callbacks.onMahjongDeclare?.();
+    }
+  }
+OLDCODE */
 /* NEWCODE */
   private handleHtmlMahjongAction(): void {
     if (this.turnStage === GameTurnStageEnum.NEED_EXPOSURE && this.activeExposureBuildTileIds.length > 0) {
       this.callbacks.onLocalPlayerExposureCreate?.([...this.activeExposureBuildTileIds]);
       this.activeExposureBuildTileIds = [];
+      this.exposureBuildAsset = undefined;
       this.turnStage = GameTurnStageEnum.NEED_DISCARD;
       for (const button of this.exposureCloseButtons.values()) {
         button.destroy();
@@ -4211,7 +4569,7 @@ OLDCODE */
     );
   }
 OLDCODE */
-/* NEWCODE */
+/* OLDCODE
   private canAddTileToBottomExposure(tile: GameTileEntity): boolean {
     this.sanitizeBottomExposureTiles();
     const tileAsset = this.gameService.assetBaseName(this.allTiles[tile.tile_id!]);
@@ -4221,6 +4579,27 @@ OLDCODE */
       this.exposureBuildAsset &&
       this.calledBottomExposureTiles.length < 24 &&
       (tileAsset === this.exposureBuildAsset || isFlowerMatch || this.isJoker(tile.tile_id!)),
+    );
+  }
+OLDCODE */
+/* NEWCODE */
+  private canAddTileToBottomExposure(tile: GameTileEntity): boolean {
+    const isExposureStage =
+      this.turnStage === GameTurnStageEnum.NEED_EXPOSURE
+      || (this.turnStage as any) === GameTurnStageEnuAddon.NEED_EXPOSURE
+      || (this.turnStage as any) === 3
+      || (this.turnStage as any) === "3";
+    if (!isExposureStage) return false;
+
+    this.sanitizeBottomExposureTiles();
+    if (!tile || tile.tile_id == null || !this.allTiles[tile.tile_id]) return false;
+    const tileAsset = this.gameService.assetBaseName(this.allTiles[tile.tile_id]);
+    const isFlowerMatch = this.exposureBuildAsset?.startsWith("flower_") && tileAsset.startsWith("flower_");
+
+    return Boolean(
+      this.exposureBuildAsset &&
+      this.calledBottomExposureTiles.length < 24 &&
+      (tileAsset === this.exposureBuildAsset || isFlowerMatch || this.isJoker(tile.tile_id)),
     );
   }
 /* NEWCODE */
@@ -4355,6 +4734,7 @@ OLDCODE */
       });
     }
 
+/* OLDCODE
     const buildIndex = this.activeExposureBuildTileIds.indexOf(tileId);
     if (buildIndex >= 0) this.activeExposureBuildTileIds.splice(buildIndex, 1);
 
@@ -4362,6 +4742,20 @@ OLDCODE */
     if (exposureIndex >= 0) this.calledBottomExposureTiles.splice(exposureIndex, 1);
 
     this.updateExposureCloseButtonsState();
+OLDCODE */
+/* NEWCODE */
+    const buildIndex = this.activeExposureBuildTileIds.indexOf(tileId);
+    if (buildIndex >= 0) this.activeExposureBuildTileIds.splice(buildIndex, 1);
+
+    const exposureIndex = this.calledBottomExposureTiles.indexOf(runtime.image);
+    if (exposureIndex >= 0) this.calledBottomExposureTiles.splice(exposureIndex, 1);
+
+    if (this.calledBottomExposureTiles.length === 0 || this.activeExposureBuildTileIds.length === 0) {
+      this.exposureBuildAsset = undefined;
+    }
+
+    this.updateExposureCloseButtonsState();
+/* NEWCODE */
 
     this.applyTileTextureFilter(runtime.image, true);
     runtime.image.setData("exposure-asset", undefined);
@@ -4532,6 +4926,7 @@ OLDCODE */
 /* NEWCODE */
 /* NEWCODE */
 
+/* OLDCODE
   private reversePendingCall(tileId: number): void {
     if (this.reverseCallInFlight || !this.callbacks.onLocalPlayerReverseCall) return;
     const runtime = this.tileMap.get(tileId);
@@ -4546,6 +4941,31 @@ OLDCODE */
       this.updateExposureCloseButtonsState();
     });
   }
+OLDCODE */
+/* NEWCODE */
+  private reversePendingCall(tileId: number): void {
+    if (this.reverseCallInFlight || !this.callbacks.onLocalPlayerReverseCall) return;
+    const runtime = this.tileMap.get(tileId);
+    if (runtime?.image.active) {
+      this.pendingReverseCallVisual = { tileId, x: runtime.image.x, y: runtime.image.y };
+    }
+    this.reverseCallInFlight = true;
+    this.exposureBuildAsset = undefined;
+    this.activeExposureBuildTileIds = this.activeExposureBuildTileIds.filter((id) => id !== tileId);
+    this.exposureCloseButtons.get(tileId)?.disableInteractive().setAlpha(0.55);
+    void this.callbacks.onLocalPlayerReverseCall().catch(() => {
+      this.reverseCallInFlight = false;
+      this.pendingReverseCallVisual = undefined;
+      if (!this.activeExposureBuildTileIds.includes(tileId)) {
+        this.activeExposureBuildTileIds.push(tileId);
+      }
+      if (runtime && this.allTiles[tileId]) {
+        this.exposureBuildAsset = this.gameService.assetBaseName(this.allTiles[tileId]);
+      }
+      this.updateExposureCloseButtonsState();
+    });
+  }
+/* NEWCODE */
 
   private positionExposureCloseButton(tileId: number): void {
     const runtime = this.tileMap.get(tileId);
@@ -6941,11 +7361,27 @@ OLDCODE */
         targetY,
         animate,
       );
+/* OLDCODE
       // NEWCODE
       if (!runtime.isDragging) {
         const bounds = this.getRackBounds();
         runtime.image.setVisible(targetX >= bounds.x && targetX <= bounds.x + bounds.width);
       }
+OLDCODE */
+/* NEWCODE */
+      if (!runtime.isDragging) {
+        const bounds = this.getRackBounds();
+        const halfW = tileWidth / 2;
+        runtime.image.setVisible(
+          targetX + halfW >= bounds.x && targetX - halfW <= bounds.x + bounds.width
+        );
+        if (!this.isPickAnimating || runtime !== this.pendingLocalPickRuntime) {
+          if (runtime.image.alpha < 1) {
+            runtime.image.setAlpha(1);
+          }
+        }
+      }
+/* NEWCODE */
     }
 
     this.layoutDiscardTiles(animate);
@@ -7775,6 +8211,7 @@ OLDCODE */
     });
   }
 
+  /* OLDCODE
   private animateBotTransferToWaitingArea(
     from: TableSeat,
     to: TableSeat,
@@ -7783,6 +8220,34 @@ OLDCODE */
     const count = 3;
     const sourceTargets = this.passAreaTargets(from, count);
     const targetPoints = this.passAreaTargets(to, count);
+  OLDCODE */
+  /* OLDCODE
+  // Use pass count matching courtesy pass tiles (e.g. 2 tiles)
+  private animateBotTransferToWaitingArea(
+    from: TableSeat,
+    to: TableSeat,
+    onFinished: () => void,
+  ): void {
+    const isCourtesy = this.charlestonState?.stage === GameCharlestoneStageEnum.COURTESY;
+    const count = isCourtesy ? this.passWaitingTileIds.length : 3;
+    const sourceTargets = this.passAreaTargets(from, count);
+    const targetPoints = this.passAreaTargets(to, count);
+  OLDCODE */
+  /* NEWCODE */
+  // Bot stages 3 visual tiles to waiting area; if count is 0, finish immediately
+  private animateBotTransferToWaitingArea(
+    from: TableSeat,
+    to: TableSeat,
+    onFinished: () => void,
+  ): void {
+    const count = 3;
+    if (count <= 0) {
+      onFinished();
+      return;
+    }
+    const sourceTargets = this.passAreaTargets(from, count);
+    const targetPoints = this.passAreaTargets(to, count);
+  /* NEWCODE */
     const size = this.passTileDisplaySize(to);
     const startAngle = this.passTileAngle(from);
     const endAngle = this.passTileAngle(to);
@@ -7858,9 +8323,22 @@ OLDCODE */
 
     const byDestination = new Map<TableSeat, BotPassVisualTile[]>();
 
+    /* OLDCODE
     const isCourtesy = this.charlestonState?.stage === GameCharlestoneStageEnum.COURTESY;
     let bottomTilesToRedirect = 3 - this.passWaitingTileIds.length;
     bottomTilesToRedirect = Math.max(0, Math.min(3, bottomTilesToRedirect));
+    OLDCODE */
+    /* OLDCODE
+    // Courtesy pass does not steal or redirect tiles to other players
+    const isCourtesy = this.charlestonState?.stage === GameCharlestoneStageEnum.COURTESY;
+    let bottomTilesToRedirect = isCourtesy ? 0 : 3 - this.passWaitingTileIds.length;
+    bottomTilesToRedirect = Math.max(0, Math.min(3, bottomTilesToRedirect));
+    OLDCODE */
+    /* NEWCODE */
+    // Redirect extra staged tiles so bottom rack only receives matching passed tile count
+    let bottomTilesToRedirect = 3 - this.passWaitingTileIds.length;
+    bottomTilesToRedirect = Math.max(0, Math.min(3, bottomTilesToRedirect));
+    /* NEWCODE */
 
     tiles.forEach((tile) => {
       let finalTo = tile.to;

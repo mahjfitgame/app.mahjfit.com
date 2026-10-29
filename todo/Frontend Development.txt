@@ -36,6 +36,11 @@ Current:
 
  Game Play - Working on Dead Hand message and feature test
 
+
+ Bot discard and joker exchange analyses and upgradation
+
+ ====================
+
 https://www.google.com/search?q=Is+this+right+dead+hand+because+I+make+the+group+of+7+crack+and+submit+the+server+call+this+as+dead+hand+so+is+this+right+as+per+the+American+Mahjong+rules&sourceid=chrome&ie=UTF-8&amc=1&gs_lcrp=EgZjaHJvbWUyBggAEEUYOdIBCjQ1MTMzajBqMzGoAgCwAgHqBwoIARAAGAAgACgA&lns_mode=cvst&oq=Is+this+right+dead+hand+because+I+make+the+group+of+7+crack+and+submit+the+server+call+this+as+dead+hand+so+is+this+right+as+per+the+American+Mahjong+rules&aep=42&cud=89&source=chrome.crn.rb&gsessionid=cO7Syjec8aiNgt6rO-hq3hN1MPoOpGhJmfO_oqYjxMmNLGTM7OdMPQ&lns_surface=42&mstk=AUtExfAt9hEkdWNL6ArjpzIWRx0-_Y5C743LFoCsxrr07uMOC57531dq1b9tEL5kbalVJQSOnwlhkc1BQhO72ROLqXKqWMXHzuPwKJfqzU-63y_fd-bWol5pbmvfQPm6F7tZT-zjYzBUbTqO4krkjTMlRKbUREHjePeasRw&csuir=1&mtid=0n_HarGUO6-ohvcPzJLW4Q0&udm=50
 
 https://chatgpt.com/c/6ac9d950-f4a0-83ee-a2fa-f9290138ed24
@@ -53,12 +58,449 @@ Game Play - Current logic assesmet and plan next upgratation
 
 https://chatgpt.com/g/g-p-6960cc6488908191b0256b5406fc249e-sd-mahjong-game/c/6ad99bc5-7868-83e8-9de8-c1cbfe4ea413
 
-========== POINTS ========== 
+
+
+Game Play - Check valid mahjong
+Game Play - Test instruction text as per the game action
+Game Play - Send debug email and joker swap gape issue
+
+Game Play - Working on Dead Hand message and feature test
+Game Play - Design header related point cross check
+Game Play - Claim call arrange tile position and remove the gap between the tile in the exposure
+Manage rack tile order intect after joker swap
+Game Play - Check charleston round pass tiles make more randomness
+
+ Game Play - Wrong mahjong shaking the button and play error sound
+ Upload on demo server and testing
+
+ Check the tile randomness for wall seat
+ Game Play - Upgrade the tile assignment at initial and bot charleston round to pass the tiles and wall seat randomness
+ Game Play - Test upgraded functionality tile assignment at initial and bot charleston round to pass the tiles and wall seat randomness
+ Game Play - Bot mahjong analyses and upgradation
+ ===========================
+- Phase 0: Standalone fixes (small, safe, each one reviewable)
+- Phase 1: The Core Foundation (bot-plan.ts) - Planner core (new `bot-plan.ts`, small functions, pure unless noted)
+- Phase 2: Charleston Unification (Integration)
+- Phase 3: Live Play Discards
+- Phase 4: Exposure Hard Filterin (Claims & Melds)
+- Phase 5: Remaining rule behaviors
+- Phase 6: Verification
+
+
++++++++
+The final list, in order
+1	Step 6A: exact suit counts in both rule packs, plus your reported hand (13579_8), plus a rule-data check test	Prompt ready (my last message)	Nothing
+2	Phase 5b: hand-order sync	Plan exists	My cross-check of the plan
+3	Step 6B: the 12 hands whose groups share colours	Waiting	The card colours from you
+4	"Any like number" hands accept only 1s (3 hands per card)	Waiting	Your confirmation
+5	Step 7: exposure-aware win check	Not planned	Nothing
+6	Step 8: Charleston direction	Not planned	Checking the screen's seat layout
+7	Step 9: cleanup. Delete the dead functions; add the joker-exchange scoring test still owed from 4c.	Not planned	Your decision on ASSIST_PEEK
+8	Final re-baseline: benchmark plus 4b diagnostics, and clear the bplc-* bot plans when deploying	Last	Steps 1–6
+Why this order:
+
+Step 6A first: it's the bug you reported and the biggest source of illegal wins, and it changes only rule data.
+5b second: it's a bug players see on screen, and it doesn't depend on the bot work.
+Step 7 after 5b: both change rule.ts, so doing them one after the other keeps the changes easy to review.
+The new public-info defence the other agent mentioned should wait until Step 7, because it relies on reading exposures correctly.
+Phase 5 itself needs one check from you: it replaced the two duplicate hands with 13579_7 ("11 333 NEWS 333 55") and WD_7B ("EE NNN SSS WW 2025"). Please confirm both against the printed 2025 card.
+What I need from you:
+
+The card colours for the 12 hands (step 3).
+Whether "any like number" means any number (step 4).
+Keep or remove ASSIST_PEEK (step 7).
+Confirmation of the two Phase 5 replacement hands.
+
+
+
+4c
+What Remains Open for Future Steps:
+Suit Structure Card Errors: Certain 2025 and 2026 rulepack hand definitions have suit-domain or variable-constraint inaccuracies (e.g. 2468 pairs accepting mixed suits).
+Exposure-Aware Validation: The engine's win check currently pools all 14 tiles without enforcing that exposed melds cannot be rearranged with concealed tiles. This allows cases like exposed B6 pung + concealed B6+J to validate if the pooled 14 tiles match a different grouping. This will be resolved in Step 4b Fix 2 (exposure-aware validation).
 
 
 
 
- 
+
+================= POINTS =================
+1]
+Removed the table borders.
+2]
+Display the rack tiles for all seat when debug mode.
+3]
+Solve the other UI related changes.
+
+
+
+
+
+================= Progress meeting: 28 OCT 2026 5 PM PDT =================
+https://meet.google.com/sng-awie-rhb
+
+BUG DURING MEETING]
+- Charleston popup 2 times. After 2nd popup.
+- Ordering issue its reorder
+- do not discard pair in charleston. Defencive and Benifit mode.
+- lets show bot tiles on scree so we can have testing more menaing ful.
+- pick animation has some issue - also show the tile and animate from pick to hand rack - wrong mening
+- ordering change automaticly even after reorder
+- Player name display in UI game board
+- When we pick the tile it should go to right of the hand
+- Background music on off button and need to make sure the size of audio file
+
+
+
+Overall]
+In the backend side we change the bot decision making process.
+Now the bot make the proper exposure according to rules, and also it make a better strategy to win the game.
+Update the rule JSON file according to hand and the logic we implemented for winning hand.
+
+#] Bot pass the unwanted tiles while charleston round.
+#] Bot handle blind passes correctly during the Charleston.
+#] Bot make decisions using only public game information (no wall or hidden hand peeking).
+#] Bot identify and perform valid Joker exchanges from exposures.
+#] Bot make the proper exposures according to target hand patterns.
+#] Enforce no Jokers in pairs or single tile requirements across all exposures and hands.
+#] Implement dead hand detection and validation logic.
+#] Sync and update hand_order whenever tiles are picked, discarded, or exposed.
+#] Upgrade and fix 2025/2026 rulepacks (suit mappings, bonus flower rules, and pattern structures).
+#] Automatic rule cache invalidation on rule updates or engine startup.
+#] Bot win the game with valid Mahjong hand declarations.
+#] Real player win the game with valid winning hands.
+
+
+1]
+Updated tile shuffle and improved random distribution.
+Improved bot tie discard/passing  decision during charleston 
+
+Initial shuffle tile setup and implemented the bot’s Charleston round selection and tile-passing logic according to the rules. 
+
+Implemented the updated tile assignment logic for the initial and bot Charleston rounds to ensure random distribution of tiles and wall tiles.
+
+2]
+Updated the UI/UX by adding a pulse effect to instruction messages when an action occurs, such as discarding a tile. 
+
+Additionally, I added a new instruction message, “You must call or skip,” when a claim is available. Finally, updated the instruction panel colors based on the turn: blue background with yellow text when it is another player’s turn, and yellow background with blue text when it is the current player’s turn.
+
+3]
+Improved the chances to win the game by bot. 
+Mahjong Bot Upgrade, and also add the unit testing for the Mahjong Bot.
+
+4]
+Improved Existing bot decision-making logic and Mahjong calls to win the game.
+We have segamented the work in below steps and working on step by step to solve all problems with hand creation and winning checking. 
+
+Step 1: The Core Foundation (bot-plan.ts)
+Step 2: Charleston Unification (Integration)
+Step 3: Live Play Discards
+Step 4: Exposure Hard Filtering (Claims & Melds)
+Step 4a: Pass validation, bot blind pass, and plan-based joker exchange
+Step 4b: Fairness diagnostics and short-game anomaly analysis
+Step 4c: No jokers in pairs during Mahjong validation
+Step 4d: exposure-aware validation: it needs a rules decision first. Should validation accept a hand (that only works if the player had swapped a joker out of their own exposure, and can that happen when claiming a discard for Mah Jongg?)
+Step 4e: the Charleston direction: it needs a client check first, and existing tests reference the current direction.
+Step 5: Remaining rule behaviors
+Step 6: Verification (on going)
+
+
+We have also made the required changes to the 2025.partial.rulepack.json file.
+
+5]
+Big Update in Unit Testing
+Implemented the unit testing to test the logical flow. 
+This all unit test files have specific feature based test cases. 
+Below are the implemented unit testing file list and result of unit testing:
+
+PASS apps/unit-test/game-engine/tile-availability.spec.ts (12.757 s)
+PASS apps/unit-test/game-engine/bot-plan.spec.ts (13.026 s)
+PASS apps/unit-test/game-engine/charleston-joker-prohibition.spec.ts (13.109 s)
+PASS apps/unit-test/game-engine/win-lifecycle.spec.ts (13.104 s)
+PASS apps/unit-test/game-engine/bot-play-plan.spec.ts (13.614 s)
+PASS apps/unit-test/game-engine/reverse-pending-call.spec.ts
+PASS apps/unit-test/game-engine/bot-blind-pass-joker-exchange.spec.ts
+PASS apps/unit-test/game-engine/charleston-bot-strategy.spec.ts
+PASS apps/unit-test/game-engine/bot-charleston-plan.spec.ts
+PASS apps/unit-test/game-engine/bot-public-info.spec.ts
+PASS apps/unit-test/game-engine/sextet-mahjong.spec.ts
+PASS apps/unit-test/game-engine/perf-optimizations.spec.ts
+PASS apps/unit-test/game-engine/rules-2026-winning-hands.spec.ts
+
+Test Suites: 13 passed, 13 total
+Tests:       241 passed, 241 total
+Snapshots:   0 total
+Time:        17.652 s, estimated 33 s
+
+
+6]
+Unit tesing results 
+50-Game Baseline Simulation Benchmark
+
+Total Time: 345.2s
+{
+  "totalGames": 50,
+  "completedGames": 50,
+  "mahjongWins": 37,
+  "wallExhaustions": 13,
+  "otherOutcomes": 0,
+  "winRatePct": "74.0%",
+  "winningSeats": {
+    "1": 15,
+    "2": 8,
+    "3": 11,
+    "4": 3
+  },
+  "finishReasons": {
+    "MAHJONG": 37,
+    "WALL_EMPTY": 13
+  },
+  "unexpectedExceptionsCount": 0,
+  "turnStats": {
+    "min": 21,
+    "max": 206,
+    "avg": 130.5,
+    "median": 127
+  },
+  "distanceDistribution": {
+    "0-away (Mahjong)": 27,
+    "1-away": 21,
+    "2-away": 29,
+    "3-away": 50,
+    "4-away": 38,
+    "5+-away": 35
+  },
+  "feasibilitySummary": {
+    "totalEvaluatedSeats": 200,
+    "feasibleSeats": 200,
+    "infeasibleSeats": 0,
+    "infeasiblePct": "0.0%"
+  }
+}
+
+
+7]
+Deterministic Replay Summary
+[Deterministic Replay] 
+Seed 1003: 
+Run A turns=79, 
+outcome=MAHJONG, 
+winner=1 
+=== 
+Run B 
+turns=79, 
+outcome=MAHJONG, 
+winner=1
+
+Test Suites: 1 passed, 1 total
+Tests:       4 skipped, 1 passed, 5 total 
+
+
+NEED TO DISCUSS]
+#]
+We are trying to evaluate the spacnig situatioin on the board.
+The tiles on the racks are too small, it is not a good experience for launch.
+Since Carolyn is sending you PSD files, are you able to remove the racks all together and have the tiles directly on the purple board, or is that something she needs to do?
+REPLY]
+I have reviewed the provided PSD, and yes, we can remove the rack borders and place the tiles directly on the purple board.
+
+#]
+We would also like to narrow the blue table boarder - but that will affect the logo and hamburger menu, so that is probably her department.?
+REPLY]
+Well, For the blue table border, we can make it narrower. However, this will affect the logo and hamburger menu.
+Herer is one option: remove the header from the gameplay area, similar to Real Mahjong, and manage the menu options through the Settings menu. For example, the End Game option is already available in the Settings menu, so we can manage it there as well.
+We can redesign the entire gameplay area, but I suggest making a few small changes first and then improving the game board step by step.
+I am currently working on some important points of game play. Once I complete them, I will start implementing these changes.
+
+#]
+WhatsApp Image 2026-10-25 at 2.03.10 AM
+Can this space be used for different copy every day? We would like to add tips that are always new like:
+Fit Tip #1:
+Developing a new skill challenges your brain to form new connections.
+Use the same size font as the subheading that is in there now now. Each day, we will have a new tip.
+
+Some frontend side corrections]
+1] When pick tile the actual tile already shown in the rack while tile is in animating.
+2] Manual tile arrangement in bottom seat didn't work.
+3] Need to upgrade the UX related changes as per the action, some time animations not works.
+4] Mahjong popup is just static design.
+##################################
+ ========== POINTS ========== 
+#]
+Initial shuffle tile setup and implemented the bot’s Charleston round selection and tile-passing logic according to the rules. 
+Implemented the updated tile assignment logic for the initial and bot Charleston rounds to ensure random distribution of tiles and wall tiles. 
+
+#]
+Updated the UI/UX by adding a pulse effect to messages when an action occurs, such as discarding a tile. 
+Additionally, I added a new instruction message, “You must call or skip,” when a claim is available. Finally, I updated the instruction panel colors based on the turn: blue background with yellow text when it is another player’s turn, and yellow background with blue text when it is the current player’s turn.
+#]
+Mahjong Bot Upgrade, and also add the unit tesing for the Mahjong Bot.
+#]
+Existing bot decision-making logic and Mahjong calls to win the game.
+I have segamented the work in below steps and working on step by step. 
+Step 1: The Core Foundation (bot-plan.ts) 
+Step 2: Charleston Unification (Integration)
+Step 3: Live Play Discards
+Step 4: Exposure Hard Filterin (Claims & Melds)
+Step 4a: Pass validation, bot blind pass, and plan-based joker exchange
+Step 4b: Fairness diagnostics and short-game anomaly analysis
+After completing the analysis in Step 4b, I identified another improvement and planned the following step:
+Step 4c: No jokers in pairs during Mahjong validation
+I have also made the required changes to the 2025.partial.rulepack.json file.
+
+Later steps; do not start them yet, just my notes:
+- Step 4d, exposure-aware validation: it needs a rules decision first. Should validation accept a hand
+  that only works if the player had swapped a joker out of their own exposure, and can that happen when
+  claiming a discard for Mah Jongg?
+- Step 4e, the Charleston direction: it needs a client check first, and existing tests reference the
+  current direction.
+Step 5: Remaining rule behaviors
+Step 6: Verification
+
+
+
+1	Phase 5b: hand-order sync	Plan exists	My cross-check of the plan
+2	Step 6A: exact suit counts in both rule packs, plus your reported hand (13579_8), plus a rule-data check test	Prompt ready (my last message)	Nothing
+3	Step 6B: the 12 hands whose groups share colours	Waiting	The card colours from you
+4	"Any like number" hands accept only 1s (3 hands per card)	Waiting	Your confirmation
+
+#]
+Implemented the unit testing to test the logical flow. 
+This all unit test files have specific feature based test cases. 
+Below is the implemented unit testing file list and result of unit testing:
+PASS apps/unit-test/game-engine/tile-availability.spec.ts (12.757 s)
+PASS apps/unit-test/game-engine/bot-plan.spec.ts (13.026 s)
+PASS apps/unit-test/game-engine/charleston-joker-prohibition.spec.ts (13.109 s)
+PASS apps/unit-test/game-engine/win-lifecycle.spec.ts (13.104 s)
+PASS apps/unit-test/game-engine/bot-play-plan.spec.ts (13.614 s)
+PASS apps/unit-test/game-engine/reverse-pending-call.spec.ts
+PASS apps/unit-test/game-engine/bot-blind-pass-joker-exchange.spec.ts
+PASS apps/unit-test/game-engine/charleston-bot-strategy.spec.ts
+PASS apps/unit-test/game-engine/bot-charleston-plan.spec.ts
+PASS apps/unit-test/game-engine/bot-public-info.spec.ts
+PASS apps/unit-test/game-engine/sextet-mahjong.spec.ts
+PASS apps/unit-test/game-engine/perf-optimizations.spec.ts
+PASS apps/unit-test/game-engine/rules-2026-winning-hands.spec.ts
+
+Test Suites: 13 passed, 13 total
+Tests:       241 passed, 241 total
+Snapshots:   0 total
+Time:        17.652 s, estimated 33 s
+
+
+#]
+50-Game Baseline Simulation Benchmark
+Total Time: 345.2s
+{
+  "totalGames": 50,
+  "completedGames": 50,
+  "mahjongWins": 37,
+  "wallExhaustions": 13,
+  "otherOutcomes": 0,
+  "winRatePct": "74.0%",
+  "winningSeats": {
+    "1": 15,
+    "2": 8,
+    "3": 11,
+    "4": 3
+  },
+  "finishReasons": {
+    "MAHJONG": 37,
+    "WALL_EMPTY": 13
+  },
+  "unexpectedExceptionsCount": 0,
+  "turnStats": {
+    "min": 21,
+    "max": 206,
+    "avg": 130.5,
+    "median": 127
+  },
+  "distanceDistribution": {
+    "0-away (Mahjong)": 27,
+    "1-away": 21,
+    "2-away": 29,
+    "3-away": 50,
+    "4-away": 38,
+    "5+-away": 35
+  },
+  "feasibilitySummary": {
+    "totalEvaluatedSeats": 200,
+    "feasibleSeats": 200,
+    "infeasibleSeats": 0,
+    "infeasiblePct": "0.0%"
+  }
+}
+
+
+
+#]
+Deterministic Replay Summary
+[Deterministic Replay] Seed 1003: Run A turns=79, outcome=MAHJONG, winner=1 === Run B turns=79, outcome=MAHJONG, winner=1
+Test Suites: 1 passed, 1 total
+Tests:       4 skipped, 1 passed, 5 total
+
+
+#]
+After completed 4a below is the summury of point 3b and 4a
+
+Metric              Step 3b Baseline	              Step 4a
+Total Games	              50	                        50
+Completed Games	          50	                        50
+Mahjong Wins	            40	                        37
+Wall Exhaustions	        10                          13
+Win Rate	                80.0%	                      74.0%
+Turns (Avg / Median)	    129 / 125	                130.5 / 127
+Infeasible Seats	        0 (0.0%)	                  0 (0.0%)
+Unexpected Exceptions	    0	                          0
+Total Benchmark Time	    347.2s	                    345.2s
+
+
+
+Over all, 
+In the backend side we change the bot decision making process.
+Now the bot make the proper exposure according to rules, and also it make a better strategy to win the game.
+Update the rule JSON file according to hand and the logic we implemented for winning hand.
+
+#]
+Bot pass the unwanted tiles while charleston round.
+#]
+Bot make the proper exposure.
+#]
+Bot win the game.
+#]
+Real player win the game with the valid winning hand.
+
+
+
+
+NEED TO DISCUSS
+#]
+We are trying to evaluate the spacnig situatioin on the board.
+The tiles on the racks are too small, it is not a good experience for launch.
+Since Carolyn is sending you PSD files, are you able to remove the racks all together and have the tiles directly on the purple board, or is that something she needs to do?
+REPLY]
+I have reviewed the provided PSD, and yes, we can remove the rack borders and place the tiles directly on the purple board.
+
+#]
+
+We would also like to narrow the blue table boarder - but that will affect the logo and hamburger menu, so that is probably her department.?
+REPLY]
+Well, For the blue table border, we can make it narrower. However, this will affect the logo and hamburger menu.
+Herer is one option: remove the header from the gameplay area, similar to Real Mahjong, and manage the menu options through the Settings menu. For example, the End Game option is already available in the Settings menu, so we can manage it there as well.
+
+We can redesign the entire gameplay area, but I suggest making a few small changes first and then improving the game board step by step.
+
+I am currently working on some important points of game play. Once I complete them, I will start implementing these changes.
+
+#]
+WhatsApp Image 2026-10-25 at 2.03.10 AM
+Can this space be used for different copy every day? We would like to add tips that are always new like:
+Fit Tip #1:
+Developing a new skill challenges your brain to form new connections.
+Use the same size font as the subheading that is in there now now. Each day, we will have a new tip.
+
+
+
+
+
 
 ========== CURRNT BOT LOGIC ========== 
 
@@ -178,13 +620,186 @@ B4 C7 C7 J J
               "149": "J"
             }
 
+========================
+Key Goals:
+Pass-Count Validation (Engine):
+Prevent players (human or bot) from submitting the wrong number of tiles during Charleston rounds.
+Mandatory rounds require exactly 3 tiles.
+First Left, Last Right, and Courtesy rounds allow 0 to 3 tiles (blind/optional pass).
 
+Bot Blind Pass (AI Logic):
+Allow bots to pass fewer than 3 tiles during blind rounds (First Left, Last Right) when their hand is already close (
+≤
+3
+≤3 raw distance away from a feasible target hand).
+Only tiles with a keep score of 0 are passed; once a tile has keep score > 0, the bot stops picking.
+Plan-Based Joker Exchange (AI Logic):
+Prevent bots from giving away natural tiles needed for Pairs or Singles (where jokers are illegal under NMJL rules) unless the bot holds spare copies.
+Re-score the bot's plan before and after a hypothetical exchange using isJokerExchangeAllowedByPlan.
+If the weighted distance gain is 
+≥
+0
+≥0, allow the exchange; otherwise reject the exchange for that tile code.
+Comprehensive Test Suite:
+Create apps/unit-test/game-engine/bot-blind-pass-joker-exchange.spec.ts with 15 focused tests covering validation, blind passing, and plan-guided joker exchanges.
 ========== REPLY ========== 
-FOR CLIENT]
-[tech][Frontend development][D1] Game Play - Bot mahjong analyses and upgradation
-[tech][Frontend development][D1] Game Play - Test upgraded functionality tile assignment at initial and bot charleston round to pass the tiles and wall seat randomness
-[tech][Frontend development][D1] Game Play - Upgrade the tile assignment at initial and bot charleston round to pass the tiles and wall seat randomness
 
+FOR CLIENT]
+Today, I completed the below points.
+Step 4c: No jokers in pairs during Mahjong validation
+Step 5: Remaining rule behaviors
+5b: hand-order sync	Plan exists	My cross-check of the plan
+Step 6: Verification - Working on this
+6B: exposure-aware win check
+
+I build the new release and deploy the latest changes to the demo server. 
+Currently, I am testing the completed point to the demo server.
+
+I will keep you updated on the progress.
+Thank you!
+
+
+
+
+FOR CLIENT]
+Today, I completed the below points.
+Step 4a: pass validation, bot blind pass, plan-based joker exchange
+Step 4b: Fairness Diagnostics & Short-Game Anomaly Analysis
+In Step 4b, I also tested the actual gameplay by playing a few games. I identified one more improvement in the bot's Mahjong and winning-hand decision logic. The bot creates a valid hand structure but does not follow the suit rule. Therefore, I planned to implement this logic as well.
+
+I have divided Step 4 into multiple sub-steps based on task complexity:
+
+Step 4: Exposure Hard Filtering (Claims & Melds)
+Step 4a: Pass validation, bot blind pass, and plan-based joker exchange
+Step 4b: Fairness diagnostics and short-game anomaly analysis
+After completing the analysis in Step 4b, I identified another improvement and planned the following step:
+
+Step 4c: No jokers in pairs during Mahjong validation
+I have also made the required changes to the 2025.partial.rulepack.json file.
+
+Currently, I am working on Step 4c.
+
+I will keep you updated on the progress.
+
+Thank you!
+
+
+
+
+++++++++++
+CAROLYAN NEW MAIL
+
+SUB: Mahjfit Authentication Screens
+
+Hi Raj,
+Attached are reference pdf's for the updated authentication screens. 
+The layered PSD with all embedded Illustrator smart objects is on Dropbox here.
+Log In
+Sign Up Beta
+Sign Up Free
+Sign Up Premium
+A few notes:
+All forms are inline on the page, not modals or popups. 
+The white rounded shape behind each form is simply a graphic container.
+I've used the existing landing page copy where final authentication copy wasn't provided.
+For the Premium CTA, please confirm what happens next in that flow (is the next step payment or account creation?)
+Let me know if you have any questions or need anything else.
+Thank you! Carolyn
+
+PFA: Mahjfit_Authentication_Screens
+
+FOR CAROLYN]
+Thank you for providing the form designs!
+
+Two more forms are needed: Forgot Password and Start Game. However, there is no need to create them, as I will create them on my side using the provided designs as a reference.
+
+I will follow the same form layout, with minor adjustments to match the theme.
+
+Thank you!
+
+++++++++++
+OK- are we able to chanve the copy that is there now, or do we need our designer to do it?
+REPLY]
+No need designer to do this, in the home design I will move that text to there. And will give you the reference image when I start design related changes.
+
+NEW MSG 
+
+Hi- I am unable to access the game- would you let me know when it us up?
+REPLY]
+Well, I cross checked the log but everything is normal. 
+Is there something that demo site is not accessible or just game play area is not accesible.
+Because I can access the https://mahjfit-com.thatsend.dev/ and check the game is working fine.
+
+Thank you!
+
+
+NEW MSG 
+
+Hi Raj, We are trying to evaluate the spacnig situatioin on the board. 
+The tiles on the racks are too small, it is not a good experience for launch. 
+Since Carolyn is sending you PSD files, are you able to remove the racks all together and have the tiles directly on the purple board, or is that something she needs to do? 
+REPLY]
+I have reviewed the provided PSD, and yes, we can remove the rack borders and place the tiles directly on the purple board.
+
+We would also like to narrow the blue table boarder - but that will affect the logo and hamburger menu, so that is probably her department.? 
+REPLY]
+Well, For the blue table border, we can make it narrower. However, this will affect the logo and hamburger menu.
+Herer is one option: remove the header from the gameplay area, similar to Real Mahjong, and manage the menu options through the Settings menu. For example, the End Game option is already available in the Settings menu, so we can manage it there as well.
+
+We can redesign the entire gameplay area, but I suggest making a few small changes first and then improving the game board step by step.
+
+I am currently working on some important items. Once I complete them, I will start implementing these changes.
+
+
+FOR CLIENT]
+Today, I completed Step 3: Live Play Discards. After that, I tested a few games to verify the following completed features:
+Step 1: The Core Foundation (bot-plan.ts)
+Step 2: Charleston Unification (Integration)
+Step 3: Live Play Discards
+
+Based on the tests, the bot is now winning games as well. To improve accuracy, I need to test more games with different use cases and rule sets.
+
+Currently, I am working on Step 4: Exposure Hard Filtering (Claims & Melds). Once this step is complete, I will move on to the next step.
+
+I will keep you updated on the progress.
+
+Thank you!
+
+
+
+FROM CLIENT]
+Can this space be used for different copy every day? We would like to add tips that are always new like:
+
+Fit Tip #1:
+Developing a new skill challenges your brain to form new connections.
+
+Use the same size font as the subheading that is in there now now. Each day, we will have a new tip.
+
+FOR CLIENT]
+Yes, we can use this space for different copy every day. And for that we will add one more module in admin area to manage the everyday tips.
+I will add this point to our next phase development plan and will discuss when we start the next phase.
+
+Thank you!
+
+
+
+FOR CLIENT]
+Today, I am working to the backend side Mahjong Bot Upgrade, and also add the unit tesing for the Mahjong Bot.
+
+I have segamented the work in below steps and working on step by step. I already completed step 1 and 2 with the unit testing.
+Step 1: The Core Foundation (bot-plan.ts) 
+Step 2: Charleston Unification (Integration)
+Step 3: Live Play Discards
+Step 4: Exposure Hard Filterin (Claims & Melds)
+Step 5: Remaining rule behaviors
+Step 6: Verification
+
+This is the most important part of the game play.
+I will keep you updated on the progress.
+
+Thank you!
+
+FOR CLIENT]
 Today, I reviewed the code and implemented the updated tile assignment logic for the initial and bot Charleston rounds to ensure random distribution of tiles and wall tiles. After that, I deployed the changes to the demo server, tested the functionality, and documented the improvements.
 
 I then started working on the existing bot decision-making logic and Mahjong calls to win the game. I am currently working on this functionality.

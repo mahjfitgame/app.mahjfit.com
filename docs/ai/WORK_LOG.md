@@ -4,6 +4,68 @@ This log records verified development tasks, bug fixes, refactorings, and archit
 
 ---
 
+## [2026-10-28] Post-Charleston Tile Overlap & Exposure Isolation Fix
+
+- **Agent**: Antigravity
+- **Task**: Fix tiles overlapping each other on the rack after discarding the first tile or declaring exposures (e.g. 1 Crak overlapping 3 Dot, exposed 1 Craks overlapping rack tiles).
+- **Root Causes**:
+  - `setTablePhase()` blindly set `zone = "rack"` and made visible all tiles with `zone === "pass"`, including tiles that were passed away to opponents during Charleston.
+  - `reconcileRackTiles()` checked `zone !== "rack"` and restored exposed tiles back onto the rack because `isTileInAnyExposure()` only checked confirmed server melds, not pending local builds (`activeExposureBuildTileIds`).
+- **Files Modified**:
+  - `src/app/module/business/game/phaser/scenes/scene.ts`:
+    - Updated `setTablePhase()`: Destroys sprites of tiles that were passed away (`!validRackIds.has(id)`), only reviving kept tiles.
+    - Updated `reconcileRackTiles()`: Explicitly skips tiles in active exposure or pending exposure builds (`isExposed || existingRuntime.zone === "exposure"`), preventing exposed tiles from being pulled back onto the rack.
+- **Invariants Upheld**:
+  - `OLDCODE` / `NEWCODE` pattern strictly followed.
+  - No existing code deleted.
+  - TypeScript compilation check (`tsc --noEmit`) verified with 0 errors.
+
+---
+
+## [2026-10-28] Charleston Courtesy Pass & Post-Charleston Rack Tile Gap Fix
+
+- **Agent**: Antigravity
+- **Task**: Fix empty gap(s) on the bottom seat rack occurring during the Charleston Courtesy Pass and after all Charleston rounds complete into the "Discard a tile" phase.
+- **Root Causes**:
+  - Tiles staged for passing had `zone = "pass"`, `visible = false`, and `scaleX = 0`.
+  - When the server confirmed these tiles in the player's hand, `reconcileRackTiles()` only revived tiles with `zone === "exposure"`, skipping tiles with `zone === "pass"`.
+  - `layoutRackTiles()` skipped any runtime with `zone === "pass"`, while placing subsequent tiles according to `this.rackOrder`, resulting in physical 1-tile gaps.
+  - `setTablePhase()` did not restore lingering pass-zone tiles when leaving `PASSING` into `PLAYING`.
+- **Files Modified**:
+  - `src/app/module/business/game/phaser/scenes/scene.ts`:
+    - Updated `reconcileRackTiles()`: Unconditionally resets `zone = "rack"`, kills tweens, resets `scale = 1`, `visible = true`, and `interactive = true` for all server-confirmed rack tiles.
+    - Updated `setTablePhase()`: When leaving `PASSING`, restores any lingering pass tiles back to rack zone and calls `layoutRackTiles(true)`.
+- **Invariants Upheld**:
+  - `OLDCODE` / `NEWCODE` pattern strictly followed across all changes.
+  - No existing code deleted.
+  - Simple syntax and concise English comments (max 2-3 lines).
+  - TypeScript compilation check (`tsc --noEmit`) verified with 0 errors.
+
+---
+
+## [2026-10-28] Charleston Courtesy Pass Rack Tile Sync & Redirection Fix
+
+- **Agent**: Antigravity
+- **Task**: Fix 2 missing tiles on the Phaser rack after Charleston Courtesy Pass across with 2 tiles. Ensure the rack tile order strictly follows the order received from the server API response.
+- **Root Causes**:
+  - `rack:order` listener ignored incoming server order updates due to strict `shouldApply` gating (`!hasAppliedInitialRackOrder || isExplicitSortRequested`).
+  - `newRackOrder` dropped newly received tiles because it strictly filtered `this.rackOrder.includes(id)`.
+  - In `commitBotPassVisualTilesToRacks`, `3 - passWaitingTileIds.length` redirected 1 tile away from the bottom rack on a 2-tile pass because courtesy pass does not steal or redirect tiles.
+  - `animateBotTransferToWaitingArea` hardcoded 3 tile transfers instead of matching the courtesy pass tile count.
+- **Files Modified**:
+  - `src/app/module/business/game/phaser/scenes/scene.ts`:
+    - Updated `rack:order` event listener to apply when `isServerOrderChanged`, taking all valid rack tiles from server `order`.
+    - Updated `reconcileRackTiles` to include newly arrived tiles into `rackOrder` and synchronize `this.rackOrder` with incoming API tiles.
+    - Updated `animateBotTransferToWaitingArea` to use `count = isCourtesy ? this.passWaitingTileIds.length : 3`.
+    - Updated `commitBotPassVisualTilesToRacks` to use `bottomTilesToRedirect = isCourtesy ? 0 : 3 - this.passWaitingTileIds.length`.
+- **Invariants Upheld**:
+  - `OLDCODE` / `NEWCODE` pattern strictly followed across all changes.
+  - No existing code deleted.
+  - Simple syntax and concise English comments (max 2-3 lines).
+  - TypeScript compilation check (`tsc --noEmit`) verified with 0 errors.
+
+---
+
 ## [2026-10-21] Mahjong Button Click Error Feedback & Error Sound
 
 - **Agent**: Antigravity
@@ -149,5 +211,27 @@ This log records verified development tasks, bug fixes, refactorings, and archit
   - All modified code preserved with `OLDCODE` / `NEWCODE` markers.
   - `todo/Frontend Development.txt` strictly excluded.
   - Validated with `npx tsc --noEmit` (clean 0 exit code).
+
+---
+
+## [2026-10-26] Fix: Tile Exposure vs Discard State Guard & Cleanup
+
+- **Agent**: Antigravity
+- **Problem**: When double-clicking or dragging a tile (such as 9 Crack) during a player's normal turn (`NEED_DISCARD`), the tile went to the bottom exposure tray instead of discarding.
+- **Root Cause**:
+  1. `this.exposureBuildAsset` lingered in Phaser memory from a previous reversed/abandoned call because neither `table:turn_stage`, `reversePendingCall()`, nor `returnExposureTileToRack()` cleaned it up when leaving exposure stage.
+  2. `canAddTileToBottomExposure()` did not check `turnStage === NEED_EXPOSURE` and only verified `exposureBuildAsset` and asset matching.
+  3. Double-click handler prioritizes exposure addition before discard, causing the rack tile to be routed into the exposure tray.
+- **Solution**:
+  1. Added turn stage guard in `canAddTileToBottomExposure()` requiring `GameTurnStageEnum.NEED_EXPOSURE` before allowing any rack tile into exposure.
+  2. Cleaned up `exposureBuildAsset` and `activeExposureBuildTileIds` in `table:turn_stage` handler whenever transitioning out of `NEED_EXPOSURE`.
+  3. Cleaned up `exposureBuildAsset` and filtered `activeExposureBuildTileIds` in `reversePendingCall()`.
+  4. Reset `exposureBuildAsset = undefined` in `returnExposureTileToRack()` when no exposure tiles or build tile IDs remain.
+  5. Cleared `exposureBuildAsset = undefined` upon confirming exposure in `handleHtmlMahjongAction()`.
+- **Invariants Upheld**:
+  - All modified code preserved with `OLDCODE` / `NEWCODE` markers.
+  - `todo/Frontend Development.txt` strictly excluded.
+  - Validated with `npx tsc --noEmit` (clean 0 exit code).
+
 
 

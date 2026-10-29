@@ -17,4 +17,9 @@ import { MatMenuModule } from '@angular/material/menu';
     styleUrl: './style.scss',
     imports: [MatIconModule, MatButtonModule, MatDividerModule, MatMenuModule],
 })
-export class DesignHtmlComponent {}
+export class DesignHtmlComponent {
+    gameRoute() {
+        console.log('gameRoute');
+        window.location.href = '/game';
+    }
+}

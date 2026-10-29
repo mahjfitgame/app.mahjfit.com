@@ -1,3 +1,599 @@
+
+I like you planing and go with this, but before start implementation 
+I would like first give me the After, Before code snippet of each file and create the new md file under todo folder, and file name like {phase}-after-before-plan-{taskName}.md
+
+1]
+Keep the code syntax simple that 6 month experience developer can understand and maintain it.
+2]
+The code comment should be simple english and too the point which help to easy to understand, do not use much technical it simple and too the point.
+
+
+
+2]
+Do not add big comment, only need max 2 to 3 lines of comment and in simple english and to the point.
+
++++++++ CROSS CHECK +++++
+#]
+How BONUS work and what it the meaning of this.
+5.1. Tile Consumption During Mah Jongg Validation (rule.ts)
+During Mah Jongg validation (isMahjongForRack → findMatchingRuleHands), group matching proceeds via matchGroups(groups, assignment, bag).
+
+Tile consumption occurs in matchGroups as follows:
+
+BONUS (rule.ts:2880): Calls this.bagDecMaybeJokers(work, 'F' as TileKey, g.count, g.jokerAllowed ?? false). Only applies to Flowers (F), not suited tile pairs.
+SINGLES (rule.ts:2894): Calls this.consumeTileSpec(work, it.tile, 1, a, false). jokerAllowed is hardcoded to false.
+NEWS (rule.ts:2920): Calls this.bagDec(work, ...) with count 1. No jokers are allowed.
+SET (rule.ts:2936): Calculates required count need (PAIR = 2, PUNG = 3, KONG = 4, QUINT = 5) and calls: this.consumeTileSpec(work, g.tile, need, a, g.jokerAllowed) Inside consumeTileSpec (rule.ts:2991), jokerAllowed is passed to this.bagDecMaybeJokers(copy, k, count, jokerAllowed).
+Audit Confirmation: The SET case of matchGroups (rule.ts:2959) is the only place in the engine where a PAIR group can receive jokerAllowed: true and consume jokers during Mah Jongg validation.
+
+#]
+personal > seat > hands > tiles
+Need to cross check when tile is in exposure it also update the data time in tile in_exposure_one and sort_exposure_one and remove date time from the in_rack_one
+Same fot rack_two
+
+#]
+Before moving forward, I would like to make sure one thing for the game rule jsond and code.
+For example if we follow the rule below
+{
+            "id": "NMJL_2026_13579_1_11_333_55_777_9999",
+            "label": "11 333 55 777 9999 (Any 1 or 3 suits)",
+            "tilesTotal": 14,
+            "value": {
+                "kind": "X",
+                "mult": 25
+            },
+            "vars": {
+                "S11": {
+                    "type": "SUIT",
+                    "domain": [
+                        "BAM",
+                        "DOT",
+                        "CRAK"
+                    ]
+                },
+                "S33": {
+                    "type": "SUIT",
+                    "domain": [
+                        "BAM",
+                        "DOT",
+                        "CRAK"
+                    ]
+                },
+                "S55": {
+                    "type": "SUIT",
+                    "domain": [
+                        "BAM",
+                        "DOT",
+                        "CRAK"
+                    ]
+                },
+                "S77": {
+                    "type": "SUIT",
+                    "domain": [
+                        "BAM",
+                        "DOT",
+                        "CRAK"
+                    ]
+                },
+                "S99": {
+                    "type": "SUIT",
+                    "domain": [
+                        "BAM",
+                        "DOT",
+                        "CRAK"
+                    ]
+                }
+            },
+            "constraints": [
+                {
+                    "type": "distinctCountAllowed",
+                    "vars": [
+                        "S11",
+                        "S33",
+                        "S55",
+                        "S77",
+                        "S99"
+                    ],
+                    "allowed": [
+                        1,
+                        3
+                    ]
+                }
+            ],
+            "groups": [
+                {
+                    "kind": "SET",
+                    "setType": "PAIR",
+                    "tile": {
+                        "kind": "SUITED",
+                        "suitVar": "S11",
+                        "rank": 1
+                    },
+                    "jokerAllowed": false
+                },
+                {
+                    "kind": "SET",
+                    "setType": "PUNG",
+                    "tile": {
+                        "kind": "SUITED",
+                        "suitVar": "S33",
+                        "rank": 3
+                    },
+                    "jokerAllowed": true
+                },
+                {
+                    "kind": "SET",
+                    "setType": "PAIR",
+                    "tile": {
+                        "kind": "SUITED",
+                        "suitVar": "S55",
+                        "rank": 5
+                    },
+                    "jokerAllowed": false
+                },
+                {
+                    "kind": "SET",
+                    "setType": "PUNG",
+                    "tile": {
+                        "kind": "SUITED",
+                        "suitVar": "S77",
+                        "rank": 7
+                    },
+                    "jokerAllowed": true
+                },
+                {
+                    "kind": "SET",
+                    "setType": "KONG",
+                    "tile": {
+                        "kind": "SUITED",
+                        "suitVar": "S99",
+                        "rank": 9
+                    },
+                    "jokerAllowed": true
+                }
+            ]
+        },
+Now my doubt is, how code matched the suit, becuase with this rule we can do below possible winning hand
+WITH 1 SUITE
+11 333 55 777 9999 we can follow any suit (BAM or DOT or CRACK)
+
+OR
+But with 3 suit, we can make below possible hands with the different suit group.
+(11 333 - BAM) (55 777 - CRACK) (9999 - DOT)
+(11 333 - BAM) (55 777 - DOT) (9999 - CRACK)
+(11 333 - CRACK) (55 777 - BAM) (9999 -DOT)
+(11 333 - CRACK) (55 777 - DOT) (9999 -BAM)
+(11 333 - DOT) (55 777 - CRACK) (9999 -BAM)
+(11 333 - DOT) (55 777 - BAM) (9999 -CRACK)
+
+
+Now, how code handle this. Is this corrent code checking with the same for the Mahjong wining hand.
+Because here, it must matched the suit with the group combination. 
+11 333 in same suit
+55 777 in same suit
+9999 other suit
+
+
+++++++++
+MAKE POINTS
+Before we read the next seat hand with the FAST bot game play. And now we upgrade the logical flow so what we updated in this. 
+How bot take decision as per the next seat is bot and human (Real player)?
+
+How bot take decision according to its level? 
+What are the differentage in decision making process as per the bot level?
+
+++++++
+Step 4a is complete and verified:
+
+Charleston pass-count validation per round is strictly enforced in the engine.
+Bots utilize blind passing on First Left and Last Right when distance $\le 3$.
+Joker exchanges are scored by the plan with dual protection (gain >= 0 && newNaturalNeed <= 0), preventing sacrifice of irreplaceable Singles/Pair tiles.
+17/17 tests in bot-blind-pass-joker-exchange.spec.ts pass cleanly.
+
+In the Step 3b and Step 4a benchmarks, two diagnostic anomalies were identified:
+Seat Win Imbalance: Seats 1 and 3 won ~75% of Mah Jongg games across the 50-game baseline (e.g. 30 of 40 wins), while Seats 2 and 4 had low win rates.
+Short-Game Anomaly: Certain seeds finish in very few turns (e.g. 7–15 turns). We must verify whether these short games are 100% legitimate NMJL wins (e.g. god-tier deal + lucky Charleston) or indicate a claim/validation loophole.
+-------
+CRITICAL RULE FOR STEP 4b: THIS STEP IS ANALYSIS AND DIAGNOSTICS ONLY. NO PRODUCTION CODE CHANGES. Do NOT modify rule.ts, bot.ts, bot-plan.ts, service.ts, or any other production engine file. All diagnostic code must reside in a dedicated test file: apps/unit-test/game-engine/bot-fairness-diagnostics.spec.ts.
+
+Part 1: 
+Per-Seat Fairness Diagnostics across 50 Baseline Seeds (Seeds 1001–1050)
+Simulate the 50 standard baseline seeds using the existing headless harness functions (runSimulationGame) and measure the following metrics broken down by seat ($1, 2, 3, 4$):
+
+Win Distribution:
+Total Mah Jongg wins per seat and win percentage.
+Deal Advantage (Starting Hand Quality):
+Average initial raw distance per seat immediately after tile deal.
+Average initial number of Jokers dealt per seat.
+Charleston Impact by Seat:
+Average raw distance reduction during Charleston per seat: $$\Delta \text{dist} = \text{dist}{\text{deal}} - \text{dist}{\text{afterCharleston}}$$
+Average number of tiles passed and received per seat.
+Courtesy pass impact: Compare trade outcomes of Seat 1 $\leftrightarrow$ Seat 3 versus Seat 2 $\leftrightarrow$ Seat 4.
+Live Play Claim & Turn Advantage:
+Number of claims attempted vs number of claims successfully won per seat.
+Multi-claim resolution rate: When multiple seats intend to claim a tile, how often does turn distance around the table favor Seat 1 or Seat 3?
+Dealer Rotation Control Test (Is it East or the Seat Index?):
+Run a 20-game control sub-experiment where dealer (East, 14 tiles) rotates to Seat 2, Seat 3, Seat 4.
+Determine whether the win skew follows East (the dealer advantage) or follows Seat 1/3 (an iteration/tie-breaking artifact).
+
+
+
+
+Part 2: 
+Short-Game Turn-by-Turn Trace (Shortest Game Analysis)
+Find the game with the minimum turns among the 50 baseline games (or isolate the known shortest game, e.g., Seed 1001 or any game finishing in $\le 20$ turns):
+
+Log Full Lifecycle:
+Dealt tiles to the winning seat.
+Plan target hypotheses selected after deal.
+All 6 Charleston passes submitted and received by the winning seat.
+Post-Charleston hand and raw distance.
+Turn-by-turn live play log: each draw, claim call, exposure meld, and discard.
+Final winning state: verify hand tiles against isMahjongForRack and confirm that all NMJL constraints (Pung/Kong sizes, no jokers in singles/pairs, valid 14-tile combination) were 100% satisfied.
+Confirm Mechanism:
+State clearly whether the rapid win was caused by:
+A legitimate "god deal" where Charleston yielded a 0-away or 1-away hand, OR
+An engine defect (e.g. premature win call, incorrect tile count, or phantom claim).
+
+
+
++++ MIXXXXXXXXXXXX 4 ++++++
+American Mahjong Bot Upgrade — Step 4b: Fairness Diagnostics Report
+
+
+Q4. Charleston Direction Analysis
+In standard NMJL rules, the first pass goes to the player on your Right, who is the player who plays next after you (next_seat_by_id[1] = 2).
+
+In 
+
+rule.ts
+:
+
+typescript
+599: const targetOf = (pos: number) => {
+600:     if (pass.direction === GamePhaseFirstRoundDirectionEnum.RIGHT) {
+601:         return activeSeatsIDs[(pos - 1 + activeSeatsIDs.length) % activeSeatsIDs.length];
+602:     }
+603:     if (pass.direction === GamePhaseFirstRoundDirectionEnum.LEFT) {
+604:         return activeSeatsIDs[(pos + 1) % activeSeatsIDs.length];
+605:     }
+For Seat 1 (pos = 0), RIGHT computes (0 - 1 + 4) % 4 = 3, returning Seat 4.
+LEFT computes (0 + 1) % 4 = 1, returning Seat 2.
+Conclusion: 
+The engine's Charleston RIGHT and LEFT pass directions are mirrored: RIGHT passes go counter-clockwise to Seat 4 instead of clockwise to the next turn player (Seat 2). Because this geometry is rotationally symmetric, it does not create seat asymmetry, but it is an engine discrepancy with standard NMJL card rules.
+
+
+---
+4. Root Causes
+Benchmark Seat Imbalance is East Position Advantage + Sampling Noise (Confidence: HIGH) Rotating the dealer completely eliminates seat-number variance ($p = 0.3026$), while position remains significant ($p = 0.0263$). The benchmark fixed Seat 1 as East in 100% of games.
+East Advantage is Driven by the 14-Tile Deal (Confidence: MEDIUM) East starts $0.34$ tiles closer and finishes the Charleston $0.32$–$0.45$ tiles closer.
+Short Games Caused by Illegal Joker Acceptance in Pairs (Confidence: HIGH) In 
+
+2025.partial.rulepack.json
+, 13 PAIR groups incorrectly set jokerAllowed: true. In 
+
+rule.ts
+, matchGroups respects this flag, whereas the distance planner (matchGroupsWithDistanceDetails) explicitly overrides pairs to false. This allowed bots to win with jokers in pairs.
+Validation Ignores Exposure Grouping (Confidence: HIGH) isMahjongForRack evaluates the entire rack (concealed + exposed) as an unconstrained bag of 14 tiles, allowing melds to satisfy groups of different sizes (e.g. exposed pung satisfying a kong requirement).
+Charleston Direction Mirrored (Confidence: HIGH) 
+
+rule.ts:600-605
+ routes RIGHT to Seat 4 instead of Seat 2.
+
+---
+5. Recommended Next Steps (For Future Phases — Not Implemented Here)
+Enforce Pair Joker Prohibition in Mah Jongg Validation: In 
+
+rule.ts
+: update matchGroups to force jokerAllowed = false whenever g.setType === 'PAIR' (identical to matchGroupsWithDistanceDetails), and clean up the 13 errant pair flags in 2025.partial.rulepack.json.
+Enforce Exposure Structural Integrity: Ensure each exposure in isMahjongForRack is matched 1-to-1 against a corresponding group of identical type and size in the candidate hand.
+Correct Charleston Pass Geometry: In 
+
+rule.ts:599-605
+, swap LEFT and RIGHT indices in targetOf so RIGHT directs to (pos + 1) % 4 (next_seat_by_id).
+Benchmark Dealer Rotation: Update benchmark testing to evaluate 4-seat dealer rotations (seeds distributed across dealer seats 1–4) so natural East advantage is measured separately from seat identity.
+Stopping here per instructions; Step 4c has not been started.
+
+++++++
+
+
+1.
+The report file is out of date. phase-4c-after-before-plan-no-jokers-in-pairs.md still shows the Phase 1 plan:
+
+It still shows the old test code: it expects BadRequestException, calls mahjong() with the wrong arguments, and is missing tests 9 and 10.
+It still describes File 3 as planned work.
+File 1's "after" is missing the two FF guards.
+It ends with "stopped at the end of Phase 1" and has no Phase 2 test or benchmark output.
+In the 5.2 table, the caller at bot.ts:2183 is doesDiscardGiveMahjongToNextSeat, not canClaimMahjongWithTile.
+2.
+The 4b diagnostics were not re-run. They write to tracked files in diagnostics-output/, and none of those files changed.
+
+3.
+My mistake: I said to expect 0 joker-in-pair wins on the re-run. That's wrong. Two 2026 wins already carry that label, even though the 2026 card has no pair jokers:
+
+Seed 1016, dealer 3: the player exposed a natural B6 pung, then held B6 + J in the hand as the 66 pair.
+Seed 1020, dealer 4: same pattern, with a natural B5 pung exposed and B5 + J in the hand as the 55 pair.
+The win check ignores exposures, so it pools all the tiles and finds a joker-free arrangement. The new guard can't see this case; only the exposure-aware win check (4b fix 2) fixes it. On the re-run, expect 0 joker-in-pair wins where strictFit is false. Wins where strictFit is true are this exposure problem and will remain.
+
+Optional, minor: the two FF guards have no comment, unlike the code around them, and the FF guard in the distance check has no test.
+
+What Step 4c does not fix (unchanged)
+The suit bug: the 2025 card still accepts the 22 44 66 88 pairs in mixed suits.
+Jokers in pairs next to exposures, as in point 3 above.
+
+++++++
+I played the game and manually identify the mahjong game by bot seat. 
+Bot is winning with the below hand, but it not follow the suits rule. This is not the valide winning hand. 
+
+I think it follows the rule "FF 11 33 55 111 111-or-FF 55 77 99 555 555 (Any 3 Suits, These Nos. Only)
+35"
+
+FF 55 77 99 555 555
+
+
+	• B5 B5 B5 (BAM 5)
+	• D5 (DOT 5) J J 
+	• B7 B7 (BAM 7)
+	• C9 C9 (CRACK 9)
+	• C5 C5 (CRACK 5)
+	• FL FL (FLOWERS)
+
+
+But here I think mistkes is B7 pair it should be crack as per the rule.
+
+
+1. The Structure Match
+
+• FF → FL FL (Perfect match)
+• 55 → C5 C5 (Crack 5 Pair)
+• 77 → B7 B7 (Bam 7 Pair) — This is the mismatch
+• 99 → C9 C9 (Crack 9 Pair)
+• 555 555 → B5 B5 B5 (Bam 5 Pung) + D5 (with J J) (Dot 5 Pung using Jokers)
+
+2. The Color/Suit Rule (The Mistake)
+
+The card shows this hand in three colors (Green, Blue, and Red), which means it requires three distinct suits.
+• The first group of pairs (55 77 99) are all printed in Green, meaning they must all be the same suit. Since the 5s and 9s are Cracks, the 7s must be Cracks (C7 C7) to satisfy the rule.
+• The two Pungs (555 555) are printed in Blue and Red, meaning they must be the other two suits (Bams and Dots). The tiles correctly hit this requirement using Bam 5s and Dot 5s.
+
+
+
+This is the one example I identify to playing game and check the wining hand manually. 
+You have to do proper analyses to identify exact root cause with the all winning rules and also if there uis other possibilities. This also effect in the bot decision making so you also have to check the current bot decision making process and identify the root cause. 
+Do not change in the code first analysed and identify the issue. think surrounding with all completed Phases 1 to 4a.
++++++++++
+
+ALso cross check the other AI Agent response, see you and the other AI Agent give the different things and confusing me to decide which is batter solution and when start implementation. Now you both are the expert then why are you not grab the right things and give one proper solution, so that I can easly undesrtand and give the command for the implementation, You both are confusing me and becuase of that to do the single things take much time in analyse and correction. 
+
+=============
+# MISSION: American Mahjong Bot Upgrade — Step 1 of 4: BotPlan core (additive only)
+
+Act as a senior engineer TypeScript/NestJS game-engine engineer specializing in American Mahjong and NMJL rules. A human will audit every line. Priorities: correctness,
+simplicity, readability. Flat logic with guard clauses; no nested ternaries; functions
+≤ 30 lines (split into small private helpers as needed); a JSDoc above every function
+stating Input, Output, Side effects. Match the style of the surrounding code.
+Never mutate input arrays or objects; return new ones. Do NOT commit.
+If anything is ambiguous, STOP and ask. Do not guess.
+
+## Scope of THIS step (hard limits)
+- Build the planner as NEW, UNUSED code. No existing bot decision may change behavior.
+- Files you may touch (folder `apps/app/src/graphql/business-app/game-engine/` unless noted):
+  1. NEW `bot-plan.ts`: `@Injectable() GameEngineBotPlan`, injecting `GameEngineRule` and `GameEngineCache`
+  2. `type.ts`: add the types below
+  3. `rule.ts`: ONLY add an optional `usedTiles` field to `GroupMatchDetails`, filled at the end of
+     `matchGroupsWithDistanceDetails` as `usedTiles[k] = bag.get(k) − work.get(k)` for every key
+     where the difference is > 0. Do not change any other field, the consumption order, or any
+     return value.
+  4. `cache.ts`: add prefix `'bplc-'`, `getBotPlanCacheKey(cid)`, `getBotPlans(cid)` and
+     `setBotPlans(cid, store)` with the same 220-minute TTL as the other keys, and add the key to
+     `deleteAllGameCaches`
+  5. `module.ts`: register `GameEngineBotPlan` as a provider (do not export it)
+  6. NEW `apps/unit-test/game-engine/bot-plan.spec.ts`
+- Do NOT modify `bot.ts`, `service.ts`, `ws.ts`, `state.ts`, `dto.ts`, or any rulepack JSON.
+
+Before changing anything: run all specs in `apps/unit-test/game-engine/`, including
+`bot-simulation.spec.ts`, and save the output as the baseline. If a spec needs a database or
+server that isn't available, record it as skipped; do not modify it.
+
+## Background (do not fix these in this step)
+- `(rack as any).target_hypotheses` leaks to clients via `derivePlaySeats`.
+- Pass, claim, and discard each compute candidate hands separately.
+- Exposures never narrow the candidate hands; `meldSpecs` is never passed to `getTopCandidateHands`.
+- The discard path ignores exposures (hand-only, `hasExposures = false`).
+- The hypothesis cache is keyed on tile count, so it goes stale during the Charleston.
+- The FAST bot reads the next seat's hidden hand and the wall's tiles.
+
+## Types (in type.ts; reuse existing `Assignment`)
+Tile maps use `Record<string, number>` keyed by TileKey strings, matching
+`GroupMatchDetails.neededTiles`. Do NOT use `Record<TileKey, number>`: TileKey has literal
+members, which would make every one of them a required key.
+```ts
+export type BotPlanEvent =
+  'DEAL' | 'CHARLESTON_RECEIVE' | 'CHARLESTON_DONE' | 'EXPOSURE' | 'TURN' | 'REPLAN';
+
+export type BotPlanStage = 'AFTER_DEAL' | 'AFTER_CHARLESTON' | 'AFTER_EXPOSURE';
+
+export interface BotTargetHypothesis {
+  key: string;                         // `${ruleId}|${stable JSON of assignment, keys sorted}|${variantIndex ?? '-'}`
+  ruleId: string;
+  assignment: Assignment;
+  variantIndex: number | null;         // index into groupsAnyOf; null when the rule uses `groups`
+  rawDistance: number;
+  scarcityPenalty: number;
+  isFeasible: boolean;
+  isConcealed: boolean;
+  neededTiles: Record<string, number>; // tiles still MISSING
+  usedTiles: Record<string, number>;   // tiles ALREADY IN THE RACK (hand + exposures) this hand uses; jokers under 'J'
+  weight: number;
+}
+
+export interface BotPlan {
+  hypotheses: BotTargetHypothesis[];
+  version: number;                     // set by saveBotPlan: previous saved version + 1
+  lastEvent: BotPlanEvent;
+}
+
+export type BotPlanStore = Record<number, Record<number, BotPlan>>; // seatId -> rackId -> plan
+```
+Critical definition: keep and discard decisions use `usedTiles`, NEVER `neededTiles`.
+A tile that already completes a group is in `usedTiles` and is not in `neededTiles`.
+
+## Public functions of GameEngineBotPlan
+No `Math.random`, no globals. Only `saveBotPlan` has a side effect.
+| Function | Behavior |
+|---|---|
+| `getPoolSize(botLevelId, stage)` | → number. `BotLevelModeEnum` EASY 3/2/1, NORMAL 6/3/2, FAST 10/5/2 for AFTER_DEAL / AFTER_CHARLESTON / AFTER_EXPOSURE. Missing or unknown level → EASY (the same default game creation uses in service.ts). |
+| `buildHypothesesForRack(state, seatId, rack, poolSize)` | async → `BotTargetHypothesis[]`. Load the rule pack with `getCachedYearRules(state.game.grule_id)` + `getTheRulePackByYear`; return `[]` if missing. Bag = hand + exposures (`buildRackAllTilesForMahjongCheck` + `convertPhysicalTilesToKeys`). Dead counts = `getPublicDeadTileKeyCounts(state, seatId)` (public tiles only: discards and other seats' exposures). Score every (rule × assignment from `getValidAssignmentsForRule` × variant) with `matchGroupsWithDistanceDetails`. If the rack has exposures (`extractMeldSpecsFromRack(rack, state.game.all_tiles)`), skip entries failing `isHypothesisCompatibleWithExposures`. Set `weight` with `computeHypothesisWeight`. Sort with `compareHypotheses`, keep at most `MAX_HYPOTHESES_PER_RULE = 3` per ruleId, return the first `poolSize`. |
+| `isHypothesisCompatibleWithExposures(rule, assignment, variantIndex, meldSpecs)` | → boolean. Empty meldSpecs → true. Concealed rule (`isConcealedRule`) → false. Otherwise `canRuleGroupsSatisfyMelds` on that variant's groups (`rule.groups`, or `rule.groupsAnyOf[variantIndex].groups`). |
+| `compareHypotheses(a, b)` | Sort order: feasible first → rawDistance asc → scarcityPenalty asc → key asc (deterministic). |
+| `computeHypothesisWeight(h)` | → `isFeasible ? Math.exp(-0.5 * rawDistance) / (1 + scarcityPenalty) : 0` |
+| `rerankWithHysteresis(previous, fresh, margin = 2)` | 1) previous or fresh empty → fresh. 2) Find `previous[0].key` in fresh; absent → fresh. 3) If that entry's rawDistance − `fresh[0].rawDistance` ≥ margin → fresh. 4) Otherwise move that entry to the front (use the fresh entry, not the stale one) and keep the rest in fresh order. |
+| `filterByExposures(hypotheses, meldSpecs, rulePack)` | → hypotheses passing `isHypothesisCompatibleWithExposures`. Empty meldSpecs → input unchanged (as a new array). |
+| `pruneInfeasibleHypotheses(hypotheses, maxGap = 3)` | Drop infeasible ones and any with rawDistance > (best feasible rawDistance + maxGap). No feasible → `[]`. |
+| `isPlanEmpty(plan)` | null/undefined plan or zero hypotheses → true |
+| `computeTileKeepScore(tileKey, copiesInRack, hypotheses)` | copiesInRack < 1 → 0. Otherwise Σ weight of hypotheses where `(usedTiles[tileKey] ?? 0) >= copiesInRack`. copiesInRack = copies in hand + exposures, the same tiles that built usedTiles. Meaning: discarding one copy hurts only hands that use every copy held. |
+| `getBotPlan(keyid, seatId, rackId)` | async → `BotPlan` or null. Read only, via `GameEngineCache.getBotPlans`. |
+| `saveBotPlan(keyid, seatId, rackId, plan)` | async → the saved plan. The ONLY caller of `setBotPlans`. Sets `version` = previous saved version + 1 (1 if none), then writes the whole store. JSDoc must state: read-modify-write, so callers must not save concurrently for the same game (RedisCache has no atomic hash operations). |
+
+## NMJL rules
+Encoded in this step:
+- Concealed hands can't have exposures (`isHypothesisCompatibleWithExposures`, `buildHypothesesForRack`).
+- An exposure must match a SET group exactly in tile and size, and exposed sets can't grow
+  (`canRuleGroupsSatisfyMelds` already matches set type strictly).
+Context only (later steps; do NOT implement claim or pass logic now):
+- Concealed hands may claim a discard only for Mah Jongg.
+- Pairs, singles, NEWS, and year groups can't be claimed except for Mah Jongg; jokers can't fill pairs or singles.
+- Jokers are never passed in the Charleston.
+
+## Tests (bot-plan.spec.ts)
+Follow the setup in `charleston-bot-strategy.spec.ts` (mocked GameEngineCache, real 2026 rule pack).
+Mock `getBotPlans` / `setBotPlans` with jest.fn.
+1. Complete Pung of X in the rack → `usedTiles[X] = 3` and X is not in `neededTiles`.
+2. A `groupsAnyOf` hand → `variantIndex` is set; `usedTiles` and `neededTiles` match that variant.
+3. Keep score: 3 copies held, hypothesis uses 2 → 0; 2 held, uses 2 → its weight; copiesInRack 0 → 0.
+4. With an exposure: concealed and mismatched hypotheses are excluded; empty meldSpecs → unchanged.
+5. Hysteresis: keeps the leader at margin − 1, switches at margin, switches when the leader is missing.
+6. Pool sizes for every level × stage, plus unknown level → EASY sizes.
+7. Same input twice → identical hypothesis keys in identical order.
+8. `saveBotPlan` increments version; `getBotPlan` never calls `setBotPlans`.
+
+## Acceptance (run all, report output)
+1. `npm run build:app` passes.
+2. `npx jest apps/unit-test/game-engine/bot-plan.spec.ts` passes.
+3. Every other spec in `apps/unit-test/game-engine/` matches the baseline run.
+4. The `bot-simulation.spec.ts` aggregate report is identical to the baseline
+   (proof that no behavior changed).
+5. `git diff --stat` shows only the allowed files.
+Then STOP and report: files changed, public and private functions with line counts,
+test output before and after, the bot-simulation report before and after, and open questions.
+Do not start Step 2.
+
+++++++++++++++++++++++++++++
++++++++++SKIP PHASE 0 AND MOVE TO ABOVE PHASE 1+++++++
+++++++++++++++++++++++++++++
+
+# MISSION: American Mahjong Bot — Phase 0: bug fixes only (no strategy redesign)
+
+Act as a senior engineer. A human will audit every line. Priorities: correctness,
+simplicity, readability. Flat logic with guard clauses; no nested ternaries; functions
+≤ 30 lines; a JSDoc above every new or changed function stating Input, Output,
+Side effects. Match the surrounding code style. Do NOT commit.
+If anything is ambiguous, STOP and ask. Do not guess.
+
+## Scope
+Folder: `apps/app/src/graphql/business-app/game-engine/`
+Files you may change: `bot.ts`, `rule.ts`, `service.ts` (derivePlaySeats only), `type.ts`.
+New test file: `apps/unit-test/game-engine/bot-phase0.spec.ts`.
+Do NOT touch: Mah Jongg validation (`isMahjongForRack`, `findMatchingRuleHands`, and the
+`buildRackAllTilesForMahjongCheck` call in rule.ts near line 1615), claim legality
+(`computeClaimOptionsForRack`), Charleston pass legality, `BotInfoModeEnum` (GraphQL schema),
+and the unused functions `botChooseDiscardTileOLD`, `botChooseDiscardTileWW`,
+`calculatePeekDiscardPenalty*`, `calculateDiscardRiskAgainstHidden*`.
+List those unused functions in your report instead of deleting them.
+
+Before changing anything: run all specs in `apps/unit-test/game-engine/` and save the output.
+
+Deliver four independent change sets, A–D. Report the diff of each one separately.
+
+## Change set A — Stop leaking bot hypotheses to clients
+1. Rename `getOrCreateBotTargetHypotheses` to `computeBotTargetHypotheses`. It must NOT write
+   anything onto the rack: remove the `target_hypotheses`, `last_eval_tile_count` and
+   `last_eval_phase` writes and the cache check.
+   First verify and state in your report: it is only called during claim windows in the
+   PLAYING phase, where the old cache was already bypassed, so behavior is unchanged.
+2. In `derivePlaySeats` (service.ts), also strip `target_hypotheses`, `last_eval_tile_count`
+   and `last_eval_phase` from each rack. Games already in Redis at deploy time still carry them.
+
+## Change set B — Bot distance math must respect the bot's own exposures
+1. `rule.ts` `computeMinimumDistanceToMahjong`: add an optional last parameter
+   `meldSpecs?: MeldSpec[]`. When it is non-empty, skip every (rule, assignment) for which
+   `isRuleCompatibleWithMeldSpecs(rule, assignment, meldSpecs)` is false.
+   When it is undefined or empty, behavior must be byte-for-byte identical.
+2. `computeRackDistanceToCard`: pass `extractMeldSpecsFromRack(rack, allTiles)`.
+3. `computeBotTargetHypotheses`: pass the rack's meldSpecs to `getTopCandidateHands`, and drop
+   results where `isExposureCompatible === false` before returning.
+4. `botChooseDiscardTile` / `scoreBotDiscardCandidate`: take the active **rack**, not just its
+   hand. Compute the base distance and each distance-without-candidate from hand + exposure
+   tiles, with `hasExposures` and `meldSpecs` set. Only concealed hand tiles are discard
+   candidates. If the base distance is `Infinity` (no compatible hand), skip the card-distance
+   bonus/penalty entirely. Update the single caller in `playBotTurn`.
+
+## Change set C — Bots use public information only
+1. Remove `nextSeat` from `BotDiscardTableData` and from `buildBotDiscardTableData`.
+2. In `scoreBotDiscardCandidate`, delete the `nextSeatMahjongBlock` block and the
+   `nextSeat*Danger` blocks. Remove the parameters and caches that become unused
+   (`useFastDangerLogic`, `givesMahjongByCode`, and `isFastBot` if unused). Leave no dead parameters.
+3. Replace `wallCountByCode` (which reads the wall's tiles) with `unseenCountByCode`:
+   total copies (use `getTileTotalCopies`) − the bot's own rack tiles (hand + exposures)
+   − discards − all seats' exposures. The "wallDead" bonus becomes `unseen === 0`.
+4. No bot code path may read another seat's `hand` or the wall's `hand`.
+   Grep bot.ts and list every remaining `.hand` access with a one-line justification.
+
+## Change set D — Tests (bot-phase0.spec.ts)
+Make bot randomness deterministic in tests (set profile `randomness: 0` or mock `Math.random`).
+1. After a bot claim, the public play seats contain no `target_hypotheses` or `last_eval_*`.
+2. `computeMinimumDistanceToMahjong` with meldSpecs ignores a hand that is closest without
+   meldSpecs but cannot contain the exposed set.
+3. A bot with an exposure does not discard a tile required by the only exposure-compatible hand.
+4. The discard decision is identical when the next seat's hidden hand is swapped for a
+   different one, and identical when the wall contents are shuffled.
+5. `unseenCountByCode` changes only when public tiles change.
+
+## Acceptance (run all, report output)
+1. `npm run build:app` passes.
+2. The new spec passes.
+3. Compare the existing specs with the baseline. If any existing assertion fails because it
+   encoded peeking (for example, the next-seat Mah Jongg block), do not silently edit it.
+   List each one with the reason, then update only those assertions.
+4. `git diff --stat` shows only the allowed files.
+Then STOP and report: change sets A–D with diffs, the verification from A.1, the `.hand` access
+list from C.4, the unused-function list, test output before and after, and open questions.
+
+====================================
+
+We are executing a massive code upgrade today under a strict deadline. To ensure zero breakage, we are using a phased approach. 
+
+Here is the Master Plan for the entire upgrade:
+- Target Objective: American Mahjong Bot Decision Engine Upgrade (BotPlan System)
+- Phase 0: Standalone fixes (small, safe, each one reviewable)
+- Phase 1: The Core Foundation (bot-plan.ts) - Planner core (new `bot-plan.ts`, small functions, pure unless noted)
+- Phase 2: Charleston Unification (Integration)
+- Phase 3: Live Play Discards
+- Phase 4: Exposure Hard Filterin (Claims & Melds)
+- Phase 5: Remaining rule behaviors
+- Phase 6: Verification
+
+Do NOT write any code yet. Acknowledge that you understand this complete plan, summarize the architectural dependencies between these phases in 7 bullet points, and state that you are ready for Phase 0 instructions.
+
+
+Step 3b (removing the peek and the wall read) 
+
+
+
+
+
+
+=============================================
 Create a 2D, turn-based Mahjong Classic game for 4 players where each turn the local player draws, forms melds (meld/exposed tile area) from their rack, discards a tile to the next player, and—when the rules allow—can claim a discarded tile to form CHOW (sequence), PUNG (triplet), or KONG. The board includes clear visuals for the background table, four seat positions, local player rack, opponent racks, tile sprites/wall tiles, discard area, meld/exposed tile area, current turn highlight, and claim visual indication. Gameplay is playable and winnable by enabling standard tile selection/drag-drop and legal meld/move validation, with smooth tile movement and discard/claim animations and responsive board scaling.
 
 
