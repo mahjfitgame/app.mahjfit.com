@@ -82,10 +82,22 @@ export class GameComponent implements OnInit, AfterViewInit {
 
     // console.log('GAME KEY', this.gkeyid());
 
+    /* OLDCODE
     if (this.gkeyid()) {
       const gameStartedResp = await this.service.state.startGame();
 
     } else {
+    OLDCODE */
+    /* NEWCODE */
+    if (this.gkeyid()) {
+      const gameStartedResp = await this.service.state.startGame();
+      // If game could not be started (e.g. already ended or invalid key), redirect to home
+      if (!gameStartedResp) {
+        this.router.navigate(['/home']);
+        return;
+      }
+    } else {
+    /* NEWCODE */
       const gameCreatedResp = await this.service.state.createGame();
       // console.log('gameCreatedResp', gameCreatedResp);
 

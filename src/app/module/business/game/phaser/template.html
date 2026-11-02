@@ -313,6 +313,7 @@
 OLDCODE -->
 
 <!-- NEWCODE -->
+<!-- OLDCODE
 @if (mahjongWinResult(); as result) {
 <div class="mahjong-win-overlay" aria-hidden="false">
   @for (confetti of mahjongConfetti(); track $index) {
@@ -324,7 +325,6 @@ OLDCODE -->
   }
 
   <div class="mahjong-win-card">
-    <!-- Top Section: Winner Announcement -->
     <header class="mahjong-win-header">
       <h1 class="mahjong-win-title">MAH JONGG!</h1>
       @if (winningOverlayData(); as winData) {
@@ -341,7 +341,6 @@ OLDCODE -->
       }
     </header>
 
-    <!-- Middle Section: The Winning Hand & Exposures -->
     @if (winningOverlayData(); as winData) {
       <section class="mahjong-win-hand-section">
         <div class="mahjong-win-hand-label">WINNING HAND & EXPOSURES</div>
@@ -370,7 +369,6 @@ OLDCODE -->
       </section>
     }
 
-    <!-- Bottom Section: Action Controls -->
     <footer class="mahjong-win-actions">
       <button type="button" class="popup-button-active" (pointerup)="$event.stopPropagation(); onStartNewGame()">
         Play Again
@@ -382,6 +380,112 @@ OLDCODE -->
   </div>
 </div>
 }
+OLDCODE -->
+
+<!-- NEWCODE -->
+<!-- MAH JONGG WIN POPUP (Scoped to Discard Area) -->
+@if (mahjongWinResult(); as result) {
+  @if (discardAreaRect(); as discardArea) {
+    <!-- Floating Eye Restore Button (shown when popup is hidden) -->
+    @if (isResultPopupHidden()) {
+      <button
+        type="button"
+        class="result-popup-toggle-eye"
+        [style.left.px]="discardArea.x + discardArea.width - 44"
+        [style.top.px]="discardArea.y + 8"
+        (click)="isResultPopupHidden.set(false)"
+        title="Show Summary">
+        <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+          <circle cx="12" cy="12" r="3"></circle>
+        </svg>
+      </button>
+    } @else {
+      <!-- Main Discard Area Card -->
+      <div
+        class="discard-area-result-card"
+        [style.left.px]="discardArea.x"
+        [style.top.px]="discardArea.y"
+        [style.width.px]="discardArea.width"
+        [style.height.px]="discardArea.height">
+
+        <!-- Confetti within discard area -->
+        @for (confetti of mahjongConfetti(); track $index) {
+        <div class="mahjong-win-popup__confetti" [style.left]="confetti.left" [style.top]="confetti.top"
+          [style.width]="confetti.width" [style.height]="confetti.height" [style.background]="confetti.background"
+          [style.--fall-duration]="confetti.fallDuration" [style.--fall-delay]="confetti.fallDelay"
+          [style.--start-rotate]="confetti.startRotate" [style.--end-rotate]="confetti.endRotate"
+          [style.--fall-distance]="confetti.fallDistance"></div>
+        }
+
+        <!-- Eye toggle button in top-right corner to hide -->
+        <button
+          type="button"
+          class="result-card-eye-btn"
+          (click)="isResultPopupHidden.set(true)"
+          title="Hide Summary">
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path>
+            <line x1="1" y1="1" x2="23" y2="23"></line>
+          </svg>
+        </button>
+
+        <header class="result-card-header">
+          <h2 class="result-card-title">MAH JONGG!</h2>
+          @if (winningOverlayData(); as winData) {
+            <div class="result-card-score">
+              Score: {{ winData.baseScore }} &nbsp;&bull;&nbsp; Bonus: +{{ winData.bonus }}
+            </div>
+            <div class="result-card-announcement">
+              {{ winData.winnerName === 'YOU' ? 'YOU WIN!' : winData.winnerName }} earned {{ winData.totalPoints }} points
+            </div>
+          } @else {
+            <div class="result-card-announcement">
+              {{ result.winner === 'bottom' ? 'YOU WIN!' : (result.winner.toUpperCase() + ' WINS!') }}
+            </div>
+          }
+        </header>
+
+        <!-- Winning Hand Groups with Atlas Tile Artwork -->
+        @if (winningOverlayData(); as winData) {
+          <section class="result-card-hand-section">
+            <div class="result-card-melds-container">
+              @for (group of winData.winningHandGroups; track $index) {
+                <div class="result-card-meld-group">
+                  @if (group.combinationName) {
+                    <span class="result-card-meld-tag">{{ group.combinationName }}</span>
+                  }
+                  <div class="result-card-meld-tiles">
+                    @for (tile of group.tiles; track tile.id || $index) {
+                      <div class="atlas-tile-wrapper">
+                        @if (tile.imageUrl) {
+                          <img [src]="tile.imageUrl" class="atlas-tile-img" [alt]="tile.label" draggable="false" />
+                        } @else {
+                          <div class="atlas-tile-fallback">{{ tile.label }}</div>
+                        }
+                      </div>
+                    }
+                  </div>
+                </div>
+              }
+            </div>
+          </section>
+        }
+
+        <!-- Action Controls -->
+        <footer class="result-card-actions">
+          <button type="button" class="result-btn-primary" (pointerup)="$event.stopPropagation(); onStartNewGame()">
+            PLAY AGAIN
+          </button>
+          <button type="button" class="result-btn-secondary" (pointerup)="$event.stopPropagation(); onExitGame()">
+            EXIT
+          </button>
+        </footer>
+      </div>
+    }
+  }
+}
+<!-- NEWCODE -->
 <!-- NEWCODE -->
 
 @if (mahjongGameOver()) {
@@ -409,14 +513,10 @@ OLDCODE -->
       assets/majhfit-logo@2x.png 2x,
       assets/majhfit-logo@3x.png 3x
     " alt="MAJHFIT" draggable="false" />
+<!-- OLDCODE
 @if (wallGameOver()) {
 <div class="wall-game-popup" aria-hidden="false">
   <div class="wall-game-popup__card">
-    <!-- OLDCODE
-    <div class="wall-game-popup__title">Wall Game</div>
-    <div class="wall-game-popup__winner">That means no one win the game.</div>
-    OLDCODE -->
-    <!-- NEWCODE -->
     <div class="wall-game-popup__title">{{ gameOverState().title || 'Game Over' }}</div>
     <div class="wall-game-popup__winner">{{ gameOverState().message || 'Game ended.' }}</div>
     @if (gameOverState().note) {
@@ -425,7 +525,6 @@ OLDCODE -->
         {{ gameOverState().note }}
       </div>
     }
-    <!-- NEWCODE -->
     <div class="wall-game-popup__actions">
       <button type="button" class="popup-button-secondary" (pointerup)="$event.stopPropagation(); onExitGame()">EXIT GAME</button>
       <button type="button" class="popup-button-active" (pointerup)="$event.stopPropagation(); onStartNewGame()">START NEW GAME</button>
@@ -433,6 +532,72 @@ OLDCODE -->
   </div>
 </div>
 }
+OLDCODE -->
+
+<!-- NEWCODE -->
+<!-- WALL GAME POPUP (Scoped to Discard Area) -->
+@if (wallGameOver()) {
+  @if (discardAreaRect(); as discardArea) {
+    <!-- Floating Eye Restore Button (shown when popup is hidden) -->
+    @if (isResultPopupHidden()) {
+      <button
+        type="button"
+        class="result-popup-toggle-eye"
+        [style.left.px]="discardArea.x + discardArea.width - 44"
+        [style.top.px]="discardArea.y + 8"
+        (click)="isResultPopupHidden.set(false)"
+        title="Show Summary">
+        <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+          <circle cx="12" cy="12" r="3"></circle>
+        </svg>
+      </button>
+    } @else {
+      <div
+        class="discard-area-result-card wall-game-theme"
+        [style.left.px]="discardArea.x"
+        [style.top.px]="discardArea.y"
+        [style.width.px]="discardArea.width"
+        [style.height.px]="discardArea.height">
+
+        <!-- Eye toggle button in top-right corner to hide -->
+        <button
+          type="button"
+          class="result-card-eye-btn"
+          (click)="isResultPopupHidden.set(true)"
+          title="Hide Summary">
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path>
+            <line x1="1" y1="1" x2="23" y2="23"></line>
+          </svg>
+        </button>
+
+        <header class="result-card-header">
+          <h2 class="result-card-title">{{ gameOverState().title || 'WALL GAME' }}</h2>
+          <div class="result-card-announcement">
+            {{ gameOverState().message || 'No one won the game. Wall tiles ran out.' }}
+          </div>
+          @if (gameOverState().note) {
+            <div class="wall-game-popup__dead-note" style="margin-top: 6px;">
+              <span class="dead-note-icon">⚠️</span>
+              {{ gameOverState().note }}
+            </div>
+          }
+        </header>
+
+        <footer class="result-card-actions">
+          <button type="button" class="result-btn-primary" (pointerup)="$event.stopPropagation(); onStartNewGame()">
+            PLAY AGAIN
+          </button>
+          <button type="button" class="result-btn-secondary" (pointerup)="$event.stopPropagation(); onExitGame()">
+            EXIT
+          </button>
+        </footer>
+      </div>
+    }
+  }
+}
+<!-- NEWCODE -->
 <!-- NEWCODE -->
 <img id="phaser-drag-tile-proxy" class="drag-tile-proxy" alt="" aria-hidden="true" />
 <!-- NEWCODE -->

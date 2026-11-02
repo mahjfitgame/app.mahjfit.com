@@ -26,7 +26,12 @@ import { inject } from "@angular/core";
 import { GameHapticType } from "../../type";
 import { TILE_ATLAS_1X_KEY, TILE_ATLAS_2X_KEY } from "../../const";
 import { GameService } from "../../service";
+/* OLDCODE
 import { GameTileEntity, TileCategoryEnum, TileEntity, TileEntityGSDto, TileTypeEnum } from "@bfw/api-sdk/graphql/endpoints/business";
+OLDCODE */
+/* NEWCODE */
+import { BotLevelModeEnum, GameTileEntity, TileCategoryEnum, TileEntity, TileEntityGSDto, TileTypeEnum } from "@bfw/api-sdk/graphql/endpoints/business";
+/* NEWCODE */
 
 
 export class PhaserScene extends Phaser.Scene {
@@ -108,11 +113,28 @@ export class PhaserScene extends Phaser.Scene {
   private get activeDragTile(): TileRuntime | undefined { return this.stateManager.activeDragTile; }
   private set activeDragTile(value: TileRuntime | undefined) { this.stateManager.activeDragTile = value; }
   private isWaitingForPickResponse = false;
+  /* NEWCODE */
+  private animationDuration: number = ANIMATION_SPEED;
+  /* NEWCODE */
+  /* OLDCODE
   private pendingLocalPickRuntime?: TileRuntime;
+  OLDCODE */
+  /* OLDCODE
+  private pendingLocalPickRuntime?: TileRuntime;
+  private pendingLocalPickTileId?: number;
+  OLDCODE */
+  /* NEWCODE */
+  private pendingLocalPickRuntime?: TileRuntime;
+  private animatingPickTileId?: number;
+  /* NEWCODE */
   private lastServerOrder: string = "";
   // NEWCODE
   private isExplicitSortRequested: boolean = false;
   private hasAppliedInitialRackOrder: boolean = false;
+  /* NEWCODE */
+  // Tracks if the user has manually arranged tiles in their rack via drag-and-drop
+  private hasUserManualRackOrder: boolean = false;
+  /* NEWCODE */
   private pendingLocalJokerSwap?: { fromTileId: number; jokerTileId: number; rackIndex: number };
   // NEWCODE
   private get dragPointerId(): number | undefined { return this.stateManager.dragPointerId; }
@@ -170,9 +192,25 @@ export class PhaserScene extends Phaser.Scene {
 
   private readonly discardSlotOrder: number[] = [];
   private readonly calledBottomExposureTiles: Phaser.GameObjects.Image[] = [];
+  /* OLDCODE
   private readonly calledOpponentExposureTiles: Record<"top" | "left" | "right", Phaser.GameObjects.Image[]> = {
     top: [], left: [], right: []
   };
+  OLDCODE */
+  /* NEWCODE */
+  // Sprites for opponent exposure tiles
+  private readonly calledOpponentExposureTiles: Record<"top" | "left" | "right", Phaser.GameObjects.Image[]> = {
+    top: [], left: [], right: []
+  };
+
+  // Sprites for debug opponent hand tiles (shown only in debug mode)
+  private readonly debugOpponentHandTiles: Record<"top" | "left" | "right", Phaser.GameObjects.Image[]> = {
+    top: [],
+    left: [],
+    right: [],
+  };
+  private latestDebugOpponentHands?: { bottom: any[], right: any[], top: any[], left: any[] };
+  /* NEWCODE */
   private readonly calledOpponentExposureTileIds = new Set<number>();
   private activeExposureBuildTileIds: number[] = [];
   private reverseCallInFlight = false;
@@ -216,10 +254,10 @@ export class PhaserScene extends Phaser.Scene {
   private pendingClaimTileId: number | undefined;
   private get canDiscard(): boolean { return this.stateManager.canDiscard; }
   private set canDiscard(value: boolean) { this.stateManager.canDiscard = value; }
-/* NEWCODE */
+  /* NEWCODE */
   private get canPick(): boolean { return this.stateManager.canPick; }
   private set canPick(value: boolean) { this.stateManager.canPick = value; }
-/* NEWCODE */
+  /* NEWCODE */
   private get currentPassDestination(): TableSeat { return this.stateManager.currentPassDestination; }
   private set currentPassDestination(value: TableSeat) { this.stateManager.currentPassDestination = value; }
   private get activeSeat(): TableSeat { return this.stateManager.activeSeat; }
@@ -252,7 +290,14 @@ export class PhaserScene extends Phaser.Scene {
   private isBotPassVisualAnimating = false;
 
   private hasCompletedFirstCharlestonVisualPass = false;
+  /* OLDCODE
   private charlestonState?: { stage?: GameCharlestoneStageEnum };
+  OLDCODE */
+  /* NEWCODE */
+  private charlestonState?: { stage?: GameCharlestoneStageEnum; round?: number; direction?: string; count?: number };
+  private lastHandledPassStage?: GameCharlestoneStageEnum;
+  private lastHandledPassRound?: number;
+  /* NEWCODE */
   private instructionPanelBg?: Phaser.GameObjects.Graphics;
 
   private lastSubmittedPassDestination?: TableSeat;
@@ -279,14 +324,23 @@ export class PhaserScene extends Phaser.Scene {
     /* NEWCODE */
     this.uiLayoutManager = new PhaserLayoutUi({
       getUsername: () => this.callbacks.getUsername(),
-      getPlayerName: (seat) => this.callbacks.getPlayerName ? this.callbacks.getPlayerName(seat) : (seat === "bottom" ? this.callbacks.getUsername() : (seat === "top" ? "Player 1" : seat === "right" ? "Player 2" : "Player 3")),
+      getPlayerName: (seat) => this.callbacks.getPlayerName ? this.callbacks.getPlayerName(seat) : (seat === "bottom" ? this.callbacks.getUsername() : (seat === "top" ? "Player 2" : seat === "right" ? "Player 1" : "Player 3")),
       logoTextureKey: this.logoTextureKey,
       onHudAction: (action) => this.handleHudAction(action),
       /* OLDCODE
       onSortRequested: (mode) => this.callbacks.onSortRequested?.(mode),
       OLDCODE */
+      /* OLDCODE
+      onSortRequested: (mode) => {
+        this.isExplicitSortRequested = true;
+        setTimeout(() => { this.isExplicitSortRequested = false; }, 5000);
+        this.callbacks.onSortRequested?.(mode);
+      },
+      OLDCODE */
       /* NEWCODE */
       onSortRequested: (mode) => {
+        // Reset manual ordering so rack adopts the server sorted hand_order
+        this.hasUserManualRackOrder = false;
         this.isExplicitSortRequested = true;
         setTimeout(() => { this.isExplicitSortRequested = false; }, 5000);
         this.callbacks.onSortRequested?.(mode);
@@ -474,21 +528,21 @@ export class PhaserScene extends Phaser.Scene {
       }
     });
 
-/* OLDCODE
-    this.input.on('pointerup', () => {
-      this.isScrollingDiscard = false;
-      // NEWCODE
-      this.isScrollingExposure = "none";
-    });
-OLDCODE */
-/* NEWCODE */
+    /* OLDCODE
+        this.input.on('pointerup', () => {
+          this.isScrollingDiscard = false;
+          // NEWCODE
+          this.isScrollingExposure = "none";
+        });
+    OLDCODE */
+    /* NEWCODE */
     this.input.on('pointerup', () => {
       this.isScrollingDiscard = false;
       // NEWCODE
       this.isScrollingExposure = "none";
       this.hideDragProxy();
     });
-/* NEWCODE */
+    /* NEWCODE */
 
     this.game.events.on("rack:set", this.setRack, this);
     /* OLDCODE
@@ -554,7 +608,7 @@ OLDCODE */
       }
     }, this);
     OLDCODE */
-    /* NEWCODE */
+    /* OLDCODE
     // Apply rack order sent from the server API response
     this.game.events.on("rack:order", (order: number[]) => {
       const orderStr = order.join(',');
@@ -587,6 +641,46 @@ OLDCODE */
         }
       }
     }, this);
+    OLDCODE */
+    /* NEWCODE */
+    // Apply rack order sent from the server API response
+    this.game.events.on("rack:order", (order: number[]) => {
+      const orderStr = order.join(',');
+      const isInitial = !this.hasAppliedInitialRackOrder;
+      const isExplicitSort = this.isExplicitSortRequested;
+      const isServerOrderChanged = this.lastServerOrder !== orderStr;
+
+      // Only apply server order if user has not manually arranged tiles, or if explicit sort was requested, or initial load
+      const shouldApply = !this.hasUserManualRackOrder || isExplicitSort || isInitial;
+
+      if (shouldApply && (isServerOrderChanged || isExplicitSort || isInitial)) {
+        this.lastServerOrder = orderStr;
+        this.isExplicitSortRequested = false;
+        this.hasAppliedInitialRackOrder = true;
+        if (isExplicitSort) {
+          this.hasUserManualRackOrder = false;
+        }
+
+        if (order && order.length > 0) {
+          // Follow the exact rack tile order received from API response
+          const newRackOrder: number[] = [];
+          for (const id of order) {
+            if (!this.isTileInAnyExposure(id) && !this.discardedTileIds.includes(id)) {
+              newRackOrder.push(id);
+            }
+          }
+          // Append any remaining active rack tiles not listed in server order
+          for (const id of this.rackOrder) {
+            if (!newRackOrder.includes(id) && !this.isTileInAnyExposure(id) && !this.discardedTileIds.includes(id)) {
+              newRackOrder.push(id);
+            }
+          }
+          this.rackOrder = newRackOrder;
+          this.reindexRackRuntimeSlots();
+          this.layoutRackTiles(true);
+        }
+      }
+    }, this);
     /* NEWCODE */
     this.game.events.on("pass:direction", this.setPassDirection, this);
     this.game.events.on("table:resize", this.resize, this);
@@ -595,54 +689,57 @@ OLDCODE */
       this.updateInstructionText();
       this.updatePassButtonState();
     }, this);
-/* NEWCODE */
+    /* NEWCODE */
     this.game.events.on("wall:set-pick-mode", (can: boolean) => {
       this.canPick = can;
       this.updateInstructionText();
       this.updatePassButtonState();
     }, this);
-/* NEWCODE */
+    this.game.events.on("table:bot-level", (botLevel: BotLevelModeEnum) => {
+      this.setBotLevelAnimationSpeed(botLevel);
+    }, this);
+    /* NEWCODE */
     this.game.events.on("table:phase", this.setTablePhase, this);
-/* OLDCODE
-    this.game.events.on("table:turn_stage", (stage: any) => {
-      this.turnStage = stage;
-      if (stage !== GameTurnStageEnum.NEED_EXPOSURE) {
-        this.pendingCallTileId = undefined;
-        this.pendingCallHasExposedRackTile = false;
-      }
-      setTimeout(() => this.processPendingClaimTile(), 50);
-      this.updateExposureCloseButtonsState();
-    }, this);
-OLDCODE */
-/* OLDCODE
-    this.game.events.on("table:turn_stage", (stage: any) => {
-      this.turnStage = stage;
-      if (stage !== GameTurnStageEnum.NEED_EXPOSURE) {
-        this.pendingCallTileId = undefined;
-        this.pendingCallHasExposedRackTile = false;
-      }
-      setTimeout(() => this.processPendingClaimTile(), 50);
-      this.updateExposureCloseButtonsState();
-      this.updateInstructionText();
-    }, this);
-OLDCODE */
-/* OLDCODE
-    this.game.events.on("table:turn_stage", (stage: any) => {
-      this.turnStage = stage;
-      const isExposureStage = stage === GameTurnStageEnum.NEED_EXPOSURE
-        || stage === GameTurnStageEnuAddon.NEED_EXPOSURE
-        || stage === 3
-        || stage === "3";
-      if (!isExposureStage) {
-        this.pendingCallTileId = undefined;
-        this.pendingCallHasExposedRackTile = false;
-      }
-      setTimeout(() => this.processPendingClaimTile(), 50);
-      this.updateExposureCloseButtonsState();
-      this.updateInstructionText();
-    }, this);
-OLDCODE */
-/* NEWCODE */
+    /* OLDCODE
+        this.game.events.on("table:turn_stage", (stage: any) => {
+          this.turnStage = stage;
+          if (stage !== GameTurnStageEnum.NEED_EXPOSURE) {
+            this.pendingCallTileId = undefined;
+            this.pendingCallHasExposedRackTile = false;
+          }
+          setTimeout(() => this.processPendingClaimTile(), 50);
+          this.updateExposureCloseButtonsState();
+        }, this);
+    OLDCODE */
+    /* OLDCODE
+        this.game.events.on("table:turn_stage", (stage: any) => {
+          this.turnStage = stage;
+          if (stage !== GameTurnStageEnum.NEED_EXPOSURE) {
+            this.pendingCallTileId = undefined;
+            this.pendingCallHasExposedRackTile = false;
+          }
+          setTimeout(() => this.processPendingClaimTile(), 50);
+          this.updateExposureCloseButtonsState();
+          this.updateInstructionText();
+        }, this);
+    OLDCODE */
+    /* OLDCODE
+        this.game.events.on("table:turn_stage", (stage: any) => {
+          this.turnStage = stage;
+          const isExposureStage = stage === GameTurnStageEnum.NEED_EXPOSURE
+            || stage === GameTurnStageEnuAddon.NEED_EXPOSURE
+            || stage === 3
+            || stage === "3";
+          if (!isExposureStage) {
+            this.pendingCallTileId = undefined;
+            this.pendingCallHasExposedRackTile = false;
+          }
+          setTimeout(() => this.processPendingClaimTile(), 50);
+          this.updateExposureCloseButtonsState();
+          this.updateInstructionText();
+        }, this);
+    OLDCODE */
+    /* NEWCODE */
     this.game.events.on("table:turn_stage", (stage: any) => {
       this.turnStage = stage;
       const isExposureStage = stage === GameTurnStageEnum.NEED_EXPOSURE
@@ -659,37 +756,37 @@ OLDCODE */
       this.updateExposureCloseButtonsState();
       this.updateInstructionText();
     }, this);
-/* NEWCODE */
+    /* NEWCODE */
     this.game.events.on("table:safe-area", this.setSafeAreaInsets, this);
     this.game.events.on("table:active-seat", this.setActiveSeat, this);
-/* OLDCODE
-    this.game.events.on("ui:set-is-personal-turn", (isPersonalTurn: boolean) => {
-      this.stateManager.isPersonalTurn = isPersonalTurn;
-      this.updateInstructionText();
-    }, this);
-OLDCODE */
-/* NEWCODE */
+    /* OLDCODE
+        this.game.events.on("ui:set-is-personal-turn", (isPersonalTurn: boolean) => {
+          this.stateManager.isPersonalTurn = isPersonalTurn;
+          this.updateInstructionText();
+        }, this);
+    OLDCODE */
+    /* NEWCODE */
     this.game.events.on("ui:set-is-personal-turn", (isPersonalTurn: boolean) => {
       this.stateManager.isPersonalTurn = isPersonalTurn;
       this.updateInstructionText();
       this.updateExposureCloseButtonsState();
     }, this);
-/* NEWCODE */
+    /* NEWCODE */
 
     this.game.events.on("ui:show-claim-window", (payload: { tile: any }) => this.showClaimWindow(payload.tile), this);
     this.game.events.on("ui:hide-claim-window", this.hideClaimWindow, this);
-/* OLDCODE
-    this.game.events.on("ui:claim-submitted", (payload: { tile_id: number, action?: string }) => {
-      if (payload.action === "call") {
-        this.playSfx("call");
-      }
-      this.pendingClaimTileId = payload.tile_id;
-      if (this.allTiles[payload.tile_id]) {
-        this.exposureBuildAsset = this.gameService.assetBaseName(this.allTiles[payload.tile_id]);
-      }
-    }, this);
-OLDCODE */
-/* NEWCODE */
+    /* OLDCODE
+        this.game.events.on("ui:claim-submitted", (payload: { tile_id: number, action?: string }) => {
+          if (payload.action === "call") {
+            this.playSfx("call");
+          }
+          this.pendingClaimTileId = payload.tile_id;
+          if (this.allTiles[payload.tile_id]) {
+            this.exposureBuildAsset = this.gameService.assetBaseName(this.allTiles[payload.tile_id]);
+          }
+        }, this);
+    OLDCODE */
+    /* NEWCODE */
     this.game.events.on("ui:claim-submitted", (payload: { tile_id: number, action?: string }) => {
       if (payload.action === "call") {
         this.playSfx("call");
@@ -704,15 +801,22 @@ OLDCODE */
         this.exposureBuildAsset = this.gameService.assetBaseName(this.allTiles[payload.tile_id]);
       }
     }, this);
-/* NEWCODE */
+    /* NEWCODE */
 
     this.game.events.on("tileCall:offer", this.setTileCallOffer, this);
     this.game.events.on("allTiles:set", this.setAllTiles, this);
     this.game.events.on("opponent:discard", this.handleOpponentDiscard, this);
     this.game.events.on("discards:set", this.handleDiscardsSet, this);
     this.game.events.on("exposures:update", this.handleExposuresSet, this);
+    /* NEWCODE */
+    // Listen for debug opponent hands updates
+    this.game.events.on("debug:opponent-hands", this.handleDebugOpponentHands, this);
+    /* NEWCODE */
     this.game.events.on("opponent:pick", this.handleOpponentPick, this);
     this.game.events.on("mahjong:win", this.showMahjongWinCelebration, this);
+    /* NEWCODE */
+    this.game.events.on("table:wall-game", this.revealAllSeatsHandsForWallGame, this);
+    /* NEWCODE */
     this.game.events.on("claim:resolved", this.handleResolvedClaimPresentation, this);
     this.game.events.on("claim:presentation:reset", this.resetClaimPresentation, this);
     this.game.events.on("charleston:state", this.setCharlestonState, this);
@@ -741,10 +845,13 @@ OLDCODE */
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
       // console.log("Table scene shutdown");
       this.game.events.off("rack:set", this.setRack, this);
-/* NEWCODE */
+      /* NEWCODE */
       this.game.events.off("rack:set-discard-mode");
       this.game.events.off("wall:set-pick-mode");
-/* NEWCODE */
+      /* NEWCODE */
+      this.game.events.off("table:bot-level");
+      /* NEWCODE */
+      /* NEWCODE */
       this.game.events.off("pass:direction", this.setPassDirection, this);
       this.game.events.off("table:resize", this.resize, this);
       this.game.events.off("table:phase", this.setTablePhase, this);
@@ -757,6 +864,9 @@ OLDCODE */
       this.game.events.off("opponent:discard", this.handleOpponentDiscard, this);
       this.game.events.off("discards:set", this.handleDiscardsSet, this);
       this.game.events.off("exposures:update", this.handleExposuresSet, this);
+      /* NEWCODE */
+      this.game.events.off("debug:opponent-hands", this.handleDebugOpponentHands, this);
+      /* NEWCODE */
       this.game.events.off("joker:exchange", this.handleJokerExchange, this);
       this.game.events.off("opponent:pick", this.handleOpponentPick, this);
       this.game.events.off("mahjong:win", this.showMahjongWinCelebration, this);
@@ -769,6 +879,12 @@ OLDCODE */
 
       this.clearBotPassVisualTiles();
       this.isBotPassVisualAnimating = false;
+      /* NEWCODE */
+      for (const seat of ["top", "left", "right"] as const) {
+        this.debugOpponentHandTiles[seat]?.forEach((img) => img.destroy());
+        this.debugOpponentHandTiles[seat] = [];
+      }
+      /* NEWCODE */
       this.soundManager.destroy();
     });
     this.events.once(Phaser.Scenes.Events.DESTROY, () => {
@@ -843,12 +959,23 @@ OLDCODE */
     }
   }
 
+  /* OLDCODE
   private handlePrimaryAction(): void {
     if (this.isPassingPhase()) {
       if (this.canSubmitPassWaitingTiles()) {
         this.submitPassWaitingTiles();
       }
     } else if (this.tablePhase === GamePhaseEnum.PLAYING || this.tablePhase === GamePhaseEnum.CLAIM) {
+  OLDCODE */
+  /* NEWCODE */
+  private handlePrimaryAction(): void {
+    if (this.isPassingPhase()) {
+      if (this.canSubmitPassWaitingTiles()) {
+        this.submitPassWaitingTiles();
+      }
+      return;
+    } else if (this.tablePhase === GamePhaseEnum.PLAYING || this.tablePhase === GamePhaseEnum.CLAIM) {
+      /* NEWCODE */
       if (this.canDiscard) {
         this.callbacks.onMahjongDeclare?.();
         return;
@@ -888,35 +1015,35 @@ OLDCODE */
    * Enforces the 13-tile rule only for the local Bottom seat. The other seats
    * are test controls and can always receive a wall tile while one remains.
    */
-/* OLDCODE
-  private canPickFromWall(forUi: boolean = false): boolean {
-    if (!this.stateManager.isPersonalTurn) {
-      // The UI button should only be enabled when it's the personal player's turn.
-      // But test controls need this to return true.
-      return !forUi;
-    }
-
-    // Use the exact count from the rack hand + exposure_meld from the API response
-    const rackCount = this.rackOrder.length;
-    let apiExposedCount = 0;
-
-    if (this.latestExposures && this.latestExposures.bottom) {
-      for (const meld of this.latestExposures.bottom) {
-        if (!meld) continue;
-        if (Array.isArray(meld.tiles)) {
-          apiExposedCount += meld.tiles.length;
-        } else if (meld.tiles && typeof meld.tiles === 'object') {
-          apiExposedCount += Object.keys(meld.tiles).length;
-        } else if (meld.tile) {
-          apiExposedCount += 1;
+  /* OLDCODE
+    private canPickFromWall(forUi: boolean = false): boolean {
+      if (!this.stateManager.isPersonalTurn) {
+        // The UI button should only be enabled when it's the personal player's turn.
+        // But test controls need this to return true.
+        return !forUi;
+      }
+  
+      // Use the exact count from the rack hand + exposure_meld from the API response
+      const rackCount = this.rackOrder.length;
+      let apiExposedCount = 0;
+  
+      if (this.latestExposures && this.latestExposures.bottom) {
+        for (const meld of this.latestExposures.bottom) {
+          if (!meld) continue;
+          if (Array.isArray(meld.tiles)) {
+            apiExposedCount += meld.tiles.length;
+          } else if (meld.tiles && typeof meld.tiles === 'object') {
+            apiExposedCount += Object.keys(meld.tiles).length;
+          } else if (meld.tile) {
+            apiExposedCount += 1;
+          }
         }
       }
+  
+      return rackCount + apiExposedCount < 14;
     }
-
-    return rackCount + apiExposedCount < 14;
-  }
-OLDCODE */
-/* NEWCODE */
+  OLDCODE */
+  /* NEWCODE */
   private canPickFromWall(forUi: boolean = false): boolean {
     if (!this.stateManager.isPersonalTurn) {
       // The UI button should only be enabled when it's the personal player's turn.
@@ -926,7 +1053,7 @@ OLDCODE */
 
     return this.canPick;
   }
-/* NEWCODE */
+  /* NEWCODE */
 
   private handleHudAction(action: HudActionKey): void {
     if (action === "slider-left" as any) {
@@ -990,26 +1117,26 @@ OLDCODE */
       this.closeDeadHandSeatSelection();
     }
 
-/* OLDCODE
-    if (phase !== GamePhaseEnum.PASSING) {
-      this.clearBotPassVisualTiles();
-      this.isBotPassVisualAnimating = false;
-      this.hasCompletedFirstCharlestonVisualPass = false;
-      this.lastSubmittedPassDestination = undefined;
-      this.botAutoStagedDestination = undefined;
-    }
-OLDCODE */
-/* OLDCODE
-    if (phase !== GamePhaseEnum.PASSING) {
-      this.clearBotPassVisualTiles();
-      this.isBotPassVisualAnimating = false;
-      this.hasCompletedFirstCharlestonVisualPass = false;
-      this.lastSubmittedPassDestination = undefined;
-      this.botAutoStagedDestination = undefined;
-      this.stateManager.optimisticPassTileIds.length = 0;
-    }
-OLDCODE */
-/* NEWCODE */
+    /* OLDCODE
+        if (phase !== GamePhaseEnum.PASSING) {
+          this.clearBotPassVisualTiles();
+          this.isBotPassVisualAnimating = false;
+          this.hasCompletedFirstCharlestonVisualPass = false;
+          this.lastSubmittedPassDestination = undefined;
+          this.botAutoStagedDestination = undefined;
+        }
+    OLDCODE */
+    /* OLDCODE
+        if (phase !== GamePhaseEnum.PASSING) {
+          this.clearBotPassVisualTiles();
+          this.isBotPassVisualAnimating = false;
+          this.hasCompletedFirstCharlestonVisualPass = false;
+          this.lastSubmittedPassDestination = undefined;
+          this.botAutoStagedDestination = undefined;
+          this.stateManager.optimisticPassTileIds.length = 0;
+        }
+    OLDCODE */
+    /* NEWCODE */
     if (phase !== GamePhaseEnum.PASSING) {
       this.clearBotPassVisualTiles();
       this.isBotPassVisualAnimating = false;
@@ -1018,21 +1145,21 @@ OLDCODE */
       this.botAutoStagedDestination = undefined;
       this.stateManager.optimisticPassTileIds.length = 0;
 
-/* OLDCODE
-      // Restore any remaining pass tiles back to rack when Charleston ends
-      for (const runtime of this.tileMap.values()) {
-        if (runtime.zone === "pass") {
-          runtime.zone = "rack";
-          this.tweens.killTweensOf(runtime.image);
-          runtime.image.setVisible(true);
-          runtime.image.setScale(1);
-          runtime.image.setAlpha(1);
-          runtime.image.setInteractive();
-        }
-      }
-      this.layoutRackTiles(true);
-OLDCODE */
-/* NEWCODE */
+      /* OLDCODE
+            // Restore any remaining pass tiles back to rack when Charleston ends
+            for (const runtime of this.tileMap.values()) {
+              if (runtime.zone === "pass") {
+                runtime.zone = "rack";
+                this.tweens.killTweensOf(runtime.image);
+                runtime.image.setVisible(true);
+                runtime.image.setScale(1);
+                runtime.image.setAlpha(1);
+                runtime.image.setInteractive();
+              }
+            }
+            this.layoutRackTiles(true);
+      OLDCODE */
+      /* NEWCODE */
       // Clean up pass tiles when Charleston ends: destroy tiles passed away to opponents
       const validRackIds = new Set(this.rackTiles.map((t) => t.tile_id!));
       for (const [id, runtime] of this.tileMap.entries()) {
@@ -1051,9 +1178,9 @@ OLDCODE */
         }
       }
       this.layoutRackTiles(true);
-/* NEWCODE */
+      /* NEWCODE */
     }
-/* NEWCODE */
+    /* NEWCODE */
 
     this.updatePhaseUi();
   }
@@ -1080,12 +1207,12 @@ OLDCODE */
       return;
     }
 
-/* OLDCODE
-    if (seat) {
-      this.activeSeat = seat;
-    }
-OLDCODE */
-/* NEWCODE */
+    /* OLDCODE
+        if (seat) {
+          this.activeSeat = seat;
+        }
+    OLDCODE */
+    /* NEWCODE */
     if (seat) {
       if (this.activeCallPresentationSeat && seat !== this.activeCallPresentationSeat) {
         if (this.callPresentationTimer) {
@@ -1096,23 +1223,23 @@ OLDCODE */
       }
       this.activeSeat = seat;
     }
-/* NEWCODE */
+    /* NEWCODE */
 
-/* OLDCODE
-    if (this.layout && this.graphics) {
-      this.drawTable();
-      this.layoutStaticUi();
-      this.updateInstructionText();
-    }
-OLDCODE */
-/* NEWCODE */
+    /* OLDCODE
+        if (this.layout && this.graphics) {
+          this.drawTable();
+          this.layoutStaticUi();
+          this.updateInstructionText();
+        }
+    OLDCODE */
+    /* NEWCODE */
     if (this.layout && this.graphics) {
       this.drawTable();
       this.layoutStaticUi();
       this.updateInstructionText();
       this.updateExposureCloseButtonsState();
     }
-/* NEWCODE */
+    /* NEWCODE */
   }
   private updatePhaseUi(): void {
     this.updateInstructionText();
@@ -1163,9 +1290,17 @@ OLDCODE */
     this.layoutMobileHeaderToggle();
     this.layoutCalledBottomExposureTiles();
     this.updateExposureCloseButtonsState();
+    /* OLDCODE
     for (const seat of ["top", "left", "right"] as const) {
       this.layoutCalledOpponentExposureTiles(seat);
     }
+    OLDCODE */
+    /* NEWCODE */
+    for (const seat of ["top", "left", "right"] as const) {
+      this.layoutCalledOpponentExposureTiles(seat);
+      this.layoutDebugOpponentHandTiles(seat);
+    }
+    /* NEWCODE */
     // OLDCODE
     // this.layoutOpponentDiscardTiles();
     // NEWCODE
@@ -1180,15 +1315,15 @@ OLDCODE */
     this.layoutPassWaitingTiles(false);
     this.relayoutBotPassVisualTilesAfterResize();
     this.updatePassButtonState();
-/* OLDCODE
-    this.refreshRackTexturesIfAtlasChanged();
-  }
-OLDCODE */
-/* NEWCODE */
+    /* OLDCODE
+        this.refreshRackTexturesIfAtlasChanged();
+      }
+    OLDCODE */
+    /* NEWCODE */
     this.refreshRackTexturesIfAtlasChanged();
     this.hideDragProxy();
   }
-/* NEWCODE */
+  /* NEWCODE */
 
   private activeRackLayoutTileCount(): number {
     return Math.max(14, this.rackOrder.length);
@@ -1305,26 +1440,38 @@ OLDCODE */
     }
   }
 
+  /* OLDCODE
   private setPassDirection(direction: PassDirection): void {
     if (this.passDirection === direction) return;
+  OLDCODE */
+  /* NEWCODE */
+  private setPassDirection(direction: PassDirection): void {
+    const isSameDirection = this.passDirection === direction;
+    const isSameStage = this.lastHandledPassStage === this.charlestonState?.stage && this.lastHandledPassRound === (this.charlestonState as any)?.round;
+    if (isSameDirection && isSameStage) return;
 
-/* OLDCODE
+    this.lastHandledPassStage = this.charlestonState?.stage;
+    this.lastHandledPassRound = (this.charlestonState as any)?.round;
+    /* NEWCODE */
+
+    /* OLDCODE
+        // Explicitly reset auto-stage states when moving to a new pass direction
+        this.botAutoStagedDestination = undefined;
+        this.isBotPassVisualAnimating = false;
+        this.isPassAnimating = false;
+    
+        this.passFlowManager.setPassDirection(direction);
+    OLDCODE */
+    /* NEWCODE */
     // Explicitly reset auto-stage states when moving to a new pass direction
     this.botAutoStagedDestination = undefined;
-    this.isBotPassVisualAnimating = false;
-    this.isPassAnimating = false;
-
-    this.passFlowManager.setPassDirection(direction);
-OLDCODE */
-/* NEWCODE */
-    // Explicitly reset auto-stage states when moving to a new pass direction
-    this.botAutoStagedDestination = undefined;
+    this.clearBotPassVisualTiles();
     this.isBotPassVisualAnimating = false;
     this.isPassAnimating = false;
     this.stateManager.optimisticPassTileIds.length = 0;
 
     this.passFlowManager.setPassDirection(direction);
-/* NEWCODE */
+    /* NEWCODE */
 
     /* console.log("[TableScene] pass direction received:", {
       direction: this.passDirection,
@@ -1356,21 +1503,21 @@ OLDCODE */
 
     if (!needs1xAtlas && !needs2xAtlas) {
       this.reconcileRackTiles(animate);
-/* OLDCODE
-      if (this.pendingLocalPickRuntime) {
-        const runtime = this.pendingLocalPickRuntime;
-        this.pendingLocalPickRuntime = undefined;
-
-        const targetPoint = this.slotFor(runtime);
-        this.animateWallTileToSeat("bottom", runtime.vm, targetPoint, () => {
-          runtime.image.setAlpha(1);
-          this.isPickAnimating = false;
-          this.updatePassButtonState();
-          this.updateInstructionText();
-        });
-      }
-OLDCODE */
-/* NEWCODE */
+      /* OLDCODE
+            if (this.pendingLocalPickRuntime) {
+              const runtime = this.pendingLocalPickRuntime;
+              this.pendingLocalPickRuntime = undefined;
+      
+              const targetPoint = this.slotFor(runtime);
+              this.animateWallTileToSeat("bottom", runtime.vm, targetPoint, () => {
+                runtime.image.setAlpha(1);
+                this.isPickAnimating = false;
+                this.updatePassButtonState();
+                this.updateInstructionText();
+              });
+            }
+      OLDCODE */
+      /* OLDCODE
       if (this.pendingLocalPickRuntime) {
         const runtime = this.pendingLocalPickRuntime;
         this.pendingLocalPickRuntime = undefined;
@@ -1390,7 +1537,80 @@ OLDCODE */
           this.updateInstructionText();
         });
       }
-/* NEWCODE */
+      OLDCODE */
+      /* OLDCODE
+      if (this.pendingLocalPickRuntime) {
+        const runtime = this.pendingLocalPickRuntime;
+        const targetPoint = this.slotFor(runtime);
+        const safetyTimer = this.time.delayedCall(800, () => {
+          this.pendingLocalPickRuntime = undefined;
+          this.pendingLocalPickTileId = undefined;
+          runtime.image.setAlpha(1);
+          this.isPickAnimating = false;
+          this.updatePassButtonState();
+          this.updateInstructionText();
+        });
+        this.animateWallTileToSeat("bottom", runtime.vm, targetPoint, () => {
+          safetyTimer.remove();
+          this.pendingLocalPickRuntime = undefined;
+          this.pendingLocalPickTileId = undefined;
+          runtime.image.setAlpha(1);
+          this.isPickAnimating = false;
+          this.updatePassButtonState();
+          this.updateInstructionText();
+        });
+      }
+      OLDCODE */
+      /* OLDCODE
+      if (this.pendingLocalPickRuntime) {
+        const runtime = this.pendingLocalPickRuntime;
+        this.pendingLocalPickRuntime = undefined;
+        this.animatingPickTileId = runtime.vm.tile_id;
+
+        const targetPoint = this.slotFor(runtime);
+        const safetyTimer = this.time.delayedCall(800, () => {
+          this.animatingPickTileId = undefined;
+          runtime.image.setAlpha(1);
+          this.isPickAnimating = false;
+          this.updatePassButtonState();
+          this.updateInstructionText();
+        });
+        this.animateWallTileToSeat("bottom", runtime.vm, targetPoint, () => {
+          safetyTimer.remove();
+          this.animatingPickTileId = undefined;
+          runtime.image.setAlpha(1);
+          this.isPickAnimating = false;
+          this.updatePassButtonState();
+          this.updateInstructionText();
+        });
+      }
+      OLDCODE */
+      /* NEWCODE */
+      if (this.pendingLocalPickRuntime) {
+        const runtime = this.pendingLocalPickRuntime;
+        this.pendingLocalPickRuntime = undefined;
+        this.animatingPickTileId = runtime.vm.tile_id;
+
+        const targetPoint = this.slotFor(runtime);
+        // Safety timer waits slightly longer than animation speed so animation never gets cut early
+        const safetyTimerMs = this.animationDuration + 300;
+        const safetyTimer = this.time.delayedCall(safetyTimerMs, () => {
+          this.animatingPickTileId = undefined;
+          runtime.image.setAlpha(1);
+          this.isPickAnimating = false;
+          this.updatePassButtonState();
+          this.updateInstructionText();
+        });
+        this.animateWallTileToSeat("bottom", runtime.vm, targetPoint, () => {
+          safetyTimer.remove();
+          this.animatingPickTileId = undefined;
+          runtime.image.setAlpha(1);
+          this.isPickAnimating = false;
+          this.updatePassButtonState();
+          this.updateInstructionText();
+        });
+      }
+      /* NEWCODE */
       const tileWidth = Math.round(this.layout.bottomTileLayout.width);
       this.activeRackAtlasKey = this.gameService.selectTileAtlas(tileWidth).atlasKey;
 
@@ -1422,21 +1642,21 @@ OLDCODE */
 
     this.load.once(Phaser.Loader.Events.COMPLETE, () => {
       this.reconcileRackTiles(animate);
-/* OLDCODE
-      if (this.pendingLocalPickRuntime) {
-        const runtime = this.pendingLocalPickRuntime;
-        this.pendingLocalPickRuntime = undefined;
-
-        const targetPoint = this.slotFor(runtime);
-        this.animateWallTileToSeat("bottom", runtime.vm, targetPoint, () => {
-          runtime.image.setAlpha(1);
-          this.isPickAnimating = false;
-          this.updatePassButtonState();
-          this.updateInstructionText();
-        });
-      }
-OLDCODE */
-/* NEWCODE */
+      /* OLDCODE
+            if (this.pendingLocalPickRuntime) {
+              const runtime = this.pendingLocalPickRuntime;
+              this.pendingLocalPickRuntime = undefined;
+      
+              const targetPoint = this.slotFor(runtime);
+              this.animateWallTileToSeat("bottom", runtime.vm, targetPoint, () => {
+                runtime.image.setAlpha(1);
+                this.isPickAnimating = false;
+                this.updatePassButtonState();
+                this.updateInstructionText();
+              });
+            }
+      OLDCODE */
+      /* OLDCODE
       if (this.pendingLocalPickRuntime) {
         const runtime = this.pendingLocalPickRuntime;
         this.pendingLocalPickRuntime = undefined;
@@ -1456,7 +1676,80 @@ OLDCODE */
           this.updateInstructionText();
         });
       }
-/* NEWCODE */
+      OLDCODE */
+      /* OLDCODE
+      if (this.pendingLocalPickRuntime) {
+        const runtime = this.pendingLocalPickRuntime;
+        const targetPoint = this.slotFor(runtime);
+        const safetyTimer = this.time.delayedCall(800, () => {
+          this.pendingLocalPickRuntime = undefined;
+          this.pendingLocalPickTileId = undefined;
+          runtime.image.setAlpha(1);
+          this.isPickAnimating = false;
+          this.updatePassButtonState();
+          this.updateInstructionText();
+        });
+        this.animateWallTileToSeat("bottom", runtime.vm, targetPoint, () => {
+          safetyTimer.remove();
+          this.pendingLocalPickRuntime = undefined;
+          this.pendingLocalPickTileId = undefined;
+          runtime.image.setAlpha(1);
+          this.isPickAnimating = false;
+          this.updatePassButtonState();
+          this.updateInstructionText();
+        });
+      }
+      OLDCODE */
+      /* OLDCODE
+      if (this.pendingLocalPickRuntime) {
+        const runtime = this.pendingLocalPickRuntime;
+        this.pendingLocalPickRuntime = undefined;
+        this.animatingPickTileId = runtime.vm.tile_id;
+
+        const targetPoint = this.slotFor(runtime);
+        const safetyTimer = this.time.delayedCall(800, () => {
+          this.animatingPickTileId = undefined;
+          runtime.image.setAlpha(1);
+          this.isPickAnimating = false;
+          this.updatePassButtonState();
+          this.updateInstructionText();
+        });
+        this.animateWallTileToSeat("bottom", runtime.vm, targetPoint, () => {
+          safetyTimer.remove();
+          this.animatingPickTileId = undefined;
+          runtime.image.setAlpha(1);
+          this.isPickAnimating = false;
+          this.updatePassButtonState();
+          this.updateInstructionText();
+        });
+      }
+      OLDCODE */
+      /* NEWCODE */
+      if (this.pendingLocalPickRuntime) {
+        const runtime = this.pendingLocalPickRuntime;
+        this.pendingLocalPickRuntime = undefined;
+        this.animatingPickTileId = runtime.vm.tile_id;
+
+        const targetPoint = this.slotFor(runtime);
+        // Safety timer waits slightly longer than animation speed so animation never gets cut early
+        const safetyTimerMs = this.animationDuration + 300;
+        const safetyTimer = this.time.delayedCall(safetyTimerMs, () => {
+          this.animatingPickTileId = undefined;
+          runtime.image.setAlpha(1);
+          this.isPickAnimating = false;
+          this.updatePassButtonState();
+          this.updateInstructionText();
+        });
+        this.animateWallTileToSeat("bottom", runtime.vm, targetPoint, () => {
+          safetyTimer.remove();
+          this.animatingPickTileId = undefined;
+          runtime.image.setAlpha(1);
+          this.isPickAnimating = false;
+          this.updatePassButtonState();
+          this.updateInstructionText();
+        });
+      }
+      /* NEWCODE */
       const tileWidth = Math.round(this.layout.bottomTileLayout.width);
       this.activeRackAtlasKey = this.gameService.selectTileAtlas(tileWidth).atlasKey;
 
@@ -1522,54 +1815,54 @@ OLDCODE */
       if (existingRuntime) continue;
     */
     // NEWCODE
-/* OLDCODE
-    for (const tile of this.rackTiles) {
-      const existingRuntime = this.tileMap.get(tile.tile_id!);
-
-      if (existingRuntime && existingRuntime.zone === "exposure" && !this.isTileInAnyExposure(tile.tile_id!)) {
-        // Tile was swapped or returned from exposure to rack
-        existingRuntime.zone = "rack";
-        existingRuntime.selected = false;
-        existingRuntime.isDragging = false;
-        existingRuntime.image.clearTint();
-        existingRuntime.image.setData("joker-swap-enabled", false);
-        existingRuntime.image.setData("exposure-asset", undefined);
-        existingRuntime.image.setData("joker-tile-id", undefined);
-        existingRuntime.image.setData("joker-seat", undefined);
-        existingRuntime.image.off("pointerup");
-        existingRuntime.image.setDepth(30);
-        this.applyTileTextureFilter(existingRuntime.image, true);
-        existingRuntime.image.removeAllListeners();
-        this.registerTileInput(existingRuntime);
-        if (!this.rackOrder.includes(tile.tile_id!)) {
-          if (this.pendingLocalJokerSwap && this.pendingLocalJokerSwap.jokerTileId === tile.tile_id!) {
-            const safeIdx = Phaser.Math.Clamp(this.pendingLocalJokerSwap.rackIndex, 0, this.rackOrder.length);
-            this.rackOrder.splice(safeIdx, 0, tile.tile_id!);
-          } else {
-            this.rackOrder.push(tile.tile_id!);
+    /* OLDCODE
+        for (const tile of this.rackTiles) {
+          const existingRuntime = this.tileMap.get(tile.tile_id!);
+    
+          if (existingRuntime && existingRuntime.zone === "exposure" && !this.isTileInAnyExposure(tile.tile_id!)) {
+            // Tile was swapped or returned from exposure to rack
+            existingRuntime.zone = "rack";
+            existingRuntime.selected = false;
+            existingRuntime.isDragging = false;
+            existingRuntime.image.clearTint();
+            existingRuntime.image.setData("joker-swap-enabled", false);
+            existingRuntime.image.setData("exposure-asset", undefined);
+            existingRuntime.image.setData("joker-tile-id", undefined);
+            existingRuntime.image.setData("joker-seat", undefined);
+            existingRuntime.image.off("pointerup");
+            existingRuntime.image.setDepth(30);
+            this.applyTileTextureFilter(existingRuntime.image, true);
+            existingRuntime.image.removeAllListeners();
+            this.registerTileInput(existingRuntime);
+            if (!this.rackOrder.includes(tile.tile_id!)) {
+              if (this.pendingLocalJokerSwap && this.pendingLocalJokerSwap.jokerTileId === tile.tile_id!) {
+                const safeIdx = Phaser.Math.Clamp(this.pendingLocalJokerSwap.rackIndex, 0, this.rackOrder.length);
+                this.rackOrder.splice(safeIdx, 0, tile.tile_id!);
+              } else {
+                this.rackOrder.push(tile.tile_id!);
+              }
+            }
+          } else if (existingRuntime && existingRuntime.zone === "rack" && !existingRuntime.image.getData("hasShadow")) {
+            this.applyTileTextureFilter(existingRuntime.image, true);
           }
-        }
-      } else if (existingRuntime && existingRuntime.zone === "rack" && !existingRuntime.image.getData("hasShadow")) {
-        this.applyTileTextureFilter(existingRuntime.image, true);
-      }
-
-      if (
-        !this.rackOrder.includes(tile.tile_id!) &&
-        !this.discardedTileIds.includes(tile.tile_id!) &&
-        !this.stateManager.optimisticPassTileIds.includes(tile.tile_id!) &&
-        existingRuntime?.zone !== "exposure"
-      ) {
-        if (this.pendingLocalJokerSwap && this.pendingLocalJokerSwap.jokerTileId === tile.tile_id!) {
-          const safeIdx = Phaser.Math.Clamp(this.pendingLocalJokerSwap.rackIndex, 0, this.rackOrder.length);
-          this.rackOrder.splice(safeIdx, 0, tile.tile_id!);
-        } else {
-          this.rackOrder.push(tile.tile_id!);
-        }
-      }
-
-      if (existingRuntime) continue;
-OLDCODE */
-/* NEWCODE */
+    
+          if (
+            !this.rackOrder.includes(tile.tile_id!) &&
+            !this.discardedTileIds.includes(tile.tile_id!) &&
+            !this.stateManager.optimisticPassTileIds.includes(tile.tile_id!) &&
+            existingRuntime?.zone !== "exposure"
+          ) {
+            if (this.pendingLocalJokerSwap && this.pendingLocalJokerSwap.jokerTileId === tile.tile_id!) {
+              const safeIdx = Phaser.Math.Clamp(this.pendingLocalJokerSwap.rackIndex, 0, this.rackOrder.length);
+              this.rackOrder.splice(safeIdx, 0, tile.tile_id!);
+            } else {
+              this.rackOrder.push(tile.tile_id!);
+            }
+          }
+    
+          if (existingRuntime) continue;
+    OLDCODE */
+    /* NEWCODE */
     // Clean up any stale optimisticPassTileIds for tiles the server confirms in the hand
     for (const tile of this.rackTiles) {
       const optIdx = this.stateManager.optimisticPassTileIds.indexOf(tile.tile_id!);
@@ -1666,9 +1959,25 @@ OLDCODE */
         existingRuntime.image.setScale(1);
         existingRuntime.image.setInteractive();
 
+        /* OLDCODE
         if (!this.isPickAnimating || existingRuntime !== this.pendingLocalPickRuntime) {
           existingRuntime.image.setAlpha(1);
         }
+        OLDCODE */
+        /* OLDCODE
+        const isExistingPickFlightTile = this.isPickAnimating &&
+          (existingRuntime === this.pendingLocalPickRuntime || existingRuntime.vm.tile_id === this.pendingLocalPickTileId);
+        if (!isExistingPickFlightTile) {
+          existingRuntime.image.setAlpha(1);
+        }
+        OLDCODE */
+        /* NEWCODE */
+        const isExistingPickFlightTile = this.isPickAnimating &&
+          (existingRuntime.vm.tile_id === this.animatingPickTileId || existingRuntime === this.pendingLocalPickRuntime);
+        if (!isExistingPickFlightTile) {
+          existingRuntime.image.setAlpha(1);
+        }
+        /* NEWCODE */
         if (!existingRuntime.image.getData("hasShadow")) {
           this.applyTileTextureFilter(existingRuntime.image, true);
         }
@@ -1686,7 +1995,7 @@ OLDCODE */
       }
 
       if (existingRuntime) continue;
-    /* NEWCODE */
+      /* NEWCODE */
 
       const tileWidth = Math.round(this.layout.bottomTileLayout.width);
       const tileHeight = Math.round(this.layout.bottomTileLayout.height);
@@ -1731,26 +2040,75 @@ OLDCODE */
         slotIndex: this.rackOrder.length,
       };
 
+      /* OLDCODE
       if (this.isWaitingForPickResponse) {
         this.isWaitingForPickResponse = false;
         runtime.image.setAlpha(0);
         this.pendingLocalPickRuntime = runtime;
       }
+      OLDCODE */
+      /* OLDCODE
+      if (this.isWaitingForPickResponse) {
+        this.isWaitingForPickResponse = false;
+        runtime.image.setAlpha(0);
+        this.pendingLocalPickRuntime = runtime;
+        this.pendingLocalPickTileId = tile.tile_id!;
+      }
+      OLDCODE */
+      /* OLDCODE
+      if (this.isWaitingForPickResponse) {
+        this.isWaitingForPickResponse = false;
+        runtime.image.setAlpha(0);
+        this.pendingLocalPickRuntime = runtime;
+        this.animatingPickTileId = tile.tile_id!;
+      }
+      OLDCODE */
+      /* NEWCODE */
+      // Check if this new tile was picked from wall (either flag is true, or rack reached 14 tiles in play phase)
+      const isPickAction = this.isWaitingForPickResponse ||
+        (this.tablePhase === GamePhaseEnum.PLAYING && this.rackTiles.length === 14);
+
+      if (isPickAction) {
+        this.isWaitingForPickResponse = false;
+        // Keep tile invisible on the rack until the wall-to-rack flight finishes
+        runtime.image.setAlpha(0);
+        this.pendingLocalPickRuntime = runtime;
+        this.animatingPickTileId = tile.tile_id!;
+      }
+      /* NEWCODE */
 
       this.tileMap.set(tile.tile_id!, runtime);
       this.registerTileInput(runtime);
-/* OLDCODE
+      /* OLDCODE
+          }
+      
+          this.reindexRackRuntimeSlots();
+      OLDCODE */
+      /* NEWCODE */
     }
 
-    this.reindexRackRuntimeSlots();
-OLDCODE */
-/* NEWCODE */
-    }
-
+    /* OLDCODE
     if (this.isWaitingForPickResponse) {
       this.isWaitingForPickResponse = false;
       this.isPickAnimating = false;
+      this.pendingLocalPickRuntime = undefined;
+      this.pendingLocalPickTileId = undefined;
     }
+    OLDCODE */
+    /* OLDCODE
+    if (this.isWaitingForPickResponse) {
+      this.isWaitingForPickResponse = false;
+      this.isPickAnimating = false;
+      this.pendingLocalPickRuntime = undefined;
+      this.animatingPickTileId = undefined;
+    }
+    OLDCODE */
+    /* NEWCODE */
+    // Only clear the pick flag if we actually found and prepared the picked tile
+    if (this.pendingLocalPickRuntime) {
+      this.isWaitingForPickResponse = false;
+    }
+    /* NEWCODE */
 
     /* OLDCODE
     this.reindexRackRuntimeSlots();
@@ -1761,7 +2119,7 @@ OLDCODE */
     this.callbacks.onSelectionChanged([]);
     this.resize(this.scale.width, this.scale.height, animate);
     OLDCODE */
-    /* NEWCODE */
+    /* OLDCODE
     // Sync rackOrder to follow the API tiles order received from server
     const apiOrderIds = this.rackTiles
       .map((t) => t.tile_id!)
@@ -1782,6 +2140,50 @@ OLDCODE */
       }
       this.rackOrder = syncedOrder;
     }
+    OLDCODE */
+    /* NEWCODE */
+    if (this.hasUserManualRackOrder) {
+      // User has manually arranged tiles: preserve existing relative order
+      const activeTileIdSet = new Set(
+        this.rackTiles
+          .map((t) => t.tile_id!)
+          .filter((id) => !this.discardedTileIds.includes(id) && !this.isTileInAnyExposure(id))
+      );
+
+      // Keep existing tiles in current manual positions, removing discarded/exposed tiles
+      const preservedOrder = this.rackOrder.filter((id) => activeTileIdSet.has(id));
+
+      // Append any newly drawn/picked tiles to the end of the rack
+      for (const tile of this.rackTiles) {
+        const id = tile.tile_id!;
+        if (activeTileIdSet.has(id) && !preservedOrder.includes(id)) {
+          preservedOrder.push(id);
+        }
+      }
+      this.rackOrder = preservedOrder;
+    } else {
+      // Sync rackOrder to follow the API tiles order received from server
+      const apiOrderIds = this.rackTiles
+        .map((t) => t.tile_id!)
+        .filter((id) => !this.discardedTileIds.includes(id) && !this.isTileInAnyExposure(id));
+
+      if (apiOrderIds.length > 0) {
+        const syncedOrder: number[] = [];
+        for (const id of apiOrderIds) {
+          if (!syncedOrder.includes(id)) {
+            syncedOrder.push(id);
+          }
+        }
+        // Keep any remaining rack tiles
+        for (const id of this.rackOrder) {
+          if (!syncedOrder.includes(id) && !this.discardedTileIds.includes(id) && !this.isTileInAnyExposure(id)) {
+            syncedOrder.push(id);
+          }
+        }
+        this.rackOrder = syncedOrder;
+      }
+    }
+    /* NEWCODE */
 
     this.reindexRackRuntimeSlots();
     if (!this.hasAppliedInitialRackOrder && this.rackOrder.length > 0) {
@@ -1899,34 +2301,34 @@ OLDCODE */
     if (index >= 0) this.discardSlotOrder.splice(index, 1);
   }
 
-/* OLDCODE
-  private removeTileFromDiscardArea(tileId: number): { x: number, y: number } | undefined {
-    const numericId = Number(tileId);
-    let discardPos: { x: number, y: number } | undefined;
-
-    // 1. Remove from opponent discard sprites
-    const opponentDiscardIndex = this.opponentDiscardTiles.findIndex((img) => Number(img.getData("discard-id")) === numericId);
-    if (opponentDiscardIndex >= 0) {
-      const img = this.opponentDiscardTiles[opponentDiscardIndex];
-      discardPos = { x: img.x, y: img.y };
-      img.destroy();
-      this.opponentDiscardTiles.splice(opponentDiscardIndex, 1);
+  /* OLDCODE
+    private removeTileFromDiscardArea(tileId: number): { x: number, y: number } | undefined {
+      const numericId = Number(tileId);
+      let discardPos: { x: number, y: number } | undefined;
+  
+      // 1. Remove from opponent discard sprites
+      const opponentDiscardIndex = this.opponentDiscardTiles.findIndex((img) => Number(img.getData("discard-id")) === numericId);
+      if (opponentDiscardIndex >= 0) {
+        const img = this.opponentDiscardTiles[opponentDiscardIndex];
+        discardPos = { x: img.x, y: img.y };
+        img.destroy();
+        this.opponentDiscardTiles.splice(opponentDiscardIndex, 1);
+      }
+  
+      // 2. Remove personal discard sprite if present
+      const runtime = this.tileMap.get(numericId);
+      if (runtime && runtime.zone === "discard") {
+        discardPos = { x: runtime.image.x, y: runtime.image.y };
+        runtime.image.destroy();
+        this.tileMap.delete(numericId);
+      }
+  
+      // 3. Remove from personal discarded slot order
+      this.removeFromDiscardOrder(numericId);
+      return discardPos;
     }
-
-    // 2. Remove personal discard sprite if present
-    const runtime = this.tileMap.get(numericId);
-    if (runtime && runtime.zone === "discard") {
-      discardPos = { x: runtime.image.x, y: runtime.image.y };
-      runtime.image.destroy();
-      this.tileMap.delete(numericId);
-    }
-
-    // 3. Remove from personal discarded slot order
-    this.removeFromDiscardOrder(numericId);
-    return discardPos;
-  }
-OLDCODE */
-/* NEWCODE */
+  OLDCODE */
+  /* NEWCODE */
   private removeTileFromDiscardArea(tileId: number): { x: number, y: number } | undefined {
     const numericId = Number(tileId);
     let discardPos: { x: number, y: number } | undefined;
@@ -1964,7 +2366,7 @@ OLDCODE */
     this.removeFromDiscardOrder(numericId);
     return discardPos;
   }
-/* NEWCODE */
+  /* NEWCODE */
 
   private discardSlotIndex(tileId: number, fallback: number): number {
     // OLDCODE
@@ -1982,6 +2384,7 @@ OLDCODE */
     });
   }
 
+  /* OLDCODE
   private moveRackTileToIndex(tileId: number, targetIndex: number): void {
     this.removeFromRackOrder(tileId);
 
@@ -1990,6 +2393,20 @@ OLDCODE */
 
     this.reindexRackRuntimeSlots();
   }
+  OLDCODE */
+  /* NEWCODE */
+  private moveRackTileToIndex(tileId: number, targetIndex: number): void {
+    // Flag that player has manually customized their rack layout
+    this.hasUserManualRackOrder = true;
+
+    this.removeFromRackOrder(tileId);
+
+    const safeIndex = Phaser.Math.Clamp(targetIndex, 0, this.rackOrder.length);
+    this.rackOrder.splice(safeIndex, 0, tileId);
+
+    this.reindexRackRuntimeSlots();
+  }
+  /* NEWCODE */
 
   private registerTileInput(runtime: TileRuntime): void {
     runtime.image.setInteractive({
@@ -2047,13 +2464,13 @@ OLDCODE */
         this.callbacks.onSelectionChanged([...this.selectedIds]);
       }
 
-/* OLDCODE
-      runtime.image.setPosition(Math.round(dragX), Math.round(dragY));
-OLDCODE */
-/* NEWCODE */
+      /* OLDCODE
+            runtime.image.setPosition(Math.round(dragX), Math.round(dragY));
+      OLDCODE */
+      /* NEWCODE */
       runtime.image.setPosition(Math.round(dragX), Math.round(dragY));
       this.updateDragProxy(runtime, dragX, dragY);
-/* NEWCODE */
+      /* NEWCODE */
 
       if (runtime.zone === "rack") {
         const isPassingDropTarget =
@@ -2146,15 +2563,15 @@ OLDCODE */
 
       if (shouldSuppressTap) return;
     */
-/* OLDCODE
-    this.tileInteractionManager.onDragEnd(runtime.image, (pointer: Phaser.Input.Pointer) => {
-      this.tileInteractionManager.handleDrop(runtime, pointer, () => {
-OLDCODE */
-/* NEWCODE */
+    /* OLDCODE
+        this.tileInteractionManager.onDragEnd(runtime.image, (pointer: Phaser.Input.Pointer) => {
+          this.tileInteractionManager.handleDrop(runtime, pointer, () => {
+    OLDCODE */
+    /* NEWCODE */
     this.tileInteractionManager.onDragEnd(runtime.image, (pointer: Phaser.Input.Pointer) => {
       this.hideDragProxy();
       this.tileInteractionManager.handleDrop(runtime, pointer, () => {
-/* NEWCODE */
+        /* NEWCODE */
         const tileId = runtime.vm.tile_id ?? (runtime.vm as any).id;
         try {
           runtime.image.setDepth(30);
@@ -2215,15 +2632,15 @@ OLDCODE */
       });
     });
 
-/* OLDCODE
-    this.tileInteractionManager.onPointerUp(runtime.image, () => {
-      this.activeDragTile = undefined;
-OLDCODE */
-/* NEWCODE */
+    /* OLDCODE
+        this.tileInteractionManager.onPointerUp(runtime.image, () => {
+          this.activeDragTile = undefined;
+    OLDCODE */
+    /* NEWCODE */
     this.tileInteractionManager.onPointerUp(runtime.image, () => {
       this.hideDragProxy();
       this.activeDragTile = undefined;
-/* NEWCODE */
+      /* NEWCODE */
       const tileId = runtime.vm.tile_id ?? (runtime.vm as any).id;
       const shouldSuppressTap = tileId != null ? this.suppressTapByTileId.delete(tileId) : false;
       if (tileId != null) {
@@ -2329,36 +2746,36 @@ OLDCODE */
     return Math.max(0, totalWidth - bounds.width);
   }
 
-/* OLDCODE
-  private slotFor(runtime: TileRuntime): Point {
-    const index = this.rackOrder.indexOf(runtime.vm.tile_id!);
-    const slot = this.layout.bottomTileLayout.slots[index];
-
-    // NEWCODE
-    const tileWidth = this.layout.bottomTileLayout.width;
-    const finalGap = this.layout.bottomTileLayout.gap;
-    const totalWidth = this.rackOrder.length * tileWidth + finalGap * (this.rackOrder.length - 1);
-    const bounds = this.getRackBounds();
-
-    let baseStartX = bounds.x + tileWidth / 2;
-    if (totalWidth < bounds.width) {
-      baseStartX = bounds.x + bounds.width / 2 - totalWidth / 2 + tileWidth / 2;
+  /* OLDCODE
+    private slotFor(runtime: TileRuntime): Point {
+      const index = this.rackOrder.indexOf(runtime.vm.tile_id!);
+      const slot = this.layout.bottomTileLayout.slots[index];
+  
+      // NEWCODE
+      const tileWidth = this.layout.bottomTileLayout.width;
+      const finalGap = this.layout.bottomTileLayout.gap;
+      const totalWidth = this.rackOrder.length * tileWidth + finalGap * (this.rackOrder.length - 1);
+      const bounds = this.getRackBounds();
+  
+      let baseStartX = bounds.x + tileWidth / 2;
+      if (totalWidth < bounds.width) {
+        baseStartX = bounds.x + bounds.width / 2 - totalWidth / 2 + tileWidth / 2;
+      }
+  
+      const slotX = baseStartX + index * (tileWidth + finalGap) - this.rackScrollX;
+  
+      return {
+        x: slotX,
+        y: slot ? slot.y : this.layout.bottomRack.y + this.layout.bottomRack.height / 2,
+      };
+      // OLDCODE
+      // return slot ?? {
+      //   x: this.layout.bottomRack.x + this.layout.bottomRack.width / 2,
+      //   y: this.layout.bottomRack.y + this.layout.bottomRack.height / 2,
+      // };
     }
-
-    const slotX = baseStartX + index * (tileWidth + finalGap) - this.rackScrollX;
-
-    return {
-      x: slotX,
-      y: slot ? slot.y : this.layout.bottomRack.y + this.layout.bottomRack.height / 2,
-    };
-    // OLDCODE
-    // return slot ?? {
-    //   x: this.layout.bottomRack.x + this.layout.bottomRack.width / 2,
-    //   y: this.layout.bottomRack.y + this.layout.bottomRack.height / 2,
-    // };
-  }
-OLDCODE */
-/* NEWCODE */
+  OLDCODE */
+  /* NEWCODE */
   private slotFor(runtime: TileRuntime): Point {
     let index = this.rackOrder.indexOf(runtime.vm.tile_id!);
     if (index === -1 && runtime.zone === "rack") {
@@ -2387,7 +2804,7 @@ OLDCODE */
       y: slot ? slot.y : this.layout.bottomRack.y + this.layout.bottomRack.height / 2,
     };
   }
-/* NEWCODE */
+  /* NEWCODE */
   private drawTable(): void {
     const gBg = this.bgGraphics;
     const g = this.graphics;
@@ -2624,11 +3041,28 @@ OLDCODE */
 
     this.drawActiveSeatExposureHighlight();
 
+    /* OLDCODE
     const discardArea = this.layout.discardArea;
     this.discardMaskGraphics.clear();
     this.discardMaskGraphics.fillStyle(0xffffff);
     this.discardMaskGraphics.fillRect(discardArea.x, discardArea.y, discardArea.width, Math.max(0, discardArea.height));
     this.drawDiscardDebugArea();
+    OLDCODE */
+    /* NEWCODE */
+    const discardArea = this.layout.discardArea;
+    this.discardMaskGraphics.clear();
+    this.discardMaskGraphics.fillStyle(0xffffff);
+    this.discardMaskGraphics.fillRect(discardArea.x, discardArea.y, discardArea.width, Math.max(0, discardArea.height));
+    this.drawDiscardDebugArea();
+
+    // Publish discard area bounds to Angular so result popups match exact discard geometry
+    this.callbacks.onDiscardAreaOverlay?.({
+      x: Math.round(discardArea.x),
+      y: Math.round(discardArea.y),
+      width: Math.round(discardArea.width),
+      height: Math.round(discardArea.height),
+    });
+    /* NEWCODE */
 
     if (this.sliderLeftButton) this.sliderLeftButton.setVisible(false);
     if (this.sliderRightButton) this.sliderRightButton.setVisible(false);
@@ -2917,25 +3351,25 @@ OLDCODE */
     const stripHighlight = (active && !isBottom) ? 0xf0eb78 : 0x3c63bb;
     const dividerFill = (active && !isBottom) ? 0x9b9722 : 0x8ea4d0;
 
-/* OLDCODE
-    const isPassing = this.tablePhase === GamePhaseEnum.PASSING;
-    const isActiveBottomLip = active && isBottom && !isPassing;
-    const lipFill = isActiveBottomLip ? 0xd7d33a : 0x3159aa;
-    const lipHighlight = isActiveBottomLip ? 0xf0eb78 : 0x5e82d5;
-OLDCODE */
-/* OLDCODE
-    const isPassing = this.tablePhase === GamePhaseEnum.PASSING;
-    const isActiveBottomLip = active && isBottom && !isPassing;
-    const lipFill = isActiveBottomLip ? COLOR_AVOCADO_NUM : COLOR_BLUE_NUM;
-    const lipHighlight = isActiveBottomLip ? 0xf0eb78 : 0x3c63bb;
-OLDCODE */
-/* NEWCODE */
+    /* OLDCODE
+        const isPassing = this.tablePhase === GamePhaseEnum.PASSING;
+        const isActiveBottomLip = active && isBottom && !isPassing;
+        const lipFill = isActiveBottomLip ? 0xd7d33a : 0x3159aa;
+        const lipHighlight = isActiveBottomLip ? 0xf0eb78 : 0x5e82d5;
+    OLDCODE */
+    /* OLDCODE
+        const isPassing = this.tablePhase === GamePhaseEnum.PASSING;
+        const isActiveBottomLip = active && isBottom && !isPassing;
+        const lipFill = isActiveBottomLip ? COLOR_AVOCADO_NUM : COLOR_BLUE_NUM;
+        const lipHighlight = isActiveBottomLip ? 0xf0eb78 : 0x3c63bb;
+    OLDCODE */
+    /* NEWCODE */
     const isPassing = this.tablePhase === GamePhaseEnum.PASSING;
     const isCallAvailable = this.uiLayoutManager?.isCallOptionAvailable() ?? false;
     const isActiveBottomLip = (active || isCallAvailable) && isBottom && !isPassing;
     const lipFill = isActiveBottomLip ? COLOR_AVOCADO_NUM : COLOR_BLUE_NUM;
     const lipHighlight = isActiveBottomLip ? 0xf0eb78 : 0x3c63bb;
-/* NEWCODE */
+    /* NEWCODE */
 
     // --- FIXED SHADOW SYSTEM ---
     const isMobile = this.layout.tableOuter.width < 640;
@@ -3082,20 +3516,20 @@ OLDCODE */
     this.game.events.on("play-stop-charleston", () => this.soundManager.playCharlestonStopVoice(), this);
 
     this.instructionPanelBg = this.add.graphics().setDepth(50);
-/* OLDCODE
-    this.game.events.on("instruction-panel:sync", (state: any) => {
-      this.instructionPanelBg?.clear();
-      if (state && state.visible) {
-        this.instructionPanelBg?.fillStyle(state.borderWidth === 0 ? 0xc7c22e : 0xf4f2ec);
-        this.instructionPanelBg?.fillRoundedRect(state.x, state.y, state.width, state.height, state.radius);
-        if (state.borderWidth > 0) {
-          this.instructionPanelBg?.lineStyle(state.borderWidth, 0xc7c22e);
-          this.instructionPanelBg?.strokeRoundedRect(state.x, state.y, state.width, state.height, state.radius);
-        }
-      }
-    });
-OLDCODE */
-/* NEWCODE */
+    /* OLDCODE
+        this.game.events.on("instruction-panel:sync", (state: any) => {
+          this.instructionPanelBg?.clear();
+          if (state && state.visible) {
+            this.instructionPanelBg?.fillStyle(state.borderWidth === 0 ? 0xc7c22e : 0xf4f2ec);
+            this.instructionPanelBg?.fillRoundedRect(state.x, state.y, state.width, state.height, state.radius);
+            if (state.borderWidth > 0) {
+              this.instructionPanelBg?.lineStyle(state.borderWidth, 0xc7c22e);
+              this.instructionPanelBg?.strokeRoundedRect(state.x, state.y, state.width, state.height, state.radius);
+            }
+          }
+        });
+    OLDCODE */
+    /* NEWCODE */
     this.game.events.on("instruction-panel:sync", (state: any) => {
       this.instructionPanelBg?.clear();
       if (state && state.visible) {
@@ -3117,50 +3551,50 @@ OLDCODE */
         }
       }
     });
-/* NEWCODE */
+    /* NEWCODE */
 
     this.layoutStaticUi();
   }
-/* OLDCODE
-  private handleHtmlMahjongAction(): void {
-    if (this.turnStage === GameTurnStageEnum.NEED_EXPOSURE && this.activeExposureBuildTileIds.length > 0) {
-      this.callbacks.onLocalPlayerExposureCreate?.([...this.activeExposureBuildTileIds]);
-      this.activeExposureBuildTileIds = [];
-      for (const button of this.exposureCloseButtons.values()) {
-        button.destroy();
-      }
-      this.exposureCloseButtons.clear();
-
-      // Delay the mahjong declare slightly to ensure backend processes the exposure first
-      setTimeout(() => {
+  /* OLDCODE
+    private handleHtmlMahjongAction(): void {
+      if (this.turnStage === GameTurnStageEnum.NEED_EXPOSURE && this.activeExposureBuildTileIds.length > 0) {
+        this.callbacks.onLocalPlayerExposureCreate?.([...this.activeExposureBuildTileIds]);
+        this.activeExposureBuildTileIds = [];
+        for (const button of this.exposureCloseButtons.values()) {
+          button.destroy();
+        }
+        this.exposureCloseButtons.clear();
+  
+        // Delay the mahjong declare slightly to ensure backend processes the exposure first
+        setTimeout(() => {
+          this.callbacks.onMahjongDeclare?.();
+        }, 500);
+      } else {
         this.callbacks.onMahjongDeclare?.();
-      }, 500);
-    } else {
-      this.callbacks.onMahjongDeclare?.();
-    }
-  }
-OLDCODE */
-/* OLDCODE
-  private handleHtmlMahjongAction(): void {
-    if (this.turnStage === GameTurnStageEnum.NEED_EXPOSURE && this.activeExposureBuildTileIds.length > 0) {
-      this.callbacks.onLocalPlayerExposureCreate?.([...this.activeExposureBuildTileIds]);
-      this.activeExposureBuildTileIds = [];
-      this.turnStage = GameTurnStageEnum.NEED_DISCARD;
-      for (const button of this.exposureCloseButtons.values()) {
-        button.destroy();
       }
-      this.exposureCloseButtons.clear();
-
-      // Delay the mahjong declare slightly to ensure backend processes the exposure first
-      setTimeout(() => {
-        this.callbacks.onMahjongDeclare?.();
-      }, 500);
-    } else {
-      this.callbacks.onMahjongDeclare?.();
     }
-  }
-OLDCODE */
-/* NEWCODE */
+  OLDCODE */
+  /* OLDCODE
+    private handleHtmlMahjongAction(): void {
+      if (this.turnStage === GameTurnStageEnum.NEED_EXPOSURE && this.activeExposureBuildTileIds.length > 0) {
+        this.callbacks.onLocalPlayerExposureCreate?.([...this.activeExposureBuildTileIds]);
+        this.activeExposureBuildTileIds = [];
+        this.turnStage = GameTurnStageEnum.NEED_DISCARD;
+        for (const button of this.exposureCloseButtons.values()) {
+          button.destroy();
+        }
+        this.exposureCloseButtons.clear();
+  
+        // Delay the mahjong declare slightly to ensure backend processes the exposure first
+        setTimeout(() => {
+          this.callbacks.onMahjongDeclare?.();
+        }, 500);
+      } else {
+        this.callbacks.onMahjongDeclare?.();
+      }
+    }
+  OLDCODE */
+  /* OLDCODE
   private handleHtmlMahjongAction(): void {
     if (this.turnStage === GameTurnStageEnum.NEED_EXPOSURE && this.activeExposureBuildTileIds.length > 0) {
       this.callbacks.onLocalPlayerExposureCreate?.([...this.activeExposureBuildTileIds]);
@@ -3180,7 +3614,33 @@ OLDCODE */
       this.callbacks.onMahjongDeclare?.();
     }
   }
-/* NEWCODE */
+  OLDCODE */
+  /* NEWCODE */
+  private handleHtmlMahjongAction(): void {
+    if (this.turnStage === GameTurnStageEnum.NEED_EXPOSURE && this.activeExposureBuildTileIds.length > 0) {
+      // If exposure does not have at least 3 tiles, do not submit an invalid exposure or force NEED_DISCARD
+      if (this.activeExposureBuildTileIds.length < 3) {
+        this.callbacks.onMahjongDeclare?.();
+        return;
+      }
+
+      this.callbacks.onLocalPlayerExposureCreate?.([...this.activeExposureBuildTileIds]);
+      this.activeExposureBuildTileIds = [];
+      this.exposureBuildAsset = undefined;
+      for (const button of this.exposureCloseButtons.values()) {
+        button.destroy();
+      }
+      this.exposureCloseButtons.clear();
+
+      // Delay the mahjong declare slightly to ensure backend processes the exposure first
+      setTimeout(() => {
+        this.callbacks.onMahjongDeclare?.();
+      }, 500);
+    } else {
+      this.callbacks.onMahjongDeclare?.();
+    }
+  }
+  /* NEWCODE */
 
   private layoutStaticUi(): void {
     if (!this.layout) return;
@@ -3254,25 +3714,25 @@ OLDCODE */
     });
   }
 
-/* OLDCODE
-  private showClaimWindow(tile: any): void {
-    if (!tile) return;
-    const texture = this.resolveTileTexture(tile);
-    const dataUrl = this.getFrameDataUrl(texture.atlasKey, texture.frameKey);
-
-    if (!dataUrl) {
-      setTimeout(() => this.showClaimWindow(tile), 200);
-      return;
+  /* OLDCODE
+    private showClaimWindow(tile: any): void {
+      if (!tile) return;
+      const texture = this.resolveTileTexture(tile);
+      const dataUrl = this.getFrameDataUrl(texture.atlasKey, texture.frameKey);
+  
+      if (!dataUrl) {
+        setTimeout(() => this.showClaimWindow(tile), 200);
+        return;
+      }
+  
+      this.uiLayoutManager.updateClaimWindow(true, dataUrl);
     }
-
-    this.uiLayoutManager.updateClaimWindow(true, dataUrl);
-  }
-
-  private hideClaimWindow(): void {
-    this.uiLayoutManager.updateClaimWindow(false);
-  }
-OLDCODE */
-/* NEWCODE */
+  
+    private hideClaimWindow(): void {
+      this.uiLayoutManager.updateClaimWindow(false);
+    }
+  OLDCODE */
+  /* NEWCODE */
   private showClaimWindow(tile: any): void {
     if (!tile) return;
     const texture = this.resolveTileTexture(tile);
@@ -3295,63 +3755,63 @@ OLDCODE */
       this.drawTable();
     }
   }
-/* NEWCODE */
+  /* NEWCODE */
 
   private layoutClaimTileSprite(): void {
     // We now use HTML for rendering the claim tile, so we don't position a Phaser sprite.
   }
 
-/* OLDCODE
-  private processPendingClaimTile(): void {
-    if (this.pendingClaimTileId) {
-      if (this.turnStage === GameTurnStageEnum.NEED_EXPOSURE) {
-        const runtime = this.tileMap.get(this.pendingClaimTileId);
-        if (runtime && (runtime.zone === "rack" || runtime.zone === "discard")) {
-          const seat = this.activeSeat;
-          if (seat === "bottom" || this.stateManager.isPersonalTurn) {
-            // Local player won the claim
-            if (!this.exposureBuildAsset && runtime.vm && runtime.vm.tile_id) {
-              this.exposureBuildAsset = this.gameService.assetBaseName(this.allTiles[runtime.vm.tile_id]);
-            }
-            if (runtime.zone === "discard") {
-              if (!this.rackOrder.includes(runtime.vm.tile_id!)) {
-                this.rackOrder.push(runtime.vm.tile_id!);
+  /* OLDCODE
+    private processPendingClaimTile(): void {
+      if (this.pendingClaimTileId) {
+        if (this.turnStage === GameTurnStageEnum.NEED_EXPOSURE) {
+          const runtime = this.tileMap.get(this.pendingClaimTileId);
+          if (runtime && (runtime.zone === "rack" || runtime.zone === "discard")) {
+            const seat = this.activeSeat;
+            if (seat === "bottom" || this.stateManager.isPersonalTurn) {
+              // Local player won the claim
+              if (!this.exposureBuildAsset && runtime.vm && runtime.vm.tile_id) {
+                this.exposureBuildAsset = this.gameService.assetBaseName(this.allTiles[runtime.vm.tile_id]);
               }
-              runtime.zone = "rack"; // Temporarily treat as rack so it can be moved to the exposure
-            }
-            if (this.layout?.discardArea) {
-              const center = this.layout.discardArea;
-              runtime.image.setPosition(
-                Math.round(center.x + center.width / 2),
-                Math.round(center.y + center.height / 2)
-              );
-            }
-            this.moveRackTileToBottomExposure(runtime);
-          } else {
-            // Opponent won the claim
-            const rect = this.exposureRectForSeat(seat);
-            this.tweens.add({
-              targets: runtime.image,
-              x: rect.x + rect.width / 2,
-              y: rect.y + rect.height / 2,
-              duration: ANIMATION_SPEED,
-              ease: "Cubic.Out",
-              onComplete: () => {
-                // Hide it after animating; handleExposuresSet should render their exposure.
-                runtime.image.setAlpha(0);
+              if (runtime.zone === "discard") {
+                if (!this.rackOrder.includes(runtime.vm.tile_id!)) {
+                  this.rackOrder.push(runtime.vm.tile_id!);
+                }
+                runtime.zone = "rack"; // Temporarily treat as rack so it can be moved to the exposure
               }
-            });
+              if (this.layout?.discardArea) {
+                const center = this.layout.discardArea;
+                runtime.image.setPosition(
+                  Math.round(center.x + center.width / 2),
+                  Math.round(center.y + center.height / 2)
+                );
+              }
+              this.moveRackTileToBottomExposure(runtime);
+            } else {
+              // Opponent won the claim
+              const rect = this.exposureRectForSeat(seat);
+              this.tweens.add({
+                targets: runtime.image,
+                x: rect.x + rect.width / 2,
+                y: rect.y + rect.height / 2,
+                duration: ANIMATION_SPEED,
+                ease: "Cubic.Out",
+                onComplete: () => {
+                  // Hide it after animating; handleExposuresSet should render their exposure.
+                  runtime.image.setAlpha(0);
+                }
+              });
+            }
+            this.pendingClaimTileId = undefined;
           }
+        } else if (this.tablePhase !== GamePhaseEnum.CLAIM) {
+          // If we are no longer in the CLAIM phase and didn't get NEED_EXPOSURE, clear it
           this.pendingClaimTileId = undefined;
         }
-      } else if (this.tablePhase !== GamePhaseEnum.CLAIM) {
-        // If we are no longer in the CLAIM phase and didn't get NEED_EXPOSURE, clear it
-        this.pendingClaimTileId = undefined;
       }
     }
-  }
-OLDCODE */
-/* NEWCODE */
+  OLDCODE */
+  /* NEWCODE */
   private processPendingClaimTile(): void {
     if (this.pendingClaimTileId) {
       const isExposureStage = this.turnStage === GameTurnStageEnum.NEED_EXPOSURE
@@ -3406,7 +3866,26 @@ OLDCODE */
       }
     }
   }
-/* NEWCODE */
+  /* NEWCODE */
+
+  /* NEWCODE */
+  // Public method to extract high-resolution image Data URL from Phaser texture atlas
+  public getTileDataUrl(tileIdOrDef: any): string | undefined {
+    try {
+      const texture = this.resolveTileTexture(tileIdOrDef);
+      if (!texture) return undefined;
+      const cacheKey = `${texture.atlasKey}:${texture.frameKey}`;
+      let dataUrl = this.tileDataUrlCache.get(cacheKey);
+      if (!dataUrl) {
+        dataUrl = this.getFrameDataUrl(texture.atlasKey, texture.frameKey);
+        if (dataUrl) this.tileDataUrlCache.set(cacheKey, dataUrl);
+      }
+      return dataUrl;
+    } catch {
+      return undefined;
+    }
+  }
+  /* NEWCODE */
 
   private resolveTileTexture(tile: any): { atlasKey: string; frameKey: string } {
     const tileWidth = Math.round(this.layout.bottomTileLayout.width);
@@ -3433,7 +3912,7 @@ OLDCODE */
     return canvas.toDataURL();
   }
 
-/* NEWCODE */
+  /* NEWCODE */
   private dragProxyElement: HTMLImageElement | null = null;
   private tileDataUrlCache = new Map<string, string>();
 
@@ -3507,7 +3986,7 @@ OLDCODE */
       proxy.style.display = "none";
     }
   }
-/* NEWCODE */
+  /* NEWCODE */
 
   private latestExposures: { bottom: any[], right: any[], top: any[], left: any[] } | null = null;
   private previousTotalExposures = 0;
@@ -3624,22 +4103,22 @@ OLDCODE */
           }
         }
 
-// OLDCODE         // Recover incomplete CALL melds (active claims) during the exposure turn stage.
-// OLDCODE         // Completed exposures will have length >= 3 and should not be recovered.
-// OLDCODE         if (meld.kind === 15 /* CALL */ && tilesToProcess.length < 3 && this.turnStage === GameTurnStageEnum.NEED_EXPOSURE) {
-// OLDCODE           if (this.pendingCallTileId !== tile.tile_id) {
-// OLDCODE             this.pendingCallTileId = tile.tile_id;
-// OLDCODE             this.pendingCallHasExposedRackTile = false;
-// OLDCODE           }
-// OLDCODE           if (!this.exposureBuildAsset) {
-// OLDCODE             this.exposureBuildAsset = meldAsset || this.gameService.assetBaseName(this.allTiles[tile.tile_id]);
-// OLDCODE           }
-// OLDCODE           if (!this.activeExposureBuildTileIds.includes(tile.tile_id)) {
-// OLDCODE             this.activeExposureBuildTileIds.push(tile.tile_id);
-// OLDCODE           }
-// OLDCODE           this.ensureExposureCloseButton(tile.tile_id);
-// OLDCODE         }
-/* NEWCODE */
+        // OLDCODE         // Recover incomplete CALL melds (active claims) during the exposure turn stage.
+        // OLDCODE         // Completed exposures will have length >= 3 and should not be recovered.
+        // OLDCODE         if (meld.kind === 15 /* CALL */ && tilesToProcess.length < 3 && this.turnStage === GameTurnStageEnum.NEED_EXPOSURE) {
+        // OLDCODE           if (this.pendingCallTileId !== tile.tile_id) {
+        // OLDCODE             this.pendingCallTileId = tile.tile_id;
+        // OLDCODE             this.pendingCallHasExposedRackTile = false;
+        // OLDCODE           }
+        // OLDCODE           if (!this.exposureBuildAsset) {
+        // OLDCODE             this.exposureBuildAsset = meldAsset || this.gameService.assetBaseName(this.allTiles[tile.tile_id]);
+        // OLDCODE           }
+        // OLDCODE           if (!this.activeExposureBuildTileIds.includes(tile.tile_id)) {
+        // OLDCODE             this.activeExposureBuildTileIds.push(tile.tile_id);
+        // OLDCODE           }
+        // OLDCODE           this.ensureExposureCloseButton(tile.tile_id);
+        // OLDCODE         }
+        /* NEWCODE */
         const isCallMeld = meld.kind === GamePlayActionEnum.CALL
           || meld.kind === "CALL"
           || (meld.kind as any) === 15
@@ -3661,9 +4140,19 @@ OLDCODE */
             this.positionExposureCloseButton(tile.tile_id);
           }
         }
-/* NEWCODE */
+        /* NEWCODE */
 
+        /* OLDCODE
         this.removeTileTextureFilter(runtime.image);
+        OLDCODE */
+        /* OLDCODE
+        // Keep shadow on exposure tiles
+        this.applyTileTextureFilter(runtime.image, true);
+        OLDCODE */
+        /* NEWCODE */
+        // Remove shadow when tile moves to exposure (shadow only shown in rack)
+        this.removeTileTextureFilter(runtime.image);
+        /* NEWCODE */
         runtime.image.setData("exposure-asset", meldAsset);
         runtime.image.disableInteractive();
 
@@ -3673,15 +4162,15 @@ OLDCODE */
       }
     }
 
-/* OLDCODE
-    this.layoutCalledBottomExposureTiles();
-    this.updateExposureCloseButtonsState();
-OLDCODE */
-/* NEWCODE */
+    /* OLDCODE
+        this.layoutCalledBottomExposureTiles();
+        this.updateExposureCloseButtonsState();
+    OLDCODE */
+    /* NEWCODE */
     this.layoutCalledBottomExposureTiles();
     this.updateExposureCloseButtonsState();
     this.updateInstructionText();
-/* NEWCODE */
+    /* NEWCODE */
 
     // Render opponent exposures from the API
     for (const seat of ["top", "left", "right"] as const) {
@@ -3770,12 +4259,189 @@ OLDCODE */
       this.layoutCalledOpponentExposureTiles(seat);
     }
 
+    /* NEWCODE */
+    // Also re-position debug hands after exposure changes
+    for (const seat of ["top", "left", "right"] as const) {
+      this.layoutDebugOpponentHandTiles(seat);
+    }
+    /* NEWCODE */
+
     // Refresh the discard grid to clear any gap left by the claimed discard
     if (discardAreaChanged) {
       this.layoutDiscardTiles(true);
       this.layoutOpponentDiscardTiles();
     }
   }
+
+  /* NEWCODE */
+  // Handle debug opponent hands received from Angular
+  private handleDebugOpponentHands(hands: { bottom: any[], right: any[], top: any[], left: any[] }): void {
+    this.latestDebugOpponentHands = hands;
+    this.renderDebugOpponentHands(hands);
+  }
+
+  // Render debug rack hand tiles for top, left, and right seats
+  private renderDebugOpponentHands(hands: { bottom: any[], right: any[], top: any[], left: any[] }): void {
+    if (!this.layout || Object.keys(this.allTiles).length === 0) return;
+
+    for (const seat of ["top", "left", "right"] as const) {
+      const tileList = hands[seat] || [];
+
+      // Clean up previous debug sprites for this seat
+      this.debugOpponentHandTiles[seat].forEach((img) => img.destroy());
+      this.debugOpponentHandTiles[seat] = [];
+
+      // Calculate smaller tile size for debug hand display (70% of opponent exposure tile size)
+      const baseSize = this.calledOpponentExposureTileSize(seat);
+      const smallTileWidth = Math.round(baseSize.width * 0.70);
+      const smallTileHeight = Math.round(baseSize.height * 0.70);
+
+      for (const tile of tileList) {
+        if (!tile || tile.tile_id == null) continue;
+        const fullTile = this.allTiles[tile.tile_id] || tile;
+
+        const texture = this.gameService.resolve(fullTile as any, smallTileWidth);
+        if (!texture) continue;
+
+        let frameKey = texture.frameKey;
+        let atlasKey = texture.atlasKey;
+
+        // Fallback to 1x atlas if 2x frame is not loaded
+        if (!this.textures.exists(atlasKey) || !this.textures.get(atlasKey).has(frameKey)) {
+          const fallback = this.gameService.resolve(fullTile as any, 10);
+          if (fallback && this.textures.exists(fallback.atlasKey) && this.textures.get(fallback.atlasKey).has(fallback.frameKey)) {
+            atlasKey = fallback.atlasKey;
+            frameKey = fallback.frameKey;
+          } else {
+            continue;
+          }
+        }
+
+        const image = this.add.image(-1000, -1000, atlasKey, frameKey);
+        image.setDisplaySize(smallTileWidth, smallTileHeight);
+        image.setDepth(30); // Display clearly above table background
+        image.disableInteractive();
+
+        this.debugOpponentHandTiles[seat].push(image);
+      }
+
+      // Position the debug tiles above the exposure area
+      this.layoutDebugOpponentHandTiles(seat);
+    }
+  }
+
+  /* OLDCODE
+  // Layout debug hand tiles directly above the exposure area of each seat
+  private layoutDebugOpponentHandTiles(seat: "top" | "left" | "right"): void {
+    if (!this.layout) return;
+    const tiles = this.debugOpponentHandTiles[seat];
+    if (!tiles || tiles.length === 0) return;
+
+    const baseSize = this.calledOpponentExposureTileSize(seat);
+    const tileWidth = Math.round(baseSize.width * 0.70);
+    const tileHeight = Math.round(baseSize.height * 0.70);
+    const gap = Math.max(2, Math.round(tileWidth * 0.05));
+    const step = tileWidth + gap;
+
+    if (seat === "top") {
+      // Top seat: Place in a row directly above the top exposure panel
+      const exposure = this.layout.topExposure;
+      const totalWidth = tiles.length * step - gap;
+      const startX = exposure.x + exposure.width / 2 - totalWidth / 2 + tileWidth / 2;
+      // Position just above the top exposure panel (towards innerTop)
+      const posY = exposure.y + tileHeight / 2 + 4;
+
+      tiles.forEach((image, index) => {
+        image.setDisplaySize(tileWidth, tileHeight);
+        image.setAngle(0);
+        image.setPosition(Math.round(startX + index * step), Math.round(posY));
+      });
+    } else if (seat === "left") {
+      // Left seat: Place vertically along the inner side of left exposure
+      const exposure = this.layout.leftExposure;
+      const totalHeight = tiles.length * step - gap;
+      const startY = exposure.y + exposure.height / 2 - totalHeight / 2 + tileWidth / 2;
+      // Positioned above left exposure area
+      const posX = exposure.x + exposure.width - tileHeight / 2 - 4;
+
+      tiles.forEach((image, index) => {
+        image.setDisplaySize(tileWidth, tileHeight);
+        image.setAngle(90);
+        image.setPosition(Math.round(posX), Math.round(startY + index * step));
+      });
+    } else if (seat === "right") {
+      // Right seat: Place vertically along the inner side of right exposure
+      const exposure = this.layout.rightExposure;
+      const totalHeight = tiles.length * step - gap;
+      const startY = exposure.y + exposure.height / 2 - totalHeight / 2 + tileWidth / 2;
+      // Positioned above right exposure area
+      const posX = exposure.x + tileHeight / 2 + 4;
+
+      tiles.forEach((image, index) => {
+        image.setDisplaySize(tileWidth, tileHeight);
+        image.setAngle(-90);
+        image.setPosition(Math.round(posX), Math.round(startY + index * step));
+      });
+    }
+  }
+  OLDCODE */
+  /* NEWCODE */
+  // Layout debug hand tiles in the space between the table border and exposure
+  private layoutDebugOpponentHandTiles(seat: "top" | "left" | "right"): void {
+    if (!this.layout) return;
+    const tiles = this.debugOpponentHandTiles[seat];
+    if (!tiles || tiles.length === 0) return;
+
+    const baseSize = this.calledOpponentExposureTileSize(seat);
+    const tileWidth = Math.round(baseSize.width * 0.70);
+    const tileHeight = Math.round(baseSize.height * 0.70);
+    const gap = Math.max(2, Math.round(tileWidth * 0.05));
+    const step = tileWidth + gap;
+
+    if (seat === "top") {
+      // Top seat: Place in the space between the top table border and top exposure
+      const exposure = this.layout.topExposure;
+      const totalWidth = tiles.length * step - gap;
+      const startX = exposure.x + exposure.width / 2 - totalWidth / 2 + tileWidth / 2;
+      // Center vertically in the space between table top border and top exposure
+      const posY = Math.round((this.layout.tableOuter.y + exposure.y) / 2);
+
+      tiles.forEach((image, index) => {
+        image.setDisplaySize(tileWidth, tileHeight);
+        image.setAngle(0);
+        image.setPosition(Math.round(startX + index * step), posY);
+      });
+    } else if (seat === "left") {
+      // Left seat: Place in the space between the left table border and left exposure
+      const exposure = this.layout.leftExposure;
+      const totalHeight = tiles.length * step - gap;
+      const startY = exposure.y + exposure.height / 2 - totalHeight / 2 + tileWidth / 2;
+      // Center horizontally in the space between left table border and left exposure
+      const posX = Math.round((this.layout.tableOuter.x + exposure.x) / 2);
+
+      tiles.forEach((image, index) => {
+        image.setDisplaySize(tileWidth, tileHeight);
+        image.setAngle(-90);
+        image.setPosition(posX, Math.round(startY + index * step));
+      });
+    } else if (seat === "right") {
+      // Right seat: Place in the space between right exposure and right table border
+      const exposure = this.layout.rightExposure;
+      const totalHeight = tiles.length * step - gap;
+      const startY = exposure.y + exposure.height / 2 - totalHeight / 2 + tileWidth / 2;
+      // Center horizontally in the space between right exposure and right table border
+      const rightBorderX = this.layout.tableOuter.x + this.layout.tableOuter.width;
+      const posX = Math.round((exposure.x + exposure.width + rightBorderX) / 2);
+
+      tiles.forEach((image, index) => {
+        image.setDisplaySize(tileWidth, tileHeight);
+        image.setAngle(90);
+        image.setPosition(posX, Math.round(startY + index * step));
+      });
+    }
+  }
+  /* NEWCODE */
+  /* NEWCODE */
 
   private reconcileLocalExposureTiles(melds: any[]): void {
     if (this.turnStage === GameTurnStageEnum.NEED_EXPOSURE) return;
@@ -3926,26 +4592,26 @@ OLDCODE */
       children.push(button, buttonText);
     };
 
-/* OLDCODE
-    addButton(0, "CALL", COLOR_FUSHIA_NUM, () => {
-      // Confirm that the discarded tile has been called before it animates
-      // into the local exposure.
-      this.playHaptic("tile-discard");
-      this.playSfx("call");
-      this.animateCalledDiscardToBottomExposure();
-      this.callbacks.onTileCallDecision({
-        discardId: offer.discard.tile_id!,
-        discardedBy: offer.discardedBy,
-        action: "call",
-        tileIds,
-      });
-      this.turnStage = GameTurnStageEnum.NEED_EXPOSURE;
-      this.pendingTileCallOffer = undefined;
-      this.closeTileCallWindow();
-      this.updateInstructionText();
-    });
-OLDCODE */
-/* NEWCODE */
+    /* OLDCODE
+        addButton(0, "CALL", COLOR_FUSHIA_NUM, () => {
+          // Confirm that the discarded tile has been called before it animates
+          // into the local exposure.
+          this.playHaptic("tile-discard");
+          this.playSfx("call");
+          this.animateCalledDiscardToBottomExposure();
+          this.callbacks.onTileCallDecision({
+            discardId: offer.discard.tile_id!,
+            discardedBy: offer.discardedBy,
+            action: "call",
+            tileIds,
+          });
+          this.turnStage = GameTurnStageEnum.NEED_EXPOSURE;
+          this.pendingTileCallOffer = undefined;
+          this.closeTileCallWindow();
+          this.updateInstructionText();
+        });
+    OLDCODE */
+    /* NEWCODE */
     addButton(0, "CALL", COLOR_FUSHIA_NUM, () => {
       // Confirm that the discarded tile has been called before it animates
       // into the local exposure.
@@ -3968,8 +4634,8 @@ OLDCODE */
       this.closeTileCallWindow();
       this.updateInstructionText();
     });
-/* NEWCODE */
-/* NEWCODE */
+    /* NEWCODE */
+    /* NEWCODE */
 
     addButton(1, "SKIP", 0x475569, () => {
       this.callbacks.onTileCallDecision({
@@ -3981,17 +4647,17 @@ OLDCODE */
       this.closeTileCallWindow();
     });
 
-// OLDCODE
-//     this.tileCallWindow = this.add.container(x, y, children).setDepth(500);
-//     this.syncTableOverlayBlockLevel();
-//   }
-//   private closeTileCallWindow(): void {
-//     this.tileCallWindow?.destroy(true);
-//     this.tileCallWindow = undefined;
-//     this.syncTableOverlayBlockLevel();
-//   }
-// OLDCODE
-/* NEWCODE */
+    // OLDCODE
+    //     this.tileCallWindow = this.add.container(x, y, children).setDepth(500);
+    //     this.syncTableOverlayBlockLevel();
+    //   }
+    //   private closeTileCallWindow(): void {
+    //     this.tileCallWindow?.destroy(true);
+    //     this.tileCallWindow = undefined;
+    //     this.syncTableOverlayBlockLevel();
+    //   }
+    // OLDCODE
+    /* NEWCODE */
     this.tileCallWindow = this.add.container(x, y, children).setDepth(500);
     this.syncTableOverlayBlockLevel();
     this.uiLayoutManager.setManualCallOfferVisible(true);
@@ -4010,7 +4676,7 @@ OLDCODE */
       this.drawTable();
     }
   }
-/* NEWCODE */
+  /* NEWCODE */
 
   /**
    * Creates a popup button with the same rounded shape, shadow and highlight
@@ -4057,65 +4723,65 @@ OLDCODE */
   }
 
   /** Moves the called discard from the table into the local player's exposure. */
-// OLDCODE   private animateCalledDiscardToBottomExposure(): void {
-// OLDCODE     // console.log(`[DEBUG EXPOSURE] animateCalledDiscardToBottomExposure START. pendingTileCallImage:`, !!this.pendingTileCallImage, `pendingTileCallOffer:`, !!this.pendingTileCallOffer);
-// OLDCODE 
-// OLDCODE     // 1. ALWAYS update the logical state even if the visual image doesn't exist
-// OLDCODE     if (this.pendingTileCallOffer) {
-// OLDCODE       const tileId = this.pendingTileCallOffer.discard.tile_id!;
-// OLDCODE       this.removeDiscardSlot(tileId);
-// OLDCODE       this.activeExposureBuildTileIds.push(tileId);
-// OLDCODE       // console.log(`[DEBUG EXPOSURE] Pushed discard tile to activeExposureBuildTileIds:`, tileId);
-// OLDCODE 
-// OLDCODE       if (this.pendingTileCallImage) {
-// OLDCODE         this.tileMap.set(tileId, {
-// OLDCODE           vm: this.pendingTileCallOffer.discard,
-// OLDCODE           image: this.pendingTileCallImage,
-// OLDCODE           zone: "exposure",
-// OLDCODE           selected: false,
-// OLDCODE           isDragging: false,
-// OLDCODE           slotIndex: -1,
-// OLDCODE         });
-// OLDCODE       }
-// OLDCODE     }
-// OLDCODE 
-// OLDCODE     // 2. Animate the visual image if it exists
-// OLDCODE     const image = this.pendingTileCallImage;
-// OLDCODE     if (!image || !this.layout) {
-// OLDCODE       // console.log(`[DEBUG EXPOSURE] Exited early from visuals! image:`, !!image, `layout:`, !!this.layout);
-// OLDCODE       return;
-// OLDCODE     }
-// OLDCODE 
-// OLDCODE     this.tweens.killTweensOf(image);
-// OLDCODE     const discardIndex = this.opponentDiscardTiles.indexOf(image);
-// OLDCODE     if (discardIndex >= 0) {
-// OLDCODE       this.opponentDiscardTiles.splice(discardIndex, 1);
-// OLDCODE       this.layoutOpponentDiscardTiles();
-// OLDCODE     }
-// OLDCODE     this.sanitizeBottomExposureTiles();
-// OLDCODE     this.calledBottomExposureTiles.push(image);
-// OLDCODE     this.removeTileTextureFilter(image);
-// OLDCODE     this.pendingTileCallImage = undefined;
-// OLDCODE     this.exposureBuildAsset = this.pendingTileCallOffer ? this.gameService.assetBaseName(this.allTiles[this.pendingTileCallOffer.discard.tile_id!]) : undefined;
-// OLDCODE     image.setData("exposure-asset", this.exposureBuildAsset);
-// OLDCODE     const target = this.calledBottomExposureTilePosition(
-// OLDCODE       this.calledBottomExposureTiles.length - 1,
-// OLDCODE     );
-// OLDCODE     const tileSize = this.calledBottomExposureTileSize();
-// OLDCODE     image.setDisplaySize(tileSize.width, tileSize.height);
-// OLDCODE     this.tweens.add({
-// OLDCODE       targets: image,
-// OLDCODE       x: target.x,
-// OLDCODE       y: target.y,
-// OLDCODE       duration: ANIMATION_SPEED,
-// OLDCODE       ease: "Cubic.Out",
-// OLDCODE       onComplete: () => {
-// OLDCODE         image.setDepth(42);
-// OLDCODE       },
-// OLDCODE     });
-// OLDCODE     this.updateInstructionText();
-// OLDCODE   }
-/* NEWCODE */
+  // OLDCODE   private animateCalledDiscardToBottomExposure(): void {
+  // OLDCODE     // console.log(`[DEBUG EXPOSURE] animateCalledDiscardToBottomExposure START. pendingTileCallImage:`, !!this.pendingTileCallImage, `pendingTileCallOffer:`, !!this.pendingTileCallOffer);
+  // OLDCODE 
+  // OLDCODE     // 1. ALWAYS update the logical state even if the visual image doesn't exist
+  // OLDCODE     if (this.pendingTileCallOffer) {
+  // OLDCODE       const tileId = this.pendingTileCallOffer.discard.tile_id!;
+  // OLDCODE       this.removeDiscardSlot(tileId);
+  // OLDCODE       this.activeExposureBuildTileIds.push(tileId);
+  // OLDCODE       // console.log(`[DEBUG EXPOSURE] Pushed discard tile to activeExposureBuildTileIds:`, tileId);
+  // OLDCODE 
+  // OLDCODE       if (this.pendingTileCallImage) {
+  // OLDCODE         this.tileMap.set(tileId, {
+  // OLDCODE           vm: this.pendingTileCallOffer.discard,
+  // OLDCODE           image: this.pendingTileCallImage,
+  // OLDCODE           zone: "exposure",
+  // OLDCODE           selected: false,
+  // OLDCODE           isDragging: false,
+  // OLDCODE           slotIndex: -1,
+  // OLDCODE         });
+  // OLDCODE       }
+  // OLDCODE     }
+  // OLDCODE 
+  // OLDCODE     // 2. Animate the visual image if it exists
+  // OLDCODE     const image = this.pendingTileCallImage;
+  // OLDCODE     if (!image || !this.layout) {
+  // OLDCODE       // console.log(`[DEBUG EXPOSURE] Exited early from visuals! image:`, !!image, `layout:`, !!this.layout);
+  // OLDCODE       return;
+  // OLDCODE     }
+  // OLDCODE 
+  // OLDCODE     this.tweens.killTweensOf(image);
+  // OLDCODE     const discardIndex = this.opponentDiscardTiles.indexOf(image);
+  // OLDCODE     if (discardIndex >= 0) {
+  // OLDCODE       this.opponentDiscardTiles.splice(discardIndex, 1);
+  // OLDCODE       this.layoutOpponentDiscardTiles();
+  // OLDCODE     }
+  // OLDCODE     this.sanitizeBottomExposureTiles();
+  // OLDCODE     this.calledBottomExposureTiles.push(image);
+  // OLDCODE     this.removeTileTextureFilter(image);
+  // OLDCODE     this.pendingTileCallImage = undefined;
+  // OLDCODE     this.exposureBuildAsset = this.pendingTileCallOffer ? this.gameService.assetBaseName(this.allTiles[this.pendingTileCallOffer.discard.tile_id!]) : undefined;
+  // OLDCODE     image.setData("exposure-asset", this.exposureBuildAsset);
+  // OLDCODE     const target = this.calledBottomExposureTilePosition(
+  // OLDCODE       this.calledBottomExposureTiles.length - 1,
+  // OLDCODE     );
+  // OLDCODE     const tileSize = this.calledBottomExposureTileSize();
+  // OLDCODE     image.setDisplaySize(tileSize.width, tileSize.height);
+  // OLDCODE     this.tweens.add({
+  // OLDCODE       targets: image,
+  // OLDCODE       x: target.x,
+  // OLDCODE       y: target.y,
+  // OLDCODE       duration: ANIMATION_SPEED,
+  // OLDCODE       ease: "Cubic.Out",
+  // OLDCODE       onComplete: () => {
+  // OLDCODE         image.setDepth(42);
+  // OLDCODE       },
+  // OLDCODE     });
+  // OLDCODE     this.updateInstructionText();
+  // OLDCODE   }
+  /* NEWCODE */
   private animateCalledDiscardToBottomExposure(): void {
     let callTileId: number | undefined;
 
@@ -4162,8 +4828,20 @@ OLDCODE */
       this.layoutOpponentDiscardTiles();
     }
     this.sanitizeBottomExposureTiles();
+    /* OLDCODE
     this.calledBottomExposureTiles.push(image);
     this.removeTileTextureFilter(image);
+    OLDCODE */
+    /* OLDCODE
+    this.calledBottomExposureTiles.push(image);
+    // Keep shadow on exposure tiles
+    this.applyTileTextureFilter(image, true);
+    OLDCODE */
+    /* NEWCODE */
+    this.calledBottomExposureTiles.push(image);
+    // Remove shadow when tile moves to exposure (shadow only shown in rack)
+    this.removeTileTextureFilter(image);
+    /* NEWCODE */
     this.pendingTileCallImage = undefined;
     this.exposureBuildAsset = this.pendingTileCallOffer ? this.gameService.assetBaseName(this.allTiles[this.pendingTileCallOffer.discard.tile_id!]) : undefined;
     image.setData("exposure-asset", this.exposureBuildAsset);
@@ -4200,7 +4878,7 @@ OLDCODE */
     });
     this.updateInstructionText();
   }
-/* NEWCODE */
+  /* NEWCODE */
 
   /** Calculates a tile size that fits inside the usable exposure tray area. */
   private calledBottomExposureTileSize(): { readonly width: number; readonly height: number } {
@@ -4252,18 +4930,18 @@ OLDCODE */
     return Math.max(0, contentWidth - this.layout.topExposure.width);
   }
 
-/* OLDCODE
-  // NEWCODE
-  private maxBottomExposureScroll(): number {
-    const tiles = this.calledBottomExposureTiles;
-    if (!tiles || tiles.length === 0) return 0;
-    const tile = this.calledBottomExposureTileSize();
-    const gap = Math.max(2, Math.round(tile.width * 0.05));
-    const contentWidth = tiles.length * (tile.width + gap);
-    return Math.max(0, contentWidth - this.layout.bottomExposure.width);
-  }
-OLDCODE */
-/* NEWCODE */
+  /* OLDCODE
+    // NEWCODE
+    private maxBottomExposureScroll(): number {
+      const tiles = this.calledBottomExposureTiles;
+      if (!tiles || tiles.length === 0) return 0;
+      const tile = this.calledBottomExposureTileSize();
+      const gap = Math.max(2, Math.round(tile.width * 0.05));
+      const contentWidth = tiles.length * (tile.width + gap);
+      return Math.max(0, contentWidth - this.layout.bottomExposure.width);
+    }
+  OLDCODE */
+  /* NEWCODE */
   private maxBottomExposureScroll(): number {
     this.sanitizeBottomExposureTiles();
     const tiles = this.calledBottomExposureTiles;
@@ -4273,7 +4951,7 @@ OLDCODE */
     const contentWidth = tiles.length * (tile.width + gap);
     return Math.max(0, contentWidth - this.layout.bottomExposure.width);
   }
-/* NEWCODE */
+  /* NEWCODE */
 
   /** Places exposure tiles from left to right, below the tray lip and label. */
   private calledBottomExposureTilePosition(index: number): Point {
@@ -4310,25 +4988,25 @@ OLDCODE */
   }
   // NEWCODE
 
-/* OLDCODE
-  // Repositions all local exposure tiles after a resize or orientation change.
-  private layoutCalledBottomExposureTiles(): void {
-    let activeIndex = 0;
-    this.calledBottomExposureTiles.forEach((image) => {
-      if (!image.active) return;
-
-      const tile = this.calledBottomExposureTileSize();
-      const target = this.calledBottomExposureTilePosition(activeIndex++);
-      image.setDisplaySize(tile.width, tile.height).setPosition(target.x, target.y);
-      // NEWCODE
-      image.setVisible(target.x >= this.layout.bottomExposure.x && target.x <= this.layout.bottomExposure.x + this.layout.bottomExposure.width);
-    });
-    for (const tileId of this.exposureCloseButtons.keys()) {
-      this.positionExposureCloseButton(tileId);
+  /* OLDCODE
+    // Repositions all local exposure tiles after a resize or orientation change.
+    private layoutCalledBottomExposureTiles(): void {
+      let activeIndex = 0;
+      this.calledBottomExposureTiles.forEach((image) => {
+        if (!image.active) return;
+  
+        const tile = this.calledBottomExposureTileSize();
+        const target = this.calledBottomExposureTilePosition(activeIndex++);
+        image.setDisplaySize(tile.width, tile.height).setPosition(target.x, target.y);
+        // NEWCODE
+        image.setVisible(target.x >= this.layout.bottomExposure.x && target.x <= this.layout.bottomExposure.x + this.layout.bottomExposure.width);
+      });
+      for (const tileId of this.exposureCloseButtons.keys()) {
+        this.positionExposureCloseButton(tileId);
+      }
     }
-  }
-OLDCODE */
-/* NEWCODE */
+  OLDCODE */
+  /* NEWCODE */
   /** Repositions all local exposure tiles after a resize or orientation change. */
   private layoutCalledBottomExposureTiles(): void {
     this.sanitizeBottomExposureTiles();
@@ -4339,13 +5017,17 @@ OLDCODE */
       const tile = this.calledBottomExposureTileSize();
       const target = this.calledBottomExposureTilePosition(activeIndex++);
       image.setDisplaySize(tile.width, tile.height).setPosition(target.x, target.y);
+      /* NEWCODE */
+      // Ensure exposure tiles do not retain shadow
+      this.removeTileTextureFilter(image);
+      /* NEWCODE */
       image.setVisible(target.x >= this.layout.bottomExposure.x && target.x <= this.layout.bottomExposure.x + this.layout.bottomExposure.width);
     });
     for (const tileId of this.exposureCloseButtons.keys()) {
       this.positionExposureCloseButton(tileId);
     }
   }
-/* NEWCODE */
+  /* NEWCODE */
 
   /** Calculates a tile size that fits inside the usable opponent exposure tray area. */
   private calledOpponentExposureTileSize(seat: "top" | "left" | "right"): { readonly width: number; readonly height: number } {
@@ -4550,39 +5232,39 @@ OLDCODE */
   }
 
   /** Allows only matching tiles or jokers, and prevents overflowing the tray. */
-/* OLDCODE
-  private canAddTileToBottomExposure(tile: GameTileEntity): boolean {
-    const tileAsset = this.gameService.assetBaseName(this.allTiles[tile.tile_id!]);
-    const isFlowerMatch = this.exposureBuildAsset?.startsWith("flower_") && tileAsset.startsWith("flower_");
-
-    return Boolean(
-      this.exposureBuildAsset &&
-      // OLDCODE
-      // // The widened mobile/tablet trays support up to twelve exposed tiles
-      // // (for example, four Pungs), not only a single Sextet.
-      // this.calledBottomExposureTiles.length < 12 &&
-      // NEWCODE
-      // The tray now supports scrolling, so we allow up to 24 tiles to safely 
-      // cover any combination of standard or extended Mahjong melds.
-      this.calledBottomExposureTiles.length < 24 &&
-      (tileAsset === this.exposureBuildAsset || isFlowerMatch || this.isJoker(tile.tile_id!)),
-    );
-  }
-OLDCODE */
-/* OLDCODE
-  private canAddTileToBottomExposure(tile: GameTileEntity): boolean {
-    this.sanitizeBottomExposureTiles();
-    const tileAsset = this.gameService.assetBaseName(this.allTiles[tile.tile_id!]);
-    const isFlowerMatch = this.exposureBuildAsset?.startsWith("flower_") && tileAsset.startsWith("flower_");
-
-    return Boolean(
-      this.exposureBuildAsset &&
-      this.calledBottomExposureTiles.length < 24 &&
-      (tileAsset === this.exposureBuildAsset || isFlowerMatch || this.isJoker(tile.tile_id!)),
-    );
-  }
-OLDCODE */
-/* NEWCODE */
+  /* OLDCODE
+    private canAddTileToBottomExposure(tile: GameTileEntity): boolean {
+      const tileAsset = this.gameService.assetBaseName(this.allTiles[tile.tile_id!]);
+      const isFlowerMatch = this.exposureBuildAsset?.startsWith("flower_") && tileAsset.startsWith("flower_");
+  
+      return Boolean(
+        this.exposureBuildAsset &&
+        // OLDCODE
+        // // The widened mobile/tablet trays support up to twelve exposed tiles
+        // // (for example, four Pungs), not only a single Sextet.
+        // this.calledBottomExposureTiles.length < 12 &&
+        // NEWCODE
+        // The tray now supports scrolling, so we allow up to 24 tiles to safely 
+        // cover any combination of standard or extended Mahjong melds.
+        this.calledBottomExposureTiles.length < 24 &&
+        (tileAsset === this.exposureBuildAsset || isFlowerMatch || this.isJoker(tile.tile_id!)),
+      );
+    }
+  OLDCODE */
+  /* OLDCODE
+    private canAddTileToBottomExposure(tile: GameTileEntity): boolean {
+      this.sanitizeBottomExposureTiles();
+      const tileAsset = this.gameService.assetBaseName(this.allTiles[tile.tile_id!]);
+      const isFlowerMatch = this.exposureBuildAsset?.startsWith("flower_") && tileAsset.startsWith("flower_");
+  
+      return Boolean(
+        this.exposureBuildAsset &&
+        this.calledBottomExposureTiles.length < 24 &&
+        (tileAsset === this.exposureBuildAsset || isFlowerMatch || this.isJoker(tile.tile_id!)),
+      );
+    }
+  OLDCODE */
+  /* NEWCODE */
   private canAddTileToBottomExposure(tile: GameTileEntity): boolean {
     const isExposureStage =
       this.turnStage === GameTurnStageEnum.NEED_EXPOSURE
@@ -4602,24 +5284,24 @@ OLDCODE */
       (tileAsset === this.exposureBuildAsset || isFlowerMatch || this.isJoker(tile.tile_id)),
     );
   }
-/* NEWCODE */
+  /* NEWCODE */
 
   /** Removes one rack tile and animates it into the current local exposure. */
   private moveRackTileToBottomExposure(runtime: TileRuntime): void {
     if (!this.canAddTileToBottomExposure(runtime.vm)) return;
 
-/* OLDCODE
-    // NMJL: once any rack tile has been exposed with a called tile, the call
-    // cannot be reversed—even if that rack tile is later returned in the UI.
-    if (
-      this.turnStage === GameTurnStageEnum.NEED_EXPOSURE
-      && this.pendingCallTileId != null
-      && runtime.vm.tile_id !== this.pendingCallTileId
-    ) {
-      this.pendingCallHasExposedRackTile = true;
-    }
-OLDCODE */
-/* NEWCODE */
+    /* OLDCODE
+        // NMJL: once any rack tile has been exposed with a called tile, the call
+        // cannot be reversed—even if that rack tile is later returned in the UI.
+        if (
+          this.turnStage === GameTurnStageEnum.NEED_EXPOSURE
+          && this.pendingCallTileId != null
+          && runtime.vm.tile_id !== this.pendingCallTileId
+        ) {
+          this.pendingCallHasExposedRackTile = true;
+        }
+    OLDCODE */
+    /* NEWCODE */
     // NMJL: once any rack tile has been exposed with a called tile, the call
     // cannot be reversed—even if that rack tile is later returned in the UI.
     const isNeedExposure = this.turnStage === GameTurnStageEnum.NEED_EXPOSURE
@@ -4638,7 +5320,7 @@ OLDCODE */
         this.exposureCloseButtons.delete(this.pendingCallTileId);
       }
     }
-/* NEWCODE */
+    /* NEWCODE */
 
     // Use the same clearly noticeable feedback as a discard. `tile-tap`
     // uses native selectionChanged(), which is too subtle on many devices.
@@ -4649,23 +5331,35 @@ OLDCODE */
     runtime.selected = false;
     runtime.isDragging = false;
     this.selectedIds.delete(runtime.vm.tile_id!);
+    /* OLDCODE
     runtime.image.clearTint().disableInteractive();
     this.removeTileTextureFilter(runtime.image);
-/* OLDCODE
-    runtime.image.setData("exposure-asset", this.exposureBuildAsset);
-    this.calledBottomExposureTiles.push(runtime.image);
-    this.activeExposureBuildTileIds.push(runtime.vm.tile_id!);
-
-    if (this.isJoker(runtime.vm.tile_id!)) {
-      this.setupJokerInteraction(runtime.image, runtime.vm.tile_id!, "bottom");
-    }
-
-    const tile = this.calledBottomExposureTileSize();
-    const target = this.calledBottomExposureTilePosition(
-      this.calledBottomExposureTiles.length - 1,
-    );
-OLDCODE */
-/* NEWCODE */
+    OLDCODE */
+    /* OLDCODE
+    runtime.image.clearTint().disableInteractive();
+    // Keep shadow on exposure tiles
+    this.applyTileTextureFilter(runtime.image, true);
+    OLDCODE */
+    /* NEWCODE */
+    runtime.image.clearTint().disableInteractive();
+    // Remove shadow when tile moves to exposure (shadow only shown in rack)
+    this.removeTileTextureFilter(runtime.image);
+    /* NEWCODE */
+    /* OLDCODE
+        runtime.image.setData("exposure-asset", this.exposureBuildAsset);
+        this.calledBottomExposureTiles.push(runtime.image);
+        this.activeExposureBuildTileIds.push(runtime.vm.tile_id!);
+    
+        if (this.isJoker(runtime.vm.tile_id!)) {
+          this.setupJokerInteraction(runtime.image, runtime.vm.tile_id!, "bottom");
+        }
+    
+        const tile = this.calledBottomExposureTileSize();
+        const target = this.calledBottomExposureTilePosition(
+          this.calledBottomExposureTiles.length - 1,
+        );
+    OLDCODE */
+    /* NEWCODE */
     this.sanitizeBottomExposureTiles();
     runtime.image.setData("exposure-asset", this.exposureBuildAsset);
     this.calledBottomExposureTiles.push(runtime.image);
@@ -4679,7 +5373,7 @@ OLDCODE */
     const target = this.calledBottomExposureTilePosition(
       this.calledBottomExposureTiles.length - 1,
     );
-/* NEWCODE */
+    /* NEWCODE */
     runtime.image.setDisplaySize(tile.width, tile.height).setDepth(42);
     this.tweens.killTweensOf(runtime.image);
     this.ensureExposureCloseButton(runtime.vm.tile_id!);
@@ -4695,17 +5389,17 @@ OLDCODE */
         this.positionExposureCloseButton(runtime.vm.tile_id!);
       },
     });
-/* OLDCODE
-    this.layoutRackTiles(true);
-    this.callbacks.onSelectionChanged([...this.selectedIds]);
-  }
-OLDCODE */
-/* NEWCODE */
+    /* OLDCODE
+        this.layoutRackTiles(true);
+        this.callbacks.onSelectionChanged([...this.selectedIds]);
+      }
+    OLDCODE */
+    /* NEWCODE */
     this.layoutRackTiles(true);
     this.callbacks.onSelectionChanged([...this.selectedIds]);
     this.updateInstructionText();
   }
-/* NEWCODE */
+  /* NEWCODE */
 
   private returnExposureTileToRack(tileId: number): void {
     const runtime = this.tileMap.get(tileId);
@@ -4734,16 +5428,16 @@ OLDCODE */
       });
     }
 
-/* OLDCODE
-    const buildIndex = this.activeExposureBuildTileIds.indexOf(tileId);
-    if (buildIndex >= 0) this.activeExposureBuildTileIds.splice(buildIndex, 1);
-
-    const exposureIndex = this.calledBottomExposureTiles.indexOf(runtime.image);
-    if (exposureIndex >= 0) this.calledBottomExposureTiles.splice(exposureIndex, 1);
-
-    this.updateExposureCloseButtonsState();
-OLDCODE */
-/* NEWCODE */
+    /* OLDCODE
+        const buildIndex = this.activeExposureBuildTileIds.indexOf(tileId);
+        if (buildIndex >= 0) this.activeExposureBuildTileIds.splice(buildIndex, 1);
+    
+        const exposureIndex = this.calledBottomExposureTiles.indexOf(runtime.image);
+        if (exposureIndex >= 0) this.calledBottomExposureTiles.splice(exposureIndex, 1);
+    
+        this.updateExposureCloseButtonsState();
+    OLDCODE */
+    /* NEWCODE */
     const buildIndex = this.activeExposureBuildTileIds.indexOf(tileId);
     if (buildIndex >= 0) this.activeExposureBuildTileIds.splice(buildIndex, 1);
 
@@ -4755,7 +5449,7 @@ OLDCODE */
     }
 
     this.updateExposureCloseButtonsState();
-/* NEWCODE */
+    /* NEWCODE */
 
     this.applyTileTextureFilter(runtime.image, true);
     runtime.image.setData("exposure-asset", undefined);
@@ -4771,29 +5465,29 @@ OLDCODE */
     runtime.image.setInteractive({ useHandCursor: true, draggable: true });
     this.input.setDraggable(runtime.image, true);
 
-/* OLDCODE
-    this.layoutRackTiles(true);
-    this.layoutCalledBottomExposureTiles();
-  }
-OLDCODE */
-/* NEWCODE */
+    /* OLDCODE
+        this.layoutRackTiles(true);
+        this.layoutCalledBottomExposureTiles();
+      }
+    OLDCODE */
+    /* NEWCODE */
     this.layoutRackTiles(true);
     this.layoutCalledBottomExposureTiles();
     this.updateInstructionText();
   }
-/* NEWCODE */
+  /* NEWCODE */
 
-/* OLDCODE
-  private ensureExposureCloseButton(tileId: number): void {
-    if (this.exposureCloseButtons.has(tileId)) return;
-OLDCODE */
-/* NEWCODE */
+  /* OLDCODE
+    private ensureExposureCloseButton(tileId: number): void {
+      if (this.exposureCloseButtons.has(tileId)) return;
+  OLDCODE */
+  /* NEWCODE */
   private ensureExposureCloseButton(tileId: number): void {
     if (this.exposureCloseButtons.has(tileId)) return;
     if (tileId === this.pendingCallTileId && this.pendingCallHasExposedRackTile) {
       return;
     }
-/* NEWCODE */
+    /* NEWCODE */
 
     const radius = this.passCloseButtonRadius();
 
@@ -4823,31 +5517,31 @@ OLDCODE */
     this.exposureCloseButtons.set(tileId, button);
   }
 
-/* OLDCODE
-  private updateExposureCloseButtonsState(): void {
-    const isBuilding = this.tablePhase === GamePhaseEnum.PLAYING && this.turnStage === GameTurnStageEnum.NEED_EXPOSURE;
-    if (!isBuilding) this.reverseCallInFlight = false;
-    const lastTileId = this.activeExposureBuildTileIds.length > 0
-      ? this.activeExposureBuildTileIds[this.activeExposureBuildTileIds.length - 1]
-      : undefined;
-
-    for (const [id, button] of this.exposureCloseButtons.entries()) {
-      const isClaimedCallTile = id === this.pendingCallTileId;
-      const canRemoveThisTile = isBuilding
-        && id === lastTileId
-        && (!isClaimedCallTile || this.isReversiblePendingCall(id));
-      if (canRemoveThisTile) {
-        button.setInteractive(new Phaser.Geom.Circle(0, 0, this.passCloseButtonRadius() * 1.5), Phaser.Geom.Circle.Contains);
-        button.setAlpha(1);
-        button.setVisible(true);
-      } else {
-        button.disableInteractive();
-        button.setVisible(false);
+  /* OLDCODE
+    private updateExposureCloseButtonsState(): void {
+      const isBuilding = this.tablePhase === GamePhaseEnum.PLAYING && this.turnStage === GameTurnStageEnum.NEED_EXPOSURE;
+      if (!isBuilding) this.reverseCallInFlight = false;
+      const lastTileId = this.activeExposureBuildTileIds.length > 0
+        ? this.activeExposureBuildTileIds[this.activeExposureBuildTileIds.length - 1]
+        : undefined;
+  
+      for (const [id, button] of this.exposureCloseButtons.entries()) {
+        const isClaimedCallTile = id === this.pendingCallTileId;
+        const canRemoveThisTile = isBuilding
+          && id === lastTileId
+          && (!isClaimedCallTile || this.isReversiblePendingCall(id));
+        if (canRemoveThisTile) {
+          button.setInteractive(new Phaser.Geom.Circle(0, 0, this.passCloseButtonRadius() * 1.5), Phaser.Geom.Circle.Contains);
+          button.setAlpha(1);
+          button.setVisible(true);
+        } else {
+          button.disableInteractive();
+          button.setVisible(false);
+        }
       }
     }
-  }
-OLDCODE */
-/* NEWCODE */
+  OLDCODE */
+  /* NEWCODE */
   private updateExposureCloseButtonsState(): void {
     const isBuilding = (this.tablePhase === GamePhaseEnum.PLAYING || this.tablePhase === GamePhaseEnum.CLAIM || (this.tablePhase as any) === 3 || (this.tablePhase as any) === 4)
       && (this.turnStage === GameTurnStageEnum.NEED_EXPOSURE || (this.turnStage as any) === GameTurnStageEnuAddon.NEED_EXPOSURE || (this.turnStage as any) === 3 || (this.turnStage as any) === "3");
@@ -4879,38 +5573,38 @@ OLDCODE */
       }
     }
   }
-/* NEWCODE */
+  /* NEWCODE */
 
-/* OLDCODE
-  private isReversiblePendingCall(tileId: number): boolean {
-    return Boolean(
-      this.callbacks.onLocalPlayerReverseCall
-      && this.tablePhase === GamePhaseEnum.PLAYING
-      && this.turnStage === GameTurnStageEnum.NEED_EXPOSURE
-      && this.activeSeat === "bottom"
-      && this.activeExposureBuildTileIds.length === 1
-      && this.activeExposureBuildTileIds[0] === tileId
-      && this.pendingCallTileId === tileId
-      && !this.pendingCallHasExposedRackTile,
-    );
-  }
-OLDCODE */
-/* NEWCODE */
-/* OLDCODE
-  private isReversiblePendingCall(tileId: number): boolean {
-    return Boolean(
-      this.callbacks.onLocalPlayerReverseCall
-      && this.tablePhase === GamePhaseEnum.PLAYING
-      && this.turnStage === GameTurnStageEnum.NEED_EXPOSURE
-      && (this.activeSeat === "bottom" || this.stateManager.isPersonalTurn || this.pendingCallTileId === tileId)
-      && this.activeExposureBuildTileIds.length === 1
-      && this.activeExposureBuildTileIds[0] === tileId
-      && this.pendingCallTileId === tileId
-      && !this.pendingCallHasExposedRackTile,
-    );
-  }
-OLDCODE */
-/* NEWCODE */
+  /* OLDCODE
+    private isReversiblePendingCall(tileId: number): boolean {
+      return Boolean(
+        this.callbacks.onLocalPlayerReverseCall
+        && this.tablePhase === GamePhaseEnum.PLAYING
+        && this.turnStage === GameTurnStageEnum.NEED_EXPOSURE
+        && this.activeSeat === "bottom"
+        && this.activeExposureBuildTileIds.length === 1
+        && this.activeExposureBuildTileIds[0] === tileId
+        && this.pendingCallTileId === tileId
+        && !this.pendingCallHasExposedRackTile,
+      );
+    }
+  OLDCODE */
+  /* NEWCODE */
+  /* OLDCODE
+    private isReversiblePendingCall(tileId: number): boolean {
+      return Boolean(
+        this.callbacks.onLocalPlayerReverseCall
+        && this.tablePhase === GamePhaseEnum.PLAYING
+        && this.turnStage === GameTurnStageEnum.NEED_EXPOSURE
+        && (this.activeSeat === "bottom" || this.stateManager.isPersonalTurn || this.pendingCallTileId === tileId)
+        && this.activeExposureBuildTileIds.length === 1
+        && this.activeExposureBuildTileIds[0] === tileId
+        && this.pendingCallTileId === tileId
+        && !this.pendingCallHasExposedRackTile,
+      );
+    }
+  OLDCODE */
+  /* NEWCODE */
   private isReversiblePendingCall(tileId: number): boolean {
     return Boolean(
       this.callbacks.onLocalPlayerReverseCall
@@ -4923,26 +5617,26 @@ OLDCODE */
       && !this.pendingCallHasExposedRackTile,
     );
   }
-/* NEWCODE */
-/* NEWCODE */
+  /* NEWCODE */
+  /* NEWCODE */
 
-/* OLDCODE
-  private reversePendingCall(tileId: number): void {
-    if (this.reverseCallInFlight || !this.callbacks.onLocalPlayerReverseCall) return;
-    const runtime = this.tileMap.get(tileId);
-    if (runtime?.image.active) {
-      this.pendingReverseCallVisual = { tileId, x: runtime.image.x, y: runtime.image.y };
+  /* OLDCODE
+    private reversePendingCall(tileId: number): void {
+      if (this.reverseCallInFlight || !this.callbacks.onLocalPlayerReverseCall) return;
+      const runtime = this.tileMap.get(tileId);
+      if (runtime?.image.active) {
+        this.pendingReverseCallVisual = { tileId, x: runtime.image.x, y: runtime.image.y };
+      }
+      this.reverseCallInFlight = true;
+      this.exposureCloseButtons.get(tileId)?.disableInteractive().setAlpha(0.55);
+      void this.callbacks.onLocalPlayerReverseCall().catch(() => {
+        this.reverseCallInFlight = false;
+        this.pendingReverseCallVisual = undefined;
+        this.updateExposureCloseButtonsState();
+      });
     }
-    this.reverseCallInFlight = true;
-    this.exposureCloseButtons.get(tileId)?.disableInteractive().setAlpha(0.55);
-    void this.callbacks.onLocalPlayerReverseCall().catch(() => {
-      this.reverseCallInFlight = false;
-      this.pendingReverseCallVisual = undefined;
-      this.updateExposureCloseButtonsState();
-    });
-  }
-OLDCODE */
-/* NEWCODE */
+  OLDCODE */
+  /* NEWCODE */
   private reversePendingCall(tileId: number): void {
     if (this.reverseCallInFlight || !this.callbacks.onLocalPlayerReverseCall) return;
     const runtime = this.tileMap.get(tileId);
@@ -4965,7 +5659,7 @@ OLDCODE */
       this.updateExposureCloseButtonsState();
     });
   }
-/* NEWCODE */
+  /* NEWCODE */
 
   private positionExposureCloseButton(tileId: number): void {
     const runtime = this.tileMap.get(tileId);
@@ -4986,13 +5680,13 @@ OLDCODE */
       Math.round(cornerX + (outwardX / length) * (closeRadius * 0.3)),
       Math.round(cornerY + (outwardY / length) * (closeRadius * 0.3)),
     );
-/* OLDCODE
-    // NEWCODE
-    // Position updates run during tile tweens. Do not let a tween re-show a
-    // close button that the call-reversibility state deliberately hid.
-    close.setVisible(close.visible && runtime.image.visible);
-OLDCODE */
-/* NEWCODE */
+    /* OLDCODE
+        // NEWCODE
+        // Position updates run during tile tweens. Do not let a tween re-show a
+        // close button that the call-reversibility state deliberately hid.
+        close.setVisible(close.visible && runtime.image.visible);
+    OLDCODE */
+    /* NEWCODE */
     const isBuilding = (this.tablePhase === GamePhaseEnum.PLAYING || this.tablePhase === GamePhaseEnum.CLAIM || (this.tablePhase as any) === 3 || (this.tablePhase as any) === 4)
       && (this.turnStage === GameTurnStageEnum.NEED_EXPOSURE || (this.turnStage as any) === GameTurnStageEnuAddon.NEED_EXPOSURE || (this.turnStage as any) === 3 || (this.turnStage as any) === "3");
     const lastTileId = this.activeExposureBuildTileIds.length > 0
@@ -5006,7 +5700,7 @@ OLDCODE */
       && runtime.image.visible;
 
     close.setVisible(shouldBeVisible);
-/* NEWCODE */
+    /* NEWCODE */
 
     this.resizePassCloseButton(close);
   }
@@ -5424,6 +6118,7 @@ OLDCODE */
 
           const image = this.add.image(xPos, yPos, texture.atlasKey, texture.frameKey).setDepth(42);
 
+          /* OLDCODE
           if (seat === "top") {
             image.setAngle(180);
           } else if (seat === "left") {
@@ -5431,13 +6126,102 @@ OLDCODE */
           } else if (seat === "right") {
             image.setAngle(-90);
           }
+          OLDCODE */
+          /* NEWCODE */
+          // Keep top exposure tiles upright (angle 0) so they match the top exposure tray
+          if (seat === "top") {
+            image.setAngle(0);
+          } else if (seat === "left") {
+            image.setAngle(90);
+          } else if (seat === "right") {
+            image.setAngle(-90);
+          }
+          /* NEWCODE */
+
+          /* OLDCODE
+          image.setDisplaySize(tileSize.width, tileSize.height);
+          activeIndex++;
+          OLDCODE */
+          /* NEWCODE */
+          image.setDisplaySize(tileSize.width, tileSize.height);
+          this.calledOpponentExposureTiles[seat].push(image);
+          activeIndex++;
+          /* NEWCODE */
+        }
+      }
+    }
+  }
+
+  /* NEWCODE */
+  // Reveal all players' hands in their exposure panels when game ends in a Wall Game
+  public revealAllSeatsHandsForWallGame(seatsData?: Record<string, any>): void {
+    if (!this.layout) return;
+    this.expireTileCallWindow();
+    this.closeJokerSwapWindow();
+
+    const seatPositions: Array<"top" | "left" | "right"> = ["top", "left", "right"];
+    for (const seat of seatPositions) {
+      let tileIds: number[] = [];
+      if (seatsData && seatsData[seat]) {
+        const rack = seatsData[seat]?.racks?.[1] || seatsData[seat]?.racks?.["1"] || seatsData[seat]?.racks?.first;
+        if (rack?.hand_order && Array.isArray(rack.hand_order)) {
+          tileIds = rack.hand_order;
+        } else if (rack?.hand && typeof rack.hand === 'object') {
+          tileIds = Object.keys(rack.hand).map(Number);
+        } else if (rack?.tiles && Array.isArray(rack.tiles)) {
+          tileIds = rack.tiles;
+        }
+      }
+
+      if (tileIds.length === 0) continue;
+
+      const tileSize = this.calledOpponentExposureTileSize(seat);
+      const gap = Math.max(2, Math.round(tileSize.width * 0.05));
+      const startPos = this.calledOpponentExposureTilePosition(seat, this.calledOpponentExposureTiles[seat].length);
+
+      let activeIndex = 0;
+      for (const tileId of tileIds) {
+        const fullTile = this.allTiles[tileId] || {
+          category: 'SUITED',
+          type: (tileId % 3 === 0 ? 'BAM' : tileId % 3 === 1 ? 'CHAR' : 'DOT'),
+          rank: (tileId % 9) + 1
+        };
+
+        const texture = this.gameService.resolve(fullTile as any, Math.round(tileSize.width));
+        if (texture) {
+          const xPos = startPos.x + (seat === "top" ? activeIndex * (tileSize.width + gap) : 0);
+          const yPos = startPos.y + ((seat === "left" || seat === "right") ? activeIndex * (tileSize.width + gap) : 0);
+
+          const image = this.add.image(xPos, yPos, texture.atlasKey, texture.frameKey).setDepth(42);
+
+          /* OLDCODE
+          if (seat === "top") {
+            image.setAngle(180);
+          } else if (seat === "left") {
+            image.setAngle(90);
+          } else if (seat === "right") {
+            image.setAngle(-90);
+          }
+          OLDCODE */
+          /* NEWCODE */
+          // Keep top exposure tiles upright (angle 0) so they match the top exposure tray
+          if (seat === "top") {
+            image.setAngle(0);
+          } else if (seat === "left") {
+            image.setAngle(90);
+          } else if (seat === "right") {
+            image.setAngle(-90);
+          }
+          /* NEWCODE */
 
           image.setDisplaySize(tileSize.width, tileSize.height);
+          this.calledOpponentExposureTiles[seat].push(image);
           activeIndex++;
         }
       }
     }
   }
+  /* NEWCODE */
 
   private closeMahjongWinCelebration(): void {
     // The native HTML popup now handles its own dismissal.
@@ -5675,15 +6459,15 @@ OLDCODE */
   }
   OLDCODE */
   /* NEWCODE */
-/* OLDCODE
-  private findDiscardImage(tileId: number): Phaser.GameObjects.Image | undefined {
-    const numericId = Number(tileId);
-    return this.opponentDiscardTiles.find(
-      (image) => image.active && Number(image.getData("discard-id")) === numericId
-    );
-  }
-OLDCODE */
-/* NEWCODE */
+  /* OLDCODE
+    private findDiscardImage(tileId: number): Phaser.GameObjects.Image | undefined {
+      const numericId = Number(tileId);
+      return this.opponentDiscardTiles.find(
+        (image) => image.active && Number(image.getData("discard-id")) === numericId
+      );
+    }
+  OLDCODE */
+  /* NEWCODE */
   private findDiscardImage(tileId: number): Phaser.GameObjects.Image | undefined {
     const numericId = Number(tileId);
     const opponentImg = this.opponentDiscardTiles.find(
@@ -5696,7 +6480,7 @@ OLDCODE */
     }
     return undefined;
   }
-/* NEWCODE */
+  /* NEWCODE */
 
   private handleResolvedClaimPresentation(payload: ResolvedClaimPresentation): void {
     if (this.activeClaimPresentation) {
@@ -5704,23 +6488,23 @@ OLDCODE */
       return;
     }
     /* NEWCODE */
-/* OLDCODE
-    if (payload.calledBy) {
-      this.activeCallPresentationSeat = payload.calledBy;
-      this.updateInstructionText();
-
-      if (this.callPresentationTimer) {
-        clearTimeout(this.callPresentationTimer);
-      }
-      this.callPresentationTimer = setTimeout(() => {
-        if (this.activeCallPresentationSeat === payload.calledBy) {
-          this.activeCallPresentationSeat = undefined;
+    /* OLDCODE
+        if (payload.calledBy) {
+          this.activeCallPresentationSeat = payload.calledBy;
           this.updateInstructionText();
+    
+          if (this.callPresentationTimer) {
+            clearTimeout(this.callPresentationTimer);
+          }
+          this.callPresentationTimer = setTimeout(() => {
+            if (this.activeCallPresentationSeat === payload.calledBy) {
+              this.activeCallPresentationSeat = undefined;
+              this.updateInstructionText();
+            }
+          }, 1800);
         }
-      }, 1800);
-    }
-OLDCODE */
-/* NEWCODE */
+    OLDCODE */
+    /* NEWCODE */
     if (payload.calledBy) {
       this.activeCallPresentationSeat = payload.calledBy;
       if (this.layout && this.graphics) {
@@ -5741,27 +6525,27 @@ OLDCODE */
         }
       }, 1800);
     }
-/* NEWCODE */
+    /* NEWCODE */
     /* NEWCODE */
     if (!this.layout || payload.tile.tile_id == null) return;
 
     const tileId = Number(payload.tile.tile_id);
     const existingImage = this.findDiscardImage(tileId);
 
-/* OLDCODE
-    if (existingImage) {
-      this.tweens.killTweensOf(existingImage);
-      const grid = this.discardGrid();
-      const slotIndex = this.discardSlotIndex(tileId, this.opponentDiscardTiles.indexOf(existingImage));
-      const slot = this.discardSlotFor(slotIndex, grid);
-      existingImage.setPosition(slot.x, slot.y);
-
-      this.activeClaimPresentation = payload;
-      this.triggerClaimRecognitionBeat(payload, existingImage);
-      return;
-    }
-OLDCODE */
-/* NEWCODE */
+    /* OLDCODE
+        if (existingImage) {
+          this.tweens.killTweensOf(existingImage);
+          const grid = this.discardGrid();
+          const slotIndex = this.discardSlotIndex(tileId, this.opponentDiscardTiles.indexOf(existingImage));
+          const slot = this.discardSlotFor(slotIndex, grid);
+          existingImage.setPosition(slot.x, slot.y);
+    
+          this.activeClaimPresentation = payload;
+          this.triggerClaimRecognitionBeat(payload, existingImage);
+          return;
+        }
+    OLDCODE */
+    /* NEWCODE */
     if (existingImage) {
       this.tweens.killTweensOf(existingImage);
       const grid = this.discardGrid();
@@ -5792,7 +6576,7 @@ OLDCODE */
       }
       return;
     }
-/* NEWCODE */
+    /* NEWCODE */
 
     const tile = this.allTiles[tileId] ?? payload.tile;
     const grid = this.discardGrid();
@@ -5957,18 +6741,18 @@ OLDCODE */
     this.deferredClaimVisualUpdates = [];
     if (tileId != null) this.removeTileFromDiscardArea(tileId);
     /* NEWCODE */
-/* OLDCODE
-    this.callPresentationTimer?.remove(false);
-    this.callPresentationTimer = undefined;
-    this.activeCallPresentationSeat = undefined;
-OLDCODE */
-/* NEWCODE */
+    /* OLDCODE
+        this.callPresentationTimer?.remove(false);
+        this.callPresentationTimer = undefined;
+        this.activeCallPresentationSeat = undefined;
+    OLDCODE */
+    /* NEWCODE */
     if (this.callPresentationTimer) {
       clearTimeout(this.callPresentationTimer);
       this.callPresentationTimer = undefined;
     }
     this.activeCallPresentationSeat = undefined;
-/* NEWCODE */
+    /* NEWCODE */
     /* NEWCODE */
   }
   /* NEWCODE */
@@ -5986,6 +6770,7 @@ OLDCODE */
     this.pickTileForSeat(payload.seat);
   }
 
+  /* OLDCODE
   private handleOpponentDiscard(payload: { seat: TableSeat, tile: GameTileEntityGSDto }): void {
     if (this.deferClaimVisualUpdate({ type: "opponent-discard", payload })) return;
     const timeSincePick = Date.now() - this.lastOpponentPickTime;
@@ -5997,6 +6782,22 @@ OLDCODE */
       this.processOpponentDiscard(payload);
     }
   }
+  OLDCODE */
+  /* NEWCODE */
+  // Delay opponent discard until the pick animation completely finishes
+  private handleOpponentDiscard(payload: { seat: TableSeat, tile: GameTileEntityGSDto }): void {
+    if (this.deferClaimVisualUpdate({ type: "opponent-discard", payload })) return;
+    const timeSincePick = Date.now() - this.lastOpponentPickTime;
+    const pickDuration = this.animationDuration;
+    if (timeSincePick < pickDuration) {
+      setTimeout(() => {
+        this.processOpponentDiscard(payload);
+      }, pickDuration - timeSincePick);
+    } else {
+      this.processOpponentDiscard(payload);
+    }
+  }
+  /* NEWCODE */
 
   // OLDCODE
   /*
@@ -6289,7 +7090,7 @@ OLDCODE */
       this.reindexRackRuntimeSlots();
       this.pendingLocalJokerSwap = undefined;
       this.lastServerOrder = this.rackOrder.join(',');
-    /* NEWCODE */
+      /* NEWCODE */
 
       const tileWidth = Math.round(this.layout.bottomTileLayout.width);
       const tileHeight = Math.round(this.layout.bottomTileLayout.height);
@@ -6342,7 +7143,17 @@ OLDCODE */
         naturalTile.isDragging = false;
         this.selectedIds.delete(from_tile_id);
         naturalTile.image.clearTint();
+        /* OLDCODE
         this.removeTileTextureFilter(naturalTile.image);
+        OLDCODE */
+        /* OLDCODE
+        // Keep shadow on exposure tiles
+        this.applyTileTextureFilter(naturalTile.image, true);
+        OLDCODE */
+        /* NEWCODE */
+        // Remove shadow when tile moves to exposure (shadow only shown in rack)
+        this.removeTileTextureFilter(naturalTile.image);
+        /* NEWCODE */
         naturalTile.image.disableInteractive();
         naturalTile.image.setDepth(42);
         if (exposureAsset) {
@@ -6421,11 +7232,11 @@ OLDCODE */
     this.playHaptic("tile-discard");
     this.playTileDiscardVoice(payload.tile as any);
 
-/* OLDCODE
-    this.pendingTileCallOffer = undefined;
-    this.closeTileCallWindow();
-OLDCODE */
-/* NEWCODE */
+    /* OLDCODE
+        this.pendingTileCallOffer = undefined;
+        this.closeTileCallWindow();
+    OLDCODE */
+    /* NEWCODE */
     this.pendingTileCallOffer = undefined;
     this.closeTileCallWindow();
     if (this.activeCallPresentationSeat) {
@@ -6436,7 +7247,7 @@ OLDCODE */
       this.activeCallPresentationSeat = undefined;
       this.updateInstructionText();
     }
-/* NEWCODE */
+    /* NEWCODE */
 
     const grid = this.discardGrid();
     const texture = this.gameService.resolve(payload.tile, grid.tileWidth);
@@ -6474,28 +7285,33 @@ OLDCODE */
     this.opponentDiscardTiles.push(image);
     if (reverseVisual) this.pendingReverseCallVisual = undefined;
 
+    /* OLDCODE
     this.tweens.add({
       targets: image,
       x: Math.round(targetX),
       y: Math.round(targetY),
-      /* OLDCODE
-      duration: ANIMATION_SPEED,
-      OLDCODE */
-      /* NEWCODE */
       duration: CLAIM_DISCARD_FLIGHT_MS,
-      /* NEWCODE */
       ease: "Cubic.Out",
     });
 
-    /* OLDCODE
-    setTimeout(() => {
-      this.scrollToBottomDiscard(true);
-    }, ANIMATION_SPEED);
-    OLDCODE */
-    /* NEWCODE */
     setTimeout(() => {
       this.scrollToBottomDiscard(true);
     }, CLAIM_DISCARD_FLIGHT_MS);
+    OLDCODE */
+    /* NEWCODE */
+    // Flight duration matches the active bot animation speed
+    const flightDuration = this.animationDuration;
+    this.tweens.add({
+      targets: image,
+      x: Math.round(targetX),
+      y: Math.round(targetY),
+      duration: flightDuration,
+      ease: "Cubic.Out",
+    });
+
+    setTimeout(() => {
+      this.scrollToBottomDiscard(true);
+    }, flightDuration);
     /* NEWCODE */
   }
 
@@ -6593,24 +7409,24 @@ OLDCODE */
     }
   OLDCODE */
   /* NEWCODE */
-/* OLDCODE
-  private updateInstructionText(): void {
-    const isBlindPassAllowed = this.passFlowManager?.isBlindPassAllowed ? this.passFlowManager.isBlindPassAllowed() : false;
-    const isOptionalPassAllowed = this.passFlowManager?.isOptionalPassAllowed ? this.passFlowManager.isOptionalPassAllowed() : false;
-    this.uiLayoutManager.updateInstruction(
-      this.tablePhase,
-      this.charlestonState?.stage,
-      this.stateManager.isPersonalTurn,
-      this.passDirection,
-      this.canDiscard,
-      isBlindPassAllowed,
-      isOptionalPassAllowed,
-      this.activeSeat,
-      this.activeCallPresentationSeat ?? null
-    );
-  }
-OLDCODE */
-/* NEWCODE */
+  /* OLDCODE
+    private updateInstructionText(): void {
+      const isBlindPassAllowed = this.passFlowManager?.isBlindPassAllowed ? this.passFlowManager.isBlindPassAllowed() : false;
+      const isOptionalPassAllowed = this.passFlowManager?.isOptionalPassAllowed ? this.passFlowManager.isOptionalPassAllowed() : false;
+      this.uiLayoutManager.updateInstruction(
+        this.tablePhase,
+        this.charlestonState?.stage,
+        this.stateManager.isPersonalTurn,
+        this.passDirection,
+        this.canDiscard,
+        isBlindPassAllowed,
+        isOptionalPassAllowed,
+        this.activeSeat,
+        this.activeCallPresentationSeat ?? null
+      );
+    }
+  OLDCODE */
+  /* NEWCODE */
   private countSameTilesOnRack(): number {
     const assetBase = this.exposureBuildAsset ?? (
       this.activeExposureBuildTileIds.length > 0
@@ -6632,38 +7448,38 @@ OLDCODE */
     return count;
   }
 
-/* OLDCODE
-  private getLocalExposureStatus(): "building" | "complete" | null {
-    if (this.tablePhase !== GamePhaseEnum.PLAYING || !this.stateManager.isPersonalTurn) {
-      return null;
-    }
-    const isNeedExposure = this.turnStage === GameTurnStageEnum.NEED_EXPOSURE;
-    const hasActiveExposureBuild = this.activeExposureBuildTileIds.length > 0;
-
-    if (!isNeedExposure && !hasActiveExposureBuild) {
-      return null;
-    }
-
-    const count = this.activeExposureBuildTileIds.length;
-    // An exposure must have at least 3 tiles (Pung: 3, Kong: 4, Quint: 5)
-    if (count < 3) {
+  /* OLDCODE
+    private getLocalExposureStatus(): "building" | "complete" | null {
+      if (this.tablePhase !== GamePhaseEnum.PLAYING || !this.stateManager.isPersonalTurn) {
+        return null;
+      }
+      const isNeedExposure = this.turnStage === GameTurnStageEnum.NEED_EXPOSURE;
+      const hasActiveExposureBuild = this.activeExposureBuildTileIds.length > 0;
+  
+      if (!isNeedExposure && !hasActiveExposureBuild) {
+        return null;
+      }
+  
+      const count = this.activeExposureBuildTileIds.length;
+      // An exposure must have at least 3 tiles (Pung: 3, Kong: 4, Quint: 5)
+      if (count < 3) {
+        return "building";
+      }
+  
+      if (count >= 5) {
+        return "complete";
+      }
+  
+      // If there are no other tiles on the rack of the same tile, the exposure can be 3, 4, or 5 and is complete
+      const sameTilesOnRack = this.countSameTilesOnRack();
+      if (sameTilesOnRack === 0) {
+        return "complete";
+      }
+  
       return "building";
     }
-
-    if (count >= 5) {
-      return "complete";
-    }
-
-    // If there are no other tiles on the rack of the same tile, the exposure can be 3, 4, or 5 and is complete
-    const sameTilesOnRack = this.countSameTilesOnRack();
-    if (sameTilesOnRack === 0) {
-      return "complete";
-    }
-
-    return "building";
-  }
-OLDCODE */
-/* NEWCODE */
+  OLDCODE */
+  /* OLDCODE
   private getLocalExposureStatus(): "building" | "complete" | null {
     if (this.tablePhase !== GamePhaseEnum.PLAYING || !this.stateManager.isPersonalTurn || !this.canDiscard) {
       return null;
@@ -6696,7 +7512,42 @@ OLDCODE */
 
     return "building";
   }
-/* NEWCODE */
+  OLDCODE */
+  /* NEWCODE */
+  private getLocalExposureStatus(): "building" | "complete" | null {
+    // Only personal playing phase can have local exposure building
+    if (this.tablePhase !== GamePhaseEnum.PLAYING || !this.stateManager.isPersonalTurn) {
+      return null;
+    }
+    const isNeedExposure = this.turnStage === GameTurnStageEnum.NEED_EXPOSURE
+      || (this.turnStage as any) === 3
+      || (this.turnStage as any) === "3"
+      || (this.turnStage as any) === GameTurnStageEnuAddon.NEED_EXPOSURE;
+    const hasActiveExposureBuild = this.activeExposureBuildTileIds.length > 0;
+
+    if (!isNeedExposure && !hasActiveExposureBuild) {
+      return null;
+    }
+
+    const count = this.activeExposureBuildTileIds.length;
+    // An exposure must have at least 3 tiles (Pung: 3, Kong: 4, Quint: 5)
+    if (count < 3) {
+      return "building";
+    }
+
+    if (count >= 5) {
+      return "complete";
+    }
+
+    // If there are no other tiles on the rack of the same tile, the exposure can be 3, 4, or 5 and is complete
+    const sameTilesOnRack = this.countSameTilesOnRack();
+    if (sameTilesOnRack === 0) {
+      return "complete";
+    }
+
+    return "building";
+  }
+  /* NEWCODE */
 
   private updateInstructionText(): void {
     const isBlindPassAllowed = this.passFlowManager?.isBlindPassAllowed ? this.passFlowManager.isBlindPassAllowed() : false;
@@ -6714,14 +7565,37 @@ OLDCODE */
       this.getLocalExposureStatus()
     );
   }
-/* NEWCODE */
+  /* NEWCODE */
   /* NEWCODE */
 
+  /* OLDCODE
   private setCharlestonState(state: any): void {
     this.charlestonState = state;
     this.updateInstructionText();
     this.playCharlestonSoundIfNeeded();
   }
+  OLDCODE */
+  /* NEWCODE */
+  private setCharlestonState(state: any): void {
+    const stageChanged = this.charlestonState?.stage !== state?.stage;
+    const roundChanged = (this.charlestonState as any)?.round !== state?.round;
+
+    this.charlestonState = state;
+
+    if (stageChanged || roundChanged) {
+      this.passDirection = undefined as any;
+      this.lastSubmittedPassDestination = undefined;
+      this.botAutoStagedDestination = undefined;
+      this.clearBotPassVisualTiles();
+      this.isBotPassVisualAnimating = false;
+      this.isPassAnimating = false;
+      this.stateManager.optimisticPassTileIds.length = 0;
+    }
+
+    this.updateInstructionText();
+    this.playCharlestonSoundIfNeeded();
+  }
+  /* NEWCODE */
 
   private isJoker(tileId: number): boolean {
     const category = this.allTiles[tileId]?.category as unknown as TileCategoryEnumAddon;
@@ -7129,37 +8003,43 @@ OLDCODE */
   private isInsideRackArea(x: number, y: number): boolean {
     return this.tileInteractionManager.isPointInsideRect(this.layout.bottomRack, x, y);
   }
+  /* OLDCODE
   private snapTileToDiscard(runtime: TileRuntime, duration: number = ANIMATION_SPEED, ease: string = "Cubic.Out"): void {
+  OLDCODE */
+  /* NEWCODE */
+  private snapTileToDiscard(runtime: TileRuntime, duration?: number, ease: string = "Cubic.Out"): void {
+    const flightDuration = duration ?? this.animationDuration;
+    /* NEWCODE */
     if (this.tablePhase !== GamePhaseEnum.PLAYING) {
       this.returnTileToSlot(runtime);
       return;
     }
 
-/* OLDCODE
-    if (this.turnStage === GameTurnStageEnum.NEED_EXPOSURE) {
-      // console.log(`[DEBUG EXPOSURE] Attempting discard. activeExposureBuildTileIds:`, this.activeExposureBuildTileIds);
-      if (this.activeExposureBuildTileIds.length < 3) {
-        // console.log(`[DEBUG EXPOSURE] BLOCKED! Length is ${this.activeExposureBuildTileIds.length} which is < 3`);
-        // Must build a valid group of 3 or 4 tiles before discarding
-        this.returnTileToSlot(runtime);
-        return;
-      }
-      // console.log(`[DEBUG EXPOSURE] SUCCESS! Confirming exposure with IDs:`, this.activeExposureBuildTileIds);
-      // Confirm the exposure
-      this.callbacks.onLocalPlayerExposureCreate?.([...this.activeExposureBuildTileIds]);
-      this.activeExposureBuildTileIds = [];
-
-      for (const button of this.exposureCloseButtons.values()) {
-        button.destroy();
-      }
-      this.exposureCloseButtons.clear();
-    }
-
-    // Always clear the exposure build state on discard, as the turn is over
-    this.activeExposureBuildTileIds = [];
-    this.exposureBuildAsset = undefined;
-OLDCODE */
-/* NEWCODE */
+    /* OLDCODE
+        if (this.turnStage === GameTurnStageEnum.NEED_EXPOSURE) {
+          // console.log(`[DEBUG EXPOSURE] Attempting discard. activeExposureBuildTileIds:`, this.activeExposureBuildTileIds);
+          if (this.activeExposureBuildTileIds.length < 3) {
+            // console.log(`[DEBUG EXPOSURE] BLOCKED! Length is ${this.activeExposureBuildTileIds.length} which is < 3`);
+            // Must build a valid group of 3 or 4 tiles before discarding
+            this.returnTileToSlot(runtime);
+            return;
+          }
+          // console.log(`[DEBUG EXPOSURE] SUCCESS! Confirming exposure with IDs:`, this.activeExposureBuildTileIds);
+          // Confirm the exposure
+          this.callbacks.onLocalPlayerExposureCreate?.([...this.activeExposureBuildTileIds]);
+          this.activeExposureBuildTileIds = [];
+    
+          for (const button of this.exposureCloseButtons.values()) {
+            button.destroy();
+          }
+          this.exposureCloseButtons.clear();
+        }
+    
+        // Always clear the exposure build state on discard, as the turn is over
+        this.activeExposureBuildTileIds = [];
+        this.exposureBuildAsset = undefined;
+    OLDCODE */
+    /* OLDCODE
     if (this.turnStage === GameTurnStageEnum.NEED_EXPOSURE) {
       // console.log(`[DEBUG EXPOSURE] Attempting discard. activeExposureBuildTileIds:`, this.activeExposureBuildTileIds);
       if (this.activeExposureBuildTileIds.length < 3) {
@@ -7184,7 +8064,30 @@ OLDCODE */
     this.turnStage = GameTurnStageEnum.NEED_DISCARD;
     this.activeExposureBuildTileIds = [];
     this.exposureBuildAsset = undefined;
-/* NEWCODE */
+    OLDCODE */
+    /* NEWCODE */
+    if (this.turnStage === GameTurnStageEnum.NEED_EXPOSURE) {
+      // Must build a valid group of at least 3 tiles before discarding
+      if (this.activeExposureBuildTileIds.length < 3) {
+        this.returnTileToSlot(runtime);
+        return;
+      }
+      // Confirm the exposure
+      this.callbacks.onLocalPlayerExposureCreate?.([...this.activeExposureBuildTileIds]);
+      this.activeExposureBuildTileIds = [];
+      this.exposureBuildAsset = undefined;
+
+      for (const button of this.exposureCloseButtons.values()) {
+        button.destroy();
+      }
+      this.exposureCloseButtons.clear();
+    }
+
+    // Lock discard mode immediately so no multiple tiles can ever be discarded in the same turn
+    this.canDiscard = false;
+    this.activeExposureBuildTileIds = [];
+    this.exposureBuildAsset = undefined;
+    /* NEWCODE */
 
     this.removeFromRackOrder(runtime.vm.tile_id!);
 
@@ -7199,17 +8102,17 @@ OLDCODE */
     runtime.selected = false;
     runtime.isDragging = false;
     this.selectedIds.delete(runtime.vm.tile_id!);
-/* OLDCODE
+    /* OLDCODE
     runtime.image.clearTint();
     this.removeTileTextureFilter(runtime.image);
     runtime.image.disableInteractive();
-OLDCODE */
-/* NEWCODE */
+    OLDCODE */
+    /* NEWCODE */
     runtime.image.clearTint();
     this.removeTileTextureFilter(runtime.image);
     runtime.image.disableInteractive();
     runtime.image.setData("discard-id", runtime.vm.tile_id!);
-/* NEWCODE */
+    /* NEWCODE */
     const grid = this.discardGrid();
     const slot = this.discardSlotFor(
       this.discardSlotIndex(
@@ -7228,6 +8131,7 @@ OLDCODE */
 
     this.tweens.killTweensOf(runtime.image);
 
+    /* OLDCODE
     this.animationManager.animateDiscardDrop(
       runtime.image,
       Math.round(slot.x),
@@ -7235,12 +8139,22 @@ OLDCODE */
       duration,
       ease
     );
+    OLDCODE */
+    /* NEWCODE */
+    this.animationManager.animateDiscardDrop(
+      runtime.image,
+      Math.round(slot.x),
+      Math.round(slot.y),
+      flightDuration,
+      ease
+    );
+    /* NEWCODE */
 
-/* OLDCODE
-    this.playHaptic("tile-discard");
-    this.playTileDiscardVoice(runtime.vm);
-OLDCODE */
-/* NEWCODE */
+    /* OLDCODE
+        this.playHaptic("tile-discard");
+        this.playTileDiscardVoice(runtime.vm);
+    OLDCODE */
+    /* NEWCODE */
     this.playHaptic("tile-discard");
     this.playTileDiscardVoice(runtime.vm);
     if (this.activeCallPresentationSeat) {
@@ -7251,7 +8165,7 @@ OLDCODE */
       this.activeCallPresentationSeat = undefined;
       this.updateInstructionText();
     }
-/* NEWCODE */
+    /* NEWCODE */
 
     // NEWCODE
     setTimeout(() => {
@@ -7283,6 +8197,7 @@ OLDCODE */
     this.layoutDiscardTiles(true);
   }
 
+  /* OLDCODE
   private applyTileTextureFilter(image: Phaser.GameObjects.Image, isBottomRack: boolean = false): void {
     image.texture.setFilter(Phaser.Textures.FilterMode.LINEAR);
     if (isBottomRack) {
@@ -7323,6 +8238,96 @@ OLDCODE */
       }
     }
   }
+  OLDCODE */
+  /* NEWCODE */
+  /* OLDCODE
+  private applyTileTextureFilter(image: Phaser.GameObjects.Image, isBottomRackOrExposure: boolean = false): void {
+    image.texture.setFilter(Phaser.Textures.FilterMode.LINEAR);
+    if (isBottomRackOrExposure) {
+      // Re-enable filters rendering in Phaser 4
+      (image as any).renderFilters = true;
+
+      if ((image as any).enableFilters) {
+        (image as any).enableFilters();
+        if (!image.getData("hasShadow")) {
+          image.setData("hasShadow", true);
+          if ((image as any).filters && (image as any).filters.external) {
+            // Add tile shadow: -0.3 right offset, -0.4 down offset, 0.65 intensity
+            (image as any).filters.external.addShadow(-0.3, -0.4, 0.05, 1, 0x000000, 2, 0.65);
+          }
+        }
+      }
+    }
+  }
+  OLDCODE */
+  /* NEWCODE */
+  // Apply drop-shadow filter only when tile is in the player rack
+  private applyTileTextureFilter(image: Phaser.GameObjects.Image, isBottomRack: boolean = false): void {
+    image.texture.setFilter(Phaser.Textures.FilterMode.LINEAR);
+    if (isBottomRack) {
+      // Re-enable filters rendering in Phaser 4
+      (image as any).renderFilters = true;
+
+      if ((image as any).enableFilters) {
+        (image as any).enableFilters();
+        if (!image.getData("hasShadow")) {
+          image.setData("hasShadow", true);
+          if ((image as any).filters && (image as any).filters.external) {
+            // Add tile shadow: -0.3 right offset, -0.4 down offset, 0.65 intensity
+            (image as any).filters.external.addShadow(-0.3, -0.4, 0.05, 1, 0x000000, 2, 0.65);
+          }
+        }
+      }
+    }
+  }
+  /* NEWCODE */
+
+  /* OLDCODE
+  private removeTileTextureFilter(image: Phaser.GameObjects.Image): void {
+    image.setData("hasShadow", false);
+
+    // Turn off filters in Phaser 4 so no shadow is rendered
+    (image as any).renderFilters = false;
+
+    // Clear active external filters list
+    if ((image as any).filters && (image as any).filters.external) {
+      if (typeof (image as any).filters.external.clear === 'function') {
+        (image as any).filters.external.clear();
+      }
+    }
+  }
+  OLDCODE */
+  /* NEWCODE */
+  private removeTileTextureFilter(image: Phaser.GameObjects.Image): void {
+    image.setData("hasShadow", false);
+
+    const imgAny = image as any;
+
+    // 1. Clear filter lists and destroy the filter camera
+    if (imgAny.filterCamera) {
+      if (imgAny.filters?.external && typeof imgAny.filters.external.clear === "function") {
+        imgAny.filters.external.clear();
+      }
+      if (imgAny.filters?.internal && typeof imgAny.filters.internal.clear === "function") {
+        imgAny.filters.internal.clear();
+      }
+      imgAny.filterCamera.destroy();
+      imgAny.filterCamera = undefined;
+    }
+
+    // 2. Disable filter rendering flag
+    imgAny.renderFilters = false;
+
+    // 3. Remove filter render step from GameObject pipeline so it renders like standard discarded tiles
+    if (imgAny._renderSteps && imgAny.renderWebGLFilters) {
+      const idx = imgAny._renderSteps.indexOf(imgAny.renderWebGLFilters);
+      if (idx !== -1) {
+        imgAny._renderSteps.splice(idx, 1);
+      }
+    }
+  }
+  /* NEWCODE */
+  /* NEWCODE */
 
   private layoutRackTiles(animate: boolean): void {
     this.reindexRackRuntimeSlots();
@@ -7361,27 +8366,47 @@ OLDCODE */
         targetY,
         animate,
       );
-/* OLDCODE
-      // NEWCODE
-      if (!runtime.isDragging) {
-        const bounds = this.getRackBounds();
-        runtime.image.setVisible(targetX >= bounds.x && targetX <= bounds.x + bounds.width);
-      }
-OLDCODE */
-/* NEWCODE */
+      /* OLDCODE
+            // NEWCODE
+            if (!runtime.isDragging) {
+              const bounds = this.getRackBounds();
+              runtime.image.setVisible(targetX >= bounds.x && targetX <= bounds.x + bounds.width);
+            }
+      OLDCODE */
+      /* NEWCODE */
       if (!runtime.isDragging) {
         const bounds = this.getRackBounds();
         const halfW = tileWidth / 2;
         runtime.image.setVisible(
           targetX + halfW >= bounds.x && targetX - halfW <= bounds.x + bounds.width
         );
+        /* OLDCODE
         if (!this.isPickAnimating || runtime !== this.pendingLocalPickRuntime) {
           if (runtime.image.alpha < 1) {
             runtime.image.setAlpha(1);
           }
         }
+        OLDCODE */
+        /* OLDCODE
+        const isPickFlightTile = this.isPickAnimating &&
+          (runtime === this.pendingLocalPickRuntime || runtime.vm.tile_id === this.pendingLocalPickTileId);
+        if (!isPickFlightTile) {
+          if (runtime.image.alpha < 1) {
+            runtime.image.setAlpha(1);
+          }
+        }
+        OLDCODE */
+        /* NEWCODE */
+        const isPickFlightTile = this.isPickAnimating &&
+          (runtime.vm.tile_id === this.animatingPickTileId || runtime === this.pendingLocalPickRuntime);
+        if (!isPickFlightTile) {
+          if (runtime.image.alpha < 1) {
+            runtime.image.setAlpha(1);
+          }
+        }
+        /* NEWCODE */
       }
-/* NEWCODE */
+      /* NEWCODE */
     }
 
     this.layoutDiscardTiles(animate);
@@ -7410,6 +8435,10 @@ OLDCODE */
       // runtime.image.setDepth(this.discardTileDepth());
 
       runtime.image.setDisplaySize(grid.tileWidth, grid.tileHeight);
+      /* NEWCODE */
+      // Ensure discarded tiles never retain shadow
+      this.removeTileTextureFilter(runtime.image);
+      /* NEWCODE */
 
       if (animate) {
         this.tweens.killTweensOf(runtime.image);
@@ -8049,9 +9078,22 @@ OLDCODE */
   private canSubmitPassWaitingTiles(): boolean {
     return this.passFlowManager.canSubmitPassWaitingTiles();
   }
+  /* OLDCODE
   private submitPassWaitingTiles(): void {
     if (this.isBotPassVisualAnimating) return;
     if (!this.passFlowManager.beginSubmission()) return;
+  OLDCODE */
+  /* NEWCODE */
+  private submitPassWaitingTiles(): void {
+    if (this.botPassVisualTiles.length === 0) {
+      this.isBotPassVisualAnimating = false;
+    }
+    if (this.isBotPassVisualAnimating) {
+      this.clearBotPassVisualTiles();
+      this.isBotPassVisualAnimating = false;
+    }
+    if (!this.passFlowManager.beginSubmission()) return;
+    /* NEWCODE */
 
     const ids = [...this.passWaitingTileIds];
 
@@ -8247,7 +9289,7 @@ OLDCODE */
     }
     const sourceTargets = this.passAreaTargets(from, count);
     const targetPoints = this.passAreaTargets(to, count);
-  /* NEWCODE */
+    /* NEWCODE */
     const size = this.passTileDisplaySize(to);
     const startAngle = this.passTileAngle(from);
     const endAngle = this.passTileAngle(to);
@@ -8547,8 +9589,15 @@ OLDCODE */
       (clone) => !images.has(clone),
     );
 
+    /* OLDCODE
+      this.botPassVisualTiles.length = 0;
+    }
+    OLDCODE */
+    /* NEWCODE */
     this.botPassVisualTiles.length = 0;
+    this.isBotPassVisualAnimating = false;
   }
+  /* NEWCODE */
 
   private createTileBackClone(
     x: number,
@@ -8943,12 +9992,31 @@ OLDCODE */
    * Kept slow enough to read the tile leaving the wall. The relative pacing is
    * unchanged: the top seat is nearest the wall, the local rack is furthest.
    */
+  /* OLDCODE
   private pickAnimationDurationForSeat(seat: TableSeat): number {
     return ANIMATION_SPEED;
-    /* if (seat === "bottom") return 800;
-    if (seat === "top") return 500;
-    return 640; */
   }
+  OLDCODE */
+  /* NEWCODE */
+  private setBotLevelAnimationSpeed(botLevel: BotLevelModeEnum): void {
+    switch (botLevel) {
+      case BotLevelModeEnum.EASY:
+        this.animationDuration = 1000;
+        break;
+      case BotLevelModeEnum.NORMAL:
+        this.animationDuration = 650;
+        break;
+      case BotLevelModeEnum.FAST:
+      default:
+        this.animationDuration = 400;
+        break;
+    }
+  }
+
+  private pickAnimationDurationForSeat(seat: TableSeat): number {
+    return this.animationDuration;
+  }
+  /* NEWCODE */
 
   private pickAnimationTileSize(seat: TableSeat): {
     readonly width: number;

@@ -11,8 +11,109 @@ The code comment should be simple english and too the point which help to easy t
 
 2]
 Do not add big comment, only need max 2 to 3 lines of comment and in simple english and to the point.
+============== THE LAST ANALYSES HOW BOT TAKE DECISION AFTER COMPLETED THE 7 Phase ==============
+Short answers, based on the current code.
+
+**1. Same as realmahjongg.com?** I can't see their code, so I can't promise "exactly the same". What our engine does: it follows the NMJL card through our JSON. After Steps 6, 7 and 7B, wins are checked strictly (suits, exposures, jokers), and both benchmarks show 0 illegal wins.
+
+**2. Does the bot think like a human?** Partly.
+- **Human-like:** it sees only public information, aims at a few card hands, drops hands that become impossible, and defends late in the game.
+- **Not human-like:** every level waits the same fixed 1 second per turn ([service.ts:2126](apps/app/src/graphql/business-app/game-engine/service.ts#L2126)), and it doesn't read opponents' exposures to guess their hands.
+
+**3. How does it pick and follow a winning hand?** After the deal it scores every card hand by how many tiles it still needs, counting tiles already discarded as gone. It keeps the closest few, then narrows them after the Charleston and after each exposure.
+
+**4. Pung / Kong / Quint?** It claims a discard only if the new exposure fits one of its target hands **and** doesn't move it further from Mah Jongg. It tries the largest group first (sextet → quint → kong → pung).
+
+**5. Several possible winning hands?** It keeps several targets open while they're all reachable, and drops them one by one as exposures and dead tiles rule them out. When it wins, any matching hand counts; it doesn't aim for the highest-value hand.
+
+**6. Discard?** It scores each tile in its hand and discards the one its target hands need least. Jokers and tiles it needs are protected. Late in the game the HARD bot prefers "safe" tiles that others have already discarded.
+
+**7. Different per level?** Only partly.
+
+| Area | Same for all levels? |
+|---|---|
+| How many target hands it keeps (EASY 3→2→1, NORMAL 6→3→2, HARD 10→5→2) | Differs |
+| Discard choice | Differs: EASY and NORMAL sometimes pick the 2nd-best tile |
+| Late-game defense | Differs: HARD strong, NORMAL light, EASY none |
+| Claiming pung/kong/quint | **Same for all** |
+| Think time | **Same for all** (1 second) |
+| Profile settings `claimAggression`, `errorRate`, `defenseWeight`, `charlestonQuality`, `thinkTimeMin/Max`, … | **Defined but never used** |
+
+**Joker-swap signal for the UI:** you're right, something is missing. The engine sets `play.last_joker_exchange`, but:
+- it keeps only the **last** swap, so if the bot makes 2 swaps in one turn, the UI sees only 1;
+- it is **never cleared**, so the UI may replay an old swap on later updates;
+- it doesn't say **which rack or which exposure** received the tile.
+
+## Phase 7C (after 7B)
+
+**Part A: joker-swap event for the UI**
+1. Replace `last_joker_exchange` with a list, `play.joker_exchanges[]`, holding every swap made in the current turn. Each entry has: order number, the seat and rack of the player who swapped, the seat and rack of the exposure, the exposure index, the real tile's id and `tile_code`, and the joker's tile id.
+2. Clear the list when the next turn starts.
+3. Publish a play update after each swap, or one update that carries the full list.
+4. Frontend (not in this repo): for each entry in order, move the real tile into that exposure, move the joker into the swapping player's hand, and play a "joker swapped" sound with the seat name.
+5. Tests: 2 swaps in one turn → 2 entries in order; the next turn → empty list; human and bot swaps send the same data.
+
+**Part B: make bot levels really different**
+1. **Think time:** use the profile's `thinkTimeMinMs`–`thinkTimeMaxMs` instead of a fixed 1 second.
+2. **Claiming:** use `claimAggression`.
+   - **EASY:** sometimes skips a good claim.
+   - **HARD:** always claims when it fits.
+   - **NORMAL:** in between.
+3. **Charleston:** use `charlestonQuality`, so EASY sometimes passes a less ideal tile.
+4. **Unused settings:** delete the profile settings that stay unused, so the levels match what the code actually does.
+5. **Re-benchmark per level:** HARD should win more than NORMAL, and NORMAL more than EASY, with 0 illegal wins.
+
+Order: 7B first, then 7C Part A for the UI, then Part B.
 
 +++++++ CROSS CHECK +++++
+#]
+
+If this is the proper then I thought everything is completed. Just need to test the things as we want. 
+
+Here, I have some concern as below
+1]
+Is this logic robust and work with the all expact similar to the reference realmahjongg.com
+2]
+The main concern is how bot take decision and how it play is it think like human and play the game?
+3]
+How bot decide the winning hand and how it follow the winning hand?
+4]
+How bot decide to make PUNG, KONG, QUINT etc...
+5]
+How bot take decision if there is multiple winning hand possibility.
+6]
+How bot discard a tile?
+7]
+Is bot take decision as per the level OR it take same decision for all level?
+
+In short my main concern is, is that bot play same like a human and thing sorrounding and follow the proper winning hand and play strategically as per the bot level.
+
+
+Still I thing something is remaining, as if bot joker exchange then we need something that we can change in frontend UI and swap the tiles to the specific exposure and play some sound that other player know that Joker is swapped by bot seat on specific bot turn.
+
+
+
+#]
+Phase 7C (after 7B)
+Part A: joker-swap event for the UI
+
+Replace last_joker_exchange with a list, play.joker_exchanges[], holding every swap made in the current turn. Each entry has: order number, the seat and rack of the player who swapped, the seat and rack of the exposure, the exposure index, the real tile's id and tile_code, and the joker's tile id.
+Clear the list when the next turn starts.
+Publish a play update after each swap, or one update that carries the full list.
+Frontend (not in this repo): for each entry in order, move the real tile into that exposure, move the joker into the swapping player's hand, and play a "joker swapped" sound with the seat name.
+Tests: 2 swaps in one turn → 2 entries in order; the next turn → empty list; human and bot swaps send the same data.
+Part B: make bot levels really different
+
+Think time: use the profile's thinkTimeMinMs–thinkTimeMaxMs instead of a fixed 1 second.
+Claiming: use claimAggression.
+EASY: sometimes skips a good claim.
+HARD: always claims when it fits.
+NORMAL: in between.
+Charleston: use charlestonQuality, so EASY sometimes passes a less ideal tile.
+Unused settings: delete the profile settings that stay unused, so the levels match what the code actually does.
+Re-benchmark per level: HARD should win more than NORMAL, and NORMAL more than EASY, with 0 illegal wins.
+
+
 #]
 How BONUS work and what it the meaning of this.
 5.1. Tile Consumption During Mah Jongg Validation (rule.ts)

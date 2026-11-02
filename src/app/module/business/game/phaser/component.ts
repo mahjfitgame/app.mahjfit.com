@@ -20,7 +20,18 @@ import Phaser from "phaser";
 import { Capacitor } from "@capacitor/core";
 
 import { PhaserScene } from "./scenes/scene";
+/* OLDCODE
 import { GameDeadHandReasonEnum, GamePhaseFirstRoundDirectionEnum, GameTileEntity, GameTileEntityGSDto, TileCategoryEnum, GamePlayActionEnum, TileCategoryEnumAddon, GamePhaseEnum, GameRackIDEnumAddon, GamePlayActionEnumAddon, GameTurnStageEnum, GameTileOrderEnumAddon } from "@bfw/api-sdk/graphql/endpoints/business";
+OLDCODE */
+/* OLDCODE
+import { GameDeadHandReasonEnum, GamePhaseFirstRoundDirectionEnum, GameTileEntity, GameTileEntityGSDto, TileCategoryEnum, GamePlayActionEnum, TileCategoryEnumAddon, GamePhaseEnum, GameRackIDEnumAddon, GamePlayActionEnumAddon, GameTurnStageEnum, GameTileOrderEnumAddon, GameCharlestoneStageEnum } from "@bfw/api-sdk/graphql/endpoints/business";
+OLDCODE */
+/* OLDCODE
+import { BotLevelModeEnum, GameDeadHandReasonEnum, GamePhaseFirstRoundDirectionEnum, GameTileEntity, GameTileEntityGSDto, TileCategoryEnum, GamePlayActionEnum, TileCategoryEnumAddon, GamePhaseEnum, GameRackIDEnumAddon, GamePlayActionEnumAddon, GameTurnStageEnum, GameTileOrderEnumAddon, GameCharlestoneStageEnum } from "@bfw/api-sdk/graphql/endpoints/business";
+OLDCODE */
+/* NEWCODE */
+import { BotLevelModeEnum, GameDeadHandReasonEnum, GamePhaseFirstRoundDirectionEnum, GameTileEntity, GameTileEntityGSDto, TileCategoryEnum, GamePlayActionEnum, TileCategoryEnumAddon, TileTypeEnumAddon, GamePhaseEnum, GameRackIDEnumAddon, GamePlayActionEnumAddon, GameTurnStageEnum, GameTileOrderEnumAddon, GameCharlestoneStageEnum } from "@bfw/api-sdk/graphql/endpoints/business";
+/* NEWCODE */
 import {
   ClaimPanelOverlayState,
   DeadHandClaim,
@@ -49,6 +60,9 @@ import {
 } from "./scenes/type";
 
 import { COLOR_BLUE, COLOR_FUSHIA, COLOR_GRAY } from "./const";
+/* NEWCODE */
+import { environment } from "../../../../../../env/env";
+/* NEWCODE */
 
 /* NEWCODE */
 export interface GameOverModalData {
@@ -66,6 +80,9 @@ export interface WinningTileData {
   rank?: number;
   label: string;
   assetName: string;
+  /* NEWCODE */
+  imageUrl?: string;
+  /* NEWCODE */
 }
 
 export interface WinningMeldGroup {
@@ -199,6 +216,10 @@ export class PhaserComponent implements AfterViewInit {
   readonly mahjongWinResult = signal<MahjongWinCelebration | null>(null);
   /* NEWCODE */
   readonly winningOverlayData = signal<WinningOverlayData | null>(null);
+  // Discard area bounds for anchoring the result popup
+  readonly discardAreaRect = signal<{ x: number; y: number; width: number; height: number } | null>(null);
+  // Toggle visibility of the result popup via the Eye icon
+  readonly isResultPopupHidden = signal<boolean>(false);
   /* NEWCODE */
 
 
@@ -395,6 +416,10 @@ export class PhaserComponent implements AfterViewInit {
     effect(() => {
       const err = this.gameState.play_action_error();
       if (!this.phaser || !this.sceneReady() || !err) return;
+      /* NEWCODE */
+      // Reset any pending discard if an action error occurred on the backend
+      this.pendingDiscardTileId = null;
+      /* NEWCODE */
       if (err.event === 'game.subscribe.action.charlestone' || err.event === 'game.subscribe.action.pass_round') {
         this.phaser.events.emit("pass:failed");
         this.notify.error(err.message || 'An error occurred during the pass.');
@@ -433,6 +458,14 @@ export class PhaserComponent implements AfterViewInit {
         this.lastKnownTurnSeatPos = activeSeat;
       }
     });
+
+    /* NEWCODE */
+    effect(() => {
+      const botLevel = this.gameState.game_botlvl_id();
+      if (!this.phaser || !this.sceneReady() || !botLevel) return;
+      this.phaser.events.emit("table:bot-level", botLevel);
+    });
+    /* NEWCODE */
 
     // Wall Count
     effect(() => {
@@ -628,6 +661,17 @@ export class PhaserComponent implements AfterViewInit {
       }
     });
 
+    /* NEWCODE */
+    // Send bot hand tiles to Phaser when in debug mode
+    effect(() => {
+      if (!environment.DEBUG) return;
+      const hands = this.gameState.all_seat_rack_hands();
+      if (this.phaser && this.sceneReady()) {
+        this.phaser.events.emit("debug:opponent-hands", hands);
+      }
+    });
+    /* NEWCODE */
+
     effect(() => {
       const deadStates = this.gameState.all_seat_dead_states();
       if (this.phaser && this.sceneReady()) {
@@ -646,6 +690,7 @@ export class PhaserComponent implements AfterViewInit {
       const winnerSeatIds = this.gameState.play_winner_seat_ids();
       const wallCount = this.gameState.play_wall_count();
 
+      /* OLDCODE
       let winnerId = (reason === 'MAHJONG' && winnerSeatIds && winnerSeatIds.length > 0) ? winnerSeatIds[0] : null;
 
       if (!winnerId) {
@@ -664,6 +709,39 @@ export class PhaserComponent implements AfterViewInit {
           }
         }
       }
+      OLDCODE */
+      /* NEWCODE */
+      let winnerId = (reason === 'MAHJONG' && winnerSeatIds && winnerSeatIds.length > 0) ? winnerSeatIds[0] : null;
+
+      // 1. Check if the local player (bottom seat) won Mahjong
+      if (!winnerId && reason === 'MAHJONG') {
+        const isPersonalMahjong = this.gameState.personal_seat_rack_first_is_mahjong();
+        const isMyTurn = this.gameState.play_current_turn_seat_id() === this.gameState.personal_seat_id();
+        if (isPersonalMahjong || isMyTurn) {
+          winnerId = this.gameState.personal_seat_id() ?? null;
+        }
+      }
+
+      // 2. Check if an opponent bot won Mahjong in play_seats()
+      if (!winnerId) {
+        const seats = this.gameState.play_seats();
+        if (seats) {
+          for (const seatId of Object.keys(seats)) {
+            const seatData = (seats as any)[seatId];
+            if (seatData && seatData.racks) {
+              for (const rackKey of Object.keys(seatData.racks)) {
+                const rack = seatData.racks[rackKey];
+                if (rack && rack.is_mahjong) {
+                  winnerId = Number(seatId);
+                  break;
+                }
+              }
+            }
+            if (winnerId) break;
+          }
+        }
+      }
+      /* NEWCODE */
 
       // const isWallGame = reason === 'WALL_EMPTY' || (wallCount === 0 && !winnerId); // OLDCODE
       const isWallGame = reason === 'WALL_EMPTY';
@@ -706,20 +784,104 @@ export class PhaserComponent implements AfterViewInit {
           const tableSeat = this.gameState.seat_position_by_gseat_id()(winnerId);
 
           if (tableSeat) {
+            /* OLDCODE
             const opponentHands: Record<string, number[]> = {};
             const seats = this.gameState.play_seats();
             if (seats) {
               for (const [seatId, seatData] of Object.entries(seats)) {
                 const seatPos = this.gameState.seat_position_by_gseat_id()(Number(seatId));
                 if (seatPos && seatPos !== 'bottom' && seatData?.racks) {
-                   const tiles: number[] = [];
-                   for (const rack of Object.values(seatData.racks)) {
-                      if ((rack as any).tiles) tiles.push(...(rack as any).tiles);
-                   }
-                   opponentHands[seatPos] = tiles;
+                  const tiles: number[] = [];
+                  for (const rack of Object.values(seatData.racks)) {
+                    if ((rack as any).tiles) tiles.push(...(rack as any).tiles);
+                  }
+                  opponentHands[seatPos] = tiles;
                 }
               }
             }
+            OLDCODE */
+            /* NEWCODE */
+            /* OLDCODE
+            const opponentHands: Record<string, number[]> = {};
+            const seats = this.gameState.play_seats();
+            if (seats) {
+              for (const [seatId, seatData] of Object.entries(seats)) {
+                const seatPos = this.gameState.seat_position_by_gseat_id()(Number(seatId));
+                if (seatPos && seatPos !== 'bottom' && seatData?.racks) {
+                  const tiles: number[] = [];
+                  for (const rack of Object.values(seatData.racks)) {
+                    // Extract tiles using rack.hand as sent by GraphQL WebSocket
+                    if ((rack as any)?.hand && typeof (rack as any).hand === 'object') {
+                      const handTiles = Object.values((rack as any).hand)
+                        .map((t: any) => t?.tile_id ?? (t as any)?.id)
+                        .filter((id): id is number => id != null);
+                      tiles.push(...handTiles);
+                    }
+                  }
+                  opponentHands[seatPos] = tiles;
+                }
+              }
+            }
+            OLDCODE */
+            /* NEWCODE */
+            const opponentHands: Record<string, number[]> = {};
+
+            // 1. Primary source: read each opponent's hand from all_seat_rack_hands()
+            const allHands = this.gameState.all_seat_rack_hands();
+            const opponentSeatList: Array<'top' | 'left' | 'right'> = ['top', 'left', 'right'];
+
+            for (const seat of opponentSeatList) {
+              const seatHand = allHands[seat];
+              const tileIdList: number[] = [];
+
+              if (seatHand && Array.isArray(seatHand)) {
+                for (const tileItem of seatHand) {
+                  const id = tileItem?.tile_id ?? tileItem?.id;
+                  if (typeof id === 'number') {
+                    tileIdList.push(id);
+                  }
+                }
+              }
+
+              if (tileIdList.length > 0) {
+                opponentHands[seat] = tileIdList;
+              }
+            }
+
+            // 2. Fallback: if any opponent seat is still empty, check play_seats()
+            const seats = this.gameState.play_seats();
+            if (seats) {
+              for (const seatId of Object.keys(seats)) {
+                const seatData = (seats as any)[seatId];
+                const seatPos = this.gameState.seat_position_by_gseat_id()(Number(seatId));
+
+                if (seatPos && seatPos !== 'bottom') {
+                  const alreadyHasTiles = opponentHands[seatPos] && opponentHands[seatPos].length > 0;
+                  if (!alreadyHasTiles && seatData && seatData.racks) {
+                    const fallbackTileIds: number[] = [];
+
+                    for (const rackKey of Object.keys(seatData.racks)) {
+                      const rack = seatData.racks[rackKey];
+                      if (rack && rack.hand && typeof rack.hand === 'object') {
+                        for (const handKey of Object.keys(rack.hand)) {
+                          const tileObj = rack.hand[handKey];
+                          const id = tileObj?.tile_id ?? tileObj?.id;
+                          if (typeof id === 'number') {
+                            fallbackTileIds.push(id);
+                          }
+                        }
+                      }
+                    }
+
+                    if (fallbackTileIds.length > 0) {
+                      opponentHands[seatPos] = fallbackTileIds;
+                    }
+                  }
+                }
+              }
+            }
+            /* NEWCODE */
+            /* NEWCODE */
 
             this.setMahjongWinPopup({
               winner: tableSeat,
@@ -735,6 +897,11 @@ export class PhaserComponent implements AfterViewInit {
             reason: 'WALL_EMPTY'
           });
           this.wallGameOver.set(true);
+          /* NEWCODE */
+          // Reveal all seats' hands to exposures on wall game
+          const seats = this.gameState.play_seats();
+          this.phaser?.events.emit("table:wall-game", seats);
+          /* NEWCODE */
         } else {
           // Dead Hand / No Active Racks Game Over
           const deadNote = this.gameState.personal_seat_dead_note() || 'All active player hands are dead.';
@@ -812,13 +979,13 @@ export class PhaserComponent implements AfterViewInit {
       let scene!: PhaserScene;
       runInInjectionContext(this.injector, () => {
         scene = new PhaserScene(this.gameService, {
-/* OLDCODE
-          getUsername: () => this.gameState.ctxp.state.user_fullname || this.gameState.ctxp.state.user_username || "PLAYER",
-OLDCODE */
-/* NEWCODE */
+          /* OLDCODE
+                    getUsername: () => this.gameState.ctxp.state.user_fullname || this.gameState.ctxp.state.user_username || "PLAYER",
+          OLDCODE */
+          /* NEWCODE */
           getUsername: () => this.gameState.ctxp.state.user_fullname || this.gameState.ctxp.state.user_username || "PLAYER",
           getPlayerName: (seat: TableSeat) => this.getPlayerName(seat),
-/* NEWCODE */
+          /* NEWCODE */
           onSelectionChanged: (ids) => this.zone.run(() => this.selectionChanged.emit(ids)),
           onPassCompleted: async (payload) => {
             // console.log("[PhaserBoardComponent] Publishing Charleston with tiles:", payload.tileIds);
@@ -870,19 +1037,19 @@ OLDCODE */
             if (mode === "suit") enumMode = GameTileOrderEnumAddon.BY_SUIT;
             this.gameState.publishOderPersonalRackTiles(enumMode);
           },
-/* OLDCODE
-          onMahjongDeclare: () => {
-            this.gameState.publishMahjongDeclare();
-          },
-OLDCODE */
-/* NEWCODE */
+          /* OLDCODE
+                    onMahjongDeclare: () => {
+                      this.gameState.publishMahjongDeclare();
+                    },
+          OLDCODE */
+          /* NEWCODE */
           onMahjongDeclare: () => {
             this.gameState.publishMahjongDeclare().catch((err) => {
               console.warn("publishMahjongDeclare failed:", err);
               this.handleMahjongFailure();
             });
           },
-/* NEWCODE */
+          /* NEWCODE */
           onWallCountOverlay: (state) => this.setWallCountOverlay(state),
           onPlayerLabelOverlay: (states) => this.setPlayerLabelOverlays(states),
           onPointsOverlay: (state) => this.setPointsOverlay(state),
@@ -890,6 +1057,9 @@ OLDCODE */
           onMobileDrawerOverlay: (state) => this.setMobileDrawerOverlay(state),
           onMobileHeaderToggleOverlay: (state) => this.setMobileHeaderToggleOverlay(state),
           onInstructionPanelOverlay: (state) => this.setInstructionPanelOverlay(state),
+          /* NEWCODE */
+          onDiscardAreaOverlay: (rect) => this.discardAreaRect.set(rect),
+          /* NEWCODE */
           onMahjongButtonOverlay: (state) => this.mahjongButtonOverlay.set(state),
           onClaimPanelOverlay: (state) => this.setClaimPanelOverlay(state),
           onTableOverlayBlocked: (level) => this.setTableOverlayBlocked(level),
@@ -950,20 +1120,26 @@ OLDCODE */
         // initial iOS/Android inset measurement through the normal layout
         // path instead of only storing it for a later resize.
         this.syncGameViewport();
-/* OLDCODE
-        const rack = this.getSortedRack();
-        this.phaser?.events.emit("allTiles:set", this.gameState.game_all_tiles());
-        this.phaser?.events.emit("rack:set", rack);
-        this.phaser?.events.emit("tile-call:offer", this.tileCallOffer());
-OLDCODE */
-/* NEWCODE */
+        /* OLDCODE
+                const rack = this.getSortedRack();
+                this.phaser?.events.emit("allTiles:set", this.gameState.game_all_tiles());
+                this.phaser?.events.emit("rack:set", rack);
+                this.phaser?.events.emit("tile-call:offer", this.tileCallOffer());
+        OLDCODE */
+        /* NEWCODE */
         const rack = this.getSortedRack();
         this.phaser?.events.emit("allTiles:set", this.gameState.game_all_tiles());
         this.phaser?.events.emit("rack:set", rack);
         this.phaser?.events.emit("tile-call:offer", this.tileCallOffer());
         this.phaser?.events.emit("wall:set-pick-mode", this.gameState.canPickTile());
         this.phaser?.events.emit("rack:set-discard-mode", this.gameState.canDiscard());
-/* NEWCODE */
+        /* NEWCODE */
+        const initialBotLevel = this.gameState.game_botlvl_id();
+        if (initialBotLevel) {
+          this.phaser?.events.emit("table:bot-level", initialBotLevel);
+        }
+        /* NEWCODE */
+        /* NEWCODE */
         const win = this.mahjongWin();
         if (win) this.setMahjongWinPopup(win);
         this.phaser?.events.on(
@@ -1214,23 +1390,23 @@ OLDCODE */
     return `${Math.floor(remaining / 60000)}:${String(Math.floor(remaining / 1000) % 60).padStart(2, "0")}`;
   }
 
-/* OLDCODE
-  public getDeadHandTargetLabel(targetSeat: Exclude<TableSeat, "bottom">): string {
-    const labels: Record<Exclude<TableSeat, "bottom">, string> = {
-      top: "PLAYER 1 (TOP)", right: "PLAYER 2 (RIGHT)", left: "PLAYER 3 (LEFT)",
-    };
-    return labels[targetSeat];
-  }
-OLDCODE */
-/* NEWCODE */
+  /* OLDCODE
+    public getDeadHandTargetLabel(targetSeat: Exclude<TableSeat, "bottom">): string {
+      const labels: Record<Exclude<TableSeat, "bottom">, string> = {
+        top: "PLAYER 1 (TOP)", right: "PLAYER 2 (RIGHT)", left: "PLAYER 3 (LEFT)",
+      };
+      return labels[targetSeat];
+    }
+  OLDCODE */
+  /* NEWCODE */
   public getPlayerName(seat: TableSeat): string {
     if (seat === "bottom") {
       return this.gameState.ctxp.state.user_fullname || this.gameState.ctxp.state.user_username || "You";
     }
 
     const defaultNames: Record<Exclude<TableSeat, "bottom">, string> = {
-      top: "Player 1",
-      right: "Player 2",
+      right: "Player 1",
+      top: "Player 2",
       left: "Player 3",
     };
 
@@ -1265,7 +1441,7 @@ OLDCODE */
     const seatSuffix = targetSeat === "top" ? "TOP" : targetSeat === "right" ? "RIGHT" : "LEFT";
     return `${name} (${seatSuffix})`;
   }
-/* NEWCODE */
+  /* NEWCODE */
 
   private rawInstructionPanelState?: InstructionPanelOverlayState;
   public confirmStopCharleston = signal(false);
@@ -1305,6 +1481,7 @@ OLDCODE */
     this.zone.run(() => this.claimPanelOverlay.set(state));
   }
 
+  /* OLDCODE
   public onInstructionPanelClick(action?: string): void {
     const state = this.instructionPanelOverlay();
     if (!state) return;
@@ -1327,6 +1504,37 @@ OLDCODE */
       this.phaser?.events.emit("instruction-panel:primary-action");
     }
   }
+  OLDCODE */
+  /* NEWCODE */
+  public onInstructionPanelClick(action?: string): void {
+    const state = this.instructionPanelOverlay();
+    if (!state) return;
+
+    const isSecondDecision = this.gameState.play_pass_stage() === GameCharlestoneStageEnum.SECOND_DECISION;
+
+    if (isSecondDecision && action === "pass") {
+      this.confirmStopCharleston.set(false);
+      this.rawInstructionPanelState = undefined;
+      this.instructionPanelOverlay.set(undefined);
+      this.gameState.publishCharlestoneSecondRoundVote(true);
+    } else if (action === "stop") {
+      this.confirmStopCharleston.set(true);
+      this.renderInstructionPanelOverlay();
+    } else if (action === "stop-confirm") {
+      this.confirmStopCharleston.set(false);
+      this.rawInstructionPanelState = undefined;
+      this.instructionPanelOverlay.set(undefined);
+      this.phaser?.events.emit("play-stop-charleston");
+      this.gameState.publishCharlestoneSecondRoundVote(false);
+    } else if (action === "stop-cancel") {
+      this.confirmStopCharleston.set(false);
+      this.renderInstructionPanelOverlay();
+    } else {
+      if (!state.button.enabled) return;
+      this.phaser?.events.emit("instruction-panel:primary-action");
+    }
+  }
+  /* NEWCODE */
 
   /**
    * First Dead Hand step. Phaser resolves the exposure boxes from the layout
@@ -1417,13 +1625,13 @@ OLDCODE */
     this.setDeadHandPopup(null);
   }
 
-/* OLDCODE
-  public onMahjongButtonClick(): void {
-    console.log("Mahjong button clicked!");
-    this.phaser?.events.emit("instruction-panel:mahjong");
-  }
-OLDCODE */
-/* NEWCODE */
+  /* OLDCODE
+    public onMahjongButtonClick(): void {
+      console.log("Mahjong button clicked!");
+      this.phaser?.events.emit("instruction-panel:mahjong");
+    }
+  OLDCODE */
+  /* NEWCODE */
   public onMahjongButtonClick(): void {
     console.log("Mahjong button clicked!");
     if (this.mahjongButtonProcessing()) return;
@@ -1448,7 +1656,7 @@ OLDCODE */
       }
     }, 1200);
   }
-/* NEWCODE */
+  /* NEWCODE */
 
   /**
    * Emits before the matching exposure event so Phaser can stage a bot's
@@ -1488,14 +1696,14 @@ OLDCODE */
       && this.gameState.play_finished_reason() === "MAHJONG";
     if (!exposureContainsClaimedTile && !isMahjong) return false;
 
-/* OLDCODE
-    const discardedBy = this.gameState.seat_position_by_gseat_id()(Number(fromSeatId));
-    if (!discardedBy || !this.phaser || !this.sceneReady()) return false;
-    const payload: ResolvedClaimPresentation = { key: claimKey, tile: tile!, discardedBy };
-    this.phaser.events.emit("claim:resolved", payload);
-    return true;
-OLDCODE */
-/* NEWCODE */
+    /* OLDCODE
+        const discardedBy = this.gameState.seat_position_by_gseat_id()(Number(fromSeatId));
+        if (!discardedBy || !this.phaser || !this.sceneReady()) return false;
+        const payload: ResolvedClaimPresentation = { key: claimKey, tile: tile!, discardedBy };
+        this.phaser.events.emit("claim:resolved", payload);
+        return true;
+    OLDCODE */
+    /* NEWCODE */
     const discardedBy = this.gameState.seat_position_by_gseat_id()(Number(fromSeatId));
     if (!discardedBy || !this.phaser || !this.sceneReady()) return false;
     let calledBy: TableSeat | undefined = undefined;
@@ -1514,7 +1722,7 @@ OLDCODE */
     const payload: ResolvedClaimPresentation = { key: claimKey, tile: tile!, discardedBy, calledBy };
     this.phaser.events.emit("claim:resolved", payload);
     return true;
-/* NEWCODE */
+    /* NEWCODE */
   }
 
   /**
@@ -1523,46 +1731,46 @@ OLDCODE */
    * and claimed tile, which is sufficient for the same presentation flow.
    */
   private emitExposureClaimPresentationFallback(exposures: Record<TableSeat, any[]>, suppressPresentation: boolean): void {
-/* OLDCODE
-    const candidates: Array<{ key: string; tile: GameTileEntityGSDto; fromSeatId: number }> = [];
-
-    for (const [seat, melds] of Object.entries(exposures)) {
-      // The local player finalizes CALL into Pung/Kong/Quint after choosing a
-      // group. That is not a new discard and must never synthesize one.
-      // Immediate-resolution fallback is only needed for opponent bot melds.
-      if (seat === "bottom") continue;
-      for (const meld of melds ?? []) {
-        const tile = meld?.tile as GameTileEntityGSDto | undefined;
-        const fromSeatId = Number(meld?.from_seat);
-        if (!tile || tile.tile_id == null || !Number.isFinite(fromSeatId)) continue;
-
-        // A manual CALL becomes Pung/Kong/Quint by changing `kind`; retain one
-        // identity across that lifecycle so it cannot be presented twice.
-        const key = `${fromSeatId}:${tile.tile_id}:${meld?.to_seat ?? ""}`;
-        const isNew = !this.knownExposurePresentationKeys.has(key);
-        this.knownExposurePresentationKeys.add(key);
-        if (this.exposurePresentationInitialized && isNew) {
-          candidates.push({ key, tile, fromSeatId });
+    /* OLDCODE
+        const candidates: Array<{ key: string; tile: GameTileEntityGSDto; fromSeatId: number }> = [];
+    
+        for (const [seat, melds] of Object.entries(exposures)) {
+          // The local player finalizes CALL into Pung/Kong/Quint after choosing a
+          // group. That is not a new discard and must never synthesize one.
+          // Immediate-resolution fallback is only needed for opponent bot melds.
+          if (seat === "bottom") continue;
+          for (const meld of melds ?? []) {
+            const tile = meld?.tile as GameTileEntityGSDto | undefined;
+            const fromSeatId = Number(meld?.from_seat);
+            if (!tile || tile.tile_id == null || !Number.isFinite(fromSeatId)) continue;
+    
+            // A manual CALL becomes Pung/Kong/Quint by changing `kind`; retain one
+            // identity across that lifecycle so it cannot be presented twice.
+            const key = `${fromSeatId}:${tile.tile_id}:${meld?.to_seat ?? ""}`;
+            const isNew = !this.knownExposurePresentationKeys.has(key);
+            this.knownExposurePresentationKeys.add(key);
+            if (this.exposurePresentationInitialized && isNew) {
+              candidates.push({ key, tile, fromSeatId });
+            }
+          }
         }
-      }
-    }
-    if (!this.exposurePresentationInitialized) {
-      this.exposurePresentationInitialized = true;
-      return;
-    }
-    if (suppressPresentation) return;
-
-    for (const candidate of candidates) {
-      const discardedBy = this.gameState.seat_position_by_gseat_id()(candidate.fromSeatId);
-      if (!discardedBy || !this.phaser || !this.sceneReady()) continue;
-      this.phaser.events.emit("claim:resolved", {
-        key: `exposure:${this.gameState.game_keyid()}:${candidate.key}`,
-        tile: candidate.tile,
-        discardedBy,
-      } satisfies ResolvedClaimPresentation);
-    }
-OLDCODE */
-/* NEWCODE */
+        if (!this.exposurePresentationInitialized) {
+          this.exposurePresentationInitialized = true;
+          return;
+        }
+        if (suppressPresentation) return;
+    
+        for (const candidate of candidates) {
+          const discardedBy = this.gameState.seat_position_by_gseat_id()(candidate.fromSeatId);
+          if (!discardedBy || !this.phaser || !this.sceneReady()) continue;
+          this.phaser.events.emit("claim:resolved", {
+            key: `exposure:${this.gameState.game_keyid()}:${candidate.key}`,
+            tile: candidate.tile,
+            discardedBy,
+          } satisfies ResolvedClaimPresentation);
+        }
+    OLDCODE */
+    /* NEWCODE */
     const candidates: Array<{ key: string; tile: GameTileEntityGSDto; fromSeatId: number; calledBy: TableSeat }> = [];
 
     for (const [seat, melds] of Object.entries(exposures)) {
@@ -1601,7 +1809,7 @@ OLDCODE */
         calledBy: candidate.calledBy,
       } satisfies ResolvedClaimPresentation);
     }
-/* NEWCODE */
+    /* NEWCODE */
   }
 
   public onClaimPanelClick(action: "call" | "skip" | "mahjong" | "pick"): void {
@@ -1708,7 +1916,7 @@ OLDCODE */
   /* NEWCODE */
   private buildWinningOverlayData(result: MahjongWinCelebration): WinningOverlayData {
     const winnerPos = result.winner;
-    
+
     // 1. Resolve Winner Name
     let winnerName = 'Player';
     if (winnerPos === 'bottom') {
@@ -1740,7 +1948,7 @@ OLDCODE */
     // 3. Extract Tiles & Melds
     const winningHandGroups: WinningMeldGroup[] = [];
     const allTilesMap = this.gameState.game_all_tiles();
-    
+
     const seatsObj = this.gameState.play_seats();
     let winnerSeatData: any = null;
     if (seatsObj) {
@@ -1758,6 +1966,7 @@ OLDCODE */
     const exposures = rack?.exposures_meld || [];
     const processedTileIds = new Set<number>();
 
+    /* OLDCODE
     for (const exp of exposures) {
       const tileIds: number[] = exp.tile_ids || exp.tiles || [];
       const tilesData: WinningTileData[] = [];
@@ -1793,6 +2002,113 @@ OLDCODE */
         if (!processedTileIds.has(id)) handTileIds.push(id);
       }
     }
+    OLDCODE */
+    /* NEWCODE */
+    // Helper function to extract tile IDs from exposure meld using clean loops
+    const extractTileIdsFromExp = (exp: any): number[] => {
+      const resultIds: number[] = [];
+      if (!exp) return resultIds;
+
+      // Case 1: exp.tile_ids is an array of numbers
+      if (Array.isArray(exp.tile_ids)) {
+        for (const item of exp.tile_ids) {
+          if (typeof item === 'number') {
+            resultIds.push(item);
+          }
+        }
+        return resultIds;
+      }
+
+      // Case 2: exp.tiles is an array of tile objects
+      if (Array.isArray(exp.tiles)) {
+        for (const item of exp.tiles) {
+          if (typeof item === 'number') {
+            resultIds.push(item);
+          } else if (item && typeof item === 'object') {
+            const id = item.tile_id ?? item.id;
+            if (typeof id === 'number') {
+              resultIds.push(id);
+            }
+          }
+        }
+        return resultIds;
+      }
+
+      // Case 3: exp.tiles is an object dictionary
+      if (exp.tiles && typeof exp.tiles === 'object') {
+        for (const key of Object.keys(exp.tiles)) {
+          const item = exp.tiles[key];
+          if (typeof item === 'number') {
+            resultIds.push(item);
+          } else if (item && typeof item === 'object') {
+            const id = item.tile_id ?? item.id;
+            if (typeof id === 'number') {
+              resultIds.push(id);
+            }
+          }
+        }
+        return resultIds;
+      }
+
+      return resultIds;
+    };
+
+    for (const exp of exposures) {
+      const tileIds = extractTileIdsFromExp(exp);
+      const tilesData: WinningTileData[] = [];
+
+      for (const tid of tileIds) {
+        processedTileIds.add(tid);
+        const rawTile = allTilesMap?.[tid];
+        if (rawTile) {
+          tilesData.push(this.mapRawTileToWinningTile(rawTile, tid));
+        }
+      }
+
+      if (tilesData.length > 0) {
+        const combName = exp.combination || this.describeMeldGroup(tilesData);
+        winningHandGroups.push({
+          combinationName: combName,
+          tiles: tilesData
+        });
+      }
+    }
+
+    // Process Concealed Hand Tiles
+    const handTileIds: number[] = [];
+    if (rack?.hand_order && Array.isArray(rack.hand_order)) {
+      for (const id of rack.hand_order) {
+        if (!processedTileIds.has(id)) {
+          handTileIds.push(id);
+        }
+      }
+    } else if (rack?.tiles && Array.isArray(rack.tiles)) {
+      for (const id of rack.tiles) {
+        if (!processedTileIds.has(id)) {
+          handTileIds.push(id);
+        }
+      }
+    } else if (rack?.hand && typeof rack.hand === 'object') {
+      for (const idStr of Object.keys(rack.hand)) {
+        const handObj = rack.hand[idStr];
+        const id = typeof handObj === 'number' ? handObj : handObj?.tile_id ?? handObj?.id ?? Number(idStr);
+        if (typeof id === 'number' && !processedTileIds.has(id)) {
+          handTileIds.push(id);
+        }
+      }
+    }
+
+    // Fallback: If handTileIds is still empty, check all_seat_rack_hands()
+    if (handTileIds.length === 0) {
+      const seatHand = this.gameState.all_seat_rack_hands()?.[winnerPos] || [];
+      for (const t of seatHand) {
+        const tid = t?.tile_id ?? t?.id;
+        if (typeof tid === 'number' && !processedTileIds.has(tid)) {
+          handTileIds.push(tid);
+        }
+      }
+    }
+    /* NEWCODE */
 
     const concealedTiles: WinningTileData[] = [];
     for (const tid of handTileIds) {
@@ -1863,6 +2179,7 @@ OLDCODE */
     const type = String(rawTile.type || '');
     const rank = rawTile.rank;
 
+    /* OLDCODE
     let label = '';
     if ((category as any) === TileCategoryEnumAddon.JOKER || category === 'JOKER' || type.includes('JOKER')) {
       label = 'Joker';
@@ -1878,7 +2195,45 @@ OLDCODE */
       const suitName = type === 'BAM' ? 'Bam' : type === 'CHAR' ? 'Crack' : type === 'DOT' ? 'Dot' : type;
       label = `${rank || ''} ${suitName}`.trim();
     }
+    OLDCODE */
+    /* NEWCODE */
+    const isJoker = (category as any) === TileCategoryEnumAddon.JOKER || category === 'JOKER' || type.includes('JOKER') || (type as any) === TileTypeEnumAddon.JOKER || (type as any) === 15 || (type as any) === '15';
+    const isFlower = (category as any) === TileCategoryEnumAddon.FLOWER || category === 'FLOWER' || type.includes('FLOWER') || ((type as any) >= 11 && (type as any) <= 14);
+    const isWind = (category as any) === TileCategoryEnumAddon.WIND || category === 'WIND' || type.includes('WIND') || ((type as any) >= 4 && (type as any) <= 7);
+    const isDragon = (category as any) === TileCategoryEnumAddon.DRAGON || category === 'DRAGON' || type.includes('DRAGON') || ((type as any) >= 8 && (type as any) <= 10);
 
+    let label = '';
+    if (isJoker) {
+      label = 'Joker';
+    } else if (isFlower) {
+      const flowerRank = rank ? ` ${rank}` : '';
+      label = `Flower${flowerRank}`;
+    } else if (isWind) {
+      if (type === 'WIND_EAST' || (type as any) === 4 || (type as any) === '4') label = 'East';
+      else if (type === 'WIND_SOUTH' || (type as any) === 5 || (type as any) === '5') label = 'South';
+      else if (type === 'WIND_WEST' || (type as any) === 6 || (type as any) === '6') label = 'West';
+      else if (type === 'WIND_NORTH' || (type as any) === 7 || (type as any) === '7') label = 'North';
+      else label = 'Wind';
+    } else if (isDragon) {
+      if (type === 'DRAGON_RED' || (type as any) === 8 || (type as any) === '8') label = 'Red Dragon';
+      else if (type === 'DRAGON_GREEN' || (type as any) === 9 || (type as any) === '9') label = 'Green Dragon';
+      else if (type === 'DRAGON_WHITE' || (type as any) === 10 || (type as any) === '10') label = 'White Dragon';
+      else label = 'Dragon';
+    } else {
+      let suitName = 'Crack';
+      if (type === 'BAM' || (type as any) === 1 || (type as any) === '1') {
+        suitName = 'Bam';
+      } else if (type === 'CHAR' || (type as any) === 2 || (type as any) === '2') {
+        suitName = 'Crack';
+      } else if (type === 'DOT' || (type as any) === 3 || (type as any) === '3') {
+        suitName = 'Dot';
+      }
+      const rankText = rank ? `${rank} ` : '';
+      label = `${rankText}${suitName}`;
+    }
+    /* NEWCODE */
+
+    /* OLDCODE
     return {
       id: tileId,
       assetName,
@@ -1887,8 +2242,46 @@ OLDCODE */
       rank,
       label
     };
+    OLDCODE */
+    /* OLDCODE
+    let imageUrl: string | undefined;
+    const scene = this.phaser?.scene?.getScene("PhaserScene") as any;
+    if (scene && typeof scene.getTileDataUrl === 'function') {
+      imageUrl = scene.getTileDataUrl(rawTile);
+    }
+
+    return {
+      id: tileId,
+      assetName,
+      category,
+      type,
+      rank,
+      label,
+      imageUrl
+    };
+    OLDCODE */
+    /* NEWCODE */
+    let imageUrl: string | undefined;
+    // The Phaser scene is registered under the key "table-scene"
+    const scene = (this.phaser?.scene?.getScene("table-scene") || this.phaser?.scene?.scenes?.[0]) as any;
+    if (scene && typeof scene.getTileDataUrl === 'function') {
+      const tileIdentifier = tileId ?? rawTile?.tile_id ?? rawTile?.id ?? rawTile;
+      imageUrl = scene.getTileDataUrl(tileIdentifier);
+    }
+
+    return {
+      id: tileId,
+      assetName,
+      category,
+      type,
+      rank,
+      label,
+      imageUrl
+    };
+    /* NEWCODE */
   }
 
+  /* OLDCODE
   private groupConcealedTiles(tiles: WinningTileData[]): WinningMeldGroup[] {
     const melds: WinningMeldGroup[] = [];
     let currentGroup: WinningTileData[] = [];
@@ -1917,6 +2310,63 @@ OLDCODE */
 
     return melds;
   }
+  OLDCODE */
+  /* NEWCODE */
+  private groupConcealedTiles(tiles: WinningTileData[]): WinningMeldGroup[] {
+    const melds: WinningMeldGroup[] = [];
+    if (!tiles || tiles.length === 0) return melds;
+
+    const crackTiles: WinningTileData[] = [];
+    const bamTiles: WinningTileData[] = [];
+    const dotTiles: WinningTileData[] = [];
+    const honorTiles: WinningTileData[] = [];
+
+    // Separate tiles into suits and honors
+    for (const tile of tiles) {
+      const label = tile.label || '';
+      if (label.includes('Crack')) {
+        crackTiles.push(tile);
+      } else if (label.includes('Bam')) {
+        bamTiles.push(tile);
+      } else if (label.includes('Dot')) {
+        dotTiles.push(tile);
+      } else {
+        honorTiles.push(tile);
+      }
+    }
+
+    // Helper to build a suited meld group (e.g. 2488 Crack)
+    const addSuitedGroup = (list: WinningTileData[], suitName: string) => {
+      if (list.length === 0) return;
+      list.sort((a, b) => (a.rank || 0) - (b.rank || 0));
+
+      let ranksText = '';
+      for (const t of list) {
+        if (t.rank != null) {
+          ranksText += String(t.rank);
+        }
+      }
+      melds.push({
+        combinationName: ranksText ? `${ranksText} ${suitName}` : suitName,
+        tiles: list
+      });
+    };
+
+    addSuitedGroup(crackTiles, 'Crack');
+    addSuitedGroup(bamTiles, 'Bam');
+    addSuitedGroup(dotTiles, 'Dot');
+
+    // Add honor tiles (Green Dragon, White Dragon, etc.) as individual groups
+    for (const honor of honorTiles) {
+      melds.push({
+        combinationName: honor.label,
+        tiles: [honor]
+      });
+    }
+
+    return melds;
+  }
+  /* NEWCODE */
 
   private describeMeldGroup(group: WinningTileData[]): string {
     if (group.length === 0) return '';
@@ -1929,7 +2379,7 @@ OLDCODE */
     if ((first.category as any) === TileCategoryEnumAddon.FLOWER || first.category === 'FLOWER' || first.type.includes('FLOWER')) {
       return `${count} ${count === 1 ? 'Flower' : 'Flowers'}`;
     }
-    
+
     if (count === 3) return `Pung ${first.label}`;
     if (count === 4) return `Kong ${first.label}`;
     if (count === 5) return `Quint ${first.label}`;
@@ -1954,7 +2404,7 @@ OLDCODE */
   public getTileSymbol(tile: WinningTileData): string {
     if ((tile.category as any) === TileCategoryEnumAddon.JOKER || tile.category === 'JOKER' || tile.type.includes('JOKER')) return '🪭';
     if ((tile.category as any) === TileCategoryEnumAddon.FLOWER || tile.category === 'FLOWER' || tile.type.includes('FLOWER')) return '🌸';
-    
+
     if (tile.type === 'WIND_EAST') return '東';
     if (tile.type === 'WIND_SOUTH') return '南';
     if (tile.type === 'WIND_WEST') return '西';
@@ -1995,7 +2445,7 @@ OLDCODE */
   public testMahjongWin(winnerSeat: TableSeat = "bottom"): void {
     const allTilesMap = this.gameState.game_all_tiles();
     const tileIds = Object.keys(allTilesMap || {}).map(Number);
-    
+
     let topIds: number[] = [];
     let leftIds: number[] = [];
     let rightIds: number[] = [];
@@ -2023,6 +2473,7 @@ OLDCODE */
   }
   /* NEWCODE */
 
+  /* OLDCODE
   public onExitGame(): void {
     void this.router.navigate(["/"]);
   }
@@ -2030,6 +2481,18 @@ OLDCODE */
   public onStartNewGame(): void {
     window.location.href = "/game";
   }
+  OLDCODE */
+  /* NEWCODE */
+  public onExitGame(): void {
+    // Redirect to home route
+    void this.router.navigate(["/home"]);
+  }
+
+  public onStartNewGame(): void {
+    // Start a new game on /game route
+    window.location.href = "/game";
+  }
+  /* NEWCODE */
 
   private clearMahjongWinPopupTimer(): void {
     if (this.mahjongWinPopupTimer !== undefined) {

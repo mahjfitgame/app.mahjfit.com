@@ -4,6 +4,7 @@ import { ExposurePanelMode, GameTableConfig, Rect, ResponsiveMetrics, SafeAreaIn
 import { DeviceLayoutState } from "../type";
 import { PhaserLayoutDevice } from "./device";
 import { ZERO_SAFE_AREA } from "../const";
+import { environment } from "../../../../../../../env/env";
 
 
 @Service({ autoProvided: false })
@@ -124,7 +125,7 @@ export class PhaserLayoutGame {
 
     const hudHeight = this.clamp(safeHeight * 0.075, 58, 86);
 
-    const tableOuterInset = safeHeight * 0.04; // Increased inset for more blue area
+    const tableOuterInset = 0; //safeHeight * 0.04; // Increased inset for more blue area
     const tableOuter: Rect = {
       x: safeLeft + tableOuterInset,
       y: safeTop + hudHeight, // Treat the header as the top space; no extra blue inset here
@@ -158,10 +159,21 @@ export class PhaserLayoutGame {
     // and applied equally to all sides for perfect symmetry.
     const uniformPadding = tableEdgeInset + 10;
 
-    const innerLeft = tableOuter.x + uniformPadding;
-    const innerTop = tableOuter.y + uniformPadding;
-    const innerRight = tableOuter.x + tableOuter.width - uniformPadding;
-    const innerBottom = tableOuter.y + tableOuter.height - uniformPadding;
+    const spaceBetweenExposuresAndTable = safeHeight * 0.04;
+
+    let innerLeft, innerTop, innerRight, innerBottom;
+    if (environment.DEBUG) {
+      innerLeft = tableOuter.x + uniformPadding + spaceBetweenExposuresAndTable;
+      innerTop = tableOuter.y + uniformPadding + spaceBetweenExposuresAndTable;
+      innerRight = tableOuter.x + tableOuter.width - uniformPadding - spaceBetweenExposuresAndTable;
+      innerBottom = tableOuter.y + tableOuter.height - uniformPadding;
+    } else {
+      innerLeft = tableOuter.x + uniformPadding;
+      innerTop = tableOuter.y + uniformPadding;
+      innerRight = tableOuter.x + tableOuter.width - uniformPadding;
+      innerBottom = tableOuter.y + tableOuter.height - uniformPadding;
+
+    }
 
     const sideExposureWidth = this.clamp(
       tableOuter.width * 0.074,

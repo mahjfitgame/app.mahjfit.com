@@ -52,8 +52,16 @@ export class GameState extends SignalStateService implements FoundationModuleSta
         }
     );
 
+    /* OLDCODE
     private unsubscribePlay: unknown = null;
     private unsubscribePersonal: unknown = null;
+    OLDCODE */
+    /* NEWCODE */
+    // Store unsubscribe callbacks for websocket listeners
+    private unsubscribePlay: unknown = null;
+    private unsubscribePersonal: unknown = null;
+    private unsubscribeDebug: unknown = null;
+    /* NEWCODE */
 
     private validateUrlGkeyid(value: unknown): value is string | null {
         return typeof value === 'string' || value === null;
@@ -393,6 +401,7 @@ export class GameState extends SignalStateService implements FoundationModuleSta
     });
 
     // ████ canDiscard SIGNAL ███████████████████████████████████████████
+    /* OLDCODE
     public readonly canDiscard = computed(() => {
         const isMyTurn = this.play_current_turn_seat_id() === this.personal_seat_id();
         const stage = this.play_turn_stage();
@@ -402,6 +411,29 @@ export class GameState extends SignalStateService implements FoundationModuleSta
 
         return isMyTurn && needsDiscard && isPlayingPhase;
     });
+    OLDCODE */
+    /* OLDCODE
+    // Only allow discard when stage is strictly NEED_DISCARD. Discard is forbidden during NEED_EXPOSURE.
+    public readonly canDiscard = computed(() => {
+        const isMyTurn = this.play_current_turn_seat_id() === this.personal_seat_id();
+        const stage = this.play_turn_stage();
+        const needsDiscard = stage === GameTurnStageEnum.NEED_DISCARD;
+        const isPlayingPhase = this.play_phase() === GamePhaseEnum.PLAYING;
+
+        return isMyTurn && needsDiscard && isPlayingPhase;
+    });
+    OLDCODE */
+    /* NEWCODE */
+    // Allow discard during NEED_DISCARD and NEED_EXPOSURE (Phaser's snapTileToDiscard validates that exposure has >= 3 tiles before accepting)
+    public readonly canDiscard = computed(() => {
+        const isMyTurn = this.play_current_turn_seat_id() === this.personal_seat_id();
+        const stage = this.play_turn_stage();
+        const needsDiscard = stage === GameTurnStageEnum.NEED_DISCARD || stage === GameTurnStageEnum.NEED_EXPOSURE;
+        const isPlayingPhase = this.play_phase() === GamePhaseEnum.PLAYING;
+
+        return isMyTurn && needsDiscard && isPlayingPhase;
+    });
+    /* NEWCODE */
 
     // ████ canPickTile SIGNAL ███████████████████████████████████████████
     public readonly canPickTile = computed(() => {
@@ -598,6 +630,66 @@ export class GameState extends SignalStateService implements FoundationModuleSta
 
         return result;
     });
+
+    /* NEWCODE */
+    // ████ all_seat_rack_hands SIGNAL (DEBUG ONLY) ██████████████████████████████████
+    // Returns hand tiles for each seat (bottom, right, top, left) when in debug mode
+    public readonly all_seat_rack_hands = computed(() => {
+        const result = { bottom: [] as any[], right: [] as any[], top: [] as any[], left: [] as any[] };
+        if (!environment.DEBUG) {
+            return result;
+        }
+
+        const seats = this.ordered_seats();
+        const mapping = this.seat_mapping();
+        const allTiles = this.game_all_tiles();
+
+        // Helper to extract hand tiles in correct order
+        const getRackHand = (seat: any): any[] => {
+            if (!seat || !seat.racks) return [];
+            const rack = seat.racks[GameRackIDEnumAddon.RACK_FIRST] || seat.racks[1];
+            if (!rack || !rack.hand) return [];
+
+            let tileList: any[] = [];
+            // If hand_order array exists, use that order
+            if (rack.hand_order && Array.isArray(rack.hand_order) && rack.hand_order.length > 0) {
+                tileList = rack.hand_order
+                    .map((id: number) => rack.hand[id])
+                    .filter((t: any) => !!t);
+            } else {
+                // Otherwise take all hand tiles
+                tileList = Object.values(rack.hand);
+            }
+
+            // Fill full tile details (code, name, image) from allTiles
+            return tileList.map((t: any) => {
+                const fullDef = allTiles[t.tile_id] || {};
+                return { ...fullDef, ...t };
+            });
+        };
+
+        // Also check development state as fallback if play state did not have opponent hands
+        const dev = this.development_with_actual_tiles();
+        const devSeats = dev?.seats;
+
+        const getHandForSeatIndex = (seatIndex: number): any[] => {
+            const seat = seats[seatIndex];
+            let hand = getRackHand(seat);
+            if (hand.length === 0 && devSeats && seat) {
+                const devSeat = devSeats[seat.id] || devSeats[String(seat.id)];
+                hand = getRackHand(devSeat);
+            }
+            return hand;
+        };
+
+        if (seats[mapping.bottom]) result.bottom = getHandForSeatIndex(mapping.bottom);
+        if (seats[mapping.right]) result.right = getHandForSeatIndex(mapping.right);
+        if (seats[mapping.top]) result.top = getHandForSeatIndex(mapping.top);
+        if (seats[mapping.left]) result.left = getHandForSeatIndex(mapping.left);
+
+        return result;
+    });
+    /* NEWCODE */
 
     // ████ all_seat_dead_states SIGNAL ███████████████████████████████████████████
     public readonly all_seat_dead_states = computed(() => {
@@ -1094,8 +1186,20 @@ export class GameState extends SignalStateService implements FoundationModuleSta
 
         this.api.sdk.graphql.ws.initialize(GameEngineWsToken);
 
+        /* OLDCODE
         this.subscribePlay();
         this.subscribePersonal();
+        OLDCODE */
+        /* NEWCODE */
+        // Listen to play and personal state updates from websocket
+        this.subscribePlay();
+        this.subscribePersonal();
+
+        // When debug mode is active, also listen to debug state
+        if (environment.DEBUG) {
+            this.subscribeDebug();
+        }
+        /* NEWCODE */
         this.commonSelectionFields = {
             play: {
                 phase: true,
@@ -1344,25 +1448,66 @@ export class GameState extends SignalStateService implements FoundationModuleSta
                 await this.afterGameStart();
                 return startResp;
             }
-        } catch (error: any | BfwApiSdkError) {
-            this.log.error('ERROR START GAME', error);
-            // console.log('ERROR START GAME', error.message);
-            // console.log('ERROR RESPONSE', error.response);
-            // console.log('ERROR RS DATA', error.response.data.errors[0].message);
-            // console.log('ERROR STATUS', error.status);
-            if (error.status == 400) {
-                if (error.response.data.errors instanceof Array) {
-                    const arrError = error.response.data.errors;
-                    for (const key in arrError) {
-                        if (arrError[key].message.includes('No game found.')) {
-                            this.router.navigate(['/']);
+
+            /* NEWCODE */
+            // Handle GraphQL 200 response containing errors (e.g. "Game start failed. No game found.")
+            const responseErrors = (startResp as any)?.errors || (startResp?.data as any)?.errors;
+            if (Array.isArray(responseErrors) && responseErrors.length > 0) {
+                const isNoGameFound = responseErrors.some((err: any) =>
+                    err?.message?.includes('No game found.') ||
+                    err?.message?.includes('Game start failed')
+                );
+                if (isNoGameFound) {
+                    this.clearCreatedGame();
+                    this.router.navigate(['/home']);
+                    return false;
+                }
+            }
+            /* NEWCODE */
+            /* OLDCODE
+            } catch (error: any | BfwApiSdkError) {
+                this.log.error('ERROR START GAME', error);
+                // console.log('ERROR START GAME', error.message);
+                // console.log('ERROR RESPONSE', error.response);
+                // console.log('ERROR RS DATA', error.response.data.errors[0].message);
+                // console.log('ERROR STATUS', error.status);
+                if (error.status == 400) {
+                    if (error.response.data.errors instanceof Array) {
+                        const arrError = error.response.data.errors;
+                        for (const key in arrError) {
+                            if (arrError[key].message.includes('No game found.')) {
+                                this.router.navigate(['/']);
+                            }
                         }
                     }
                 }
+    
+                return false;
+            }
+            OLDCODE */
+            /* NEWCODE */
+        } catch (error: any | BfwApiSdkError) {
+            this.log.error('ERROR START GAME', error);
+            const errorList = error?.response?.data?.errors || error?.errors;
+            let isNoGameFound = false;
+
+            if (Array.isArray(errorList)) {
+                isNoGameFound = errorList.some((err: any) =>
+                    err?.message?.includes('No game found.') ||
+                    err?.message?.includes('Game start failed')
+                );
+            } else if (typeof error?.message === 'string') {
+                isNoGameFound = error.message.includes('No game found.') || error.message.includes('Game start failed');
+            }
+
+            if (isNoGameFound || error?.status === 400) {
+                this.clearCreatedGame();
+                this.router.navigate(['/home']);
             }
 
             return false;
         }
+        /* NEWCODE */
         return false;
 
     }
@@ -1519,6 +1664,74 @@ export class GameState extends SignalStateService implements FoundationModuleSta
             this.unsubscribePersonal = null;
         }
     }
+
+    /* NEWCODE */
+    // ████ WEB SOCKET CALL SUBSCRIBE DEBUG ████████████████████████████████████████████
+    // Listen to debug state updates sent from server (event: game.publish.debug)
+    private async subscribeDebug(): Promise<void> {
+        try {
+            this.unsubscribeDebug = await this.api.sdk.graphql.ws.gameEngine?.subscribeDebug({
+                response: (payload: any) => {
+                    const data = payload?.data ?? payload;
+                    console.log('[subscribeDebug] data received: ', data);
+
+                    // Save debug payload so UI can read all tiles
+                    this.captureDevelopmentPayload(data);
+
+                    /* OLDCODE
+                    // If debug payload contains play or seats data, update it
+                    if (data?.play) {
+                        this.setPlay(data.play);
+                    }
+                    OLDCODE */
+                    /* NEWCODE */
+                    // Do not call setPlay here: partial debug data overwrites the discard rack
+                    /* NEWCODE */
+                },
+            });
+
+            const remove = async () => this.subscribeDebugCleanup();
+            this.registerAsyncCleanup(remove, 'subscribe debug listener');
+        } catch (error) {
+            console.error('[subscribe debug error]', error);
+        }
+    }
+
+    // Clean up debug websocket listener
+    private async subscribeDebugCleanup(): Promise<void> {
+        if (!this.unsubscribeDebug) {
+            return;
+        }
+
+        if (typeof this.unsubscribeDebug === 'function') {
+            this.unsubscribeDebug();
+            this.unsubscribeDebug = null;
+            return;
+        }
+
+        if (
+            typeof this.unsubscribeDebug === 'object' &&
+            'unsubscribe' in this.unsubscribeDebug &&
+            typeof this.unsubscribeDebug.unsubscribe === 'function'
+        ) {
+            this.unsubscribeDebug.unsubscribe();
+            this.unsubscribeDebug = null;
+        }
+    }
+
+    // Request debug state from server via websocket (event: game.subscribe.debug.state)
+    public async publishGetDebugState(): Promise<void> {
+        try {
+            const keyid = this.game_keyid();
+            if (!keyid) return;
+            await this.api.sdk.graphql.ws.gameEngine?.publishGetDebugState({
+                input: { keyid },
+            });
+        } catch (error) {
+            console.error('[publishGetDebugState error]', error);
+        }
+    }
+    /* NEWCODE */
 
     // ▬ ▬ ▬ ▬ ▬ ▬ ▬ ▬ ▬ ▬ ▬ ▬ ▬ ▬ ▬ ▬ ▬ ▬ ▬ ▬ ▬ ▬ ▬ ▬ ▬ ▬ ▬ ▬ ▬
     // ████ WEB SOCKET CALL PUBLISH JOIN ████████████████████████████████████████████

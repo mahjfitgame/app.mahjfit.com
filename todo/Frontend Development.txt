@@ -1,45 +1,52 @@
 
-Next week memo
-KNOW: For now we manage the direction only with the FIRSTROUND enum and based on that write the logic, I think we don't need 2 enum for the direction we can manage it with only one. So it will be like Direction and combine with the stage (FIRST, SECOND_DECISION, SECOND, COURTESY).
-The direction is just for the directions of animation.
-
-Setting
-"python.languageServer": "Default",
-    "update.mode": "manual",
-    "editor.formatOnSave": false
-
-    
-NOTE: Bot decision
-This hand is not a real hand, but when called it dead and I immediately died. So this is a bug. All hands built by bots must
-be legitimate hands. We also need to include explanation messaging for after this happens- see my notes for copy.
-
-Tried multiple tile atlas layouts to make the tiles clearly visible on mobile devices and implemented the Joker exchange feature.
- 
-
-
-
 Current:
 [tech][Frontend][D1] Play game and do required upgradtion found while play for Pick, Discard, and Cliam tile
-[tech][Frontend Development][D1] Converting static design data to real-time Gameplay data - submit second round charleston vote
-[tech][Frontend Development][D1] Converting static design data to real-time Gameplay data - Discard tile and Claim window, cross check with backend bot auto decision
-[tech][Frontend][D1] Integreate discard and calim tile with bot auto turn
-[tech][Frontend][D1] Integreate discard and calim tile with bot auto turn - preparing exposure tiles and display
 [tech][Frontend][D1] Integreate discard and calim tile with bot auto turn - preparing exposure tiles and display
 
+======================
+What's left
+Item	Needs from you
+Step 9: remove the 3 unused functions	Nothing. You said to wait until everything works; that's the case now
+Step 8: Charleston pass direction	How the UI places seats 1–4 (clockwise or counter-clockwise)
+Step 6B: 7 hands on the 2025 card	A photo of the 2025 card
+Frontend joker-swap animation and sound	Your frontend developer (the contract is in the 7C Part A report)
+Tell me which one to prepare next.
 
-[tech][Frontend development][D1] Game Play - Developer testing Dead Hand, Mahjong, Wall Game, Bot Decision
 
-[tech][Frontend development][D1] Game Play - UI UX and animation upgradation
+Frontend
+1]
+Removed the table borders.
+2]
+Display the rack tiles for all seat when debug mode.
+3]
+Solve the other UI related changes.
+4]
+Drag-and-drop tile manual reordering / tile scaling when not personal turn.
+5]
+Discard prevention when exposure group is incomplete (< 3 tiles).
+6]
+Charleston 2nd round prompt UX (double popup sequence).
 
 
- Developer testing Dead Hand, Mahjong, Wall Game, Bot Decision
+#]
+Need to upgrade the tile group showing as per the rule and winning hand. 
+Means winning hand group arrangement as per the rule, not only grouping only.
 
- Game Play - Working on Dead Hand message and feature test
+#]
+Wall, Mahjong UI design with opponent seat rack tiles.
+#]
+Update game play sound effects.
+#]
+Need to add Joker exchange animation when bot seat exchange Joker with self seat tiles or opponent seat tiles.
+#]
+Need to increase the discard area size, reduce 10% tile size from the corrent and remove gap betweens tiles.
+#]
+Remove the gap beween the exposure tile and just add same gap to show the multiple group (PUNG, KONG etc) in the exposure.
+For example
+FFFFFF (SEXTET) of flowers then space and 1111(Kong) of BAM
 
 
- Bot discard and joker exchange analyses and upgradation
-
- ====================
+====================
 
 https://www.google.com/search?q=Is+this+right+dead+hand+because+I+make+the+group+of+7+crack+and+submit+the+server+call+this+as+dead+hand+so+is+this+right+as+per+the+American+Mahjong+rules&sourceid=chrome&ie=UTF-8&amc=1&gs_lcrp=EgZjaHJvbWUyBggAEEUYOdIBCjQ1MTMzajBqMzGoAgCwAgHqBwoIARAAGAAgACgA&lns_mode=cvst&oq=Is+this+right+dead+hand+because+I+make+the+group+of+7+crack+and+submit+the+server+call+this+as+dead+hand+so+is+this+right+as+per+the+American+Mahjong+rules&aep=42&cud=89&source=chrome.crn.rb&gsessionid=cO7Syjec8aiNgt6rO-hq3hN1MPoOpGhJmfO_oqYjxMmNLGTM7OdMPQ&lns_surface=42&mstk=AUtExfAt9hEkdWNL6ArjpzIWRx0-_Y5C743LFoCsxrr07uMOC57531dq1b9tEL5kbalVJQSOnwlhkc1BQhO72ROLqXKqWMXHzuPwKJfqzU-63y_fd-bWol5pbmvfQPm6F7tZT-zjYzBUbTqO4krkjTMlRKbUREHjePeasRw&csuir=1&mtid=0n_HarGUO6-ohvcPzJLW4Q0&udm=50
 
@@ -121,6 +128,132 @@ Exposure-Aware Validation: The engine's win check currently pools all 14 tiles w
 
 
 
+================= REPLY =================
+Will check basecamp.
+Question @Niravraj Parmar on marketing page. 
+Carolyn is almost done with design for beta as well as the official launch for free vs premium sign up.
+Can I assume that we will be able to update the copy ourselves whenever we want? 
+So I can test what works without having to redesign
+
+CLIENT REPLY 9:21 PM Saturday
+
+PFA: beta-startscreen-desktop-v2
+
+Also @Niravraj Parmar 
+this is a draft of the desktop marketing page layout-before Carolyn continues need to confirm whether this will translate mobile browser view for a user? Not sure how responsive works
+
++++++++++++++++
+For Charleston decision logic question: In playing other games online, I have never experienced a bot stopping the Charleston. when playing against bots, that decision has only been for the live player. Maybe we keep this action for a higher difficulty level? The only time I have experienced another player stopping the charleston is during live play, and If someone else stops it, a message appears that says "XX has stopped the charleston". 
+REPLY]
+Okay thanks for the clarification. 
+I will adjust the charleston round as per that.
+
+
+For the question about the winning hand: This is not correct. There are 2 hands being combined here.
+The real hand is the 5th line in the 13579 section.
+It's can either be: FFF 11 33 555 DDDD or FFF 55 77 999 DDDD
+The tiles on the rack also don't reflect any valid hand.
+Also- When a hand wins- can the tiles be re-organized on to the rack in the way it shows on the card?
+REPLY]
+Sorry for the confusion. My earlier explanation was incorrect.
+
+The hand actually follows this rule:
+FF 135 777 999 DDD (Any 1 Suit with Opposite Dragon) – C 30
+
+According to this rule, the system correctly identified the following as a winning hand:
+FF + 135 (DOT) + 777 (DOT) + 999 (DOT) + DDD (Green Dragon)
+
+Please give your feedback on above. 
+
+Regarding the tile reorganization after a winning hand, I am currently working on the Mahjong pop-up that display winning hand tiles and displays the opponent's seat tiles in the exposure area. The previously attached reference image is just for testing purpose only.
+
+Thank you.
+
+
+
+
+FOR CLIENT]
+Today, I completed below points.
+1]
+Drag-and-drop functionality for manually reordering tiles and adjusting tile sizes when it is not the player's turn.
+2]
+Preventing tile discards when an exposure group is incomplete (fewer than 3 tiles).
+3]
+Removed the previous Mahjong UI and added a new one similar to realmahjong.com. This is the basic design, and I am currently working on improving it.
+
+I played several games with different bot difficulty levels to evaluate the bots' decision-making and game speed.
+
+I also updated the backend logic and performed various unit tests to verify the game flow and identify areas that needed improvement. Based on the test results, I made the necessary updates and improvements.
+
+I have deployed the latest changes to the demo server so you can also check the gameplay and observe the bots' decisions.
+
+Just a quick note: I have made several changes recently, so you may encounter some errors or bugs during gameplay. Testing is still in progress on my side. However, I have deployed these changes so that you can explore the gameplay, view the bots' hands and racks, and better understand how they make decisions.
+
+I will keep you updated on the progress.
+
+Thank you!
+
+FOR CLIENT]
+Today, I worked on both the backend and frontend.
+
+Backend:
+- Improved the bot's decision-making logic. When the bot identifies a possible winning hand, it now also validates the required hand structure to ensure the tiles form a valid winning combination.
+- Updated the tile-picking logic to ensure that the picked tile is always placed at the end of the rack.
+
+Frontend:
+- Updated the picked-tile UI animation. The tile is now correctly placed in the rack once the animation is complete.
+- Fixed an issue with the PASS button during the Charleston round. Sometimes, clicking the button did not send the pass-tile request to the server. I updated the logic, and it is now working correctly.
+
+Frontend Tasks for Tomorrow
+I will work on the following items:
+
+1]
+Drag-and-drop functionality for manually reordering tiles and adjusting tile sizes when it is not the player's turn.
+2]
+Preventing tile discards when an exposure group is incomplete (fewer than 3 tiles).
+3]
+Improving the Charleston second-round prompt UX (double-popup sequence).
+4]
+When a bot exchanges a JOKER, displaying the tile-flip animation in the correct seat's exposure area and playing the corresponding sound.
+
+Bot Testing and Improvements
+I also manually tested several games to check the bot's decision-making. In one of the games, the bot successfully won. I cross-checked its hand against the game rules and confirmed that it was a valid winning hand.
+Please check the attached screenshot and give your feedback and give confirmation wether the hand is valid?
+
+To improve the accuracy of the bot's decisions, we need to play multiple games, observe its behavior, and identify areas that need improvement whenever the bot makes an unexpected decision.
+
+Charleston Second-Round Decision Logic
+As we improve the bot's decision-making logic, the bot will also make its own decisions for the second Charleston round.
+
+Here is how the current logic works:
+
+When a real player selects "NO" in response to "Would you like to stop the Charleston?", the frontend sends second_votes: true to the server, indicating that the player wants to continue with the second round.
+At the same time, all three bots evaluate their hands and submit their own votes to the server.
+If even one bot votes to stop the Charleston (for example, because it has very few discardable tiles or a strong hand based on its bot difficulty level), the server accepts the stop decision.
+According to the official American Mahjong (NMJL) rules, any player can stop the Charleston. Once a player votes to stop, the three passes in Round 2 (Left, Across, and Right) are skipped, and the game moves directly to Stage 3: Courtesy Pass (Optional Across, 0–3 tiles).
+
+Please let me know if anything needs to be changed or improved.
+
+I will keep you updated on the progress.
+
+Thank you!
+
+
+FOR CLIENT]
+Today, I started working on the frontend changes to display all seat tiles so we can verify how the bot makes its seat decisions.
+
+I also removed the table borders from the left, right, and bottom sides.
+
+Currently, I am working on the pick tile animation to ensure the PICK tile is placed correctly in the rack.
+
+I tested a few games and identified some additional UI-related points, which I have added to my task list.
+
+The bot follows the hand-building rules, but it does not always validate whether the tiles belong to the same suit or form valid groups of Pung and Kong within the specific suit. In other words, the bot follows the general rules but does not always follow the required hand structure. I am also working on the backend changes to address this issue.
+
+I will keep you updated on the progress.
+
+Thank you!
+
 
 ================= POINTS =================
 1]
@@ -129,10 +262,132 @@ Removed the table borders.
 Display the rack tiles for all seat when debug mode.
 3]
 Solve the other UI related changes.
+4]
+Drag-and-drop tile manual reordering / tile scaling when not personal turn.
+5]
+Discard prevention when exposure group is incomplete (< 3 tiles).
+6]
+Charleston 2nd round prompt UX (double popup sequence).
 
 
 
 
+How the bot can win (NMJL)	Covered after 7B as planned?
+Self-draw, rack complete as it lies	Yes (Step 7)
+Claiming a discard for Mah Jongg, as it lies	Yes (Step 7; no swaps allowed there)
+After swapping a tile into its own exposure (your screenshot)	Yes
+After a normal joker exchange happens to complete the hand	Yes (the new recheck)
+After swapping with an opponent's exposed joker	Only by luck. The normal exchange step picks exchanges by a fixed score and a plan filter (isJokerExchangeAllowedByPlan), not by "does this win"
+Swapping a joker out of a flower group	No. Flowers have different codes (F1, F2, …), but NMJL treats all flowers as the same tile (rule.ts:967-969). The plan compares exact codes, so F5 can't replace the joker in "F1 F2 J"
+Concealed (C) hands, Siamese racks, humans	Not affected. Humans make the swap themselves; the engine allows exchanging with your own exposure
+
+
++++++++++ NEED TO DISCUSS WITH CLIENT +++++++++ 
+In American Mahjong, continuing to the Second Charleston Round requires unanimous agreement from all 4 players. If any single player or bot votes to stop, the second round is stopped immediately and the game advances directly to the Courtesy Pass (Optional Across).
+
+Why this happened:
+
+Server Authority & Bot Decisions:
+
+When you selected "NO" to "Would you like to stop the Charleston?", the frontend sent second_votes: true to the server (indicating you want to proceed with the second round).
+However, the 3 bots also evaluate their hands and cast their own votes on the server.
+If even one bot decides to stop the Charleston (for example, if the bot already has few discardable tiles or a strong hand based on its bot level), the server honors the stop vote.
+Under official American Mahjong (NMJL) rules, any player may stop the Charleston. Once stopped, the game skips the 3 passes of Round 2 (Left, Across, Right) and moves straight to Stage 3: Courtesy Pass ("Optional Across", 0–3 tiles).
+
+Contrast with Your Previous Run:
+
+In the screenshot from your previous run, all 3 bots also agreed to continue, so the server returned stage: "SECOND", direction: "LEFT".
+In this run, one or more bots voted to stop, which is why the server advanced the game state directly to Optional Across.
+
+================= PRMP =================
+#]
+## 4. Frontend Contract (For UI Developer Reference)
+
+> [!NOTE]
+> This contract is provided for frontend UI implementation (not in this repository).
+
+- On each play update received via WebSocket / subscription:
+  - Read `play.joker_exchanges` and process entries where `entry.seq > lastSeenSeq` in ascending `seq` order:
+    1. Animate moving tile `from_tile_id` (displaying `tile_code`) from seat `from_gseat_id` into exposure `[to_gseat_id][to_rack_id][exposure_index]`, replacing tile `joker_tile_id`.
+    2. Animate moving the joker tile `joker_tile_id` into seat `from_gseat_id`'s concealed hand (rendered face down for opponents).
+    3. Play the joker swap sound effect and display toast notification: `"<seat name> swapped a Joker"`.
+    4. Update local tracking pointer: `lastSeenSeq = entry.seq`.
+- On initial game load or reconnect:
+  - Initialize local pointer: `lastSeenSeq = play.joker_exchange_seq ?? 0` without triggering animations.
+- Sequence guarantee:
+  - `seq` is the source of truth. The list holds swaps since the last wall pick and may still hold earlier swaps after a claim, but filtering by `entry.seq > lastSeenSeq` guarantees every swap is processed and animated exactly once.
+- Deprecation notice:
+  - `play.last_joker_exchange` remains populated for backward compatibility with legacy clients. New UI components should exclusively use `play.joker_exchanges` and `play.joker_exchange_seq`.
+
+
+#]
+Just for your information the other points are as below, this all points are works fine before. 
+1]
+Tile order not work when manually adjust the order using drag and drop tile in the rack. Also if it not our turn then tile get big and stuck at one place in the bottom rack.  Player should be manually arrange the tile. 
+2]
+When bottom seat claim tile, tile will come to the exposure and I move one tile to the exposure and then click to the Mahjong button and if I direclty discard the tile then it discarded and after that if discard one more tile one by one all tiles are go to the discard area and rack is empty. I don't know wether it is API issue or it is from our frontend side. This should not allow the DISCARD tile whenever the exposure group is not completed and make group atlist 3 tile.
+3]
+After charleston 1st round completed it asked for the 2nd round and if choose YES, the next popup appear for the confirmation and if select Yes, then the popup disappear and after that the 1st popup is disapper, UX issue. The first popup should be disappear on first selection Yes or No
+
+
+
+#]
+For backend:
+
+Before moving forward I want to know first below things.
+The simple thing is 
+
+Supposue if we follow the rule
+2222 DDD 8888 DDD
+(Any 2 Suits w Matching Dragons, These Nos. Only)
+
+The possible winning hands should be as same as below:
+(2222 - BAM) DGDGDG (8888 - CRACK) DRDRDR
+(2222 - BAM) DGDGDG (8888 - DOT) DWDWDW
+
+(2222 - DOT) DWDWDW (8888 - CRACK) DRDRDR
+(2222 - DOT) DWDWDW (8888 - BAM) DGDGDG
+
+(2222 - CRACK) DRDRDR (8888 - BAM) DGDGDG
+(2222 - CRACK) DRDRDR (8888 - DOT) DWDWDW
+
+
+DG - DRAGON GREEN
+DR - DRAGON RED
+DW - DRAGON WHITE
+
+RESPONSE BY CLAUDE]
+**Yes, the rule already gives exactly your 6 hands.** The JSON for `NMJL_2026_2468_2222_DDD_8888_DDD` ([2026.partial.rulepack.json:669](apps/app/src/graphql/business-app/game-engine/rules/2026.partial.rulepack.json#L669)) works like this:
+
+- The 2s suit and the 8s suit must be different (`notEqual`).
+- Each dragon pung must match its suit: BAM = Green, CRAK = Red, DOT = White ([rule.ts:3547-3549](apps/app/src/graphql/business-app/game-engine/rule.ts#L3547-L3549)).
+
+That's 3 × 2 = **6 combinations**, the same 6 you listed. The rule data needs no change.
+
+One addition to your list: jokers may stand in for any tile in these kongs and pungs. So "DG DG J" counts as the Green pung, and NMJL also allows a hidden "J J J".
+
+## So where was the bug in your screenshot?
+
+The list of allowed hands was right. The problem is **how the tiles are checked against it**. Today the engine puts all 14 tiles in one pile and ignores what is exposed. The pile fits, so the win passed, even though the exposed groups and the hidden tiles don't make the hand.
+
+## What Step 7 covers
+
+1. **Every exposure must be one whole group of the hand.** It must have the same size (pung = pung, kong = kong), the same tile, and the same suit or dragon.
+2. **The hidden tiles alone must make the groups that aren't exposed.** In your screenshot, DOT 2 + BAM 8 + J can't make the White pung, so it's rejected.
+3. **No pretend joker swaps.** A joker in an exposure stays there unless a real exchange happened.
+4. **Hands with no exposures** are checked the same as today.
+5. **The same check runs everywhere.** That includes human Mah Jongg calls, bot wins, and the "can Mah Jongg" option on a discard.
+
+## What Step 7B covers
+
+1. **The bot makes real joker swaps before it declares.** If its own exposure holds a joker and it has the matching real tile hidden, it can swap them on its turn, then call Mah Jongg. In your screenshot:
+   - BAM 8 goes into the BAM kong and takes the joker out;
+   - DOT 2 goes into the DOT kong and takes the joker out;
+   - the bot now holds J J J hidden as the White pung, which is a legal win.
+2. **No swap is possible when claiming a discard for Mah Jongg,** because the rack locks right away. That claim is checked as it lies.
+3. **The bot only uses its own tiles,** so the public-information rule still holds.
+
+**Together:** Step 7 stops false wins like your screenshot, and Step 7B lets the bot still win correctly after making real swaps. With the change I sent last time (remove item 2c), the Step 7 and 7B prompts are ready to send.
 
 ================= Progress meeting: 28 OCT 2026 5 PM PDT =================
 https://meet.google.com/sng-awie-rhb

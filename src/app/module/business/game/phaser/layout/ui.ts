@@ -2129,6 +2129,7 @@ OLDCODE */
     this.isCurrentTurnSeat = false;
 OLDCODE */
 /* NEWCODE */
+/* OLDCODE
     if (phase !== GamePhaseEnum.PASSING && phase !== GamePhaseEnum.LOBBY) {
       const isGameplay = phase === GamePhaseEnum.PLAYING || phase === GamePhaseEnum.CLAIM;
       if (isGameplay) {
@@ -2167,6 +2168,48 @@ OLDCODE */
       this.publishInstructionPanel();
       return;
     }
+OLDCODE */
+/* NEWCODE */
+    if (phase !== GamePhaseEnum.PASSING && phase !== GamePhaseEnum.LOBBY) {
+      const isGameplay = phase === GamePhaseEnum.PLAYING || phase === GamePhaseEnum.CLAIM;
+      if (isGameplay) {
+        if (effectiveCalledSeat && effectiveCalledSeat !== "bottom") {
+          const callerName = this.getPlayerName(effectiveCalledSeat);
+          this.instructionMessage = `${callerName} Called`;
+          this.isCurrentTurnSeat = false;
+          this.lastExposureStatus = null;
+        } else if (isPersonalTurn) {
+          // Check exposure status first, since canDiscard is false during exposure building
+          if (effectiveExposureStatus === "building") {
+            this.instructionMessage = "Complete the exposure, then discard a tile";
+          } else if (effectiveExposureStatus === "complete") {
+            this.instructionMessage = "Discard a tile";
+          } else if (!canDiscard) {
+            this.instructionMessage = "Pick a tile";
+            this.lastExposureStatus = null;
+          } else {
+            this.instructionMessage = "Discard a tile";
+          }
+          this.isCurrentTurnSeat = true;
+        } else if (effectiveActiveSeat && effectiveActiveSeat !== "bottom") {
+          const playerName = this.getPlayerName(effectiveActiveSeat);
+          this.instructionMessage = `${playerName}’s Turn`;
+          this.isCurrentTurnSeat = false;
+          this.lastExposureStatus = null;
+        } else {
+          this.instructionMessage = "";
+          this.isCurrentTurnSeat = false;
+          this.lastExposureStatus = null;
+        }
+      } else {
+        this.instructionMessage = "";
+        this.isCurrentTurnSeat = false;
+        this.lastExposureStatus = null;
+      }
+      this.publishInstructionPanel();
+      return;
+    }
+/* NEWCODE */
     this.isCurrentTurnSeat = false;
     this.lastExposureStatus = null;
 /* NEWCODE */

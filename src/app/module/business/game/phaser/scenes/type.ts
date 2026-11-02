@@ -151,6 +151,14 @@ export interface TableSceneCallbacks {
   /** Positions the native mobile header toggle arrow. */
   readonly onMobileHeaderToggleOverlay?: (state: MobileHeaderToggleOverlayState) => void;
   readonly onInstructionPanelOverlay: (state: InstructionPanelOverlayState) => void;
+  /* NEWCODE */
+  readonly onDiscardAreaOverlay?: (rect: {
+    readonly x: number;
+    readonly y: number;
+    readonly width: number;
+    readonly height: number;
+  }) => void;
+  /* NEWCODE */
   readonly onClaimPanelOverlay: (state: ClaimPanelOverlayState) => void;
   /** Lets native overlays yield so a Phaser popup can sit above them. */
   readonly onTableOverlayBlocked: (level: TableOverlayBlockLevel) => void;
