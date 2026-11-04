@@ -468,7 +468,7 @@ export class PhaserAnimation {
     });
   }
   */
-  // NEWCODE
+  /* OLDCODE
   animateJokerExchange(
     jokerClone: Phaser.GameObjects.Container | Phaser.GameObjects.Image,
     naturalClone: Phaser.GameObjects.Container | Phaser.GameObjects.Image,
@@ -499,18 +499,104 @@ export class PhaserAnimation {
       onComplete: checkDone
     });
 
-    // Tween Natural Clone to destNaturalPos
+    // Tween Natural Clone to destNaturalPos with a tile-flip animation on arrival
+    this.scene.tweens.add({
+      targets: naturalClone,
+      x: Math.round(destNaturalPos.x),
+      y: Math.round(destNaturalPos.y),
+      scaleY: destNaturalPos.scale,
+      duration: duration,
+      ease: "Cubic.easeInOut",
+      onComplete: () => {
+        // Tile-flip effect in exposure area: flip along horizontal axis (scaleX 0 -> target scale)
+        this.scene.tweens.add({
+          targets: naturalClone,
+          scaleX: 0,
+          duration: 75,
+          ease: "Sine.easeIn",
+          yoyo: true,
+          onYoyo: () => {
+            naturalClone.setScale(destNaturalPos.scale);
+          },
+          onComplete: checkDone
+        });
+      }
+    });
+  }
+  OLDCODE */
+  /* NEWCODE */
+  animateJokerExchange(
+    jokerClone: Phaser.GameObjects.Container | Phaser.GameObjects.Image,
+    naturalClone: Phaser.GameObjects.Container | Phaser.GameObjects.Image | null,
+    destJokerPos: { x: number, y: number, scale: number },
+    destNaturalPos: { x: number, y: number, scale: number },
+    duration: number,
+    onFinished: () => void,
+    mode: "double-tap" | "drag-and-drop" = "double-tap"
+  ): void {
+    // Mode B (Drag-and-Drop): Natural tile already dropped at target zone.
+    // Instantly hide natural clone and animate only jokerClone flying downward into player's rack.
+    if (mode === "drag-and-drop" || !naturalClone) {
+      if (naturalClone && naturalClone.active) {
+        naturalClone.destroy();
+      }
+      this.scene.tweens.add({
+        targets: jokerClone,
+        x: Math.round(destJokerPos.x),
+        y: Math.round(destJokerPos.y),
+        scaleX: destJokerPos.scale,
+        scaleY: destJokerPos.scale,
+        duration: 200,
+        ease: "Cubic.easeOut",
+        onComplete: () => {
+          if (jokerClone && jokerClone.active) {
+            jokerClone.destroy();
+          }
+          onFinished();
+        }
+      });
+      return;
+    }
+
+    // Mode A (Double-Tap): Automated simultaneous flight of both clones (250-300ms ease-out).
+    // No flips or scaleX modifiers during flight.
+    let completedCount = 0;
+    const checkDone = () => {
+      completedCount++;
+      if (completedCount === 2) {
+        if (jokerClone && jokerClone.active) jokerClone.destroy();
+        if (naturalClone && naturalClone.active) naturalClone.destroy();
+        onFinished();
+      }
+    };
+
+    const flightDuration = Math.min(Math.max(duration || 260, 250), 300);
+
+    // Translate Joker clone down to player rack space
+    this.scene.tweens.add({
+      targets: jokerClone,
+      x: Math.round(destJokerPos.x),
+      y: Math.round(destJokerPos.y),
+      scaleX: destJokerPos.scale,
+      scaleY: destJokerPos.scale,
+      duration: flightDuration,
+      ease: "Cubic.easeOut",
+      onComplete: checkDone
+    });
+
+    // Translate Natural clone up to exposure slot
     this.scene.tweens.add({
       targets: naturalClone,
       x: Math.round(destNaturalPos.x),
       y: Math.round(destNaturalPos.y),
       scaleX: destNaturalPos.scale,
       scaleY: destNaturalPos.scale,
-      duration: duration,
-      ease: "Cubic.easeInOut",
+      duration: flightDuration,
+      ease: "Cubic.easeOut",
       onComplete: checkDone
     });
   }
+  /* NEWCODE */
 
   private centerX(rect: Rect): number {
     return rect.x + rect.width / 2;

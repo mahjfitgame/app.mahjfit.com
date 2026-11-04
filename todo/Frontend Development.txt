@@ -43,7 +43,7 @@ Need to increase the discard area size, reduce 10% tile size from the corrent an
 #]
 Remove the gap beween the exposure tile and just add same gap to show the multiple group (PUNG, KONG etc) in the exposure.
 For example
-FFFFFF (SEXTET) of flowers then space and 1111(Kong) of BAM
+FFFFFF (SEXTET) of flowers then space (gap) and 1111(Kong) of BAM
 
 
 ====================
@@ -129,10 +129,82 @@ Exposure-Aware Validation: The engine's win check currently pools all 14 tiles w
 
 
 ================= REPLY =================
+FOR CLIENT]
+
+I need one clarification regarding the Courtesy Pass (Optional Across) logic.
+
+1. Current Logic
+Players can choose to pass 0, 1, 2, or 3 tiles.
+
+The lower number always takes priority:
+
+If the real player offers 3 tiles, but the player across offers only 1 tile, only 1 tile is exchanged. The remaining 2 tiles are returned to the real player's rack.
+If the real player offers 2 tiles, but the player across offers 0 tiles, no tiles are exchanged. Both players get their offered tiles back.
+2. Bot Decision
+During the Courtesy Pass, the bot will only offer tiles that are 100% junk (keep === 0).
+
+If the bot has only 1 junk tile, it will offer 1 tile.
+If the bot has no junk tiles, it will offer 0 tiles.
+If the real player submits 3 tiles and the bot submits 1 tile, giveCount becomes 1.
+Exactly 1 tile is exchanged.
+The remaining 2 tiles are returned to the real player's rack.
+3. Clarification Required
+Is the above logic correct when the Courtesy Pass happens between a real player and a bot?
+
+OR
+
+Should we follow a different rule when a bot and a real player are involved?
+
+If the Courtesy Pass is between a real player and a bot, should the real player's selection have priority, meaning the bot must pass the same number of tiles selected by the real player?
+If the Courtesy Pass is between two real players, should the lower number of tiles always determine the final exchange count?
+Please confirm which approach is correct so we can implement the logic accordingly.
+
+Thank you!
+
+
+
+FOR CLIENT]
+Today, I worked on the following tasks:
+- When a bot exchanges a JOKER, the tile-flip animation is now displayed in the correct player's exposure area, along with the corresponding sound.
+- During game testing, I noticed that the winning hand in the Mahjong popup was not being arranged correctly according to some rules. I reviewed the issue and changed the approach to display the winning hand groups correctly. For this, I made changes to the backend, updated the client SDK wrapper for the frontend, and applied the required frontend changes as well. I tested it with one winning hand, and the arrangement looks correct. However, more game testing is needed to ensure the winning hand is displayed correctly in all scenarios. I will test more game wining hands tommorow.
+- Increased the text size in the Mahjong, Wall Game, and Dead Hand popups.
+
+Just for your information, I have deployed the code to the demo server. I will upload all the latest changes over the next few days.
+
+I will keep you updated on the progress.
+Thank you!
+
++++++++
+FOR CLIENT]
+I cross checked the server log and it showes as it will redirecting to the 503 page. This is because of token expired, if you face this kind of issue the you have to load the URL again so it will refersh the token and you will access the other pages as well.
+
++++++++
+FOR CLIENT]
+Today, I have completed the below points.
+Frontend
+- Designed the wall game UI and displayed all players' rack tiles openly.
+- Removed the spacing between tiles in the discard area and made the tiles smaller.
+- Reduced the spacing between exposed tiles and added more space between groups such as PUNG, KONG, QUINT, etc.
+- Designed the Mahjong layout and organized the winning hand into groups of tiles, such as PUNG, KONG, QUINT, etc.
+
+Backend
+Updated the voting logic for the second round of Charleston.
+Bot votes are now ignored during the second round when playing with all bot seats.
+If any real player votes NO for the second round, the round will be skipped, and the game will move to the next phase.
+
+I will keep you updated on the progress.
+
+Thank you!
+++++++++++
+
 Will check basecamp.
 Question @Niravraj Parmar on marketing page. 
 Carolyn is almost done with design for beta as well as the official launch for free vs premium sign up.
 Can I assume that we will be able to update the copy ourselves whenever we want? 
+REPLY]
+If I understood properly and if you are talking about modification in layout or content then yes we can modify it.
+
+
 So I can test what works without having to redesign
 
 CLIENT REPLY 9:21 PM Saturday
@@ -141,9 +213,16 @@ PFA: beta-startscreen-desktop-v2
 
 Also @Niravraj Parmar 
 this is a draft of the desktop marketing page layout-before Carolyn continues need to confirm whether this will translate mobile browser view for a user? Not sure how responsive works
+REPLY]
+Here is the mobile layout "Mobile — 390.pdf" it looks somthing like that.
 
+CHECK TC > Mobile — 390.pdf
 +++++++++++++++
-For Charleston decision logic question: In playing other games online, I have never experienced a bot stopping the Charleston. when playing against bots, that decision has only been for the live player. Maybe we keep this action for a higher difficulty level? The only time I have experienced another player stopping the charleston is during live play, and If someone else stops it, a message appears that says "XX has stopped the charleston". 
+For Charleston decision logic question: In playing other games online, 
+I have never experienced a bot stopping the Charleston. when playing against bots, that decision has only been for the live player.
+
+ Maybe we keep this action for a higher difficulty level? 
+ The only time I have experienced another player stopping the charleston is during live play, and If someone else stops it, a message appears that says "XX has stopped the charleston". 
 REPLY]
 Okay thanks for the clarification. 
 I will adjust the charleston round as per that.
@@ -268,6 +347,33 @@ Drag-and-drop tile manual reordering / tile scaling when not personal turn.
 Discard prevention when exposure group is incomplete (< 3 tiles).
 6]
 Charleston 2nd round prompt UX (double popup sequence).
+7]
+Pick tile animation to ensure the PICK tile is placed correctly in the rack.
+8]
+1]
+Drag-and-drop functionality for manually reordering tiles and adjusting tile sizes when it is not the player's turn.
+2]
+Preventing tile discards when an exposure group is incomplete (fewer than 3 tiles).
+3]
+Improving the Charleston second-round prompt UX (double-popup sequence).
+4]
+When a bot exchanges a JOKER, displaying the tile-flip animation in the correct seat's exposure area and playing the corresponding sound.
+Frontend
+- Designed the wall game UI and displayed all players' rack tiles openly.
+- Removed the spacing between tiles in the discard area and made the tiles smaller.
+- Reduced the spacing between exposed tiles and added more space between groups such as PUNG, KONG, QUINT, etc.
+- Designed the Mahjong layout and organized the winning hand into groups of tiles, such as PUNG, KONG, QUINT, etc.
+
+Backend
+Updated the voting logic for the second round of Charleston.
+Bot votes are now ignored during the second round when playing with all bot seats.
+If any real player votes NO for the second round, the round will be skipped, and the game will move to the next phase.
+
+
+Update the API wrapper as per the API changes.
+
+
+
 
 
 
@@ -300,6 +406,20 @@ In the screenshot from your previous run, all 3 bots also agreed to continue, so
 In this run, one or more bots voted to stop, which is why the server advanced the game state directly to Optional Across.
 
 ================= PRMP =================
+#]
+We already fixed the arrangement of the winning hand of mahjong 
+But why it still not arrange the hand set as per the rule
+See the attached screens shot 
+It made the below rule winning hand
+FFF 2468 FFF 2222 (Any 2 Suits, Kong 2,4,6 or 8)
+
+It should be show as below for the attached wining hand, then why its made mistakes.
+FFF (PUNG) + 2468 CRACK + FFJ (PUNG) + 444J (KONG)
+
+
+I need robust solution which follow the proper winning hand order and propery arrangement the group to display the wining hand.
+
+
 #]
 ## 4. Frontend Contract (For UI Developer Reference)
 

@@ -4,6 +4,407 @@ This log records verified development tasks, bug fixes, refactorings, and archit
 
 ---
 
+## [2026-11-04] Joker Exchange: Permanent Rack Overlap Elimination via Pure Slot Calculation & Numeric Slot Reconciliation
+
+- **Agent**: Antigravity
+- **Task**:
+  1. Fix persistent rack tile overlap when performing a Joker exchange with opponent exposures (e.g. Left/Right opponent exposure).
+  2. Implement the verified three-part solution detailed in `todo/phase-play-after-before-plan-joker-exchange-rack-overlap-permanent-fix.md`.
+  3. Ensure all tile ID lookups, slot index restorations, and array manipulations use numeric coercion (`Number(id)`).
+- **Root Cause**:
+  1. **Mid-Loop `rackOrder` Mutation**: `slotFor()` was mutating `this.rackOrder` by pushing tiles mid-loop during `layoutRackTiles()`, causing later tiles (e.g. newly arriving Joker) to be positioned for a 14-tile rack while earlier tiles were positioned for a 13-tile rack. This half-tile offset produced the ~50% visual overlap on the last tile.
+  2. **Type Coercion & Slot Restoration**: In `reconcileRackTiles()`, `executeJokerSwap()`, and `handleJokerExchange()`, strict equality (`===`) and `indexOf()` comparisons against GraphQL string/number IDs failed. The exchanged Joker failed to match `pendingLocalJokerSwap.jokerTileId`, falling back to `preservedOrder.push(id)` at the end of the rack rather than slotting into the vacated natural tile position.
+- **Implementation**:
+  - `src/app/module/business/game/phaser/scenes/scene.ts`:
+    - **Snippet 1 (`slotFor`)**: Made `slotFor(runtime)` a pure read-only getter so it never mutates `this.rackOrder` mid-loop.
+    - **Snippet 2 (`layoutRackTiles`)**: Pre-sanitizes `this.rackOrder` before layout and positions tiles strictly by slot index (`forEach((tileId, index) => ...)`), ensuring `this.rackOrder.length` is immutable throughout the entire layout pass.
+    - **Snippet 3 (`reconcileRackTiles`)**: Replaced split manual/API branches with numeric ID synchronization (`Number(id)`), ensuring `this.pendingLocalJokerSwap.rackIndex` is always honored so the Joker replaces the exact slot of the swapped natural tile.
+    - **`executeJokerSwap` & `handleJokerExchange`**: Normalized all tile ID lookups and rack replacements using `Number()` and `.findIndex(...)`.
+- **Invariants Upheld**:
+  - All existing code preserved with `/* OLDCODE */` and `/* NEWCODE */`.
+  - Did not read or modify `todo/Frontend Development.txt`.
+  - Verified 0 errors with `npx tsc --noEmit`.
+
+---
+
+## [2026-11-04] Joker Exchange: Own Seat Exposure Limbo & Numeric Tile ID Synchronization
+
+- **Agent**: Antigravity
+- **Task**:
+  1. Fix Joker exchange with own seat exposure (`to_seat === "bottom"`) where the returning Joker vanished, leaving the player with only 13 tiles total instead of 14.
+  2. Normalize all tile ID comparisons across `scene.ts` (`Number(id)`) to prevent string vs number strict equality failures that resulted in duplicate/overlapping tiles in the rack.
+  3. Create an After/Before plan document in `todo/phase-play-after-before-plan-joker-exchange-fixes.md` with simple English comments accessible to a junior developer.
+- **Root Cause**:
+  1. In `reconcileRackTiles()`, when the server confirmed the Joker in `this.rackTiles`, its runtime in `this.tileMap` still had `zone === "exposure"`. The loop had `if (isExposed || existingRuntime.zone === "exposure") continue;`, which skipped the Joker completely.
+  2. Line 1787 had `if (runtime.zone === "exposure") this.removeFromRackOrder(runtime.vm.tile_id!)`, which stripped the Joker from `rackOrder` every time `reconcileRackTiles()` ran.
+  3. Line 2035 had `existingRuntime?.zone !== "exposure"`, which blocked the Joker from ever being re-added to `this.rackOrder`.
+  4. Tile IDs from GraphQL payloads were compared strictly (`===`) without coercion, causing `indexOf()` to return `-1` and `removeFromRackOrder()` to fail to remove old entries, leaving duplicate tile slots overlapping.
+- **Implementation**:
+  - `src/app/module/business/game/phaser/scenes/scene.ts`:
+    - Updated `reconcileRackTiles()`: line 1787 now checks `if (runtime.zone === "exposure" && this.isTileInAnyExposure(runtime.vm.tile_id!))` so tiles that left exposures are not removed from the rack order.
+    - Updated `reconcileRackTiles()`: transitions runtimes with `zone === "exposure"` to `"rack"` when the server confirms them in `this.rackTiles` and they are no longer in an active exposure.
+    - Updated `reconcileRackTiles()`: replaces `existingRuntime?.zone !== "exposure"` with `!isExposedNow` so returning Jokers are re-integrated into `this.rackOrder`.
+    - Updated `removeFromRackOrder()`: coerces tile IDs via `Number()` to ensure clean removal regardless of string/number types.
+    - Updated `handleJokerExchange()`: coerces `from_tile_id` and `joker_tile_id` to numbers and adds fallback to `img.getData("joker-swap-enabled")` for bottom exposure Joker lookup.
+  - `todo/phase-play-after-before-plan-joker-exchange-fixes.md`:
+    - Created detailed Before and After code snippets with clear, simple English explanations for junior developer maintainability.
+- **Invariants Upheld**:
+  - Strict `/* OLDCODE */` and `/* NEWCODE */` comments maintained without deleting existing code.
+  - Did not read or touch `todo/Frontend Development.txt`.
+  - TypeScript compilation check (`npx tsc --noEmit`) verified with 0 errors.
+
+---
+
+## [2026-11-04] Joker Exchange: Elimination of Wall Flight Hijack and Rack Overlap
+
+- **Agent**: Antigravity
+- **Task**:
+  1. Fix Joker exchange erroneously animating tiles from the WALL instead of from the opponent exposure tray.
+  2. Fix exchanged Joker landing and overlapping the adjacent/last tile in the player's bottom rack.
+- **Root Cause**:
+  1. `reconcileRackTiles()` in `scene.ts` had a loose check `const isPickAction = this.isWaitingForPickResponse || (this.tablePhase === GamePhaseEnum.PLAYING && this.rackTiles.length === 14);`. Because the player has 14 tiles during their turn when exchanging a Joker, this condition evaluated to true, falsely treating the incoming Joker as a wall pick and launching `animateWallTileToSeat("bottom", ...)`.
+  2. `handleJokerExchange()` checked `this.tileMap.get(joker_tile_id)` first when determining `oldJokerPos`. If `reconcileRackTiles()` had already placed the Joker runtime in the rack, `oldJokerPos` took the coordinates from the bottom rack / wall rather than the opponent's exposure tray (`calledOpponentExposureTiles[to_seat]`).
+  3. `animateWallTileToSeat()` created an orphaned tile sprite clone flying from the wall to the rack, while `handleJokerExchange()` concurrently tweened a second clone to the rack, resulting in two conflicting Joker sprites rendered over the same hand positions.
+  4. `destJokerPos` was computed before `rackOrder` was updated with the incoming Joker, causing coordinate mismatch with the 14-tile centered layout.
+- **Implementation**:
+  - `src/app/module/business/game/phaser/scenes/scene.ts`:
+    - Updated `reconcileRackTiles()`: guarded `isPickAction` so that any tile arriving via Joker exchange (`isJokerSwapTile`) is strictly excluded from wall pick detection.
+    - Updated `handleJokerExchange()`: resolves `oldJokerPos` directly from `calledOpponentExposureTiles[to_seat]` (or `calledBottomExposureTiles` for own exposure), ensuring the flight starts from the exposure tray.
+    - Updated `handleJokerExchange()`: updates `rackOrder` first, then computes `destJokerPos` from the final updated `slotForIndex(finalRackIndex)` so the destination matches the final hand layout.
+    - Set static Joker tile alpha to 0 during flight so it only becomes visible upon tween completion (`layoutRackTiles(true)`).
+- **Invariants Upheld**:
+  - Strict `OLDCODE` / `NEWCODE` pattern preserved with 0 code deletions.
+  - TypeScript compilation check (`npx tsc --noEmit`) verified with 0 errors.
+
+---
+
+## [2026-11-04] Mahjong JOKER Exchange Animation & UI/UX (Dual-Input Support & Rack Overlap Fix)
+
+- **Agent**: Antigravity
+- **Task**:
+  1. Fix returning Joker overlapping the last tile on the player's rack by cleaning up swapped natural tiles from `tileMap` when entering opponent exposures, preserving the exact rack slot index (`pendingLocalJokerSwap.rackIndex`), and synchronizing slot coordinates via unified `slotForIndex()`.
+  2. Clean up zombie runtimes in `reconcileRackTiles()`: destroy sprites and remove from `tileMap` and `rackOrder` any tile marked `zone === "rack"` that the server excludes from `this.rackTiles`.
+  3. Fix the default `else` branch of `reconcileRackTiles()` which was inadvertently reviving swapped-out tiles by pushing them back into `syncedOrder` and ignoring `pendingLocalJokerSwap`.
+  4. Implement group-wide drop acceptance: dropping a matching natural tile anywhere on an exposure group containing a Joker triggers the swap.
+  3. Implement Mode A (Double-Tap): double-tapping either the exposed Joker OR the matching natural tile in the rack triggers automated simultaneous flight of both tiles (260ms `ease-out`) without flips.
+  4. Implement Mode B (Drag-and-Drop): set original rack slot opacity to 30% via ghost image while dragging, apply 40px magnetic proximity snap on exposed Joker (scale-down to 0.92 + gold target border), and smooth 200ms `ease-in-out` return animation upon cancellation.
+  5. In Mode B flight: hide natural tile instantly at drop point and animate only `jokerClone` flying downward (200ms `ease-out`) into the player's rack.
+  6. On landing: reveal static tiles in final positions and trigger horizontal slide layout refresh (`layoutRackTiles(true)`) to snap Joker into place.
+- **Implementation**:
+  - `src/app/module/business/game/phaser/animation.ts`:
+    - Updated `animateJokerExchange()` to support both Mode A (simultaneous flight of both clones) and Mode B (downward flight of `jokerClone` only), with rapid `ease-out` curves and zero during-flight scale/flip distortion.
+  - `src/app/module/business/game/phaser/scenes/scene.ts`:
+    - Added `slotForIndex()` helper to unify rack coordinates between flight destination and static layout.
+    - Updated `reconcileRackTiles()` to place returning Joker in its original rack slot index.
+    - Added `showRackDragGhost()` and `hideRackDragGhost()` to display 30% opacity ghost at the original rack slot.
+    - Added `updateJokerMagneticProximity()` and `clearJokerMagneticProximity()` for 40px magnetic target docking hints.
+    - Updated `handleJokerSwapDrop()` to accept drops across the entire meld group containing a Joker.
+    - Added natural tile double-tap trigger (`findMatchingExposedJokerForTile()`) for Mode A.
+    - Cleaned up swapped natural tiles from `tileMap` when entering opponent exposures (`to_seat !== "bottom"`).
+- **Invariants Upheld**:
+  - Strict `OLDCODE` / `NEWCODE` pattern preserved with 0 code deletions.
+  - TypeScript compilation check (`npx tsc --noEmit`) verified with 0 errors.
+
+---
+
+## [2026-11-03] Mahjong Win: Hide Winner's Hand from Exposure Tray (Shown Exclusively in Win Popup)
+
+- **Agent**: Antigravity
+- **Task**:
+  1. Do not display tiles in the exposure tray for whichever seat won the game upon Mahjong win celebration.
+  2. The complete authoritative winning hand is already presented clearly inside the central Mahjong win popup dialog.
+  3. Ensure non-winning opponents still have their remaining hands revealed for board review.
+- **Implementation**:
+  - `src/app/module/business/game/phaser/component.ts`:
+    - Updated `opponentHands` construction during game finish to skip `tableSeat` (the winner seat).
+  - `src/app/module/business/game/phaser/scenes/scene.ts`:
+    - In `revealOpponentHands()`, cleared and destroyed existing exposure sprites for `result.winner` if `result.winner !== "bottom"`, or hid bottom exposure sprites if bottom won.
+    - Added guard `if (seatPos === result.winner) continue;` so winner tiles are never rendered into the table exposure area.
+- **Invariants Upheld**:
+  - Strict `OLDCODE` / `NEWCODE` pattern preserved with 0 code deletions.
+  - TypeScript compilation check (`tsc -p tsconfig.app.json --noEmit`) verified with 0 errors.
+
+---
+
+## [2026-11-03] Joker Exchange: Authoritative Sequence Sync, Table Exposure Tile-Flip Animation & Toast
+
+- **Agent**: Antigravity
+- **Task**:
+  1. Process authoritative Joker exchanges using `play.joker_exchanges` and `play.joker_exchange_seq` ordered sequence with pointer `lastSeenJokerSeq`.
+  2. Fix destination positioning `destNaturalPos` so natural tiles fly directly to the Joker's slot in the table exposure area (`oldJokerPos`) instead of opponent avatar racks.
+  3. Update opponent exposure sprites on exchange completion to display the incoming natural tile rather than re-showing the swapped Joker.
+  4. Implement 2.5D horizontal scale flip animation (`scaleX: 0 -> targetScale`) when natural tiles land in exposures.
+  5. Play `joker_exchange` sound effect and display toast notification `"<Seat Name> swapped a Joker"`.
+  6. Ensure complete safety and zero breaking changes for real human user (`bottom` seat) Joker swaps.
+- **Implementation**:
+  - `src/app/module/business/game/state/state.ts`:
+    - Added `play_joker_exchanges` and `play_joker_exchange_seq` computed signals.
+    - Updated `commonSelectionFields.play` to include `joker_exchange_seq` and `joker_exchanges` fields.
+  - `src/app/module/business/game/phaser/component.ts`:
+    - Added `lastSeenJokerSeq` tracking. Initialized on initial load/reconnect without animating.
+    - Processed new exchanges in ascending `seq` order, emitted `joker:exchange`, and showed toast notifications.
+    - Retained legacy `play_last_joker_exchange` as backward compatibility fallback.
+  - `src/app/module/business/game/phaser/scenes/scene.ts`:
+    - Updated `destNaturalPos` to point to `oldJokerPos` in table exposures.
+    - Updated `calledOpponentExposureTiles[to_seat]` sprite texture to the natural tile upon arrival.
+  - `src/app/module/business/game/phaser/animation.ts`:
+    - Added tile-flip tween on arrival in `animateJokerExchange()`.
+- **Invariants Upheld**:
+  - Strict `OLDCODE` / `NEWCODE` pattern preserved with 0 code deletions.
+  - TypeScript compilation check (`tsc -p tsconfig.app.json --noEmit`) verified with 0 errors.
+
+---
+
+## [2026-11-03] Mahjong Popup: Authoritative Winning Hand Layout via Backend `state.play.winning_hands`
+
+- **Agent**: Antigravity
+- **Task**:
+  1. Render server-authoritative winning hand layout provided by backend directly on `state.play.winning_hands`.
+  2. Map `winningHand.groups` (`index`, `kind`, `set_type`, `title`, `exposed`, `tile_ids`) directly to winning melds and tiles in exact sequence without heuristic guessing or regex parsing.
+  3. Display card hand description (`winningHand.label`), card hand base score (`winningHand.value_mult`), and visual `"EXPOSED"` badge on exposed meld groups.
+  4. Preserve legacy heuristic grouping as fallback safety when `winning_hands` is absent.
+- **Implementation**:
+  - `src/app/module/business/game/state/state.ts`:
+    - Added `play_winning_hands` computed signal.
+    - Updated `commonSelectionFields.play.winning_hands` GraphQL selection fields with all fields (`seat_id`, `rack_id`, `rule_id`, `label`, `value_kind`, `value_mult`, `groups`).
+  - `src/app/module/business/game/phaser/component.ts`:
+    - Updated `buildWinningOverlayData()` to locate `winningHand` matching `winnerSeatId` and `rack_id`.
+    - Mapped `winningHand.groups` in exact card order with `title`, `exposed`, and tiles in server-provided sequence.
+  - `src/app/module/business/game/phaser/template.html`:
+    - Added `result-card-rule-label` to display `winData.ruleLabel`.
+    - Added `is-exposed` CSS class and `result-card-exposed-badge` (`EXPOSED`) for exposed groups.
+  - `src/app/module/business/game/phaser/style.scss`:
+    - Added styles for `.result-card-rule-label` and `.result-card-exposed-badge`.
+- **Invariants Upheld**:
+  - Strict `OLDCODE` / `NEWCODE` pattern preserved with 0 code deletions.
+  - TypeScript compilation check (`tsc -p tsconfig.app.json --noEmit`) verified with 0 errors.
+
+---
+
+## [2026-11-03] Mahjong Popup: Winner Display Uses Table Player Label / Real Username
+
+- **Agent**: Antigravity
+- **Task**:
+  1. Replace hardcoded "Computer (Top)", "Computer (Left)", etc. text in the Mahjong win celebration with the actual table player label (e.g. "PLAYER 2") or the real player's username when a real human player wins.
+- **Implementation**:
+  - `src/app/module/business/game/phaser/component.ts`:
+    - Updated `buildWinningOverlayData()` to resolve `winnerName` by checking active `playerLabelStates` on the table or falling back to `this.getPlayerName(winnerPos)` (which handles real user full names/usernames and bot profile names).
+  - `src/app/module/business/game/phaser/template.html`:
+    - Updated the announcement line to render `{{ winData.winnerName }} earned {{ winData.totalPoints }} points`.
+- **Invariants Upheld**:
+  - Strict `OLDCODE` / `NEWCODE` pattern preserved with 0 code deletions.
+  - TypeScript compilation check (`tsc -p tsconfig.app.json --noEmit`) verified with 0 errors.
+
+---
+
+## [2026-11-03] Mahjong Popup UI: Border Removal, 2x Title Font Size & Glassmorphic Transparency
+
+- **Agent**: Antigravity
+- **Task**:
+  1. Remove border around `.discard-area-result-card` (and wall game theme variant).
+  2. Increase the "MAH JONGG!" font size by 2x from previous scale (`clamp(48px, 7.6vw, 84px)`, with mobile breakpoint scaling).
+  3. Make popup card background slightly transparent (`rgba(..., 0.82)` to `0.88`) with backdrop blur (`backdrop-filter: blur(8px)`).
+  4. Ensure fully responsive layout across all device widths.
+- **Implementation**:
+  - `src/app/module/business/game/phaser/style.scss`:
+    - Updated `.discard-area-result-card` to set `border: none;`, gradient background with `0.82`-`0.88` alpha, and `backdrop-filter: blur(8px)`.
+    - Updated `.result-card-title` to use `clamp(48px, 7.6vw, 84px)` with `@media (max-width: 480px)` responsive fallback.
+- **Invariants Upheld**:
+  - Strict `OLDCODE` / `NEWCODE` pattern preserved with 0 code deletions.
+  - TypeScript compilation check (`tsc -p tsconfig.app.json --noEmit`) verified with 0 errors.
+
+---
+
+## [2026-11-03] Mahjong Popup: Robust Winning Hand Grouping & Arrangement as per American Mahjongg Rules
+
+- **Agent**: Antigravity
+- **Task**:
+  1. Fix winning hand grouping in `PhaserComponent` so that all American Mahjongg card rules (Consecutive Runs, Odds, Evens, Year hands, Winds & Dragons, 369, Quints) are properly identified and displayed.
+  2. Implement detection of suited runs (`113579`, `13579`, `246`, `135`) without wrongly adding Jokers.
+  3. Implement detection of `NEWS` winds and White Dragon pairs (`00` Soap in year hands).
+  4. Ensure Jokers are only assigned to valid melds of 3+ (Pung of 3, Kong of 4, Quint of 5), preventing Jokers from corrupting pairs or runs.
+  5. Sort winning hand groups in canonical Mahjong card order: Flowers -> Suited combinations & their matching pungs/kongs -> Dragons -> Winds.
+  6. Create plan file in `todo/phase-play-after-before-plan-mahjong-winning-hand-grouping.md`.
+- **Implementation**:
+  - `src/app/module/business/game/phaser/component.ts`:
+    - Replaced naive `groupConcealedTiles` with constraint-based pattern grouping solver.
+    - Updated `describeMeldGroup` and `getWinningGroupSortOrder` to maintain suit and run cohesion.
+- **Invariants Upheld**:
+  - Strict `OLDCODE` / `NEWCODE` pattern preserved with 0 code deletions.
+  - TypeScript compilation check (`tsc -p tsconfig.app.json --noEmit`) verified with 0 errors.
+
+---
+
+## [2026-11-03] Tile Drag & Rack Scale Fix: Prevent Tile Enlargement During Manual Reordering
+
+- **Agent**: Antigravity
+- **Task**:
+  1. Fix issue where dragging a tile or reordering tiles in the rack causes the tile to become 2x or 3x larger.
+  2. Fix `showDragProxy()` and `updateDragProxy()` so the HTML overlay drag proxy accounts for high-DPI displays (`renderDpr`) and remains strictly at the identical visual size of the rack tiles.
+  3. Replace improper `setScale(1)` resets with `setDisplaySize(rackTileWidth, rackTileHeight)` in `setRack()` and Charleston cleanup to prevent resetting Phaser images to raw 288px atlas texture scale.
+- **Implementation**:
+  - `src/app/module/business/game/phaser/scenes/scene.ts`:
+    - Updated `showDragProxy()` and `updateDragProxy()` to compute `dpr` (`this.renderDpr || window.devicePixelRatio || 1`) and divide `displayWidth`, `displayHeight`, `dragX`, and `dragY` by `dpr`.
+    - In `setRack()` and Charleston cleanup: replaced `runtime.image.setScale(1)` with `runtime.image.setDisplaySize(rackTileWidth, rackTileHeight)`.
+- **Invariants Upheld**:
+  - Strict `OLDCODE` / `NEWCODE` pattern preserved with 0 code deletions.
+  - TypeScript compilation check (`tsc -p tsconfig.app.json --noEmit`) verified with 0 errors.
+
+---
+
+## [2026-11-02] Charleston Second Round: Disappearance & Suppression of Re-Triggered Stop Popup
+
+- **Agent**: Antigravity
+- **Task**:
+  1. Fix the 2nd Charleston round popup re-appearing after confirming "YES" on the "Are you sure?" confirmation popup.
+  2. Ensure the 1st stop popup ("Would you like to stop the Charleston?") disappears immediately when clicking "NO" (`pass`).
+  3. Ensure the confirmation popup ("Are you sure?") disappears completely when clicking "YES" (`stop-confirm`) and does not re-open the 1st popup while waiting for the server response.
+- **Implementation**:
+  - `src/app/module/business/game/phaser/component.ts`:
+    - Added `hasVotedSecondDecision` flag and an effect observing `this.gameState.play_pass_stage()` to reset the flag and confirmation state when leaving `SECOND_DECISION`.
+    - In `setInstructionPanelOverlay()`: Suppressed re-triggering overlay when `hasVotedSecondDecision` is true, emitting `{ visible: false }` to clear Phaser background graphics.
+    - In `onInstructionPanelClick()`:
+      - On `pass`: Marks `hasVotedSecondDecision = true`, hides popup, clears Phaser sync, and submits vote.
+      - On `stop`: Opens "Are you sure?" confirmation popup.
+      - On `stop-confirm`: Marks `hasVotedSecondDecision = true`, clears confirmation popup, emits `instruction-panel:sync` (`{ visible: false }`), and submits vote without allowing the 1st popup to re-appear.
+      - On `stop-cancel`: Reverts back to the 1st popup.
+- **Invariants Upheld**:
+  - Strict `OLDCODE` / `NEWCODE` pattern preserved with 0 code deletions.
+  - TypeScript compilation check (`tsc -p tsconfig.app.json --noEmit`) verified with 0 errors.
+
+---
+
+## [2026-11-02] Wall Game: Test Helper `testWallGame()` & `closeWallGame()` Added
+
+- **Agent**: Antigravity
+- **Task**:
+  1. Add dummy Wall Game test harness matching the existing `testMahjongWin()` helper.
+  2. Expose `window.testWallGame()` and `window.closeWallGame()` on the global browser window.
+  3. Support triggering Wall Game popup with either live seat rack hands or mock tile hands (14 tiles each for top, left, right), emitting `table:wall-game` to Phaser to render full exposure tray reveal.
+- **Implementation**:
+  - `src/app/module/business/game/phaser/component.ts`:
+    - Exposed `(window as any).testWallGame = () => this.testWallGame()` and `(window as any).closeWallGame = () => this.closeWallGame()` in constructor.
+    - Implemented `testWallGame()`: Sets `gameOverState` & `wallGameOver`, provides fallback `discardAreaRect` if not yet computed, maps active seats or mock tiles, and emits `table:wall-game` to Phaser.
+    - Implemented `closeWallGame()`: Resets `wallGameOver` and restores visibility.
+- **Invariants Upheld**:
+  - Strict `OLDCODE` / `NEWCODE` pattern preserved with 0 code deletions.
+  - TypeScript compilation check (`tsc -p tsconfig.app.json --noEmit`) verified with 0 errors.
+
+---
+
+## [2026-11-02] Wall Game: Opponent Seat Hand Revelation via Authoritative `play.seats` Key-by-Value
+
+- **Agent**: Antigravity
+- **Task**:
+  1. Fix Wall Game exposure trays not showing opponent seat tiles.
+  2. Map `play.seats` key-by-value directly to visual table positions (`top`, `left`, `right`) using `seat_position_by_gseat_id()`.
+  3. Emit a clean visual position-to-tile-array dictionary `{ top: tileIds, left: tileIds, right: tileIds }` to Phaser so `revealAllSeatsHandsForWallGame` accurately places each player's rack hand tiles in their exposure tray with zero intra-tile gap.
+- **Implementation**:
+  - `src/app/module/business/game/phaser/component.ts`:
+    - Updated Wall Game handling: Iterated over `Object.values(play.seats)`, resolved table position for each opponent seat, extracted `seat.racks[1].hand_order` (or `seat.racks[1].hand` keys), and emitted `opponentHands` via `table:wall-game`.
+  - `src/app/module/business/game/phaser/scenes/scene.ts`:
+    - Updated `revealAllSeatsHandsForWallGame()`: Consumed visual table position map `Record<string, number[]>`, bypassing numeric seat key mismatches.
+- **Invariants Upheld**:
+  - Strict `OLDCODE` / `NEWCODE` pattern preserved with 0 code deletions.
+  - TypeScript compilation check (`tsc -p tsconfig.app.json --noEmit`) verified with 0 errors.
+
+---
+
+## [2026-11-02] Mahjong Result Popup: Winning Hand Grouping & Canonical Rule Order
+
+- **Agent**: Antigravity
+- **Task**:
+  1. Group Mahjong winning hand tiles into natural combinations (Flowers, Pairs, Pungs, Kongs, Quints) instead of lumping all suited tiles into a single combined string.
+  2. Order winning hand groups strictly as per canonical Mahjong card rules: Flowers (`FFF`) $\rightarrow$ Suited numbers in ascending rank order (`55`, `77`, `999`) $\rightarrow$ Winds (`NEWS`) $\rightarrow$ Dragons (`DDDD`) $\rightarrow$ Jokers.
+  3. Simplify grouping and sorting logic to maintainable procedural TypeScript without complex nested functional chaining.
+- **Implementation**:
+  - `src/app/module/business/game/phaser/component.ts`:
+    - Updated `groupConcealedTiles()`: Separates flowers into a single group (`FFF`), aggregates identical natural tiles into combinations (Pair, Pung, Kong), and assigns Jokers to incomplete melds.
+    - Updated `describeMeldGroup()`: Labels groups as `Pair of ...`, `Pung of ...`, `Kong of ...`, etc. based on representative natural tiles.
+    - Added `getWinningGroupSortOrder()`: Implements canonical NMJL sort weights (Flowers: 100, Suited: $200 + \text{rank} \times 10$, Winds: 400, Dragons: 500, Jokers: 600).
+    - Updated `buildWinningOverlayData()`: Sorts all combined winning hand groups by `getWinningGroupSortOrder()`.
+- **Invariants Upheld**:
+  - Strict `OLDCODE` / `NEWCODE` pattern preserved with 0 code deletions.
+  - TypeScript compilation check (`tsc -p tsconfig.app.json --noEmit`) verified with 0 errors.
+
+---
+
+## [2026-11-02] Exposure Trays: Meld Ordering, Joker Exchange Slot Alignment & Reveal Zero Gap
+
+- **Agent**: Antigravity
+- **Task**:
+  1. Fix bottom player's Joker exchange alignment bug where swapping a Joker from one meld (e.g. 2 Crack Pung) caused the natural replacement tile to jump to or overlap an adjacent meld (e.g. 4 Crack Kong).
+  2. Reconstruct `calledBottomExposureTiles` strictly in authoritative meld order inside `renderExposuresSet()`.
+  3. Ensure natural replacement tile inherits `meld-index` from the swapped Joker in `processJokerExchange()`.
+  4. Apply 0 intra-group gap and group gap formatting to opponent reveals during Mahjong and Wall Game (`revealOpponentHands` and `revealAllSeatsHandsForWallGame`).
+  5. Update opponent exposure scrolling limits (`maxLeftExposureScroll`, `maxRightExposureScroll`, `maxTopExposureScroll`) to match zero-gap intra-meld dimensions.
+- **Implementation**:
+  - `src/app/module/business/game/phaser/scenes/scene.ts`:
+    - In `renderExposuresSet()`: Reconstructed `this.calledBottomExposureTiles` in exact meld order, preventing swapped tiles from appending out-of-order to the end of the tray.
+    - In `handleJokerExchange()` / `processJokerExchange()`: Stored `jokerTile.image.getData("meld-index")` and assigned it to `naturalTile.image`, preserving slot position.
+    - In `animateCalledDiscardToBottomExposure()`: Assigned newly called claim tiles the next available `meld-index`.
+    - In `revealOpponentHands()` and `revealAllSeatsHandsForWallGame()`: Assigned revealed hand tiles their own `revealMeldIndex` and updated layout through `layoutCalledOpponentExposureTiles()`.
+    - In `maxLeftExposureScroll()`, `maxRightExposureScroll()`, `maxTopExposureScroll()`: Calculated total content height/width using 0 intra-group gap + groupGap between melds.
+- **Invariants Upheld**:
+  - Strict `OLDCODE` / `NEWCODE` pattern preserved with 0 code deletions.
+  - TypeScript compilation check (`tsc -p tsconfig.app.json --noEmit`) verified with 0 errors.
+
+---
+
+## [2026-11-02] Exposure Trays: Flush Intra-Meld Tiles (0 Gap) & Group Gap Between Melds
+
+- **Agent**: Antigravity
+- **Task**:
+  1. Remove gap between exposure tiles belonging to the same meld (e.g. Sextet `FFFFFF`, Kong `1111`) so they touch flush edge-to-edge.
+  2. Add distinct visual group gap between different melds (e.g. between Sextet of flowers and Kong of 1-Bam) across all exposure trays (Bottom, Top, Left, Right).
+- **Implementation**:
+  - `src/app/module/business/game/phaser/scenes/scene.ts`:
+    - Updated `renderExposuresSet()`: Tagged each tile image with its `meld-index` ($0, 1, 2, \dots$) for both local and opponent exposures.
+    - Updated `calledBottomExposureTilePosition()`: Used $\text{startX} + i \times W + M \times G$, eliminating gaps between tiles within the same meld while inserting `groupGap` between separate melds.
+    - Updated `calledOpponentExposureTilePosition()`: Applied the same meld-aware positioning formula for top, left, and right exposure trays.
+    - Updated `maxBottomExposureScroll()`: Included group gaps in total content width calculation for scrolling.
+- **Invariants Upheld**:
+  - Strict `OLDCODE` / `NEWCODE` pattern preserved with 0 code deletions.
+  - TypeScript compilation check (`tsc -p tsconfig.app.json --noEmit`) verified with 0 errors.
+
+---
+
+## [2026-11-02] Discard Area UI: Further 10% Tile Size Reduction
+
+- **Agent**: Antigravity
+- **Task**: Reduce discarded tile size by an additional 10% from the previous size (`scale = 0.81` instead of `0.90`).
+- **Implementation**:
+  - `src/app/module/business/game/phaser/scenes/scene.ts`:
+    - Updated `discardGrid()`: Set `scale = 0.81` (`0.90 * 0.90`), reducing tile dimensions by a further 10% while keeping zero gap flush positioning.
+- **Invariants Upheld**:
+  - Strict `OLDCODE` / `NEWCODE` pattern preserved with 0 code deletions.
+  - TypeScript compilation check (`tsc -p tsconfig.app.json --noEmit`) verified with 0 errors.
+
+---
+
+## [2026-11-02] Discard Area UI Upgrade: Sizing Expansion, 10% Tile Reduction & Zero Gap
+
+- **Agent**: Antigravity
+- **Task**:
+  1. Increase the discard area dimensions across all responsive screen profiles (Desktop, Tablet, Mobile) by reducing outer insets to utilize maximum available table space without touching exposure trays.
+  2. Reduce discard tile size by 10% from the current rack size (`scale = 0.90`).
+  3. Remove gaps between discard tiles (`gapX = 0`, `gapY = 0`) so tiles sit seamlessly flush edge-to-edge.
+- **Implementation**:
+  - `src/app/module/business/game/phaser/scenes/scene.ts`:
+    - Updated `discardGrid()`: Set `gapX = 0`, `gapY = 0`, and `scale = 0.90`.
+  - `src/app/module/business/game/phaser/layout/game.ts`:
+    - In `computeDesktopLayout()`: Reduced horizontal margin from `0.055` to `0.015`.
+    - In `computeTabletPortraitLayout()`: Reduced horizontal margin from `0.055` to `0.015`.
+    - In `computeTabletLandscapeLayout()`: Reduced horizontal margin from `0.055` to `0.015` and removed arbitrary `+ 35` height reduction.
+    - In `computeMobileLandscapeLayout()`: Reduced horizontal margin from `0.040` to `0.012`.
+    - In `computeMobilePortraitLayout()`: Reduced horizontal margin from `0.035` to `0.012`.
+- **Invariants Upheld**:
+  - Strict `OLDCODE` / `NEWCODE` pattern preserved with 0 code deletions.
+  - Full responsiveness maintained across all screen profiles.
+  - TypeScript compilation check (`tsc -p tsconfig.app.json --noEmit`) verified with 0 errors.
+
+---
+
 ## [2026-11-02] Result Popup: Restore 3D Gold Gradient Style for Mahjong Text
 
 - **Agent**: Antigravity

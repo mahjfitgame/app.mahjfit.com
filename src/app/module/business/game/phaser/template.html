@@ -433,12 +433,24 @@ OLDCODE -->
         <header class="result-card-header">
           <h2 class="result-card-title">MAH JONGG!</h2>
           @if (winningOverlayData(); as winData) {
+            <!-- NEWCODE -->
+            @if (winData.ruleLabel) {
+              <div class="result-card-rule-label">{{ winData.ruleLabel }}</div>
+            }
+            <!-- NEWCODE -->
             <div class="result-card-score">
               Score: {{ winData.baseScore }} &nbsp;&bull;&nbsp; Bonus: +{{ winData.bonus }}
             </div>
-            <div class="result-card-announcement">
-              {{ winData.winnerName === 'YOU' ? 'YOU WIN!' : winData.winnerName }} earned {{ winData.totalPoints }} points
-            </div>
+          <!-- OLDCODE
+          <div class="result-card-announcement">
+            {{ winData.winnerName === 'YOU' ? 'YOU WIN!' : winData.winnerName }} earned {{ winData.totalPoints }} points
+          </div>
+          OLDCODE -->
+          <!-- NEWCODE -->
+          <div class="result-card-announcement">
+            {{ winData.winnerName }} earned {{ winData.totalPoints }} points
+          </div>
+          <!-- NEWCODE -->
           } @else {
             <div class="result-card-announcement">
               {{ result.winner === 'bottom' ? 'YOU WIN!' : (result.winner.toUpperCase() + ' WINS!') }}
@@ -451,10 +463,23 @@ OLDCODE -->
           <section class="result-card-hand-section">
             <div class="result-card-melds-container">
               @for (group of winData.winningHandGroups; track $index) {
+                <!-- OLDCODE
                 <div class="result-card-meld-group">
                   @if (group.combinationName) {
                     <span class="result-card-meld-tag">{{ group.combinationName }}</span>
                   }
+                OLDCODE -->
+                <!-- NEWCODE -->
+                <div class="result-card-meld-group" [class.is-exposed]="group.exposed">
+                  @if (group.combinationName) {
+                    <span class="result-card-meld-tag">
+                      {{ group.combinationName }}
+                      @if (group.exposed) {
+                        <span class="result-card-exposed-badge">EXPOSED</span>
+                      }
+                    </span>
+                  }
+                <!-- NEWCODE -->
                   <div class="result-card-meld-tiles">
                     @for (tile of group.tiles; track tile.id || $index) {
                       <div class="atlas-tile-wrapper">

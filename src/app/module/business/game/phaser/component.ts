@@ -88,6 +88,9 @@ export interface WinningTileData {
 export interface WinningMeldGroup {
   combinationName?: string;
   tiles: WinningTileData[];
+  /* NEWCODE */
+  exposed?: boolean;
+  /* NEWCODE */
 }
 
 export interface WinningOverlayData {
@@ -98,6 +101,9 @@ export interface WinningOverlayData {
   bonus: number;
   totalPoints: number;
   winningHandGroups: WinningMeldGroup[];
+  /* NEWCODE */
+  ruleLabel?: string;
+  /* NEWCODE */
 }
 /* NEWCODE */
 import { GameHapticType, PassDirection } from "../type";
@@ -378,11 +384,22 @@ export class PhaserComponent implements AfterViewInit {
       this.gameState.publishClaimAction(action, tile_id);
     }
    */
+  /* OLDCODE
   private lastProcessedExchange: any = null;
+  OLDCODE */
+  /* NEWCODE */
+  private lastProcessedExchange: any = null;
+  private lastSeenJokerSeq: number = -1;
+  /* NEWCODE */
 
   constructor() {
+    /* OLDCODE
+    (window as any).testMahjongWin = (winnerSeat?: any) => this.testMahjongWin(winnerSeat);
+    OLDCODE */
     /* NEWCODE */
     (window as any).testMahjongWin = (winnerSeat?: any) => this.testMahjongWin(winnerSeat);
+    (window as any).testWallGame = () => this.testWallGame();
+    (window as any).closeWallGame = () => this.closeWallGame();
     /* NEWCODE */
     effect(() => {
       // ResizeObserver provides intermediate sizes during the sidebar
@@ -398,6 +415,7 @@ export class PhaserComponent implements AfterViewInit {
       }, 320);
     });
 
+    /* OLDCODE
     effect(() => {
       const exchange = this.gameState.play_last_joker_exchange();
       if (!this.phaser || !this.sceneReady() || !exchange) return;
@@ -412,6 +430,68 @@ export class PhaserComponent implements AfterViewInit {
         this.phaser.events.emit("joker:exchange", payload);
       }
     });
+    OLDCODE */
+    /* NEWCODE */
+    // Process authoritative joker exchanges via play.joker_exchanges and seq pointer
+    effect(() => {
+      if (!this.phaser || !this.sceneReady()) return;
+
+      const playData = this.gameState.play();
+      if (!playData) return;
+
+      const currentSeq = playData.joker_exchange_seq ?? 0;
+
+      // Initial load or reconnect: initialize pointer without triggering animations
+      if (this.lastSeenJokerSeq === -1) {
+        this.lastSeenJokerSeq = currentSeq;
+        return;
+      }
+
+      const exchanges: any[] = playData.joker_exchanges || [];
+
+      // If authoritative exchanges array is present
+      if (Array.isArray(exchanges) && exchanges.length > 0) {
+        const newEntries = exchanges
+          .filter((e) => e && typeof e.seq === 'number' && e.seq > this.lastSeenJokerSeq)
+          .sort((a, b) => a.seq - b.seq);
+
+        for (const entry of newEntries) {
+          const fromSeat = this.gameState.seat_position_by_gseat_id()(entry.from_gseat_id);
+          const toSeat = this.gameState.seat_position_by_gseat_id()(entry.to_gseat_id);
+
+          const payload = {
+            ...entry,
+            from_seat: fromSeat,
+            to_seat: toSeat
+          };
+
+          this.phaser.events.emit("joker:exchange", payload);
+
+          const seatName = fromSeat === 'bottom' ? 'You' : (fromSeat ? this.getPlayerName(fromSeat) : 'Player');
+          this.notify.info(`${seatName} swapped a Joker`);
+
+          this.lastSeenJokerSeq = entry.seq;
+        }
+      } else {
+        // Fallback for legacy state without joker_exchanges
+        const exchange = this.gameState.play_last_joker_exchange();
+        if (exchange && JSON.stringify(this.lastProcessedExchange) !== JSON.stringify(exchange)) {
+          this.lastProcessedExchange = exchange;
+          const fromSeat = this.gameState.seat_position_by_gseat_id()(exchange.from_gseat_id);
+          const toSeat = this.gameState.seat_position_by_gseat_id()(exchange.to_gseat_id);
+          const payload = {
+            ...exchange,
+            from_seat: fromSeat,
+            to_seat: toSeat
+          };
+          this.phaser.events.emit("joker:exchange", payload);
+
+          const seatName = fromSeat === 'bottom' ? 'You' : (fromSeat ? this.getPlayerName(fromSeat) : 'Player');
+          this.notify.info(`${seatName} swapped a Joker`);
+        }
+      }
+    });
+    /* NEWCODE */
 
     effect(() => {
       const err = this.gameState.play_action_error();
@@ -579,6 +659,16 @@ export class PhaserComponent implements AfterViewInit {
       if (!this.phaser || !this.sceneReady()) return;
       this.phaser.events.emit("charleston:state", charlestonState);
     });
+
+    /* NEWCODE */
+    effect(() => {
+      const stage = this.gameState.play_pass_stage();
+      if (stage !== GameCharlestoneStageEnum.SECOND_DECISION) {
+        this.hasVotedSecondDecision = false;
+        this.confirmStopCharleston.set(false);
+      }
+    });
+    /* NEWCODE */
 
     effect(() => {
       const turnStage = this.gameState.play_turn_stage();
@@ -830,6 +920,7 @@ export class PhaserComponent implements AfterViewInit {
             const allHands = this.gameState.all_seat_rack_hands();
             const opponentSeatList: Array<'top' | 'left' | 'right'> = ['top', 'left', 'right'];
 
+            /* OLDCODE
             for (const seat of opponentSeatList) {
               const seatHand = allHands[seat];
               const tileIdList: number[] = [];
@@ -856,6 +947,39 @@ export class PhaserComponent implements AfterViewInit {
                 const seatPos = this.gameState.seat_position_by_gseat_id()(Number(seatId));
 
                 if (seatPos && seatPos !== 'bottom') {
+            OLDCODE */
+            /* NEWCODE */
+            for (const seat of opponentSeatList) {
+              // The winner hand is already shown in the Mahjong popup - do not add winner to exposure
+              if (seat === tableSeat) continue;
+
+              const seatHand = allHands[seat];
+              const tileIdList: number[] = [];
+
+              if (seatHand && Array.isArray(seatHand)) {
+                for (const tileItem of seatHand) {
+                  const id = tileItem?.tile_id ?? tileItem?.id;
+                  if (typeof id === 'number') {
+                    tileIdList.push(id);
+                  }
+                }
+              }
+
+              if (tileIdList.length > 0) {
+                opponentHands[seat] = tileIdList;
+              }
+            }
+
+            // 2. Fallback: if any opponent seat is still empty, check play_seats()
+            const seats = this.gameState.play_seats();
+            if (seats) {
+              for (const seatId of Object.keys(seats)) {
+                const seatData = (seats as any)[seatId];
+                const seatPos = this.gameState.seat_position_by_gseat_id()(Number(seatId));
+
+                // Skip bottom player and skip the winner seat
+                if (seatPos && seatPos !== 'bottom' && seatPos !== tableSeat) {
+            /* NEWCODE */
                   const alreadyHasTiles = opponentHands[seatPos] && opponentHands[seatPos].length > 0;
                   if (!alreadyHasTiles && seatData && seatData.racks) {
                     const fallbackTileIds: number[] = [];
@@ -897,10 +1021,35 @@ export class PhaserComponent implements AfterViewInit {
             reason: 'WALL_EMPTY'
           });
           this.wallGameOver.set(true);
-          /* NEWCODE */
+          /* OLDCODE
           // Reveal all seats' hands to exposures on wall game
           const seats = this.gameState.play_seats();
           this.phaser?.events.emit("table:wall-game", seats);
+          OLDCODE */
+          /* NEWCODE */
+          // Map play.seats key-by-value directly to table positions (top, left, right)
+          const seats = this.gameState.play_seats();
+          const getSeatPos = this.gameState.seat_position_by_gseat_id();
+          const opponentHands: Record<string, number[]> = {};
+
+          if (seats && typeof seats === 'object') {
+            for (const seat of Object.values(seats) as any[]) {
+              const seatPos = getSeatPos(seat?.id);
+              // Only reveal opponent seats (bottom is already visible on the player's rack)
+              if (seatPos && seatPos !== 'bottom') {
+                const rack = seat?.racks?.[1] || seat?.racks?.["1"];
+                const tileIds: number[] = rack?.hand_order && Array.isArray(rack.hand_order)
+                  ? rack.hand_order
+                  : rack?.hand && typeof rack.hand === 'object'
+                    ? Object.keys(rack.hand).map(Number)
+                    : [];
+                if (tileIds.length > 0) {
+                  opponentHands[seatPos] = tileIds;
+                }
+              }
+            }
+          }
+          this.phaser?.events.emit("table:wall-game", opponentHands);
           /* NEWCODE */
         } else {
           // Dead Hand / No Active Racks Game Over
@@ -1443,6 +1592,7 @@ export class PhaserComponent implements AfterViewInit {
   }
   /* NEWCODE */
 
+  /* OLDCODE
   private rawInstructionPanelState?: InstructionPanelOverlayState;
   public confirmStopCharleston = signal(false);
 
@@ -1450,6 +1600,24 @@ export class PhaserComponent implements AfterViewInit {
     this.rawInstructionPanelState = state;
     this.renderInstructionPanelOverlay();
   }
+  OLDCODE */
+  /* NEWCODE */
+  private rawInstructionPanelState?: InstructionPanelOverlayState;
+  public confirmStopCharleston = signal(false);
+  private hasVotedSecondDecision = false;
+
+  private setInstructionPanelOverlay(state: InstructionPanelOverlayState): void {
+    const isSecondDecision = this.gameState.play_pass_stage() === GameCharlestoneStageEnum.SECOND_DECISION;
+    // Suppress re-triggering while in SECOND_DECISION if already voted
+    if (isSecondDecision && this.hasVotedSecondDecision) {
+      this.instructionPanelOverlay.set(undefined);
+      this.phaser?.events.emit("instruction-panel:sync", { visible: false });
+      return;
+    }
+    this.rawInstructionPanelState = state;
+    this.renderInstructionPanelOverlay();
+  }
+  /* NEWCODE */
 
   private renderInstructionPanelOverlay(): void {
     let state = this.rawInstructionPanelState;
@@ -1506,6 +1674,7 @@ export class PhaserComponent implements AfterViewInit {
   }
   OLDCODE */
   /* NEWCODE */
+  /* OLDCODE
   public onInstructionPanelClick(action?: string): void {
     const state = this.instructionPanelOverlay();
     if (!state) return;
@@ -1534,6 +1703,45 @@ export class PhaserComponent implements AfterViewInit {
       this.phaser?.events.emit("instruction-panel:primary-action");
     }
   }
+  OLDCODE */
+  /* NEWCODE */
+  public onInstructionPanelClick(action?: string): void {
+    const state = this.instructionPanelOverlay();
+    if (!state) return;
+
+    const isSecondDecision = this.gameState.play_pass_stage() === GameCharlestoneStageEnum.SECOND_DECISION;
+
+    if (isSecondDecision && action === "pass") {
+      // Chose NO: hide immediately and send vote
+      this.hasVotedSecondDecision = true;
+      this.confirmStopCharleston.set(false);
+      this.rawInstructionPanelState = undefined;
+      this.instructionPanelOverlay.set(undefined);
+      this.phaser?.events.emit("instruction-panel:sync", { visible: false });
+      this.gameState.publishCharlestoneSecondRoundVote(true);
+    } else if (action === "stop") {
+      // Chose YES: switch to confirmation popup ("Are you sure?")
+      this.confirmStopCharleston.set(true);
+      this.renderInstructionPanelOverlay();
+    } else if (action === "stop-confirm") {
+      // Confirmed YES: hide completely and send vote (will NOT re-open 1st popup)
+      this.hasVotedSecondDecision = true;
+      this.confirmStopCharleston.set(false);
+      this.rawInstructionPanelState = undefined;
+      this.instructionPanelOverlay.set(undefined);
+      this.phaser?.events.emit("instruction-panel:sync", { visible: false });
+      this.phaser?.events.emit("play-stop-charleston");
+      this.gameState.publishCharlestoneSecondRoundVote(false);
+    } else if (action === "stop-cancel") {
+      // Cancelled on "Are you sure?": revert back to first popup
+      this.confirmStopCharleston.set(false);
+      this.renderInstructionPanelOverlay();
+    } else {
+      if (!state.button.enabled) return;
+      this.phaser?.events.emit("instruction-panel:primary-action");
+    }
+  }
+  /* NEWCODE */
   /* NEWCODE */
 
   /**
@@ -1917,6 +2125,7 @@ export class PhaserComponent implements AfterViewInit {
   private buildWinningOverlayData(result: MahjongWinCelebration): WinningOverlayData {
     const winnerPos = result.winner;
 
+    /* OLDCODE
     // 1. Resolve Winner Name
     let winnerName = 'Player';
     if (winnerPos === 'bottom') {
@@ -1939,7 +2148,19 @@ export class PhaserComponent implements AfterViewInit {
         winnerName = `Computer (${winnerPos.charAt(0).toUpperCase() + winnerPos.slice(1)})`;
       }
     }
+    OLDCODE */
+    /* NEWCODE */
+    // 1. Resolve Winner Name (Matching the player label on the table, or real player username)
+    let winnerName = '';
+    const labelState = this.playerLabelStates()?.find(s => s.key === winnerPos);
+    if (labelState && labelState.text && labelState.text.trim().length > 0) {
+      winnerName = labelState.text.trim();
+    } else {
+      winnerName = this.getPlayerName(winnerPos);
+    }
+    /* NEWCODE */
 
+    /* OLDCODE
     // 2. Score Calculation
     const baseScore = 25;
     const bonus = 25;
@@ -2002,8 +2223,8 @@ export class PhaserComponent implements AfterViewInit {
         if (!processedTileIds.has(id)) handTileIds.push(id);
       }
     }
-    OLDCODE */
-    /* NEWCODE */
+    OLDCODE * /
+    /* NEWCODE * /
     // Helper function to extract tile IDs from exposure meld using clean loops
     const extractTileIdsFromExp = (exp: any): number[] => {
       const resultIds: number[] = [];
@@ -2108,7 +2329,7 @@ export class PhaserComponent implements AfterViewInit {
         }
       }
     }
-    /* NEWCODE */
+    /* NEWCODE * /
 
     const concealedTiles: WinningTileData[] = [];
     for (const tid of handTileIds) {
@@ -2118,12 +2339,28 @@ export class PhaserComponent implements AfterViewInit {
       }
     }
 
+    /* OLDCODE
+    if (concealedTiles.length > 0) {
+      const groupedConcealed = this.groupConcealedTiles(concealedTiles);
+      winningHandGroups.push(...groupedConcealed);
+    }
+    OLDCODE * /
+    /* NEWCODE * /
     if (concealedTiles.length > 0) {
       const groupedConcealed = this.groupConcealedTiles(concealedTiles);
       winningHandGroups.push(...groupedConcealed);
     }
 
-    /* NEWCODE */
+    // Sort all winning hand groups as per canonical Mahjong card rule order:
+    // Flowers (FFF) -> Ascending suited ranks (55, 77, 999) -> Winds (NEWS) -> Dragons (DDDD)
+    winningHandGroups.sort((a, b) => {
+      const orderA = this.getWinningGroupSortOrder(a);
+      const orderB = this.getWinningGroupSortOrder(b);
+      return orderA - orderB;
+    });
+    /* NEWCODE * /
+
+    /* NEWCODE * /
     if (winningHandGroups.length === 0) {
       winningHandGroups.push(
         {
@@ -2160,7 +2397,7 @@ export class PhaserComponent implements AfterViewInit {
         }
       );
     }
-    /* NEWCODE */
+    /* NEWCODE * /
 
     return {
       winnerSeat: winnerPos,
@@ -2171,6 +2408,236 @@ export class PhaserComponent implements AfterViewInit {
       totalPoints,
       winningHandGroups
     };
+    OLDCODE */
+    /* NEWCODE */
+    // 2. Locate the Winner's Authoritative Winning Hand Data from Backend (state.play.winning_hands)
+    let winnerSeatId = 0;
+    const seatsObj = this.gameState.play_seats();
+    if (seatsObj) {
+      for (const [id, s] of Object.entries(seatsObj)) {
+        if (this.gameState.seat_position_by_gseat_id()(Number(id)) === winnerPos) {
+          winnerSeatId = Number(id);
+          break;
+        }
+      }
+    }
+
+    /* OLDCODE
+    const isSiamese = this.gameState.game_mode() === 'TWO_PLAYERS_SIAMESE' || this.gameState.game_mode() === 'SIAMESE';
+    OLDCODE */
+    /* NEWCODE */
+    const isSiamese = (this.gameState.game_mode() as any) === 'TWO_PLAYERS_SIAMESE' || (this.gameState.game_mode() as any) === 'SIAMESE';
+    /* NEWCODE */
+    const winningHands: any[] = this.gameState.play()?.winning_hands || (this.gameState as any).play_winning_hands?.() || [];
+    const winningHand = winningHands.find(
+      (entry: any) => Number(entry.seat_id) === winnerSeatId && (!isSiamese || entry.rack_id === 1)
+    );
+
+    // Score & Rule Description
+    const baseScore = winningHand?.value_mult != null ? Number(winningHand.value_mult) : 25;
+    const bonus = 25;
+    const totalPoints = baseScore + bonus;
+    const ruleLabel = winningHand?.label || undefined;
+
+    // 3. Extract Tiles & Melds
+    const winningHandGroups: WinningMeldGroup[] = [];
+    const allTilesMap = this.gameState.game_all_tiles();
+
+    // Check if Authoritative Server Layout is available (no guessing needed!)
+    if (winningHand && Array.isArray(winningHand.groups) && winningHand.groups.length > 0) {
+      // Sort groups by server index in exact card order
+      const sortedGroups = [...winningHand.groups].sort((a: any, b: any) => (a.index ?? 0) - (b.index ?? 0));
+      for (const grp of sortedGroups) {
+        const tileIds: number[] = grp.tile_ids || [];
+        const tilesData: WinningTileData[] = [];
+        for (const tid of tileIds) {
+          const rawTile = allTilesMap?.[tid];
+          if (rawTile) {
+            tilesData.push(this.mapRawTileToWinningTile(rawTile, tid));
+          }
+        }
+        if (tilesData.length > 0) {
+          winningHandGroups.push({
+            combinationName: grp.title || `${tilesData.length} Tiles`,
+            tiles: tilesData,
+            exposed: grp.exposed === true
+          });
+        }
+      }
+    } else {
+      // Fallback: Legacy recorded game or test helper without server winning_hands
+      let winnerSeatData: any = null;
+      if (seatsObj) {
+        for (const [id, s] of Object.entries(seatsObj)) {
+          if (this.gameState.seat_position_by_gseat_id()(Number(id)) === winnerPos) {
+            winnerSeatData = s;
+            break;
+          }
+        }
+      }
+
+      const rack = winnerSeatData?.racks?.[1] || winnerSeatData?.racks?.[GameRackIDEnumAddon.RACK_FIRST];
+      const exposures = rack?.exposures_meld || [];
+      const processedTileIds = new Set<number>();
+
+      const extractTileIdsFromExp = (exp: any): number[] => {
+        const resultIds: number[] = [];
+        if (!exp) return resultIds;
+
+        if (Array.isArray(exp.tile_ids)) {
+          for (const item of exp.tile_ids) {
+            if (typeof item === 'number') resultIds.push(item);
+          }
+          return resultIds;
+        }
+
+        if (Array.isArray(exp.tiles)) {
+          for (const item of exp.tiles) {
+            if (typeof item === 'number') {
+              resultIds.push(item);
+            } else if (item && typeof item === 'object') {
+              const id = item.tile_id ?? item.id;
+              if (typeof id === 'number') resultIds.push(id);
+            }
+          }
+          return resultIds;
+        }
+
+        if (exp.tiles && typeof exp.tiles === 'object') {
+          for (const key of Object.keys(exp.tiles)) {
+            const item = exp.tiles[key];
+            if (typeof item === 'number') {
+              resultIds.push(item);
+            } else if (item && typeof item === 'object') {
+              const id = item.tile_id ?? item.id;
+              if (typeof id === 'number') resultIds.push(id);
+            }
+          }
+          return resultIds;
+        }
+
+        return resultIds;
+      };
+
+      for (const exp of exposures) {
+        const tileIds = extractTileIdsFromExp(exp);
+        const tilesData: WinningTileData[] = [];
+
+        for (const tid of tileIds) {
+          processedTileIds.add(tid);
+          const rawTile = allTilesMap?.[tid];
+          if (rawTile) {
+            tilesData.push(this.mapRawTileToWinningTile(rawTile, tid));
+          }
+        }
+
+        if (tilesData.length > 0) {
+          const combName = exp.combination || this.describeMeldGroup(tilesData);
+          winningHandGroups.push({
+            combinationName: combName,
+            tiles: tilesData,
+            exposed: true
+          });
+        }
+      }
+
+      const handTileIds: number[] = [];
+      if (rack?.hand_order && Array.isArray(rack.hand_order)) {
+        for (const id of rack.hand_order) {
+          if (!processedTileIds.has(id)) handTileIds.push(id);
+        }
+      } else if (rack?.tiles && Array.isArray(rack.tiles)) {
+        for (const id of rack.tiles) {
+          if (!processedTileIds.has(id)) handTileIds.push(id);
+        }
+      } else if (rack?.hand && typeof rack.hand === 'object') {
+        for (const idStr of Object.keys(rack.hand)) {
+          const handObj = rack.hand[idStr];
+          const id = typeof handObj === 'number' ? handObj : handObj?.tile_id ?? handObj?.id ?? Number(idStr);
+          if (typeof id === 'number' && !processedTileIds.has(id)) {
+            handTileIds.push(id);
+          }
+        }
+      }
+
+      if (handTileIds.length === 0) {
+        const seatHand = this.gameState.all_seat_rack_hands()?.[winnerPos] || [];
+        for (const t of seatHand) {
+          const tid = t?.tile_id ?? t?.id;
+          if (typeof tid === 'number' && !processedTileIds.has(tid)) {
+            handTileIds.push(tid);
+          }
+        }
+      }
+
+      const concealedTiles: WinningTileData[] = [];
+      for (const tid of handTileIds) {
+        const rawTile = allTilesMap?.[tid];
+        if (rawTile) {
+          concealedTiles.push(this.mapRawTileToWinningTile(rawTile, tid));
+        }
+      }
+
+      if (concealedTiles.length > 0) {
+        const groupedConcealed = this.groupConcealedTiles(concealedTiles);
+        winningHandGroups.push(...groupedConcealed);
+      }
+
+      winningHandGroups.sort((a, b) => {
+        const orderA = this.getWinningGroupSortOrder(a);
+        const orderB = this.getWinningGroupSortOrder(b);
+        return orderA - orderB;
+      });
+
+      if (winningHandGroups.length === 0) {
+        winningHandGroups.push(
+          {
+            combinationName: '3 Flowers',
+            tiles: [
+              { id: 1, assetName: 'f1', category: 'FLOWER', type: 'FLOWER', rank: 1, label: 'Flower 1' },
+              { id: 2, assetName: 'f2', category: 'FLOWER', type: 'FLOWER', rank: 2, label: 'Flower 2' },
+              { id: 3, assetName: 'f3', category: 'FLOWER', type: 'FLOWER', rank: 3, label: 'Flower 3' }
+            ]
+          },
+          {
+            combinationName: 'Pung 1-Bam',
+            tiles: [
+              { id: 4, assetName: 'b1', category: 'SUITED', type: 'BAM', rank: 1, label: '1 Bam' },
+              { id: 5, assetName: 'b1', category: 'SUITED', type: 'BAM', rank: 1, label: '1 Bam' },
+              { id: 6, assetName: 'b1', category: 'SUITED', type: 'BAM', rank: 1, label: '1 Bam' }
+            ]
+          },
+          {
+            combinationName: 'Kong 5-Crack',
+            tiles: [
+              { id: 7, assetName: 'c5', category: 'SUITED', type: 'CHAR', rank: 5, label: '5 Crack' },
+              { id: 8, assetName: 'c5', category: 'SUITED', type: 'CHAR', rank: 5, label: '5 Crack' },
+              { id: 9, assetName: 'c5', category: 'SUITED', type: 'CHAR', rank: 5, label: '5 Crack' },
+              { id: 10, assetName: 'c5', category: 'SUITED', type: 'CHAR', rank: 5, label: '5 Crack' }
+            ]
+          },
+          {
+            combinationName: 'Pair Jokers',
+            tiles: [
+              { id: 11, assetName: 'jk', category: 'JOKER', type: 'JOKER', rank: 0, label: 'Joker' },
+              { id: 12, assetName: 'jk', category: 'JOKER', type: 'JOKER', rank: 0, label: 'Joker' }
+            ]
+          }
+        );
+      }
+    }
+
+    return {
+      winnerSeat: winnerPos,
+      winnerName,
+      isSelfPick: true,
+      baseScore,
+      bonus,
+      totalPoints,
+      winningHandGroups,
+      ruleLabel
+    };
+    /* NEWCODE */
   }
 
   private mapRawTileToWinningTile(rawTile: any, tileId: number): WinningTileData {
@@ -2311,7 +2778,7 @@ export class PhaserComponent implements AfterViewInit {
     return melds;
   }
   OLDCODE */
-  /* NEWCODE */
+  /* OLDCODE
   private groupConcealedTiles(tiles: WinningTileData[]): WinningMeldGroup[] {
     const melds: WinningMeldGroup[] = [];
     if (!tiles || tiles.length === 0) return melds;
@@ -2366,7 +2833,6 @@ export class PhaserComponent implements AfterViewInit {
 
     return melds;
   }
-  /* NEWCODE */
 
   private describeMeldGroup(group: WinningTileData[]): string {
     if (group.length === 0) return '';
@@ -2387,6 +2853,441 @@ export class PhaserComponent implements AfterViewInit {
 
     return `${count} ${first.label}s`;
   }
+  OLDCODE */
+  /* NEWCODE */
+  /* OLDCODE
+  // Group concealed tiles into proper rule combinations (Flowers, Pairs, Pungs, Kongs)
+  private groupConcealedTiles(tiles: WinningTileData[]): WinningMeldGroup[] {
+    const melds: WinningMeldGroup[] = [];
+    if (!tiles || tiles.length === 0) return melds;
+
+    const flowerTiles: WinningTileData[] = [];
+    const jokerTiles: WinningTileData[] = [];
+    const naturalTiles: WinningTileData[] = [];
+
+    // 1. Separate into flowers, jokers, and natural tiles
+    for (const tile of tiles) {
+      const label = tile.label || '';
+      if (tile.category === 'FLOWER' || label.includes('Flower')) {
+        flowerTiles.push(tile);
+      } else if (label.includes('Joker')) {
+        jokerTiles.push(tile);
+      } else {
+        naturalTiles.push(tile);
+      }
+    }
+
+    // 2. All Flowers group together as FFF
+    if (flowerTiles.length > 0) {
+      const count = flowerTiles.length;
+      const countLabel = count === 1 ? '1 Flower' : `${count} Flowers`;
+      melds.push({
+        combinationName: countLabel,
+        tiles: flowerTiles
+      });
+    }
+
+    // 3. Group identical natural tiles into combinations (Pairs, Pungs, Kongs)
+    const naturalGroupsMap = new Map<string, WinningTileData[]>();
+    for (const tile of naturalTiles) {
+      const key = `${tile.type}_${tile.rank ?? ''}_${tile.label ?? ''}`;
+      const existing = naturalGroupsMap.get(key);
+      if (existing) {
+        existing.push(tile);
+      } else {
+        naturalGroupsMap.set(key, [tile]);
+      }
+    }
+
+    const groupedLists: WinningTileData[][] = [];
+    for (const list of naturalGroupsMap.values()) {
+      groupedLists.push(list);
+    }
+
+    // 4. Attach Jokers to incomplete melds (Pungs/Kongs that need Jokers)
+    for (const list of groupedLists) {
+      if (jokerTiles.length === 0) break;
+      if (list.length === 2 && jokerTiles.length >= 1) {
+        list.push(jokerTiles.pop()!);
+      } else if (list.length === 3 && jokerTiles.length >= 1) {
+        list.push(jokerTiles.pop()!);
+      }
+    }
+
+    // 5. Add each natural combination with its descriptive name
+    for (const list of groupedLists) {
+      const combName = this.describeMeldGroup(list);
+      melds.push({
+        combinationName: combName,
+        tiles: list
+      });
+    }
+
+    // 6. Any remaining Jokers form their own group
+    if (jokerTiles.length > 0) {
+      const count = jokerTiles.length;
+      melds.push({
+        combinationName: count === 1 ? '1 Joker' : `${count} Jokers`,
+        tiles: jokerTiles
+      });
+    }
+
+    return melds;
+  }
+
+  private describeMeldGroup(group: WinningTileData[]): string {
+    if (group.length === 0) return '';
+
+    // Pick a natural tile as representative if Jokers are present
+    let rep = group[0];
+    for (const t of group) {
+      if (!t.label?.includes('Joker')) {
+        rep = t;
+        break;
+      }
+    }
+
+    const count = group.length;
+    if (rep.category === 'FLOWER' || rep.label?.includes('Flower')) {
+      return count === 1 ? '1 Flower' : `${count} Flowers`;
+    }
+    if (rep.label?.includes('Joker')) {
+      return count === 1 ? '1 Joker' : `${count} Jokers`;
+    }
+
+    if (count === 2) return `Pair of ${rep.label}`;
+    if (count === 3) return `Pung of ${rep.label}`;
+    if (count === 4) return `Kong of ${rep.label}`;
+    if (count === 5) return `Quint of ${rep.label}`;
+    if (count === 6) return `Sextet of ${rep.label}`;
+
+    return `${count} ${rep.label}`;
+  }
+
+  // Canonical Mahjong rule sort order: Flowers (100) -> Suited Numbers (200 + rank * 10) -> Winds (400) -> Dragons (500)
+  private getWinningGroupSortOrder(group: WinningMeldGroup): number {
+    if (!group.tiles || group.tiles.length === 0) return 999;
+
+    let rep = group.tiles[0];
+    for (const t of group.tiles) {
+      if (!t.label?.includes('Joker')) {
+        rep = t;
+        break;
+      }
+    }
+
+    const label = rep.label || '';
+    const type = String(rep.type || '');
+    const rank = rep.rank || 0;
+
+    // 1. Flowers always first
+    if (rep.category === 'FLOWER' || label.includes('Flower')) {
+      return 100;
+    }
+
+    // 2. Numbered suited tiles (sorted by rank: 5s before 7s before 9s)
+    if (rank >= 1 && rank <= 9) {
+      let suitOffset = 0;
+      if (label.includes('Crack') || type === 'CHAR') suitOffset = 0;
+      else if (label.includes('Bam') || type === 'BAM') suitOffset = 1;
+      else if (label.includes('Dot') || type === 'DOT') suitOffset = 2;
+      return 200 + rank * 10 + suitOffset;
+    }
+
+    // 3. Winds (East, South, West, North)
+    if (label.includes('East') || type === 'WIND_EAST') return 410;
+    if (label.includes('South') || type === 'WIND_SOUTH') return 420;
+    if (label.includes('West') || type === 'WIND_WEST') return 430;
+    if (label.includes('North') || type === 'WIND_NORTH') return 440;
+
+    // 4. Dragons (Red Dragon, Green Dragon, White Dragon)
+    if (label.includes('Red Dragon') || type === 'DRAGON_RED') return 510;
+    if (label.includes('Green Dragon') || type === 'DRAGON_GREEN') return 520;
+    if (label.includes('White Dragon') || type === 'DRAGON_WHITE') return 530;
+
+    // 5. Jokers
+    if (label.includes('Joker')) return 600;
+
+    return 700;
+  }
+  OLDCODE */
+  /* NEWCODE */
+  // Group winning hand tiles cleanly according to American Mahjongg card rules
+  private groupConcealedTiles(tiles: WinningTileData[]): WinningMeldGroup[] {
+    const melds: WinningMeldGroup[] = [];
+    if (!tiles || tiles.length === 0) return melds;
+
+    // Separate tiles into buckets
+    const flowerTiles: WinningTileData[] = [];
+    const jokerTiles: WinningTileData[] = [];
+    const naturalTiles: WinningTileData[] = [];
+
+    for (const tile of tiles) {
+      const label = tile.label || '';
+      if (tile.category === 'FLOWER' || label.includes('Flower')) {
+        flowerTiles.push(tile);
+      } else if (label.includes('Joker') || tile.category === 'JOKER' || tile.type.includes('JOKER')) {
+        jokerTiles.push(tile);
+      } else {
+        naturalTiles.push(tile);
+      }
+    }
+
+    // 1. Group Flowers (FF, FFFF)
+    if (flowerTiles.length > 0) {
+      const count = flowerTiles.length;
+      melds.push({
+        combinationName: count === 1 ? '1 Flower' : `${count} Flowers`,
+        tiles: flowerTiles
+      });
+    }
+
+    // 2. Check for NEWS Winds combination (1 East, 1 South, 1 West, 1 North)
+    const eastIdx = naturalTiles.findIndex(t => t.type === 'WIND_EAST' || t.label === 'East');
+    const southIdx = naturalTiles.findIndex(t => t.type === 'WIND_SOUTH' || t.label === 'South');
+    const westIdx = naturalTiles.findIndex(t => t.type === 'WIND_WEST' || t.label === 'West');
+    const northIdx = naturalTiles.findIndex(t => t.type === 'WIND_NORTH' || t.label === 'North');
+
+    if (eastIdx !== -1 && southIdx !== -1 && westIdx !== -1 && northIdx !== -1) {
+      // Remove the 4 wind tiles in reverse order so indexes stay correct
+      const newsIndices = [eastIdx, southIdx, westIdx, northIdx].sort((a, b) => b - a);
+      const newsTiles: WinningTileData[] = [];
+      for (const idx of newsIndices) {
+        newsTiles.unshift(naturalTiles.splice(idx, 1)[0]);
+      }
+      // Sort in clean East, South, West, North order
+      newsTiles.sort((a, b) => {
+        const order: Record<string, number> = { East: 1, South: 2, West: 3, North: 4 };
+        return (order[a.label || ''] || 0) - (order[b.label || ''] || 0);
+      });
+      melds.push({
+        combinationName: 'NEWS',
+        tiles: newsTiles
+      });
+    }
+
+    // 3. Check for White Dragon pairs (used as '00' in year hands like 2026)
+    const whiteDragonTiles = naturalTiles.filter(t => t.type === 'DRAGON_WHITE' || t.label?.includes('White Dragon'));
+    if (whiteDragonTiles.length === 2) {
+      // Remove both White Dragons from the pool
+      for (const wd of whiteDragonTiles) {
+        const idx = naturalTiles.indexOf(wd);
+        if (idx !== -1) naturalTiles.splice(idx, 1);
+      }
+      melds.push({
+        combinationName: 'Pair of White Dragon',
+        tiles: whiteDragonTiles
+      });
+    }
+
+    // 4. Check for Suited Runs / Sequences (e.g. 113579, 246, 135)
+    // In American Mahjongg, runs and pairs cannot contain Jokers
+    const suits = ['Crack', 'Bam', 'Dot'];
+    for (const suit of suits) {
+      const suitTiles = naturalTiles.filter(t => (t.label || '').includes(suit));
+      if (suitTiles.length === 0) continue;
+
+      // Group tiles by their number rank in this suit
+      const rankCounts = new Map<number, WinningTileData[]>();
+      for (const t of suitTiles) {
+        const rank = t.rank || 0;
+        if (!rankCounts.has(rank)) rankCounts.set(rank, []);
+        rankCounts.get(rank)!.push(t);
+      }
+
+      // Pattern 4A: 113579 (Odd run with a pair: e.g. 1, 1, 3, 5, 7, 9)
+      const hasOddSingles = [3, 5, 7, 9].every(r => (rankCounts.get(r)?.length || 0) >= 1);
+      const pairRank = [1, 3, 5, 7, 9].find(r => (rankCounts.get(r)?.length || 0) >= 2);
+      if (hasOddSingles && pairRank !== undefined) {
+        const runTiles: WinningTileData[] = [];
+        // Take the pair
+        runTiles.push(...rankCounts.get(pairRank)!.splice(0, 2));
+        // Take one of each other odd rank
+        for (const r of [1, 3, 5, 7, 9]) {
+          if (r !== pairRank) {
+            runTiles.push(rankCounts.get(r)!.splice(0, 1)[0]);
+          }
+        }
+        // Remove from naturalTiles
+        for (const t of runTiles) {
+          const idx = naturalTiles.indexOf(t);
+          if (idx !== -1) naturalTiles.splice(idx, 1);
+        }
+        runTiles.sort((a, b) => (a.rank || 0) - (b.rank || 0));
+        melds.push({
+          combinationName: `113579 ${suit}`,
+          tiles: runTiles
+        });
+        continue;
+      }
+
+      // Pattern 4B: 246 Even Run (single 2, single 4, single 6)
+      const has246 = (rankCounts.get(2)?.length === 1) &&
+                     (rankCounts.get(4)?.length === 1) &&
+                     (rankCounts.get(6)?.length === 1);
+      if (has246) {
+        const runTiles: WinningTileData[] = [
+          rankCounts.get(2)!.splice(0, 1)[0],
+          rankCounts.get(4)!.splice(0, 1)[0],
+          rankCounts.get(6)!.splice(0, 1)[0]
+        ];
+        for (const t of runTiles) {
+          const idx = naturalTiles.indexOf(t);
+          if (idx !== -1) naturalTiles.splice(idx, 1);
+        }
+        melds.push({
+          combinationName: `246 ${suit}`,
+          tiles: runTiles
+        });
+        continue;
+      }
+
+      // Pattern 4C: 135 Odd Run (single 1, single 3, single 5)
+      const has135 = (rankCounts.get(1)?.length === 1) &&
+                     (rankCounts.get(3)?.length === 1) &&
+                     (rankCounts.get(5)?.length === 1);
+      if (has135) {
+        const runTiles: WinningTileData[] = [
+          rankCounts.get(1)!.splice(0, 1)[0],
+          rankCounts.get(3)!.splice(0, 1)[0],
+          rankCounts.get(5)!.splice(0, 1)[0]
+        ];
+        for (const t of runTiles) {
+          const idx = naturalTiles.indexOf(t);
+          if (idx !== -1) naturalTiles.splice(idx, 1);
+        }
+        melds.push({
+          combinationName: `135 ${suit}`,
+          tiles: runTiles
+        });
+        continue;
+      }
+    }
+
+    // 5. Group remaining identical natural tiles into combinations
+    const naturalGroupsMap = new Map<string, WinningTileData[]>();
+    for (const tile of naturalTiles) {
+      const key = `${tile.type}_${tile.rank ?? ''}_${tile.label ?? ''}`;
+      if (!naturalGroupsMap.has(key)) {
+        naturalGroupsMap.set(key, []);
+      }
+      naturalGroupsMap.get(key)!.push(tile);
+    }
+
+    const groupedLists: WinningTileData[][] = Array.from(naturalGroupsMap.values());
+
+    // 6. Assign Jokers to incomplete melds:
+    // Jokers can only be used in Pungs (3), Kongs (4), Quints (5).
+    // Pairs must never receive a Joker.
+
+    // Case A: 3 natural tiles + 1 Joker -> Kong of 4 tiles (e.g. 111J)
+    for (const list of groupedLists) {
+      if (jokerTiles.length > 0 && list.length === 3) {
+        list.push(jokerTiles.pop()!);
+      }
+    }
+
+    // Case B: 1 natural tile + 2 Jokers -> Pung of 3 tiles (e.g. 6JJ)
+    for (const list of groupedLists) {
+      if (jokerTiles.length >= 2 && list.length === 1) {
+        list.push(jokerTiles.pop()!);
+        list.push(jokerTiles.pop()!);
+      }
+    }
+
+    // Case C: 2 natural tiles + 1 Joker -> Pung of 3 tiles (e.g. 88J)
+    for (const list of groupedLists) {
+      if (jokerTiles.length >= 1 && list.length === 2) {
+        list.push(jokerTiles.pop()!);
+      }
+    }
+
+    // 7. Add grouped identical combinations with clear names
+    for (const list of groupedLists) {
+      const combName = this.describeMeldGroup(list);
+      melds.push({
+        combinationName: combName,
+        tiles: list
+      });
+    }
+
+    // 8. Any remaining Jokers (fallback)
+    if (jokerTiles.length > 0) {
+      const count = jokerTiles.length;
+      melds.push({
+        combinationName: count === 1 ? '1 Joker' : `${count} Jokers`,
+        tiles: jokerTiles
+      });
+    }
+
+    return melds;
+  }
+
+  // Label the group in simple plain English
+  private describeMeldGroup(group: WinningTileData[]): string {
+    if (group.length === 0) return '';
+
+    // Find the first natural tile to get the name
+    let rep = group[0];
+    for (const t of group) {
+      if (!t.label?.includes('Joker')) {
+        rep = t;
+        break;
+      }
+    }
+
+    const count = group.length;
+    if (rep.category === 'FLOWER' || rep.label?.includes('Flower')) {
+      return count === 1 ? '1 Flower' : `${count} Flowers`;
+    }
+    if (rep.label?.includes('Joker')) {
+      return count === 1 ? '1 Joker' : `${count} Jokers`;
+    }
+
+    if (count === 2) return `Pair of ${rep.label}`;
+    if (count === 3) return `Pung of ${rep.label}`;
+    if (count === 4) return `Kong of ${rep.label}`;
+    if (count === 5) return `Quint of ${rep.label}`;
+    if (count === 6) return `Sextet of ${rep.label}`;
+
+    return `${count} ${rep.label}`;
+  }
+
+  // Card sort order: Flowers (100) -> Suited Units (200 + suit) -> Dragons (400) -> Winds (500)
+  private getWinningGroupSortOrder(group: WinningMeldGroup): number {
+    if (!group.tiles || group.tiles.length === 0) return 999;
+
+    const combName = group.combinationName || '';
+
+    // 1. Flowers first
+    if (combName.includes('Flower')) return 100;
+
+    // 2. NEWS winds
+    if (combName === 'NEWS') return 500;
+
+    // 3. White Dragon / Dragons
+    if (combName.includes('White Dragon') || combName.includes('Dragon')) return 400;
+
+    // 4. Suited combinations: Keep suit and run together
+    let rep = group.tiles[0];
+    for (const t of group.tiles) {
+      if (!t.label?.includes('Joker')) {
+        rep = t;
+        break;
+      }
+    }
+
+    const label = rep.label || combName;
+    let suitOffset = 0;
+    if (label.includes('Crack')) suitOffset = 10;
+    else if (label.includes('Dot')) suitOffset = 20;
+    else if (label.includes('Bam')) suitOffset = 30;
+
+    const minRank = Math.min(...group.tiles.map(t => t.rank || 9));
+    return 200 + suitOffset * 5 + minRank;
+  }
+  /* NEWCODE */
+  /* NEWCODE */
 
   public getTileCornerRank(tile: WinningTileData): string {
     if ((tile.category as any) === TileCategoryEnumAddon.JOKER || tile.category === 'JOKER' || tile.type.includes('JOKER')) return 'J';
@@ -2470,6 +3371,80 @@ export class PhaserComponent implements AfterViewInit {
       }
     };
     this.setMahjongWinPopup(mockWinResult);
+  }
+
+  // Dummy Wall Game test helper - callable via console: testWallGame()
+  public testWallGame(): void {
+    this.gameOverState.set({
+      isVisible: true,
+      title: 'Wall Game',
+      message: 'That means no one win the game.',
+      reason: 'WALL_EMPTY'
+    });
+    this.isResultPopupHidden.set(false);
+    this.wallGameOver.set(true);
+
+    // Fallback discard area rect if not yet computed by Phaser layout
+    if (!this.discardAreaRect()) {
+      const host = this.hostRef?.nativeElement;
+      const width = host?.clientWidth || 800;
+      const height = host?.clientHeight || 600;
+      this.discardAreaRect.set({
+        x: Math.round(width * 0.2),
+        y: Math.round(height * 0.25),
+        width: Math.round(width * 0.6),
+        height: Math.round(height * 0.5)
+      });
+    }
+
+    const allTilesMap = this.gameState.game_all_tiles();
+    const tileIds = Object.keys(allTilesMap || {}).map(Number);
+
+    // 1. Check if real seats are present in active state
+    const seats = this.gameState.play_seats();
+    const getSeatPos = this.gameState.seat_position_by_gseat_id();
+    const opponentHands: Record<string, number[]> = {};
+
+    if (seats && typeof seats === 'object') {
+      for (const seat of Object.values(seats) as any[]) {
+        const seatPos = getSeatPos(seat?.id);
+        if (seatPos && seatPos !== 'bottom') {
+          const rack = seat?.racks?.[1] || seat?.racks?.["1"];
+          const ids: number[] = rack?.hand_order && Array.isArray(rack.hand_order)
+            ? rack.hand_order
+            : rack?.hand && typeof rack.hand === 'object'
+              ? Object.keys(rack.hand).map(Number)
+              : [];
+          if (ids.length > 0) {
+            opponentHands[seatPos] = ids;
+          }
+        }
+      }
+    }
+
+    // 2. Fallback to sample mock tiles if empty so user can test anytime
+    if (!opponentHands['top'] || opponentHands['top'].length === 0) {
+      opponentHands['top'] = tileIds.length >= 42
+        ? tileIds.slice(0, 14)
+        : [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14];
+    }
+    if (!opponentHands['left'] || opponentHands['left'].length === 0) {
+      opponentHands['left'] = tileIds.length >= 42
+        ? tileIds.slice(14, 28)
+        : [15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28];
+    }
+    if (!opponentHands['right'] || opponentHands['right'].length === 0) {
+      opponentHands['right'] = tileIds.length >= 42
+        ? tileIds.slice(28, 42)
+        : [29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42];
+    }
+
+    this.phaser?.events.emit("table:wall-game", opponentHands);
+  }
+
+  public closeWallGame(): void {
+    this.wallGameOver.set(false);
+    this.isResultPopupHidden.set(false);
   }
   /* NEWCODE */
 

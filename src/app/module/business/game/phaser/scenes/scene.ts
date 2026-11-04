@@ -135,7 +135,12 @@ export class PhaserScene extends Phaser.Scene {
   // Tracks if the user has manually arranged tiles in their rack via drag-and-drop
   private hasUserManualRackOrder: boolean = false;
   /* NEWCODE */
+  /* OLDCODE
   private pendingLocalJokerSwap?: { fromTileId: number; jokerTileId: number; rackIndex: number };
+  OLDCODE */
+  /* NEWCODE */
+  private pendingLocalJokerSwap?: { fromTileId: number; jokerTileId: number; rackIndex: number; mode?: "double-tap" | "drag-and-drop" };
+  /* NEWCODE */
   // NEWCODE
   private get dragPointerId(): number | undefined { return this.stateManager.dragPointerId; }
   private set dragPointerId(value: number | undefined) { this.stateManager.dragPointerId = value; }
@@ -1171,7 +1176,14 @@ export class PhaserScene extends Phaser.Scene {
             runtime.zone = "rack";
             this.tweens.killTweensOf(runtime.image);
             runtime.image.setVisible(true);
+            /* OLDCODE
             runtime.image.setScale(1);
+            OLDCODE */
+            /* NEWCODE */
+            const rackTileWidth = Math.round(this.layout.bottomTileLayout.width);
+            const rackTileHeight = Math.round(this.layout.bottomTileLayout.height);
+            runtime.image.setDisplaySize(rackTileWidth, rackTileHeight);
+            /* NEWCODE */
             runtime.image.setAlpha(1);
             runtime.image.setInteractive();
           }
@@ -1771,11 +1783,21 @@ export class PhaserScene extends Phaser.Scene {
     const incomingIds = new Set(this.rackTiles.map((tile) => tile.tile_id!));
     // Remove any stale rack slots created before a tile was moved to an
     // exposure. This keeps the next picked tile beside the last rack tile.
+    /* OLDCODE
     for (const runtime of this.tileMap.values()) {
       if (runtime.zone === "exposure") {
         this.removeFromRackOrder(runtime.vm.tile_id!);
       }
     }
+    OLDCODE */
+    /* NEWCODE */
+    // Only remove from rack order if the tile is still in an active exposure on the server
+    for (const runtime of this.tileMap.values()) {
+      if (runtime.zone === "exposure" && this.isTileInAnyExposure(runtime.vm.tile_id!)) {
+        this.removeFromRackOrder(runtime.vm.tile_id!);
+      }
+    }
+    /* NEWCODE */
     for (const [id, runtime] of this.tileMap.entries()) {
       if (!incomingIds.has(id)) {
         if (this.passWaitingTileIds.includes(id) || this.discardedTileIds.includes(id) || runtime.zone === "exposure") {
@@ -1923,9 +1945,25 @@ export class PhaserScene extends Phaser.Scene {
       if (existingRuntime) continue;
     OLDCODE */
     /* NEWCODE */
+    const activeServerTileIds = new Set(this.rackTiles.map((t) => t.tile_id!));
+
+    // Clean up any rack tiles in tileMap that are no longer in the server rack (e.g. swapped, called, or discarded)
+    for (const [id, runtime] of this.tileMap.entries()) {
+      if (runtime.zone === "rack" && !activeServerTileIds.has(id)) {
+        if (runtime.image && runtime.image.active) {
+          runtime.image.destroy();
+        }
+        this.tileMap.delete(id);
+        this.removeFromRackOrder(id);
+      }
+    }
+
     // Ensure all tiles confirmed in rack by server are visible, interactive, and set to rack zone
     for (const tile of this.rackTiles) {
-      const existingRuntime = this.tileMap.get(tile.tile_id!);
+      /* NEWCODE */
+      const numTileId = Number(tile.tile_id!);
+      /* NEWCODE */
+      const existingRuntime = this.tileMap.get(tile.tile_id!) ?? this.tileMap.get(numTileId);
 
       if (existingRuntime) {
         // Hide close button if tile was in pass waiting
@@ -1935,6 +1973,7 @@ export class PhaserScene extends Phaser.Scene {
           closeBtn.setVisible(false);
         }
 
+        /* OLDCODE
         // Skip tiles that belong to an active exposure or are being built into an exposure
         const isExposed = this.isTileInAnyExposure(tile.tile_id!) || this.activeExposureBuildTileIds.includes(tile.tile_id!);
         if (isExposed || existingRuntime.zone === "exposure") {
@@ -1952,11 +1991,43 @@ export class PhaserScene extends Phaser.Scene {
           existingRuntime.image.removeAllListeners();
           this.registerTileInput(existingRuntime);
         }
+        OLDCODE */
+        /* NEWCODE */
+        // Skip tiles that belong to an active exposure or are being built into an exposure
+        const isExposed = this.isTileInAnyExposure(numTileId) || this.activeExposureBuildTileIds.includes(numTileId);
+        if (isExposed) {
+          continue;
+        }
+
+        // If the tile was in exposure or pass waiting, return it to the rack
+        if (existingRuntime.zone === "exposure" || existingRuntime.zone === "pass") {
+          existingRuntime.zone = "rack";
+          existingRuntime.selected = false;
+          existingRuntime.isDragging = false;
+          existingRuntime.image.clearTint();
+          existingRuntime.image.setData("joker-swap-enabled", false);
+          existingRuntime.image.setData("exposure-asset", undefined);
+          existingRuntime.image.setData("joker-tile-id", undefined);
+          existingRuntime.image.setData("joker-seat", undefined);
+          existingRuntime.image.off("pointerup");
+          existingRuntime.image.setDepth(30);
+          this.applyTileTextureFilter(existingRuntime.image, true);
+          existingRuntime.image.removeAllListeners();
+          this.registerTileInput(existingRuntime);
+        }
+        /* NEWCODE */
 
         // Stop any pass animation tweens and restore visibility and scale for rack tiles
         this.tweens.killTweensOf(existingRuntime.image);
         existingRuntime.image.setVisible(true);
+        /* OLDCODE
         existingRuntime.image.setScale(1);
+        OLDCODE */
+        /* NEWCODE */
+        const rackTileWidth = Math.round(this.layout.bottomTileLayout.width);
+        const rackTileHeight = Math.round(this.layout.bottomTileLayout.height);
+        existingRuntime.image.setDisplaySize(rackTileWidth, rackTileHeight);
+        /* NEWCODE */
         existingRuntime.image.setInteractive();
 
         /* OLDCODE
@@ -1985,6 +2056,7 @@ export class PhaserScene extends Phaser.Scene {
 
       // Include new tile into rack order so it is displayed on the rack
       const isOptimisticPassing = this.tablePhase === GamePhaseEnum.PASSING && this.stateManager.optimisticPassTileIds.includes(tile.tile_id!);
+      /* OLDCODE
       if (
         !this.rackOrder.includes(tile.tile_id!) &&
         !this.discardedTileIds.includes(tile.tile_id!) &&
@@ -1993,6 +2065,38 @@ export class PhaserScene extends Phaser.Scene {
       ) {
         this.rackOrder.push(tile.tile_id!);
       }
+      OLDCODE */
+      /* OLDCODE
+      if (
+        !this.rackOrder.includes(tile.tile_id!) &&
+        !this.discardedTileIds.includes(tile.tile_id!) &&
+        !isOptimisticPassing &&
+        existingRuntime?.zone !== "exposure"
+      ) {
+        if (this.pendingLocalJokerSwap && this.pendingLocalJokerSwap.jokerTileId === tile.tile_id!) {
+          const safeIdx = Phaser.Math.Clamp(this.pendingLocalJokerSwap.rackIndex, 0, this.rackOrder.length);
+          this.rackOrder.splice(safeIdx, 0, tile.tile_id!);
+        } else {
+          this.rackOrder.push(tile.tile_id!);
+        }
+      }
+      OLDCODE */
+      /* NEWCODE */
+      const isExposedNow = this.isTileInAnyExposure(numTileId);
+      if (
+        !this.rackOrder.some(id => Number(id) === numTileId) &&
+        !this.discardedTileIds.includes(numTileId) &&
+        !isOptimisticPassing &&
+        !isExposedNow
+      ) {
+        if (this.pendingLocalJokerSwap && Number(this.pendingLocalJokerSwap.jokerTileId) === numTileId) {
+          const safeIdx = Phaser.Math.Clamp(this.pendingLocalJokerSwap.rackIndex, 0, this.rackOrder.length);
+          this.rackOrder.splice(safeIdx, 0, numTileId);
+        } else {
+          this.rackOrder.push(numTileId);
+        }
+      }
+      /* NEWCODE */
 
       if (existingRuntime) continue;
       /* NEWCODE */
@@ -2063,7 +2167,7 @@ export class PhaserScene extends Phaser.Scene {
         this.animatingPickTileId = tile.tile_id!;
       }
       OLDCODE */
-      /* NEWCODE */
+      /* OLDCODE
       // Check if this new tile was picked from wall (either flag is true, or rack reached 14 tiles in play phase)
       const isPickAction = this.isWaitingForPickResponse ||
         (this.tablePhase === GamePhaseEnum.PLAYING && this.rackTiles.length === 14);
@@ -2074,6 +2178,26 @@ export class PhaserScene extends Phaser.Scene {
         runtime.image.setAlpha(0);
         this.pendingLocalPickRuntime = runtime;
         this.animatingPickTileId = tile.tile_id!;
+      }
+      OLDCODE */
+      /* NEWCODE */
+      // Check if this tile is arriving via a Joker exchange (must NOT trigger wall pick animation)
+      const isJokerSwapTile = (this.pendingLocalJokerSwap && this.pendingLocalJokerSwap.jokerTileId === tile.tile_id) ||
+        (this.isJoker(tile.tile_id!) && this.pendingLocalJokerSwap !== undefined);
+
+      // A wall pick ONLY triggers if the local player explicitly initiated a wall pick
+      // (this.isWaitingForPickResponse) and this tile is NOT an incoming Joker swap.
+      const isPickAction = this.isWaitingForPickResponse && !isJokerSwapTile;
+
+      if (isPickAction) {
+        this.isWaitingForPickResponse = false;
+        // Keep tile invisible on the rack until the wall-to-rack flight finishes
+        runtime.image.setAlpha(0);
+        this.pendingLocalPickRuntime = runtime;
+        this.animatingPickTileId = tile.tile_id!;
+      } else if (isJokerSwapTile) {
+        // Keep Joker invisible on rack until animateJokerExchange flight completes
+        runtime.image.setAlpha(0);
       }
       /* NEWCODE */
 
@@ -2142,6 +2266,7 @@ export class PhaserScene extends Phaser.Scene {
     }
     OLDCODE */
     /* NEWCODE */
+    /* OLDCODE
     if (this.hasUserManualRackOrder) {
       // User has manually arranged tiles: preserve existing relative order
       const activeTileIdSet = new Set(
@@ -2153,11 +2278,16 @@ export class PhaserScene extends Phaser.Scene {
       // Keep existing tiles in current manual positions, removing discarded/exposed tiles
       const preservedOrder = this.rackOrder.filter((id) => activeTileIdSet.has(id));
 
-      // Append any newly drawn/picked tiles to the end of the rack
+      // Insert newly acquired tiles (restoring returning Joker to its original slot if swapped)
       for (const tile of this.rackTiles) {
         const id = tile.tile_id!;
         if (activeTileIdSet.has(id) && !preservedOrder.includes(id)) {
-          preservedOrder.push(id);
+          if (this.pendingLocalJokerSwap && this.pendingLocalJokerSwap.jokerTileId === id) {
+            const targetIdx = Phaser.Math.Clamp(this.pendingLocalJokerSwap.rackIndex, 0, preservedOrder.length);
+            preservedOrder.splice(targetIdx, 0, id);
+          } else {
+            preservedOrder.push(id);
+          }
         }
       }
       this.rackOrder = preservedOrder;
@@ -2168,21 +2298,49 @@ export class PhaserScene extends Phaser.Scene {
         .filter((id) => !this.discardedTileIds.includes(id) && !this.isTileInAnyExposure(id));
 
       if (apiOrderIds.length > 0) {
-        const syncedOrder: number[] = [];
+        // Keep existing tiles in current positions, filtering out any removed tiles
+        const preservedOrder = this.rackOrder.filter((id) => apiOrderIds.includes(id));
         for (const id of apiOrderIds) {
-          if (!syncedOrder.includes(id)) {
-            syncedOrder.push(id);
+          if (!preservedOrder.includes(id)) {
+            if (this.pendingLocalJokerSwap && this.pendingLocalJokerSwap.jokerTileId === id) {
+              const targetIdx = Phaser.Math.Clamp(this.pendingLocalJokerSwap.rackIndex, 0, preservedOrder.length);
+              preservedOrder.splice(targetIdx, 0, id);
+            } else {
+              preservedOrder.push(id);
+            }
           }
         }
-        // Keep any remaining rack tiles
-        for (const id of this.rackOrder) {
-          if (!syncedOrder.includes(id) && !this.discardedTileIds.includes(id) && !this.isTileInAnyExposure(id)) {
-            syncedOrder.push(id);
-          }
-        }
-        this.rackOrder = syncedOrder;
+        this.rackOrder = preservedOrder;
       }
     }
+    OLDCODE */
+    /* NEWCODE */
+    // Sync rackOrder using numeric tile IDs to avoid string/number mismatch
+    const activeTileIdSet = new Set(
+      this.rackTiles
+        .map((t) => Number(t.tile_id!))
+        .filter((id) => !this.discardedTileIds.includes(id) && !this.isTileInAnyExposure(id))
+    );
+
+    // Keep existing tiles in current relative positions
+    const preservedOrder = this.rackOrder
+      .map((id) => Number(id))
+      .filter((id) => activeTileIdSet.has(id));
+
+    // Insert newly acquired tiles (restoring Joker to its original slot)
+    for (const tile of this.rackTiles) {
+      const id = Number(tile.tile_id!);
+      if (activeTileIdSet.has(id) && !preservedOrder.includes(id)) {
+        if (this.pendingLocalJokerSwap && Number(this.pendingLocalJokerSwap.jokerTileId) === id) {
+          const targetIdx = Phaser.Math.Clamp(this.pendingLocalJokerSwap.rackIndex, 0, preservedOrder.length);
+          preservedOrder.splice(targetIdx, 0, id);
+        } else {
+          preservedOrder.push(id);
+        }
+      }
+    }
+    this.rackOrder = preservedOrder;
+    /* NEWCODE */
     /* NEWCODE */
 
     this.reindexRackRuntimeSlots();
@@ -2269,9 +2427,17 @@ export class PhaserScene extends Phaser.Scene {
     }
   }
 
+  /* OLDCODE
   private removeFromRackOrder(tileId: number): void {
     this.rackOrder = this.rackOrder.filter((id) => id !== tileId);
   }
+  OLDCODE */
+  /* NEWCODE */
+  private removeFromRackOrder(tileId: number): void {
+    const numericId = Number(tileId);
+    this.rackOrder = this.rackOrder.filter((id) => Number(id) !== numericId);
+  }
+  /* NEWCODE */
 
   private removeFromDiscardOrder(tileId: number): void {
     const index = this.discardedTileIds.indexOf(tileId);
@@ -2454,6 +2620,7 @@ export class PhaserScene extends Phaser.Scene {
         )
       ) return;
 
+      /* OLDCODE
       if (!runtime.isDragging) {
         runtime.isDragging = true;
 
@@ -2464,12 +2631,25 @@ export class PhaserScene extends Phaser.Scene {
         this.callbacks.onSelectionChanged([...this.selectedIds]);
       }
 
-      /* OLDCODE
-            runtime.image.setPosition(Math.round(dragX), Math.round(dragY));
-      OLDCODE */
-      /* NEWCODE */
       runtime.image.setPosition(Math.round(dragX), Math.round(dragY));
       this.updateDragProxy(runtime, dragX, dragY);
+      OLDCODE */
+      /* NEWCODE */
+      if (!runtime.isDragging) {
+        runtime.isDragging = true;
+
+        runtime.selected = false;
+        this.selectedIds.delete(runtime.vm.tile_id!);
+        runtime.image.clearTint();
+
+        this.callbacks.onSelectionChanged([...this.selectedIds]);
+        // Mode B: Set opacity of original tile slot in rack to 30% via ghost image
+        this.showRackDragGhost(runtime);
+      }
+
+      runtime.image.setPosition(Math.round(dragX), Math.round(dragY));
+      this.updateDragProxy(runtime, dragX, dragY);
+      this.updateJokerMagneticProximity(runtime, pointer.worldX, pointer.worldY);
       /* NEWCODE */
 
       if (runtime.zone === "rack") {
@@ -2568,8 +2748,16 @@ export class PhaserScene extends Phaser.Scene {
           this.tileInteractionManager.handleDrop(runtime, pointer, () => {
     OLDCODE */
     /* NEWCODE */
+    /* OLDCODE
     this.tileInteractionManager.onDragEnd(runtime.image, (pointer: Phaser.Input.Pointer) => {
       this.hideDragProxy();
+      this.tileInteractionManager.handleDrop(runtime, pointer, () => {
+    OLDCODE */
+    /* NEWCODE */
+    this.tileInteractionManager.onDragEnd(runtime.image, (pointer: Phaser.Input.Pointer) => {
+      this.hideDragProxy();
+      this.hideRackDragGhost();
+      this.clearJokerMagneticProximity();
       this.tileInteractionManager.handleDrop(runtime, pointer, () => {
         /* NEWCODE */
         const tileId = runtime.vm.tile_id ?? (runtime.vm as any).id;
@@ -2633,12 +2821,15 @@ export class PhaserScene extends Phaser.Scene {
     });
 
     /* OLDCODE
-        this.tileInteractionManager.onPointerUp(runtime.image, () => {
-          this.activeDragTile = undefined;
+    this.tileInteractionManager.onPointerUp(runtime.image, () => {
+      this.hideDragProxy();
+      this.activeDragTile = undefined;
     OLDCODE */
     /* NEWCODE */
     this.tileInteractionManager.onPointerUp(runtime.image, () => {
       this.hideDragProxy();
+      this.hideRackDragGhost();
+      this.clearJokerMagneticProximity();
       this.activeDragTile = undefined;
       /* NEWCODE */
       const tileId = runtime.vm.tile_id ?? (runtime.vm as any).id;
@@ -2666,10 +2857,27 @@ export class PhaserScene extends Phaser.Scene {
       }
 
       if (this.tablePhase === GamePhaseEnum.PLAYING) {
+        /* OLDCODE
         if (this.canAddTileToBottomExposure(runtime.vm)) {
           this.moveRackTileToBottomExposure(runtime);
           return;
         }
+        OLDCODE */
+        /* NEWCODE */
+        // Mode A (Double-Tap): Double-tapping matching natural tile in rack triggers automated flight
+        if (this.activeSeat === "bottom" && this.turnStage === GameTurnStageEnum.NEED_DISCARD) {
+          const matchingJoker = this.findMatchingExposedJokerForTile(runtime.vm);
+          if (matchingJoker) {
+            this.executeJokerSwap(matchingJoker, runtime, "double-tap");
+            return;
+          }
+        }
+
+        if (this.canAddTileToBottomExposure(runtime.vm)) {
+          this.moveRackTileToBottomExposure(runtime);
+          return;
+        }
+        /* NEWCODE */
 
         if (this.canDiscard) {
           runtime.selected = false;
@@ -2702,6 +2910,7 @@ export class PhaserScene extends Phaser.Scene {
     }
   }
   // 
+  /* OLDCODE
   private returnTileToSlot(runtime: TileRuntime): void {
     runtime.zone = "rack";
 
@@ -2722,6 +2931,30 @@ export class PhaserScene extends Phaser.Scene {
       this.config.animation.dragReturnMs,
     );
   }
+  OLDCODE */
+  /* NEWCODE */
+  private returnTileToSlot(runtime: TileRuntime): void {
+    runtime.zone = "rack";
+    runtime.image.setAlpha(1.0);
+
+    if (!this.rackOrder.includes(runtime.vm.tile_id!)) {
+      this.rackOrder.push(runtime.vm.tile_id!);
+      this.reindexRackRuntimeSlots();
+    }
+
+    const slot = this.slotFor(runtime);
+    const selectedOffset = runtime.selected
+      ? -this.layout.bottomTileLayout.height * 0.18
+      : 0;
+
+    this.animationManager.animateRackTileReturn(
+      runtime.image,
+      Math.round(slot.x),
+      Math.round(slot.y + selectedOffset),
+      200,
+    );
+  }
+  /* NEWCODE */
   // NEWCODE
   private getRackBounds(): { x: number, width: number } {
     if (!this.layout || !this.layout.bottomRack) return { x: 0, width: 0 };
@@ -2776,6 +3009,7 @@ export class PhaserScene extends Phaser.Scene {
     }
   OLDCODE */
   /* NEWCODE */
+  /* OLDCODE
   private slotFor(runtime: TileRuntime): Point {
     let index = this.rackOrder.indexOf(runtime.vm.tile_id!);
     if (index === -1 && runtime.zone === "rack") {
@@ -2804,6 +3038,53 @@ export class PhaserScene extends Phaser.Scene {
       y: slot ? slot.y : this.layout.bottomRack.y + this.layout.bottomRack.height / 2,
     };
   }
+  OLDCODE */
+  /* NEWCODE */
+  private slotForIndex(slotIndex: number): Point {
+    const safeIndex = Math.max(0, slotIndex);
+    const slot = this.layout.bottomTileLayout.slots[safeIndex];
+
+    const tileWidth = this.layout.bottomTileLayout.width;
+    const finalGap = this.layout.bottomTileLayout.gap;
+    const totalWidth = this.rackOrder.length * tileWidth + finalGap * (this.rackOrder.length - 1);
+    const bounds = this.getRackBounds();
+
+    let baseStartX = bounds.x + tileWidth / 2;
+    if (totalWidth < bounds.width) {
+      baseStartX = bounds.x + bounds.width / 2 - totalWidth / 2 + tileWidth / 2;
+    }
+
+    const slotX = baseStartX + safeIndex * (tileWidth + finalGap) - this.rackScrollX;
+
+    return {
+      x: slotX,
+      y: slot ? slot.y : this.layout.bottomRack.y + this.layout.bottomRack.height / 2,
+    };
+  }
+
+  /* OLDCODE
+  private slotFor(runtime: TileRuntime): Point {
+    let index = this.rackOrder.indexOf(runtime.vm.tile_id!);
+    if (index === -1 && runtime.zone === "rack") {
+      this.rackOrder.push(runtime.vm.tile_id!);
+      this.reindexRackRuntimeSlots();
+      index = this.rackOrder.length - 1;
+    }
+    return this.slotForIndex(index);
+  }
+  OLDCODE */
+  /* NEWCODE */
+  // Get slot position for a tile without modifying rackOrder
+  private slotFor(runtime: TileRuntime): Point {
+    const tileId = Number(runtime.vm.tile_id!);
+    let index = this.rackOrder.findIndex((id) => Number(id) === tileId);
+    if (index === -1) {
+      index = Math.max(0, runtime.slotIndex ?? 0);
+    }
+    return this.slotForIndex(index);
+  }
+  /* NEWCODE */
+  /* NEWCODE */
   /* NEWCODE */
   private drawTable(): void {
     const gBg = this.bgGraphics;
@@ -3961,12 +4242,25 @@ export class PhaserScene extends Phaser.Scene {
       proxy.src = dataUrl;
     }
 
+    /* OLDCODE
     const width = Math.round(runtime.image.displayWidth);
     const height = Math.round(runtime.image.displayHeight);
     proxy.style.width = `${width}px`;
     proxy.style.height = `${height}px`;
     proxy.style.transform = `translate3d(${Math.round(dragX - width / 2)}px, ${Math.round(dragY - height / 2)}px, 0)`;
     proxy.style.display = "block";
+    OLDCODE */
+    /* NEWCODE */
+    const dpr = this.renderDpr || (typeof window !== 'undefined' ? window.devicePixelRatio : 1) || 1;
+    const width = Math.round(runtime.image.displayWidth / dpr);
+    const height = Math.round(runtime.image.displayHeight / dpr);
+    const screenX = Math.round(dragX / dpr);
+    const screenY = Math.round(dragY / dpr);
+    proxy.style.width = `${width}px`;
+    proxy.style.height = `${height}px`;
+    proxy.style.transform = `translate3d(${Math.round(screenX - width / 2)}px, ${Math.round(screenY - height / 2)}px, 0)`;
+    proxy.style.display = "block";
+    /* NEWCODE */
   }
 
   private updateDragProxy(runtime: TileRuntime, dragX: number, dragY: number): void {
@@ -3975,9 +4269,19 @@ export class PhaserScene extends Phaser.Scene {
       this.showDragProxy(runtime, dragX, dragY);
       return;
     }
+    /* OLDCODE
     const width = Math.round(runtime.image.displayWidth);
     const height = Math.round(runtime.image.displayHeight);
     proxy.style.transform = `translate3d(${Math.round(dragX - width / 2)}px, ${Math.round(dragY - height / 2)}px, 0)`;
+    OLDCODE */
+    /* NEWCODE */
+    const dpr = this.renderDpr || (typeof window !== 'undefined' ? window.devicePixelRatio : 1) || 1;
+    const width = Math.round(runtime.image.displayWidth / dpr);
+    const height = Math.round(runtime.image.displayHeight / dpr);
+    const screenX = Math.round(dragX / dpr);
+    const screenY = Math.round(dragY / dpr);
+    proxy.style.transform = `translate3d(${Math.round(screenX - width / 2)}px, ${Math.round(screenY - height / 2)}px, 0)`;
+    /* NEWCODE */
   }
 
   private hideDragProxy(): void {
@@ -3985,6 +4289,112 @@ export class PhaserScene extends Phaser.Scene {
     if (proxy) {
       proxy.style.display = "none";
     }
+  }
+
+  /* NEWCODE */
+  private rackDragGhostImage: Phaser.GameObjects.Image | null = null;
+  private activeMagneticJokerImage: Phaser.GameObjects.Image | null = null;
+  private jokerTargetBorderGraphics: Phaser.GameObjects.Graphics | null = null;
+
+  private showRackDragGhost(runtime: TileRuntime): void {
+    if (!this.layout?.bottomTileLayout) return;
+    this.hideRackDragGhost();
+    const slot = this.slotFor(runtime);
+    const texture = this.resolveTileTexture(runtime.vm);
+    const width = Math.round(this.layout.bottomTileLayout.width);
+    const height = Math.round(this.layout.bottomTileLayout.height);
+    const ghost = this.add.image(Math.round(slot.x), Math.round(slot.y), texture.atlasKey, texture.frameKey);
+    ghost.setDisplaySize(width, height);
+    ghost.setOrigin(0.5);
+    ghost.setAlpha(0.3); // Set opacity of original tile slot in rack to 30%
+    ghost.setDepth(20);
+    this.rackDragGhostImage = ghost;
+  }
+
+  private hideRackDragGhost(): void {
+    if (this.rackDragGhostImage && this.rackDragGhostImage.active) {
+      this.rackDragGhostImage.destroy();
+    }
+    this.rackDragGhostImage = null;
+  }
+
+  private updateJokerMagneticProximity(runtime: TileRuntime, x: number, y: number): void {
+    if (this.tablePhase !== GamePhaseEnum.PLAYING || this.activeSeat !== "bottom" || this.turnStage !== GameTurnStageEnum.NEED_DISCARD) {
+      this.clearJokerMagneticProximity();
+      return;
+    }
+    if (runtime.zone !== "rack") return;
+
+    let nearestJoker: Phaser.GameObjects.Image | null = null;
+    let minDistance = 40; // 40px proximity threshold
+
+    const checkCandidate = (img: Phaser.GameObjects.Image) => {
+      if (!img.active || !img.getData("joker-swap-enabled")) return;
+      const asset = img.getData("exposure-asset") as string | undefined;
+      if (!this.isMatchingJokerReplacement(runtime.vm, asset)) return;
+      const bounds = img.getBounds();
+      const dx = Math.max(bounds.x - x, 0, x - (bounds.x + bounds.width));
+      const dy = Math.max(bounds.y - y, 0, y - (bounds.y + bounds.height));
+      const dist = Math.sqrt(dx * dx + dy * dy);
+      if (dist <= 40 && dist < minDistance) {
+        minDistance = dist;
+        nearestJoker = img;
+      }
+    };
+
+    for (const img of this.calledBottomExposureTiles) checkCandidate(img);
+    for (const seat of ["top", "left", "right"] as const) {
+      for (const img of this.calledOpponentExposureTiles[seat]) checkCandidate(img);
+    }
+
+    if (nearestJoker !== this.activeMagneticJokerImage) {
+      this.clearJokerMagneticProximity();
+      if (nearestJoker) {
+        this.activeMagneticJokerImage = nearestJoker;
+        const baseScale = (nearestJoker as any).getData("base-scale") ?? (nearestJoker as any).scaleX;
+        (nearestJoker as any).setData("base-scale", baseScale);
+        (nearestJoker as any).setScale(baseScale * 0.92);
+
+        if (!this.jokerTargetBorderGraphics) {
+          this.jokerTargetBorderGraphics = this.add.graphics().setDepth(160);
+        }
+        this.jokerTargetBorderGraphics.clear();
+        this.jokerTargetBorderGraphics.lineStyle(3, 0xffd700, 1);
+        const bounds = (nearestJoker as any).getBounds();
+        this.jokerTargetBorderGraphics.strokeRoundedRect(bounds.x - 4, bounds.y - 4, bounds.width + 8, bounds.height + 8, 4);
+      }
+    }
+  }
+
+  private clearJokerMagneticProximity(): void {
+    if (this.activeMagneticJokerImage && this.activeMagneticJokerImage.active) {
+      const baseScale = this.activeMagneticJokerImage.getData("base-scale");
+      if (baseScale != null) {
+        this.activeMagneticJokerImage.setScale(baseScale);
+      }
+    }
+    this.activeMagneticJokerImage = null;
+    if (this.jokerTargetBorderGraphics) {
+      this.jokerTargetBorderGraphics.clear();
+    }
+  }
+
+  private findMatchingExposedJokerForTile(tile: GameTileEntity): Phaser.GameObjects.Image | null {
+    const checkCandidate = (img: Phaser.GameObjects.Image): boolean => {
+      if (!img.active || !img.getData("joker-swap-enabled")) return false;
+      const asset = img.getData("exposure-asset") as string | undefined;
+      return this.isMatchingJokerReplacement(tile, asset);
+    };
+
+    for (const img of this.calledBottomExposureTiles) {
+      if (checkCandidate(img)) return img;
+    }
+    for (const seat of ["top", "left", "right"] as const) {
+      for (const img of this.calledOpponentExposureTiles[seat]) {
+        if (checkCandidate(img)) return img;
+      }
+    }
+    return null;
   }
   /* NEWCODE */
 
@@ -4018,6 +4428,8 @@ export class PhaserScene extends Phaser.Scene {
     let discardAreaChanged = false;
 
     // console.log("[PhaserScene] handleExposuresSet processing...");
+    /* OLDCODE
+    let bottomMeldIndex = 0;
     for (const meld of exposures.bottom) {
       if (!meld) continue;
 
@@ -4103,22 +4515,6 @@ export class PhaserScene extends Phaser.Scene {
           }
         }
 
-        // OLDCODE         // Recover incomplete CALL melds (active claims) during the exposure turn stage.
-        // OLDCODE         // Completed exposures will have length >= 3 and should not be recovered.
-        // OLDCODE         if (meld.kind === 15 /* CALL */ && tilesToProcess.length < 3 && this.turnStage === GameTurnStageEnum.NEED_EXPOSURE) {
-        // OLDCODE           if (this.pendingCallTileId !== tile.tile_id) {
-        // OLDCODE             this.pendingCallTileId = tile.tile_id;
-        // OLDCODE             this.pendingCallHasExposedRackTile = false;
-        // OLDCODE           }
-        // OLDCODE           if (!this.exposureBuildAsset) {
-        // OLDCODE             this.exposureBuildAsset = meldAsset || this.gameService.assetBaseName(this.allTiles[tile.tile_id]);
-        // OLDCODE           }
-        // OLDCODE           if (!this.activeExposureBuildTileIds.includes(tile.tile_id)) {
-        // OLDCODE             this.activeExposureBuildTileIds.push(tile.tile_id);
-        // OLDCODE           }
-        // OLDCODE           this.ensureExposureCloseButton(tile.tile_id);
-        // OLDCODE         }
-        /* NEWCODE */
         const isCallMeld = meld.kind === GamePlayActionEnum.CALL
           || meld.kind === "CALL"
           || (meld.kind as any) === 15
@@ -4140,27 +4536,146 @@ export class PhaserScene extends Phaser.Scene {
             this.positionExposureCloseButton(tile.tile_id);
           }
         }
-        /* NEWCODE */
 
-        /* OLDCODE
-        this.removeTileTextureFilter(runtime.image);
-        OLDCODE */
-        /* OLDCODE
-        // Keep shadow on exposure tiles
-        this.applyTileTextureFilter(runtime.image, true);
-        OLDCODE */
-        /* NEWCODE */
         // Remove shadow when tile moves to exposure (shadow only shown in rack)
         this.removeTileTextureFilter(runtime.image);
-        /* NEWCODE */
         runtime.image.setData("exposure-asset", meldAsset);
+        runtime.image.setData("meld-index", bottomMeldIndex);
         runtime.image.disableInteractive();
 
         if (this.isJoker(tile.tile_id)) {
           this.setupJokerInteraction(runtime.image, tile.tile_id, "bottom");
         }
       }
+      bottomMeldIndex++;
     }
+    OLDCODE */
+    /* NEWCODE */
+    // Reconstruct calledBottomExposureTiles strictly in authoritative meld order
+    const orderedBottomTiles: Phaser.GameObjects.Image[] = [];
+    let bottomMeldIndex = 0;
+    for (const meld of exposures.bottom) {
+      if (!meld) continue;
+
+      const tilesToProcess: any[] = [];
+      if (meld.tiles) {
+        if (Array.isArray(meld.tiles)) {
+          tilesToProcess.push(...meld.tiles);
+        } else if (typeof meld.tiles === 'object') {
+          tilesToProcess.push(...Object.values(meld.tiles));
+        }
+      }
+      if (tilesToProcess.length === 0 && meld.tile) {
+        tilesToProcess.push(meld.tile);
+      }
+
+      if (tilesToProcess.length === 0) continue;
+
+      let meldAsset: string | undefined;
+      for (const t of tilesToProcess) {
+        if (t && t.tile_id != null && !this.isJoker(t.tile_id)) {
+          meldAsset = this.gameService.assetBaseName(this.allTiles[t.tile_id]);
+          break;
+        }
+      }
+
+      for (const tile of tilesToProcess) {
+        if (!tile || tile.tile_id == null) continue;
+
+        // A claimed tile can still be present in the local rack order while
+        // the server state settles. Remove its discard visual first; otherwise
+        // the early rack guard leaves a stale tile on the table.
+        const discardPos = this.removeTileFromDiscardArea(tile.tile_id);
+        if (discardPos) discardAreaChanged = true;
+
+        // Prevent rendering tiles that are actually in our rack (compensates for backend sync lag/bugs where swapped jokers remain in exposures)
+        if (this.rackOrder.includes(tile.tile_id)) continue;
+
+        let runtime = this.tileMap.get(tile.tile_id);
+        if (!runtime) {
+          const fullTile = this.allTiles[tile.tile_id];
+          if (!fullTile) {
+            continue;
+          }
+
+          const tileSize = this.calledBottomExposureTileSize();
+          const texture = this.gameService.resolve(fullTile as any, Math.round(tileSize.width));
+          if (!texture || !this.textures.exists(texture.atlasKey) || !this.textures.get(texture.atlasKey).has(texture.frameKey)) {
+            continue;
+          }
+
+          const image = this.add.image(-1000, -1000, texture.atlasKey, texture.frameKey).setDepth(42);
+
+          runtime = {
+            vm: fullTile as any,
+            image,
+            zone: "exposure",
+            selected: false,
+            isDragging: false,
+            slotIndex: -1,
+          };
+          this.tileMap.set(tile.tile_id, runtime);
+          this.registerTileInput(runtime);
+        } else {
+          this.removeFromRackOrder(tile.tile_id);
+          runtime.zone = "exposure";
+          runtime.selected = false;
+          runtime.isDragging = false;
+          this.selectedIds.delete(tile.tile_id);
+          runtime.image.clearTint().setDepth(42);
+        }
+
+        const isCallMeld = meld.kind === GamePlayActionEnum.CALL
+          || meld.kind === "CALL"
+          || (meld.kind as any) === 15
+          || (meld.kind as any) === "15"
+          || (tilesToProcess.length < 3 && (this.turnStage === GameTurnStageEnum.NEED_EXPOSURE || (this.turnStage as any) === 3 || (this.turnStage as any) === "3"));
+        if (isCallMeld && tilesToProcess.length < 3 && (this.turnStage === GameTurnStageEnum.NEED_EXPOSURE || (this.turnStage as any) === 3 || (this.turnStage as any) === "3")) {
+          if (this.pendingCallTileId !== tile.tile_id) {
+            this.pendingCallTileId = tile.tile_id;
+            this.pendingCallHasExposedRackTile = false;
+          }
+          if (!this.exposureBuildAsset) {
+            this.exposureBuildAsset = meldAsset || this.gameService.assetBaseName(this.allTiles[tile.tile_id]);
+          }
+          if (!this.activeExposureBuildTileIds.includes(tile.tile_id)) {
+            this.activeExposureBuildTileIds.push(tile.tile_id);
+          }
+          if (!this.pendingCallHasExposedRackTile) {
+            this.ensureExposureCloseButton(tile.tile_id);
+            this.positionExposureCloseButton(tile.tile_id);
+          }
+        }
+
+        // Remove shadow when tile moves to exposure (shadow only shown in rack)
+        this.removeTileTextureFilter(runtime.image);
+        runtime.image.setData("exposure-asset", meldAsset);
+        runtime.image.setData("meld-index", bottomMeldIndex);
+        runtime.image.disableInteractive();
+
+        if (this.isJoker(tile.tile_id)) {
+          this.setupJokerInteraction(runtime.image, tile.tile_id, "bottom");
+        }
+
+        orderedBottomTiles.push(runtime.image);
+      }
+      bottomMeldIndex++;
+    }
+
+    // Preserve any active uncommitted call tiles in NEED_EXPOSURE
+    for (const img of this.calledBottomExposureTiles) {
+      if (img.active && !orderedBottomTiles.includes(img)) {
+        const entry = [...this.tileMap.entries()].find(([, r]) => r.image === img);
+        if (entry && this.activeExposureBuildTileIds.includes(entry[0])) {
+          img.setData("meld-index", bottomMeldIndex);
+          orderedBottomTiles.push(img);
+        }
+      }
+    }
+
+    this.calledBottomExposureTiles.length = 0;
+    this.calledBottomExposureTiles.push(...orderedBottomTiles);
+    /* NEWCODE */
 
     /* OLDCODE
         this.layoutCalledBottomExposureTiles();
@@ -4180,9 +4695,13 @@ export class PhaserScene extends Phaser.Scene {
       this.calledOpponentExposureTiles[seat].forEach((img) => img.destroy());
       this.calledOpponentExposureTiles[seat] = [];
 
-      if (!melds) continue;
-
+      /* OLDCODE
       for (const meld of melds) {
+      OLDCODE */
+      /* NEWCODE */
+      let opponentMeldIndex = 0;
+      for (const meld of melds) {
+      /* NEWCODE */
         if (!meld) continue;
         const tilesToProcess: any[] = [];
         if (meld.tiles) {
@@ -4239,7 +4758,13 @@ export class PhaserScene extends Phaser.Scene {
 
           const image = this.add.image(-1000, -1000, texture.atlasKey, texture.frameKey);
           image.setDepth(15).disableInteractive();
+          /* OLDCODE
           image.setData("exposure-asset", meldAsset || this.gameService.assetBaseName(fullTile as any));
+          OLDCODE */
+          /* NEWCODE */
+          image.setData("exposure-asset", meldAsset || this.gameService.assetBaseName(fullTile as any));
+          image.setData("meld-index", opponentMeldIndex);
+          /* NEWCODE */
 
           if (!this.calledOpponentExposureTileIds.has(tile.tile_id)) {
             image.setData("is-new-exposure", true);
@@ -4255,6 +4780,9 @@ export class PhaserScene extends Phaser.Scene {
 
           this.calledOpponentExposureTiles[seat].push(image);
         }
+        /* NEWCODE */
+        opponentMeldIndex++;
+        /* NEWCODE */
       }
       this.layoutCalledOpponentExposureTiles(seat);
     }
@@ -4837,7 +5365,17 @@ export class PhaserScene extends Phaser.Scene {
     // Keep shadow on exposure tiles
     this.applyTileTextureFilter(image, true);
     OLDCODE */
+    /* OLDCODE
+    this.calledBottomExposureTiles.push(image);
+    // Remove shadow when tile moves to exposure (shadow only shown in rack)
+    this.removeTileTextureFilter(image);
+    OLDCODE */
     /* NEWCODE */
+    const nextCallMeldIdx = this.calledBottomExposureTiles.reduce(
+      (max, img) => Math.max(max, (img.getData("meld-index") ?? 0) + 1),
+      0
+    );
+    image.setData("meld-index", nextCallMeldIdx);
     this.calledBottomExposureTiles.push(image);
     // Remove shadow when tile moves to exposure (shadow only shown in rack)
     this.removeTileTextureFilter(image);
@@ -4900,7 +5438,7 @@ export class PhaserScene extends Phaser.Scene {
     };
   }
 
-  // NEWCODE
+  /* OLDCODE
   private maxLeftExposureScroll(): number {
     const tiles = this.calledOpponentExposureTiles["left"];
     if (!tiles || tiles.length === 0) return 0;
@@ -4910,7 +5448,6 @@ export class PhaserScene extends Phaser.Scene {
     return Math.max(0, contentHeight - this.layout.leftExposure.height);
   }
 
-  // NEWCODE
   private maxRightExposureScroll(): number {
     const tiles = this.calledOpponentExposureTiles["right"];
     if (!tiles || tiles.length === 0) return 0;
@@ -4920,7 +5457,6 @@ export class PhaserScene extends Phaser.Scene {
     return Math.max(0, contentHeight - this.layout.rightExposure.height);
   }
 
-  // NEWCODE
   private maxTopExposureScroll(): number {
     const tiles = this.calledOpponentExposureTiles["top"];
     if (!tiles || tiles.length === 0) return 0;
@@ -4929,6 +5465,38 @@ export class PhaserScene extends Phaser.Scene {
     const contentWidth = tiles.length * (tile.width + gap);
     return Math.max(0, contentWidth - this.layout.topExposure.width);
   }
+  OLDCODE */
+  /* NEWCODE */
+  private maxLeftExposureScroll(): number {
+    const tiles = this.calledOpponentExposureTiles["left"];
+    if (!tiles || tiles.length === 0) return 0;
+    const tile = this.calledOpponentExposureTileSize("left");
+    const groupGap = Math.max(6, Math.round(tile.width * 0.20));
+    const totalMelds = tiles.length > 0 ? (tiles[tiles.length - 1]?.getData?.("meld-index") ?? 0) : 0;
+    const contentHeight = tiles.length * tile.width + totalMelds * groupGap;
+    return Math.max(0, contentHeight - this.layout.leftExposure.height);
+  }
+
+  private maxRightExposureScroll(): number {
+    const tiles = this.calledOpponentExposureTiles["right"];
+    if (!tiles || tiles.length === 0) return 0;
+    const tile = this.calledOpponentExposureTileSize("right");
+    const groupGap = Math.max(6, Math.round(tile.width * 0.20));
+    const totalMelds = tiles.length > 0 ? (tiles[tiles.length - 1]?.getData?.("meld-index") ?? 0) : 0;
+    const contentHeight = tiles.length * tile.width + totalMelds * groupGap;
+    return Math.max(0, contentHeight - this.layout.rightExposure.height);
+  }
+
+  private maxTopExposureScroll(): number {
+    const tiles = this.calledOpponentExposureTiles["top"];
+    if (!tiles || tiles.length === 0) return 0;
+    const tile = this.calledOpponentExposureTileSize("top");
+    const groupGap = Math.max(6, Math.round(tile.width * 0.20));
+    const totalMelds = tiles.length > 0 ? (tiles[tiles.length - 1]?.getData?.("meld-index") ?? 0) : 0;
+    const contentWidth = tiles.length * tile.width + totalMelds * groupGap;
+    return Math.max(0, contentWidth - this.layout.topExposure.width);
+  }
+  /* NEWCODE */
 
   /* OLDCODE
     // NEWCODE
@@ -4941,7 +5509,7 @@ export class PhaserScene extends Phaser.Scene {
       return Math.max(0, contentWidth - this.layout.bottomExposure.width);
     }
   OLDCODE */
-  /* NEWCODE */
+  /* OLDCODE
   private maxBottomExposureScroll(): number {
     this.sanitizeBottomExposureTiles();
     const tiles = this.calledBottomExposureTiles;
@@ -4951,9 +5519,21 @@ export class PhaserScene extends Phaser.Scene {
     const contentWidth = tiles.length * (tile.width + gap);
     return Math.max(0, contentWidth - this.layout.bottomExposure.width);
   }
+  OLDCODE */
+  /* NEWCODE */
+  private maxBottomExposureScroll(): number {
+    this.sanitizeBottomExposureTiles();
+    const tiles = this.calledBottomExposureTiles;
+    if (!tiles || tiles.length === 0) return 0;
+    const tile = this.calledBottomExposureTileSize();
+    const groupGap = Math.max(8, Math.round(tile.width * 0.22));
+    const totalMelds = tiles.length > 0 ? (tiles[tiles.length - 1]?.getData?.("meld-index") ?? 0) : 0;
+    const contentWidth = tiles.length * tile.width + totalMelds * groupGap;
+    return Math.max(0, contentWidth - this.layout.bottomExposure.width);
+  }
   /* NEWCODE */
 
-  /** Places exposure tiles from left to right, below the tray lip and label. */
+  /* OLDCODE
   private calledBottomExposureTilePosition(index: number): Point {
     const exposure = this.layout.bottomExposure;
     const tile = this.calledBottomExposureTileSize();
@@ -4975,6 +5555,31 @@ export class PhaserScene extends Phaser.Scene {
       y: exposure.y + nameStripHeight + 1 + contentHeight / 2,
     };
   }
+  OLDCODE */
+  /* NEWCODE */
+  private calledBottomExposureTilePosition(index: number): Point {
+    const exposure = this.layout.bottomExposure;
+    const tile = this.calledBottomExposureTileSize();
+    const mode = this.exposurePanelMode();
+    const nameStripHeight = exposure.height * this.gameLayout.exposureNameStripRatio(mode);
+    const contentHeight = exposure.height * (
+      1 - this.gameLayout.bottomExposureLipRatio(mode) - this.gameLayout.exposureNameStripRatio(mode)
+    );
+
+    // Group gap between separate melds (e.g. between Sextet and Kong)
+    const groupGap = Math.max(8, Math.round(tile.width * 0.22));
+    const targetImage = this.calledBottomExposureTiles[index];
+    const meldIndex = targetImage?.getData?.("meld-index") ?? 0;
+
+    const startX = exposure.x + Math.max(5, Math.round(tile.width * 0.18)) + tile.width / 2 - this.bottomExposureScrollX;
+
+    return {
+      // 0 gap within the same meld, plus groupGap between separate melds
+      x: Math.round(startX + index * tile.width + meldIndex * groupGap),
+      y: Math.round(exposure.y + nameStripHeight + 1 + contentHeight / 2),
+    };
+  }
+  /* NEWCODE */
 
   // NEWCODE
   /** Removes destroyed or inactive tile images from the bottom exposure list. */
@@ -5061,7 +5666,7 @@ export class PhaserScene extends Phaser.Scene {
     };
   }
 
-  /** Calculates the target position for opponent exposure tiles. */
+  /* OLDCODE
   private calledOpponentExposureTilePosition(seat: "top" | "left" | "right", index: number): Point {
     let exposure: Rect;
     switch (seat) {
@@ -5113,6 +5718,58 @@ export class PhaserScene extends Phaser.Scene {
       };
     }
   }
+  OLDCODE */
+  /* NEWCODE */
+  private calledOpponentExposureTilePosition(seat: "top" | "left" | "right", index: number): Point {
+    let exposure: Rect;
+    switch (seat) {
+      case "top": exposure = this.layout.topExposure; break;
+      case "left": exposure = this.layout.leftExposure; break;
+      case "right": exposure = this.layout.rightExposure; break;
+    }
+    const tile = this.calledOpponentExposureTileSize(seat);
+    // Group gap between separate melds
+    const groupGap = Math.max(6, Math.round(tile.width * 0.20));
+    const targetImage = this.calledOpponentExposureTiles[seat]?.[index];
+    const meldIndex = targetImage?.getData?.("meld-index") ?? 0;
+
+    const mode = this.exposurePanelMode();
+    const lipRatio = this.gameLayout.exposureLipRatio(mode);
+    const stripRatio = this.gameLayout.exposureNameStripRatio(mode);
+    const contentRatio = 1 - lipRatio - stripRatio;
+
+    if (seat === "top") {
+      const startX = exposure.x + Math.max(5, Math.round(tile.width * 0.18)) + tile.width / 2 - this.topExposureScrollX;
+      const lipHeight = exposure.height * lipRatio;
+      const contentHeight = exposure.height * contentRatio;
+      const centerY = exposure.y + lipHeight + contentHeight / 2;
+      return {
+        // 0 gap within the same meld, plus groupGap between separate melds
+        x: Math.round(startX + index * tile.width + meldIndex * groupGap),
+        y: Math.round(centerY),
+      };
+    } else {
+      const scrollY = seat === "left" ? this.leftExposureScrollY : this.rightExposureScrollY;
+      const startY = exposure.y + Math.max(5, Math.round(tile.width * 0.18)) + tile.width / 2 - scrollY;
+      const lipWidth = exposure.width * lipRatio;
+      const stripWidth = exposure.width * stripRatio;
+      const contentWidth = exposure.width * contentRatio;
+
+      let centerX = exposure.x;
+      if (seat === "left") {
+        centerX += lipWidth + contentWidth / 2;
+      } else {
+        centerX += stripWidth + contentWidth / 2;
+      }
+
+      return {
+        // 0 gap within the same meld, plus groupGap between separate melds
+        x: Math.round(centerX),
+        y: Math.round(startY + index * tile.width + meldIndex * groupGap),
+      };
+    }
+  }
+  /* NEWCODE */
 
   /** Repositions all opponent exposure tiles after a resize or orientation change. */
   private layoutCalledOpponentExposureTiles(seat: "top" | "left" | "right"): void {
@@ -5361,7 +6018,15 @@ export class PhaserScene extends Phaser.Scene {
     OLDCODE */
     /* NEWCODE */
     this.sanitizeBottomExposureTiles();
+    /* OLDCODE
     runtime.image.setData("exposure-asset", this.exposureBuildAsset);
+    OLDCODE */
+    /* NEWCODE */
+    const prevTile = this.calledBottomExposureTiles.length > 0 ? this.calledBottomExposureTiles[this.calledBottomExposureTiles.length - 1] : null;
+    const currentMeldIdx = prevTile ? (prevTile.getData("meld-index") ?? 0) : 0;
+    runtime.image.setData("exposure-asset", this.exposureBuildAsset);
+    runtime.image.setData("meld-index", currentMeldIdx);
+    /* NEWCODE */
     this.calledBottomExposureTiles.push(runtime.image);
     this.activeExposureBuildTileIds.push(runtime.vm.tile_id!);
 
@@ -5760,7 +6425,12 @@ export class PhaserScene extends Phaser.Scene {
 
     if (!replacement) return;
 
+    /* OLDCODE
     await this.executeJokerSwap(jokerImage, replacement);
+    OLDCODE */
+    /* NEWCODE */
+    await this.executeJokerSwap(jokerImage, replacement, "double-tap");
+    /* NEWCODE */
   }
 
   /**
@@ -5946,6 +6616,7 @@ export class PhaserScene extends Phaser.Scene {
   }
   OLDCODE */
   /* NEWCODE */
+  /* OLDCODE
   private async executeJokerSwap(jokerImage: Phaser.GameObjects.Image, replacement: TileRuntime): Promise<void> {
     // Only allow Joker exchange when it is the local player's turn and the player has already picked a tile (NEED_DISCARD).
     if (this.tablePhase !== GamePhaseEnum.PLAYING || this.activeSeat !== "bottom" || this.turnStage !== GameTurnStageEnum.NEED_DISCARD) return;
@@ -6037,6 +6708,132 @@ export class PhaserScene extends Phaser.Scene {
 
     return false;
   }
+  OLDCODE */
+  /* NEWCODE */
+  private async executeJokerSwap(
+    jokerImage: Phaser.GameObjects.Image,
+    replacement: TileRuntime,
+    mode: "double-tap" | "drag-and-drop" = "double-tap"
+  ): Promise<void> {
+    // Only allow Joker exchange when it is the local player's turn and the player has already picked a tile (NEED_DISCARD).
+    if (this.tablePhase !== GamePhaseEnum.PLAYING || this.activeSeat !== "bottom" || this.turnStage !== GameTurnStageEnum.NEED_DISCARD) return;
+
+    const exposedAsset = jokerImage.getData("exposure-asset") as string | undefined;
+    if (!exposedAsset) return;
+
+    // Validate replacement matches the exposure
+    if (!this.isMatchingJokerReplacement(replacement.vm, exposedAsset)) {
+      return;
+    }
+
+    const targetJokerTileId = jokerImage.getData("joker-tile-id") as number;
+    const targetSeat = jokerImage.getData("joker-seat") as TableSeat;
+
+    if (!targetJokerTileId || !targetSeat) return;
+
+    const rackReplacementTileId = replacement.vm.tile_id ?? (replacement.vm as any).id;
+    if (rackReplacementTileId == null) return;
+
+    // Record swap info without mutating rackOrder prematurely.
+    // The server is authoritative (INV-001); mutating rackOrder before server confirmation
+    // causes gaps and hides opponent exposure tiles if the exchange is rejected.
+    /* OLDCODE
+    const rackIndex = this.rackOrder.indexOf(rackReplacementTileId as number);
+    if (rackIndex !== -1) {
+      this.pendingLocalJokerSwap = {
+        fromTileId: rackReplacementTileId as number,
+        jokerTileId: targetJokerTileId,
+        rackIndex: rackIndex,
+        mode: mode,
+      };
+    }
+    OLDCODE */
+    /* NEWCODE */
+    const numReplacementId = Number(rackReplacementTileId);
+    const numJokerId = Number(targetJokerTileId);
+    let rackIndex = this.rackOrder.findIndex((id) => Number(id) === numReplacementId);
+    if (rackIndex === -1 && replacement.slotIndex !== undefined) {
+      rackIndex = replacement.slotIndex;
+    }
+    if (rackIndex !== -1) {
+      this.pendingLocalJokerSwap = {
+        fromTileId: numReplacementId,
+        jokerTileId: numJokerId,
+        rackIndex: rackIndex,
+        mode: mode,
+      };
+    }
+    /* NEWCODE */
+
+    // Play visual update instantly to feel responsive
+    this.playHaptic("tile-discard");
+
+    // Fallback timer to return tile if server never confirms
+    const fallbackTimer = setTimeout(() => {
+      /* OLDCODE
+      if (this.pendingLocalJokerSwap && this.pendingLocalJokerSwap.jokerTileId === targetJokerTileId) {
+      OLDCODE */
+      /* NEWCODE */
+      if (this.pendingLocalJokerSwap && Number(this.pendingLocalJokerSwap.jokerTileId) === numJokerId) {
+      /* NEWCODE */
+        console.warn("[PhaserScene] Joker exchange timed out; returning tile to rack");
+        this.pendingLocalJokerSwap = undefined;
+        this.returnTileToSlot(replacement);
+      }
+    }, 4000);
+
+    // Call backend via callbacks with error rollback
+    if (this.callbacks.onLocalPlayerJokerExchange) {
+      try {
+        await this.callbacks.onLocalPlayerJokerExchange(targetJokerTileId, rackReplacementTileId as number, targetSeat);
+      } catch (err) {
+        console.error("[PhaserScene] Joker exchange failed on backend:", err);
+        clearTimeout(fallbackTimer);
+        this.pendingLocalJokerSwap = undefined;
+        this.returnTileToSlot(replacement);
+      }
+    }
+  }
+
+  private handleJokerSwapDrop(pointerX: number, pointerY: number, droppedTile: TileRuntime): boolean {
+    // Only allow Joker exchange when it is the local player's turn and the player has already picked a tile (NEED_DISCARD).
+    if (this.tablePhase !== GamePhaseEnum.PLAYING || this.activeSeat !== "bottom" || this.turnStage !== GameTurnStageEnum.NEED_DISCARD) return false;
+    if (droppedTile.zone !== "rack") return false;
+
+    // Helper to check and execute swap on an exposure meld group
+    const checkGroupDrop = (images: Phaser.GameObjects.Image[]): boolean => {
+      for (const img of images) {
+        if (!img.active) continue;
+        const bounds = img.getBounds();
+        // Comfortable hit margin of 15px around any tile in the exposure group
+        const hitArea = new Phaser.Geom.Rectangle(bounds.x - 15, bounds.y - 15, bounds.width + 30, bounds.height + 30);
+        if (hitArea.contains(pointerX, pointerY)) {
+          const meldIndex = img.getData("meld-index");
+          const groupAsset = img.getData("exposure-asset") as string | undefined;
+          if (this.isMatchingJokerReplacement(droppedTile.vm, groupAsset)) {
+            // Find the exposed Joker in this exact meld group
+            const jokerImg = images.find(
+              (i) => i.active && i.getData("joker-swap-enabled") && (meldIndex === undefined || i.getData("meld-index") === meldIndex)
+            );
+            if (jokerImg) {
+              this.executeJokerSwap(jokerImg, droppedTile, "drag-and-drop");
+              return true;
+            }
+          }
+        }
+      }
+      return false;
+    };
+
+    if (checkGroupDrop(this.calledBottomExposureTiles)) return true;
+
+    for (const seat of ["top", "left", "right"] as const) {
+      if (checkGroupDrop(this.calledOpponentExposureTiles[seat])) return true;
+    }
+
+    return false;
+  }
+  /* NEWCODE */
   /* NEWCODE */
 
 
@@ -6085,6 +6882,7 @@ export class PhaserScene extends Phaser.Scene {
     this.revealOpponentHands(result);
   }
 
+  /* OLDCODE
   private revealOpponentHands(result: MahjongWinCelebration): void {
     if (!result.opponentHands) return;
 
@@ -6103,13 +6901,11 @@ export class PhaserScene extends Phaser.Scene {
         // const fullTile = this.allTiles[tileId];
         // if (!fullTile) continue;
         // OLDCODE
-        /* NEWCODE */
         const fullTile = this.allTiles[tileId] || {
           category: 'SUITED',
           type: (tileId % 3 === 0 ? 'BAM' : tileId % 3 === 1 ? 'CHAR' : 'DOT'),
           rank: (tileId % 9) + 1
         };
-        /* NEWCODE */
 
         const texture = this.gameService.resolve(fullTile as any, Math.round(tileSize.width));
         if (texture) {
@@ -6118,16 +6914,6 @@ export class PhaserScene extends Phaser.Scene {
 
           const image = this.add.image(xPos, yPos, texture.atlasKey, texture.frameKey).setDepth(42);
 
-          /* OLDCODE
-          if (seat === "top") {
-            image.setAngle(180);
-          } else if (seat === "left") {
-            image.setAngle(90);
-          } else if (seat === "right") {
-            image.setAngle(-90);
-          }
-          OLDCODE */
-          /* NEWCODE */
           // Keep top exposure tiles upright (angle 0) so they match the top exposure tray
           if (seat === "top") {
             image.setAngle(0);
@@ -6136,23 +6922,15 @@ export class PhaserScene extends Phaser.Scene {
           } else if (seat === "right") {
             image.setAngle(-90);
           }
-          /* NEWCODE */
 
-          /* OLDCODE
-          image.setDisplaySize(tileSize.width, tileSize.height);
-          activeIndex++;
-          OLDCODE */
-          /* NEWCODE */
           image.setDisplaySize(tileSize.width, tileSize.height);
           this.calledOpponentExposureTiles[seat].push(image);
           activeIndex++;
-          /* NEWCODE */
         }
       }
     }
   }
 
-  /* NEWCODE */
   // Reveal all players' hands in their exposure panels when game ends in a Wall Game
   public revealAllSeatsHandsForWallGame(seatsData?: Record<string, any>): void {
     if (!this.layout) return;
@@ -6194,16 +6972,6 @@ export class PhaserScene extends Phaser.Scene {
 
           const image = this.add.image(xPos, yPos, texture.atlasKey, texture.frameKey).setDepth(42);
 
-          /* OLDCODE
-          if (seat === "top") {
-            image.setAngle(180);
-          } else if (seat === "left") {
-            image.setAngle(90);
-          } else if (seat === "right") {
-            image.setAngle(-90);
-          }
-          OLDCODE */
-          /* NEWCODE */
           // Keep top exposure tiles upright (angle 0) so they match the top exposure tray
           if (seat === "top") {
             image.setAngle(0);
@@ -6212,13 +6980,150 @@ export class PhaserScene extends Phaser.Scene {
           } else if (seat === "right") {
             image.setAngle(-90);
           }
-          /* NEWCODE */
 
           image.setDisplaySize(tileSize.width, tileSize.height);
           this.calledOpponentExposureTiles[seat].push(image);
           activeIndex++;
         }
       }
+    }
+  }
+  OLDCODE */
+  /* NEWCODE */
+  /* OLDCODE
+  private revealOpponentHands(result: MahjongWinCelebration): void {
+    if (!result.opponentHands) return;
+
+    for (const [seatPos, ids] of Object.entries(result.opponentHands)) {
+      if (seatPos === "bottom") continue;
+      const seat = seatPos as "top" | "left" | "right";
+      const tileIds = ids as number[];
+      if (tileIds.length === 0) continue;
+  OLDCODE */
+  /* NEWCODE */
+  private revealOpponentHands(result: MahjongWinCelebration): void {
+    // 1. Clean up exposure area for the winner seat (winner hand is displayed in the popup)
+    if (result.winner && result.winner !== "bottom") {
+      const winnerSeat = result.winner as Exclude<TableSeat, "bottom">;
+      this.calledOpponentExposureTiles[winnerSeat]?.forEach((img) => img.destroy());
+      this.calledOpponentExposureTiles[winnerSeat] = [];
+      this.layoutCalledOpponentExposureTiles(winnerSeat);
+    } else if (result.winner === "bottom") {
+      // If bottom won, hide bottom exposure tiles as well
+      for (const img of this.calledBottomExposureTiles) {
+        if (img && img.active) img.setVisible(false);
+      }
+    }
+
+    if (!result.opponentHands) return;
+
+    // 2. Reveal remaining hands only for players who did NOT win
+    for (const [seatPos, ids] of Object.entries(result.opponentHands)) {
+      if (seatPos === "bottom") continue;
+      if (seatPos === result.winner) continue; // Never reveal winner tiles in exposure area
+
+      const seat = seatPos as "top" | "left" | "right";
+      const tileIds = ids as number[];
+      if (tileIds.length === 0) continue;
+  /* NEWCODE */
+
+      const tileSize = this.calledOpponentExposureTileSize(seat);
+      const existingTiles = this.calledOpponentExposureTiles[seat];
+      const revealMeldIndex = existingTiles.length > 0
+        ? (existingTiles[existingTiles.length - 1].getData("meld-index") ?? 0) + 1
+        : 0;
+
+      for (const tileId of tileIds) {
+        const fullTile = this.allTiles[tileId] || {
+          category: 'SUITED',
+          type: (tileId % 3 === 0 ? 'BAM' : tileId % 3 === 1 ? 'CHAR' : 'DOT'),
+          rank: (tileId % 9) + 1
+        };
+
+        const texture = this.gameService.resolve(fullTile as any, Math.round(tileSize.width));
+        if (texture) {
+          const image = this.add.image(-1000, -1000, texture.atlasKey, texture.frameKey).setDepth(42);
+          image.setData("meld-index", revealMeldIndex);
+          if (seat === "top") {
+            image.setAngle(0);
+          } else if (seat === "left") {
+            image.setAngle(90);
+          } else if (seat === "right") {
+            image.setAngle(-90);
+          }
+          image.setDisplaySize(tileSize.width, tileSize.height);
+          this.calledOpponentExposureTiles[seat].push(image);
+        }
+      }
+      this.layoutCalledOpponentExposureTiles(seat);
+    }
+  }
+
+  /* OLDCODE
+  // Reveal all players' hands in their exposure panels when game ends in a Wall Game
+  public revealAllSeatsHandsForWallGame(seatsData?: Record<string, any>): void {
+    if (!this.layout) return;
+    this.expireTileCallWindow();
+    this.closeJokerSwapWindow();
+
+    const seatPositions: Array<"top" | "left" | "right"> = ["top", "left", "right"];
+    for (const seat of seatPositions) {
+      let tileIds: number[] = [];
+      if (seatsData && seatsData[seat]) {
+        const rack = seatsData[seat]?.racks?.[1] || seatsData[seat]?.racks?.["1"] || seatsData[seat]?.racks?.first;
+        if (rack?.hand_order && Array.isArray(rack.hand_order)) {
+          tileIds = rack.hand_order;
+        } else if (rack?.hand && typeof rack.hand === 'object') {
+          tileIds = Object.keys(rack.hand).map(Number);
+        } else if (rack?.tiles && Array.isArray(rack.tiles)) {
+          tileIds = rack.tiles;
+        }
+      }
+
+      if (tileIds.length === 0) continue;
+  OLDCODE */
+  /* NEWCODE */
+  // Reveal all players' hands in their exposure panels when game ends in a Wall Game
+  public revealAllSeatsHandsForWallGame(seatsData?: Record<string, number[]>): void {
+    if (!this.layout || !seatsData) return;
+    this.expireTileCallWindow();
+    this.closeJokerSwapWindow();
+
+    const seatPositions: Array<"top" | "left" | "right"> = ["top", "left", "right"];
+    for (const seat of seatPositions) {
+      const tileIds = seatsData[seat] || [];
+      if (tileIds.length === 0) continue;
+  /* NEWCODE */
+
+      const tileSize = this.calledOpponentExposureTileSize(seat);
+      const existingTiles = this.calledOpponentExposureTiles[seat];
+      const revealMeldIndex = existingTiles.length > 0
+        ? (existingTiles[existingTiles.length - 1].getData("meld-index") ?? 0) + 1
+        : 0;
+
+      for (const tileId of tileIds) {
+        const fullTile = this.allTiles[tileId] || {
+          category: 'SUITED',
+          type: (tileId % 3 === 0 ? 'BAM' : tileId % 3 === 1 ? 'CHAR' : 'DOT'),
+          rank: (tileId % 9) + 1
+        };
+
+        const texture = this.gameService.resolve(fullTile as any, Math.round(tileSize.width));
+        if (texture) {
+          const image = this.add.image(-1000, -1000, texture.atlasKey, texture.frameKey).setDepth(42);
+          image.setData("meld-index", revealMeldIndex);
+          if (seat === "top") {
+            image.setAngle(0);
+          } else if (seat === "left") {
+            image.setAngle(90);
+          } else if (seat === "right") {
+            image.setAngle(-90);
+          }
+          image.setDisplaySize(tileSize.width, tileSize.height);
+          this.calledOpponentExposureTiles[seat].push(image);
+        }
+      }
+      this.layoutCalledOpponentExposureTiles(seat);
     }
   }
   /* NEWCODE */
@@ -6945,8 +7850,18 @@ export class PhaserScene extends Phaser.Scene {
 
     this.soundManager.playJokerExchange();
 
+    /* OLDCODE
     const { from_tile_id, joker_tile_id, from_seat, to_seat } = payload;
+    OLDCODE */
+    /* NEWCODE */
+    const numFromTileId = Number(payload.from_tile_id);
+    const numJokerTileId = Number(payload.joker_tile_id);
+    const { from_seat, to_seat } = payload;
+    const from_tile_id = numFromTileId;
+    const joker_tile_id = numJokerTileId;
+    /* NEWCODE */
 
+    /* OLDCODE
     let jokerTile = this.tileMap.get(joker_tile_id);
     let oldJokerPos = { x: this.layout.tableOuter.x, y: this.layout.tableOuter.y, scale: 1 };
     let jokerKey = "tiles";
@@ -6983,6 +7898,83 @@ export class PhaserScene extends Phaser.Scene {
         if (texture) { jokerKey = texture.atlasKey; jokerFrame = texture.frameKey; }
       }
     }
+    OLDCODE */
+    /* NEWCODE */
+    // Determine the source starting position of the exposed Joker.
+    // The Joker tile is in to_seat's exposure panel (left, right, top, or bottom).
+    let oldJokerPos = { x: this.layout.tableOuter.x, y: this.layout.tableOuter.y, scale: 1 };
+    let jokerKey = "tiles";
+    let jokerFrame = "1-bam";
+    let foundJokerInExposure = false;
+
+    if (to_seat && to_seat !== "bottom") {
+      const opponentImages = this.calledOpponentExposureTiles[to_seat as Exclude<TableSeat, "bottom">];
+      if (opponentImages && opponentImages.length > 0) {
+        /* OLDCODE
+        let jokerImg = opponentImages.find(
+          (img: Phaser.GameObjects.Image) => img.active && img.getData("joker-tile-id") === joker_tile_id
+        );
+        OLDCODE */
+        /* NEWCODE */
+        let jokerImg = opponentImages.find(
+          (img: Phaser.GameObjects.Image) => img.active && Number(img.getData("joker-tile-id")) === numJokerTileId
+        );
+        /* NEWCODE */
+        if (!jokerImg) {
+          jokerImg = opponentImages.find(
+            (img: Phaser.GameObjects.Image) => img.active && img.getData("joker-swap-enabled")
+          );
+        }
+        if (jokerImg && jokerImg.active) {
+          oldJokerPos = { x: jokerImg.x, y: jokerImg.y, scale: jokerImg.scaleX };
+          jokerKey = (jokerImg.texture as any)?.key || jokerKey;
+          jokerFrame = jokerImg.frame?.name || jokerFrame;
+          jokerImg.setAlpha(0);
+          foundJokerInExposure = true;
+        }
+      }
+      if (!foundJokerInExposure) {
+        const rect = (this.layout as any)[`${to_seat}Exposure`];
+        if (rect) {
+          oldJokerPos = { x: rect.x + rect.width / 2, y: rect.y + rect.height / 2, scale: 0.5 };
+        }
+      }
+    } else if (to_seat === "bottom") {
+      /* OLDCODE
+      const bottomJokerImg = this.calledBottomExposureTiles.find(
+        (img: Phaser.GameObjects.Image) => img.active && img.getData("joker-tile-id") === joker_tile_id
+      );
+      OLDCODE */
+      /* NEWCODE */
+      let bottomJokerImg = this.calledBottomExposureTiles.find(
+        (img: Phaser.GameObjects.Image) => img.active && Number(img.getData("joker-tile-id")) === numJokerTileId
+      );
+      if (!bottomJokerImg) {
+        bottomJokerImg = this.calledBottomExposureTiles.find(
+          (img: Phaser.GameObjects.Image) => img.active && img.getData("joker-swap-enabled")
+        );
+      }
+      /* NEWCODE */
+      if (bottomJokerImg && bottomJokerImg.active) {
+        oldJokerPos = { x: bottomJokerImg.x, y: bottomJokerImg.y, scale: bottomJokerImg.scaleX };
+        jokerKey = (bottomJokerImg.texture as any)?.key || jokerKey;
+        jokerFrame = bottomJokerImg.frame?.name || jokerFrame;
+        bottomJokerImg.setAlpha(0);
+        foundJokerInExposure = true;
+      }
+    }
+
+    const fullJokerTile = this.allTiles[joker_tile_id];
+    if (fullJokerTile) {
+      const texture = this.gameService.resolve(fullJokerTile as any, 50);
+      if (texture) {
+        jokerKey = texture.atlasKey;
+        jokerFrame = texture.frameKey;
+      }
+    }
+
+    let jokerTile = this.tileMap.get(joker_tile_id);
+    /* NEWCODE */
 
     let naturalTile = this.tileMap.get(from_tile_id);
     let oldNaturalPos = { x: this.layout.tableOuter.x, y: this.layout.tableOuter.y, scale: 1 };
@@ -7022,6 +8014,7 @@ export class PhaserScene extends Phaser.Scene {
     }
     OLDCODE */
     /* NEWCODE */
+    /* OLDCODE
     let destJokerPos = { ...oldNaturalPos, scale: 1 };
     if (from_seat === "bottom") {
       let rackIndex = this.rackOrder.indexOf(from_tile_id);
@@ -7041,8 +8034,110 @@ export class PhaserScene extends Phaser.Scene {
       const targetPoint = this.pickTargetPointForSeat(from_seat as TableSeat);
       destJokerPos = { x: targetPoint.x, y: targetPoint.y, scale: 0.5 };
     }
+    OLDCODE */
+    /* OLDCODE
+    const swapMode = (this.pendingLocalJokerSwap && this.pendingLocalJokerSwap.jokerTileId === joker_tile_id)
+      ? (this.pendingLocalJokerSwap.mode ?? "double-tap")
+      : "double-tap";
+
+    let destJokerPos = { ...oldNaturalPos, scale: 1 };
+    if (from_seat === "bottom") {
+      let rackIndex = this.rackOrder.indexOf(from_tile_id);
+      if (rackIndex === -1 && this.pendingLocalJokerSwap && this.pendingLocalJokerSwap.jokerTileId === joker_tile_id) {
+        rackIndex = this.pendingLocalJokerSwap.rackIndex;
+      }
+      if (rackIndex === -1) {
+        rackIndex = this.rackOrder.indexOf(joker_tile_id);
+      }
+      if (rackIndex !== -1) {
+        const slot = this.slotForIndex(rackIndex);
+        destJokerPos = { x: slot.x, y: slot.y, scale: 1 };
+      } else {
+        destJokerPos = { ...oldNaturalPos, scale: 1 };
+      }
+    } else {
+      const targetPoint = this.pickTargetPointForSeat(from_seat as TableSeat);
+      destJokerPos = { x: targetPoint.x, y: targetPoint.y, scale: 0.5 };
+    }
+    OLDCODE */
+    /* NEWCODE */
+    /* OLDCODE
+    const swapMode = (this.pendingLocalJokerSwap && this.pendingLocalJokerSwap.jokerTileId === joker_tile_id)
+      ? (this.pendingLocalJokerSwap.mode ?? "double-tap")
+      : "double-tap";
+
+    // 1. Update rackOrder FIRST so that slotForIndex calculates against the authoritative final hand layout
+    if (from_seat === "bottom") {
+      const fromRackIndex = this.rackOrder.indexOf(from_tile_id);
+      if (fromRackIndex !== -1) {
+        this.rackOrder.splice(fromRackIndex, 1, joker_tile_id);
+      } else if (!this.rackOrder.includes(joker_tile_id)) {
+        if (this.pendingLocalJokerSwap && this.pendingLocalJokerSwap.jokerTileId === joker_tile_id) {
+          const safeIdx = Phaser.Math.Clamp(this.pendingLocalJokerSwap.rackIndex, 0, this.rackOrder.length);
+          this.rackOrder.splice(safeIdx, 0, joker_tile_id);
+        } else {
+          this.rackOrder.push(joker_tile_id);
+        }
+      }
+      this.removeFromRackOrder(from_tile_id);
+      this.reindexRackRuntimeSlots();
+      this.lastServerOrder = this.rackOrder.join(',');
+    }
+
+    // 2. Calculate the exact destination position for Joker on the player's rack
+    let destJokerPos = { ...oldNaturalPos, scale: 1 };
+    if (from_seat === "bottom") {
+      const finalRackIndex = this.rackOrder.indexOf(joker_tile_id);
+      if (finalRackIndex !== -1) {
+        const slot = this.slotForIndex(finalRackIndex);
+        destJokerPos = { x: slot.x, y: slot.y, scale: 1 };
+      } else {
+        destJokerPos = { ...oldNaturalPos, scale: 1 };
+      }
+    }
+    OLDCODE */
+    /* NEWCODE */
+    const swapMode = (this.pendingLocalJokerSwap && Number(this.pendingLocalJokerSwap.jokerTileId) === numJokerTileId)
+      ? (this.pendingLocalJokerSwap.mode ?? "double-tap")
+      : "double-tap";
+
+    // 1. Update rackOrder FIRST so that slotForIndex calculates against the authoritative final hand layout
+    if (from_seat === "bottom") {
+      const fromRackIndex = this.rackOrder.findIndex((id) => Number(id) === numFromTileId);
+      if (fromRackIndex !== -1) {
+        this.rackOrder.splice(fromRackIndex, 1, numJokerTileId);
+      } else if (!this.rackOrder.some((id) => Number(id) === numJokerTileId)) {
+        if (this.pendingLocalJokerSwap && Number(this.pendingLocalJokerSwap.jokerTileId) === numJokerTileId) {
+          const safeIdx = Phaser.Math.Clamp(this.pendingLocalJokerSwap.rackIndex, 0, this.rackOrder.length);
+          this.rackOrder.splice(safeIdx, 0, numJokerTileId);
+        } else {
+          this.rackOrder.push(numJokerTileId);
+        }
+      }
+      this.removeFromRackOrder(numFromTileId);
+      this.reindexRackRuntimeSlots();
+      this.lastServerOrder = this.rackOrder.join(',');
+    }
+
+    // 2. Calculate the exact destination position for Joker on the player's rack
+    let destJokerPos = { ...oldNaturalPos, scale: 1 };
+    if (from_seat === "bottom") {
+      const finalRackIndex = this.rackOrder.findIndex((id) => Number(id) === numJokerTileId);
+      if (finalRackIndex !== -1) {
+        const slot = this.slotForIndex(finalRackIndex);
+        destJokerPos = { x: slot.x, y: slot.y, scale: 1 };
+      } else {
+        destJokerPos = { ...oldNaturalPos, scale: 1 };
+      }
+    }
+    /* NEWCODE */ else {
+      const targetPoint = this.pickTargetPointForSeat(from_seat as TableSeat);
+      destJokerPos = { x: targetPoint.x, y: targetPoint.y, scale: 0.5 };
+    }
+    /* NEWCODE */
     /* NEWCODE */
 
+    /* OLDCODE
     // Determine destination position for Natural tile (entering to_seat exposure)
     let destNaturalPos = { ...oldJokerPos };
     if (to_seat === "bottom") {
@@ -7051,13 +8146,25 @@ export class PhaserScene extends Phaser.Scene {
       const targetPoint = this.pickTargetPointForSeat(to_seat as TableSeat);
       destNaturalPos = { x: targetPoint.x, y: targetPoint.y, scale: 0.5 };
     }
+    OLDCODE */
+    /* NEWCODE */
+    // Determine destination position for Natural tile (entering to_seat exposure)
+    // The natural tile must land directly where the Joker was in the exposure area
+    const destNaturalPos = { ...oldJokerPos, scale: oldJokerPos.scale };
+    /* NEWCODE */
 
     let exposureAsset: string | undefined;
     let exposureIndex = -1;
+    /* NEWCODE */
+    let exposureMeldIndex = 0;
+    /* NEWCODE */
 
     if (to_seat === "bottom" && jokerTile && jokerTile.image) {
       exposureAsset = jokerTile.image.getData("exposure-asset") as string | undefined;
       exposureIndex = this.calledBottomExposureTiles.indexOf(jokerTile.image);
+      /* NEWCODE */
+      exposureMeldIndex = jokerTile.image.getData("meld-index") ?? 0;
+      /* NEWCODE */
     }
 
     /* OLDCODE
@@ -7072,7 +8179,7 @@ export class PhaserScene extends Phaser.Scene {
       this.removeFromRackOrder(from_tile_id);
       this.reindexRackRuntimeSlots();
     OLDCODE */
-    /* NEWCODE */
+    /* OLDCODE
     if (from_seat === "bottom") {
       // Joker is entering bottom player's rack
       const rackIndex = this.rackOrder.indexOf(from_tile_id);
@@ -7088,9 +8195,7 @@ export class PhaserScene extends Phaser.Scene {
       }
       this.removeFromRackOrder(from_tile_id);
       this.reindexRackRuntimeSlots();
-      this.pendingLocalJokerSwap = undefined;
       this.lastServerOrder = this.rackOrder.join(',');
-      /* NEWCODE */
 
       const tileWidth = Math.round(this.layout.bottomTileLayout.width);
       const tileHeight = Math.round(this.layout.bottomTileLayout.height);
@@ -7134,6 +8239,55 @@ export class PhaserScene extends Phaser.Scene {
         this.registerTileInput(jokerTile);
       }
     }
+    OLDCODE */
+    /* NEWCODE */
+    if (from_seat === "bottom") {
+      const tileWidth = Math.round(this.layout.bottomTileLayout.width);
+      const tileHeight = Math.round(this.layout.bottomTileLayout.height);
+
+      if (!jokerTile) {
+        const fullTile = this.allTiles[joker_tile_id];
+        if (fullTile) {
+          const texture = this.gameService.resolve(fullTile as any, tileWidth);
+          const image = this.add.image(destJokerPos.x, destJokerPos.y, texture.atlasKey, texture.frameKey);
+          image.setOrigin(0.5);
+          image.setDisplaySize(tileWidth, tileHeight);
+          image.setAlpha(0); // keep hidden until exchange animation completes
+          jokerTile = {
+            vm: { ...fullTile, id: (fullTile as any).id ?? joker_tile_id, tile_id: joker_tile_id } as any,
+            image,
+            zone: "rack",
+            selected: false,
+            isDragging: false,
+            slotIndex: this.rackOrder.indexOf(joker_tile_id),
+          };
+          this.tileMap.set(joker_tile_id, jokerTile);
+        }
+      }
+
+      if (jokerTile) {
+        if (!jokerTile.vm.tile_id) {
+          (jokerTile.vm as any).tile_id = joker_tile_id;
+        }
+        jokerTile.zone = "rack";
+        jokerTile.selected = false;
+        jokerTile.isDragging = false;
+        jokerTile.image.setPosition(destJokerPos.x, destJokerPos.y);
+        jokerTile.image.setAlpha(0); // keep hidden during flight animation
+        jokerTile.image.clearTint();
+        jokerTile.image.setData("joker-swap-enabled", false);
+        jokerTile.image.setData("exposure-asset", undefined);
+        jokerTile.image.setData("joker-tile-id", undefined);
+        jokerTile.image.setData("joker-seat", undefined);
+        jokerTile.image.off("pointerup");
+        jokerTile.image.setDepth(30);
+        jokerTile.image.setDisplaySize(tileWidth, tileHeight);
+        this.applyTileTextureFilter(jokerTile.image, true);
+        jokerTile.image.removeAllListeners();
+        this.registerTileInput(jokerTile);
+      }
+    }
+    /* NEWCODE */
 
     if (to_seat === "bottom") {
       // Natural tile is entering bottom player's exposure
@@ -7159,6 +8313,9 @@ export class PhaserScene extends Phaser.Scene {
         if (exposureAsset) {
           naturalTile.image.setData("exposure-asset", exposureAsset);
         }
+        /* NEWCODE */
+        naturalTile.image.setData("meld-index", exposureMeldIndex);
+        /* NEWCODE */
         const exposureTileSize = this.calledBottomExposureTileSize();
         naturalTile.image.setDisplaySize(exposureTileSize.width, exposureTileSize.height);
 
@@ -7179,6 +8336,20 @@ export class PhaserScene extends Phaser.Scene {
       }
     }
 
+    /* NEWCODE */
+    if (to_seat !== "bottom" && from_seat === "bottom") {
+      // Natural tile left bottom player's rack and moved to an opponent exposure
+      if (naturalTile) {
+        naturalTile.zone = "exposure";
+        this.selectedIds.delete(from_tile_id);
+        if (naturalTile.image && naturalTile.image.active) {
+          naturalTile.image.destroy();
+        }
+        this.tileMap.delete(from_tile_id);
+      }
+    }
+    /* NEWCODE */
+
     const naturalClone = this.add.image(oldNaturalPos.x, oldNaturalPos.y, naturalKey, naturalFrame)
       .setScale(oldNaturalPos.scale).setDepth(150);
     const jokerClone = this.add.image(oldJokerPos.x, oldJokerPos.y, jokerKey, jokerFrame)
@@ -7190,6 +8361,7 @@ export class PhaserScene extends Phaser.Scene {
     setTimeout(() => {
       if (!this.sys || !this.layout) return;
 
+      /* OLDCODE
       this.animationManager.animateJokerExchange(
         jokerClone,
         naturalClone,
@@ -7197,7 +8369,17 @@ export class PhaserScene extends Phaser.Scene {
         destNaturalPos,
         260,
         () => {
-          if (naturalTile && naturalTile.image && naturalTile.image.active) {
+      OLDCODE */
+      /* NEWCODE */
+      this.animationManager.animateJokerExchange(
+        jokerClone,
+        naturalClone,
+        destJokerPos,
+        destNaturalPos,
+        260,
+        () => {
+          /* NEWCODE */
+          if (naturalTile && naturalTile.image && naturalTile.image.active && to_seat === "bottom") {
             naturalTile.image.setPosition(destNaturalPos.x, destNaturalPos.y);
             naturalTile.image.setAlpha(1);
           }
@@ -7205,6 +8387,7 @@ export class PhaserScene extends Phaser.Scene {
             jokerTile.image.setPosition(destJokerPos.x, destJokerPos.y);
             jokerTile.image.setAlpha(1);
           }
+          /* OLDCODE
           if (to_seat && to_seat !== "bottom") {
             const opponentImages = this.calledOpponentExposureTiles[to_seat as Exclude<TableSeat, "bottom">];
             if (opponentImages) {
@@ -7212,13 +8395,52 @@ export class PhaserScene extends Phaser.Scene {
               if (jokerImg && jokerImg.active) jokerImg.setAlpha(1);
             }
           }
+          OLDCODE */
+          /* OLDCODE
+          if (to_seat && to_seat !== "bottom") {
+            const opponentImages = this.calledOpponentExposureTiles[to_seat as Exclude<TableSeat, "bottom">];
+            if (opponentImages) {
+              const jokerImg = opponentImages.find((img: Phaser.GameObjects.Image) => img.getData("joker-tile-id") === joker_tile_id);
+              if (jokerImg && jokerImg.active) {
+                // Update exposure slot to display the new natural tile
+                jokerImg.setTexture(naturalKey, naturalFrame);
+                jokerImg.setData("joker-tile-id", undefined);
+                jokerImg.setData("joker-swap-enabled", false);
+                jokerImg.disableInteractive();
+                jokerImg.setAlpha(1);
+              }
+            }
+          }
+          OLDCODE */
+          /* NEWCODE */
+          if (to_seat && to_seat !== "bottom") {
+            const opponentImages = this.calledOpponentExposureTiles[to_seat as Exclude<TableSeat, "bottom">];
+            if (opponentImages) {
+              let jokerImg = opponentImages.find((img: Phaser.GameObjects.Image) => img.getData("joker-tile-id") === joker_tile_id);
+              if (!jokerImg) {
+                jokerImg = opponentImages.find((img: Phaser.GameObjects.Image) => img.active && img.getData("joker-swap-enabled"));
+              }
+              if (jokerImg && jokerImg.active) {
+                // Update exposure slot to display the new natural tile
+                jokerImg.setTexture(naturalKey, naturalFrame);
+                jokerImg.setData("joker-tile-id", undefined);
+                jokerImg.setData("joker-swap-enabled", false);
+                jokerImg.disableInteractive();
+                jokerImg.setAlpha(1);
+              }
+            }
+          }
+          /* NEWCODE */
           if (from_seat === "bottom") {
             this.layoutRackTiles(true);
+            this.pendingLocalJokerSwap = undefined;
           }
           if (to_seat === "bottom") {
             this.layoutCalledBottomExposureTiles();
           }
-        }
+          /* NEWCODE */
+        },
+        swapMode
       );
     }, 50);
   }
@@ -7773,6 +8995,7 @@ export class PhaserScene extends Phaser.Scene {
     const paddingX = isPhonePortrait ? 5 : isPhoneLandscape ? 6 : isTablet ? 10 : 12;
     const paddingY = isPhonePortrait ? 5 : isPhoneLandscape ? 6 : isTablet ? 10 : 12;
 
+    /* OLDCODE
     const gapX = isPhonePortrait ? 2 : isPhoneLandscape ? 3 : isTablet ? 5 : 6;
     const gapY = isPhonePortrait ? 2 : isPhoneLandscape ? 3 : isTablet ? 5 : 6;
 
@@ -7780,6 +9003,25 @@ export class PhaserScene extends Phaser.Scene {
     // NEWCODE
     const tileWidth = Math.round(rackTile.width * scale);
     const tileHeight = Math.round(rackTile.height * scale);
+    OLDCODE */
+    /* NEWCODE */
+    // 1. Remove gaps between tiles so they sit flush edge-to-edge
+    const gapX = 0;
+    const gapY = 0;
+
+    /* OLDCODE
+    // 2. Reduce tile size by 10% from current size (0.90)
+    const scale = 0.90;
+    const tileWidth = Math.round(rackTile.width * scale);
+    const tileHeight = Math.round(rackTile.height * scale);
+    OLDCODE */
+    /* NEWCODE */
+    // 2. Reduce tile size by a further 10% from current size (0.90 * 0.90 = 0.81)
+    const scale = 0.81;
+    const tileWidth = Math.round(rackTile.width * scale);
+    const tileHeight = Math.round(rackTile.height * scale);
+    /* NEWCODE */
+    /* NEWCODE */
 
     const columns = Math.max(
       1,
@@ -8329,6 +9571,7 @@ export class PhaserScene extends Phaser.Scene {
   /* NEWCODE */
   /* NEWCODE */
 
+  /* OLDCODE
   private layoutRackTiles(animate: boolean): void {
     this.reindexRackRuntimeSlots();
 
@@ -8336,8 +9579,6 @@ export class PhaserScene extends Phaser.Scene {
     const tileHeight = Math.round(this.layout.bottomTileLayout.height);
 
     for (const runtime of this.tileMap.values()) {
-      // Exposure tiles are no longer rack members; never let rack relayout
-      // pull them back to the rack centre after a double-tap or resize.
       if (
         runtime.zone === "discard" ||
         runtime.zone === "pass" ||
@@ -8353,7 +9594,6 @@ export class PhaserScene extends Phaser.Scene {
       if (runtime.isDragging) {
         runtime.slotIndex = this.rackOrder.indexOf(runtime.vm.tile_id!);
         runtime.image.setDepth(100);
-        // NEWCODE
         runtime.image.setVisible(true);
         continue;
       }
@@ -8366,37 +9606,12 @@ export class PhaserScene extends Phaser.Scene {
         targetY,
         animate,
       );
-      /* OLDCODE
-            // NEWCODE
-            if (!runtime.isDragging) {
-              const bounds = this.getRackBounds();
-              runtime.image.setVisible(targetX >= bounds.x && targetX <= bounds.x + bounds.width);
-            }
-      OLDCODE */
-      /* NEWCODE */
       if (!runtime.isDragging) {
         const bounds = this.getRackBounds();
         const halfW = tileWidth / 2;
         runtime.image.setVisible(
           targetX + halfW >= bounds.x && targetX - halfW <= bounds.x + bounds.width
         );
-        /* OLDCODE
-        if (!this.isPickAnimating || runtime !== this.pendingLocalPickRuntime) {
-          if (runtime.image.alpha < 1) {
-            runtime.image.setAlpha(1);
-          }
-        }
-        OLDCODE */
-        /* OLDCODE
-        const isPickFlightTile = this.isPickAnimating &&
-          (runtime === this.pendingLocalPickRuntime || runtime.vm.tile_id === this.pendingLocalPickTileId);
-        if (!isPickFlightTile) {
-          if (runtime.image.alpha < 1) {
-            runtime.image.setAlpha(1);
-          }
-        }
-        OLDCODE */
-        /* NEWCODE */
         const isPickFlightTile = this.isPickAnimating &&
           (runtime.vm.tile_id === this.animatingPickTileId || runtime === this.pendingLocalPickRuntime);
         if (!isPickFlightTile) {
@@ -8404,9 +9619,7 @@ export class PhaserScene extends Phaser.Scene {
             runtime.image.setAlpha(1);
           }
         }
-        /* NEWCODE */
       }
-      /* NEWCODE */
     }
 
     this.layoutDiscardTiles(animate);
@@ -8414,6 +9627,84 @@ export class PhaserScene extends Phaser.Scene {
     this.layoutPassWaitingTiles(animate);
     this.updatePassButtonState();
   }
+  OLDCODE */
+  /* NEWCODE */
+  private layoutRackTiles(animate: boolean): void {
+    // 1. Synchronize rackOrder with active rack tiles in tileMap
+    const activeRackIds = new Set<number>();
+    for (const [id, runtime] of this.tileMap.entries()) {
+      if (runtime.zone === "rack") {
+        activeRackIds.add(Number(id));
+      }
+    }
+
+    // Keep only active rack tiles and remove duplicates
+    let cleanRackOrder = this.rackOrder
+      .map((id) => Number(id))
+      .filter((id) => activeRackIds.has(id));
+    cleanRackOrder = Array.from(new Set(cleanRackOrder));
+
+    // Append any active rack tiles missing from rackOrder
+    for (const id of activeRackIds) {
+      if (!cleanRackOrder.includes(id)) {
+        cleanRackOrder.push(id);
+      }
+    }
+
+    this.rackOrder = cleanRackOrder;
+    this.reindexRackRuntimeSlots();
+
+    const tileWidth = Math.round(this.layout.bottomTileLayout.width);
+    const tileHeight = Math.round(this.layout.bottomTileLayout.height);
+
+    // 2. Position each rack tile strictly according to its index in rackOrder
+    this.rackOrder.forEach((tileId, index) => {
+      const runtime = this.tileMap.get(tileId) ?? this.tileMap.get(Number(tileId));
+      if (!runtime || runtime.zone !== "rack") return;
+
+      const slot = this.slotForIndex(index);
+      const selectedOffset = runtime.selected ? -tileHeight * 0.18 : 0;
+
+      const targetX = Math.round(slot.x);
+      const targetY = Math.round(slot.y + selectedOffset);
+
+      if (runtime.isDragging) {
+        runtime.slotIndex = index;
+        runtime.image.setDepth(100);
+        runtime.image.setVisible(true);
+        return;
+      }
+
+      this.animationManager.layoutRackTile(
+        runtime.image,
+        tileWidth,
+        tileHeight,
+        targetX,
+        targetY,
+        animate,
+      );
+
+      const bounds = this.getRackBounds();
+      const halfW = tileWidth / 2;
+      runtime.image.setVisible(
+        targetX + halfW >= bounds.x && targetX - halfW <= bounds.x + bounds.width
+      );
+
+      const isPickFlightTile = this.isPickAnimating &&
+        (runtime.vm.tile_id === this.animatingPickTileId || runtime === this.pendingLocalPickRuntime);
+      if (!isPickFlightTile) {
+        if (runtime.image.alpha < 1) {
+          runtime.image.setAlpha(1);
+        }
+      }
+    });
+
+    this.layoutDiscardTiles(animate);
+    this.layoutPassWaitingArea();
+    this.layoutPassWaitingTiles(animate);
+    this.updatePassButtonState();
+  }
+  /* NEWCODE */
   private layoutDiscardTiles(animate: boolean): void {
     const grid = this.discardGrid();
 

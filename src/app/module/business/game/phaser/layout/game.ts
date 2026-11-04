@@ -273,6 +273,7 @@ export class PhaserLayoutGame {
     /**
      * Discard area should be mostly invisible felt space.
      */
+    /* OLDCODE
     const discardPanelGap = this.discardPanelGap(tableOuter);
     const discardArea: Rect = {
       x: leftExposure.x + leftExposure.width + tableOuter.width * 0.055,
@@ -286,6 +287,24 @@ export class PhaserLayoutGame {
         (topExposure.y + topExposure.height) -
         discardPanelGap * 2,
     };
+    OLDCODE */
+    /* NEWCODE */
+    const discardPanelGap = this.discardPanelGap(tableOuter);
+    // Expand discard area by reducing horizontal margin from 0.055 to 0.015
+    const discardAreaInsetX = tableOuter.width * 0.015;
+    const discardArea: Rect = {
+      x: leftExposure.x + leftExposure.width + discardAreaInsetX,
+      y: topExposure.y + topExposure.height + discardPanelGap,
+      width:
+        rightExposure.x -
+        (leftExposure.x + leftExposure.width) -
+        discardAreaInsetX * 2,
+      height:
+        bottomExposure.y -
+        (topExposure.y + topExposure.height) -
+        discardPanelGap * 2,
+    };
+    /* NEWCODE */
 
     /**
      * Center white action card from PSD.
@@ -514,6 +533,7 @@ export class PhaserLayoutGame {
      * Discard/play area:
      * Use remaining center space, never overlap the card/rack panels.
      */
+    /* OLDCODE
     const discardPanelGap = this.discardPanelGap(tableOuter);
     const discardAreaTop = topExposure.y + topExposure.height + discardPanelGap;
 
@@ -528,6 +548,23 @@ export class PhaserLayoutGame {
         tableOuter.width * 0.110,
       height: Math.max(130, discardAreaBottom - discardAreaTop),
     };
+    OLDCODE */
+    /* NEWCODE */
+    const discardPanelGap = this.discardPanelGap(tableOuter);
+    const discardAreaTop = topExposure.y + topExposure.height + discardPanelGap;
+    const discardAreaBottom = bottomExposure.y - discardPanelGap;
+    const discardAreaInsetX = tableOuter.width * 0.015;
+
+    const discardArea: Rect = {
+      x: leftExposure.x + leftExposure.width + discardAreaInsetX,
+      y: discardAreaTop,
+      width:
+        rightExposure.x -
+        (leftExposure.x + leftExposure.width) -
+        discardAreaInsetX * 2,
+      height: Math.max(130, discardAreaBottom - discardAreaTop),
+    };
+    /* NEWCODE */
 
     /**
      * Instruction popup:
@@ -811,6 +848,7 @@ export class PhaserLayoutGame {
      * Discard/play area:
      * Remaining center area, protected from panels.
      */
+    /* OLDCODE
     const discardPanelGap = this.discardPanelGap(tableOuter);
     const discardAreaTop = topExposure.y + topExposure.height + discardPanelGap + 35;
 
@@ -825,6 +863,24 @@ export class PhaserLayoutGame {
         tableOuter.width * 0.110,
       height: Math.max(120, discardAreaBottom - discardAreaTop),
     };
+    OLDCODE */
+    /* NEWCODE */
+    const discardPanelGap = this.discardPanelGap(tableOuter);
+    // Remove arbitrary +35 to allow full vertical discard height
+    const discardAreaTop = topExposure.y + topExposure.height + discardPanelGap;
+    const discardAreaBottom = bottomExposure.y - discardPanelGap;
+    const discardAreaInsetX = tableOuter.width * 0.015;
+
+    const discardArea: Rect = {
+      x: leftExposure.x + leftExposure.width + discardAreaInsetX,
+      y: discardAreaTop,
+      width:
+        rightExposure.x -
+        (leftExposure.x + leftExposure.width) -
+        discardAreaInsetX * 2,
+      height: Math.max(135, discardAreaBottom - discardAreaTop),
+    };
+    /* NEWCODE */
 
     /**
      * Instruction card:
@@ -1122,6 +1178,7 @@ export class PhaserLayoutGame {
     * Discard area:
     * Centered available space, not allowed to overlap panels.
     */
+    /* OLDCODE
     const discardPanelGap = this.discardPanelGap(tableOuter);
     const discardAreaTop = topExposure.y + topExposure.height + discardPanelGap;
 
@@ -1136,6 +1193,23 @@ export class PhaserLayoutGame {
         tableOuter.width * 0.080,
       height: Math.max(48, discardAreaBottom - discardAreaTop),
     };
+    OLDCODE */
+    /* NEWCODE */
+    const discardPanelGap = this.discardPanelGap(tableOuter);
+    const discardAreaTop = topExposure.y + topExposure.height + discardPanelGap;
+    const discardAreaBottom = bottomExposure.y - discardPanelGap;
+    const discardAreaInsetX = tableOuter.width * 0.012;
+
+    const discardArea: Rect = {
+      x: leftExposure.x + leftExposure.width + discardAreaInsetX,
+      y: discardAreaTop,
+      width:
+        rightExposure.x -
+        (leftExposure.x + leftExposure.width) -
+        discardAreaInsetX * 2,
+      height: Math.max(52, discardAreaBottom - discardAreaTop),
+    };
+    /* NEWCODE */
 
     /**
     * Instruction card:
@@ -1419,6 +1493,7 @@ export class PhaserLayoutGame {
      * Give the center most of the remaining vertical space.
      */
 
+    /* OLDCODE
     const discardPanelGap = this.discardPanelGap(tableOuter);
     const discardAreaTop = topExposure.y + topExposure.height + discardPanelGap;
 
@@ -1433,6 +1508,23 @@ export class PhaserLayoutGame {
         tableOuter.width * 0.070,
       height: Math.max(70, discardAreaBottom - discardAreaTop),
     };
+    OLDCODE */
+    /* NEWCODE */
+    const discardPanelGap = this.discardPanelGap(tableOuter);
+    const discardAreaTop = topExposure.y + topExposure.height + discardPanelGap;
+    const discardAreaBottom = bottomExposure.y - discardPanelGap;
+    const discardAreaInsetX = tableOuter.width * 0.012;
+
+    const discardArea: Rect = {
+      x: leftExposure.x + leftExposure.width + discardAreaInsetX,
+      y: discardAreaTop,
+      width:
+        rightExposure.x -
+        (leftExposure.x + leftExposure.width) -
+        discardAreaInsetX * 2,
+      height: Math.max(75, discardAreaBottom - discardAreaTop),
+    };
+    /* NEWCODE */
 
     /**
      * Instruction card:

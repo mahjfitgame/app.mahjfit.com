@@ -382,10 +382,29 @@ export class GameState extends SignalStateService implements FoundationModuleSta
         return this.play()?.winner_seat_ids as number[] | undefined;
     });
 
+    /* NEWCODE */
+    // ████ play_winning_hands SIGNAL ███████████████████████████████████████████
+    public readonly play_winning_hands = computed<any[] | undefined>(() => {
+        return this.play()?.winning_hands as any[] | undefined;
+    });
+    /* NEWCODE */
+
     // ████ play_last_joker_exchange SIGNAL ██████████████████████████████████████
     public readonly play_last_joker_exchange = computed<any | undefined>(() => {
         return (this.play() as any)?.last_joker_exchange;
     });
+
+    /* NEWCODE */
+    // ████ play_joker_exchanges SIGNAL ███████████████████████████████████████████
+    public readonly play_joker_exchanges = computed<any[] | undefined>(() => {
+        return (this.play() as any)?.joker_exchanges;
+    });
+
+    // ████ play_joker_exchange_seq SIGNAL ████████████████████████████████████████
+    public readonly play_joker_exchange_seq = computed<number | undefined>(() => {
+        return (this.play() as any)?.joker_exchange_seq;
+    });
+    /* NEWCODE */
 
     // add public for all computed
 
@@ -1210,6 +1229,38 @@ export class GameState extends SignalStateService implements FoundationModuleSta
                 last_client_seq_by_player: true,
                 finished_reason: true,
                 winner_seat_ids: true,
+                /* NEWCODE */
+                winning_hands: {
+                    seat_id: true,
+                    rack_id: true,
+                    rule_id: true,
+                    label: true,
+                    value_kind: true,
+                    value_mult: true,
+                    groups: {
+                        index: true,
+                        kind: true,
+                        set_type: true,
+                        title: true,
+                        exposed: true,
+                        tile_ids: true
+                    }
+                },
+                /* NEWCODE */
+                joker_exchange_seq: true,
+                joker_exchanges: {
+                    seq: true,
+                    from_gseat_id: true,
+                    from_rack_id: true,
+                    to_gseat_id: true,
+                    to_rack_id: true,
+                    exposure_index: true,
+                    from_tile_id: true,
+                    tile_code: true,
+                    joker_tile_id: true
+                },
+                /* NEWCODE */
+                /* NEWCODE */
                 wall_count: true,
                 pass: {
                     stage: true,
