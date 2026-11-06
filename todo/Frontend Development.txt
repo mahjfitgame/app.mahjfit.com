@@ -2,7 +2,7 @@
 Current:
 [tech][Frontend][D1] Play game and do required upgradtion found while play for Pick, Discard, and Cliam tile
 [tech][Frontend][D1] Integreate discard and calim tile with bot auto turn - preparing exposure tiles and display
-
+[tech][Frontend development][D1] Game Play - UI update and backend work as required
 ======================
 What's left
 Item	Needs from you
@@ -45,7 +45,178 @@ Remove the gap beween the exposure tile and just add same gap to show the multip
 For example
 FFFFFF (SEXTET) of flowers then space (gap) and 1111(Kong) of BAM
 
+=========== POINTS =========== 
+Upgrade sound files
+I created the new AudioSprite sound files with the new game sounds, just integrate in code and check if any functionality related to sound.
+Generated the files for AudioSprite 
+effects.json
+effects.webm
+effects.mp3
+tiles.json
+tiles.webm
+tiles.mp3
 
+
+I have added some more other sounds file and based on that I would like to re generate the audio sprite file to include that sounds as well
+Charleston_Pass.mp3
+Dead_Hand.wav
+Game_Loading.wav
+Getting_Points.wav
+Hint.wav
+Join_Game_Request.wav
+JokerExchange.mp3
+Also updated pass.mp3
+Player_Left_Game.wav
+Select_Pick_Tile.wav
+Skip.wav
+Sort_Rank.wav
+Sort_Suit.wav
+Waiting_Reminder.wav
+Workout_Challenge.wav
+
+
+Prepare the planing for the
+Remove the scroll from the all exposure and set 14 tiles in all exposures.
+This is also work in all devices, means in responsive mode.
+
+
+========== PRMP ===========
+When turn is my and if I pick and discard the tile that time if anyexposure have PUNG, KONG etc... with the same tile whci I like to discard trough doble click or double tap then it replace the joker instead of discard. This is the current behaviour but need this as.
+
+If its my turn and state is need to discard then it must be discard the tile, if I wan to exchange the joker then I will double click on specific exposure tile to exchange the joker not like if on my discard turn if I found the same tile in the exposure then it direclty replace the joker. 
+
+Do not change in the code just do proper analyses how the current logic work aftere that will create the planing and the after before code snippet.
+============ REPLY ============
+FOR CLIENT]
+Today, I completed the following tasks:
+
+1. Backend – Courtesy Pass Logic
+Updated the Courtesy Pass logic in the backend.
+If a Courtesy Pass occurs between a real player and a bot, the real player's selection will have priority. This means the bot must pass the same number of tiles selected by the real player.
+If a Courtesy Pass occurs between two real players, the player who selects the lower number of tiles determines the final exchange count.
+
+2. Audio Updates
+Created a new audio sprite file with the updated sound files.
+Updated the code to load the correct sound based on the corresponding game action.
+Just for your information, Dead_Hand.wav and End_Game.wav contain the same audio, so I included only Dead_Hand.wav to avoid duplication.
+
+3. Discard Area Scrolling
+Improved the scrolling behavior in the discard area to make it smoother.
+
+4. UI Improvements
+I identified and fixed the following UI issues:
+
+Players were able to move discarded tiles. I disabled drag, click, tap, and other interaction events for discarded tiles.
+When dragging a tile on Retina screens and mobile browsers, two separate tile images were appearing simultaneously. I fixed this issue, and it now works correctly.
+
+5. Discard Tile Size
+I also tested smaller tiles in the discard area on desktop devices. However, the tiles did not look sharp enough, so I reverted the change and kept the previous tile size.
+
+
+Today I didnt deploy the backend changes of Courtesy pass. I will upload it by tomorrow om demo API server.
+I have already uploaded the frontend sound-related changes, so you can check and test them.
+
+Please play the game as much as possible and share your feedback. 
+
+I will keep you updated on the progress.
+Thank you!
+
+=========== Progress meeting: 4 NOV 2026 5 PM PST =========== 
+
+https://meet.google.com/meet/sdq-amos-aen
+
+
+1]
+Frontend: For now, temporary purpose we removed the table borders to show bot tiles, so we can test properly and also check the decision made by bot. So, now displaying the rack tiles for all seat in debug mode.
+
+2]
+Frontend: We have adjusted animation speed as per game mode
+Easy
+Normal
+Fast
+At this moment we have fast profile as default in debug mode.
+For now we will continue with this profile.
+
+3]
+Frontend: When a bot exchanges a JOKER, displaying the tile-flip animation in the correct seat's exposure area and playing the corresponding sound.
+Before bot swap wasn't appear visually but now with animation, so players can see the actual process.
+
+4]
+Frontend: Designed the wall game UI and displayed all players' rack tiles openly.
+Wall game popup changes, some work still pending its shows like empty we need to show something here.
+
+5]
+Frontend: Removed the spacing between tiles in the discard area and made the tiles smaller.
+Moving towards removing the scroll.
+
+6]
+Frontend: Reduced the spacing between exposed tiles and added more space between groups such as PUNG, KONG, QUINT, etc.
+
+7] 
+Frontend: Designed the Mahjong winning popup layout and organized the winning hand into groups of tiles, such as PUNG, KONG, QUINT, etc.
+Now, you can see the winning hand very clearly. This was pending in previous meeting.
+
+8]
+Drag-and-drop functionality for manually reordering tiles and adjusting tile sizes when it is not the player's turn.
+This is in player rack.
+
+9] 
+Preventing tile discards when an exposure group is incomplete (fewer than 3 tiles).
+This was a bug, when we click on Mahjong button after came it allow use to discard multiple tiles in discard area, which was a real bug./
+Now, it's solved.
+
+10]
+Fixed the Charleston second-round prompt UX (double-popup sequence).
+Blink of unwanted popup now gone.
+
+11]
+Pick tile animation to ensure the PICK tile is placed correctly in the rack at the right of the rack.
+Before it was adding at random place and was difficult to get the clear idea about new tile.
+
+
+12]
+Updated the voting logic for the second round of Charleston.
+Bot votes are now ignored during the second round when playing with all bot seats.
+If any real player votes NO for the second round, the round will be skipped, and the game will move to the next phase.
+Now, not from bot will not be considered only human player.
+
+13]
+Bot decision for til pass during Charleston
+Logic for jocker exchange by bot
+Bot tile discard algorithm refined again
+Changed JSON rule set file.
+Winning game logic has been improved in bot as well as in system
+Added hand group feature in wining popup and also in exposure, this wasn't there.
+In mahjong and wall game situation we will have all tile exposed in exposure for all players.
+Improved logic based on game mode - slow, medium and fast.
+
+14]
+As we updated backend API we also update the API client wrapper.
+
+END RESULT: Game is performing more accurate then previous meeting.
+We are still working on: completed-points.txt
+File as various details available.
+
+DISCUSSION POINT]
+Design of signing, login page
+Home page
+Game play
+
+Tile size
+Small: 26 × 37 px
+Medium: 88 × 120 px
+Large: we already have this (we created 168  × 230 px as 2X) used every where
+For small size we need to adjust content of tile so it will visible properly to users,
+Resize is possible but symbols and numbers are not appearing properly. User experience get disturbed.
+
+
+PROVIED ORIGINALS:
+1x: 257x256 px
+2x: 512x512 px
+
+
+NOTES]
+Meeting time changed due to day light saving so now 4:30 PM PST insted of PDT
 ====================
 
 https://www.google.com/search?q=Is+this+right+dead+hand+because+I+make+the+group+of+7+crack+and+submit+the+server+call+this+as+dead+hand+so+is+this+right+as+per+the+American+Mahjong+rules&sourceid=chrome&ie=UTF-8&amc=1&gs_lcrp=EgZjaHJvbWUyBggAEEUYOdIBCjQ1MTMzajBqMzGoAgCwAgHqBwoIARAAGAAgACgA&lns_mode=cvst&oq=Is+this+right+dead+hand+because+I+make+the+group+of+7+crack+and+submit+the+server+call+this+as+dead+hand+so+is+this+right+as+per+the+American+Mahjong+rules&aep=42&cud=89&source=chrome.crn.rb&gsessionid=cO7Syjec8aiNgt6rO-hq3hN1MPoOpGhJmfO_oqYjxMmNLGTM7OdMPQ&lns_surface=42&mstk=AUtExfAt9hEkdWNL6ArjpzIWRx0-_Y5C743LFoCsxrr07uMOC57531dq1b9tEL5kbalVJQSOnwlhkc1BQhO72ROLqXKqWMXHzuPwKJfqzU-63y_fd-bWol5pbmvfQPm6F7tZT-zjYzBUbTqO4krkjTMlRKbUREHjePeasRw&csuir=1&mtid=0n_HarGUO6-ohvcPzJLW4Q0&udm=50
@@ -129,6 +300,31 @@ Exposure-Aware Validation: The engine's win check currently pools all 14 tiles w
 
 
 ================= REPLY =================
+Today, I spent most of my time playing the game and thoroughly testing the gameplay with all the latest updated features and points. I checked the different gameplay scenarios to ensure that everything is working as expected after the recent updates.
+I found some UI releated changes so I also updated that changes and run and test it again.
+I also checked the Joker exchange UI, with the real player and the bot exposre and the own exposure, the joker is overlapping on the last tile so I changed the UI and now it works fine. With same exposure it hide the joker tile after exchangd, I fixed that and now it works fine with the exposure
+I found one confusion in Courtesy Pass (Optional Across) logic. For that I asked for clarification from your side.
+
+I played manay games today and I also have some reference mahjong screenshot by bot and by real player. So please cross check it once from your side and give your feedback.
+From now you guys also can play the game and measore the result and share your feedback. If you guys play much as possible game we get the more idea and next upgrdation if required. This is more helpfull to improve the game quality.
+
+
+
+
+Today, I spent most of my time playing the game and thoroughly testing the gameplay with all the latest updated features and points. I checked the different gameplay scenarios to ensure that everything is working as expected after the recent updates.
+I found a few UI-related issues, so I made the necessary changes and ran the tests again.
+I also reviewed the Joker Exchange UI, including real-player exposure, bot exposure, and own exposure. I noticed that the Joker tile was overlapping with the last tile, so I adjusted the UI, and it is now working correctly.
+I also found an issue where, during a Joker exchange with the same exposure, the Joker tile was getting hidden. I fixed this as well, and it is now displaying correctly.
+I have one point of confusion regarding the Courtesy Pass (Optional Across) logic, for which I have requested clarification from your side.
+
+As, I played many games and collected reference Mahjong screenshots showing both bot and real-player gameplay. I have attached those screenshots for your review. Please cross-check them and share your feedback.
+Going forward, I would also request everyone to play the game as much as possible, test different scenarios, and measure the results. The more games we play, the more real-world scenarios and potential improvements we can identify.
+
+Your participation and feedback will be very helpful in improving the overall game quality and identifying areas for future upgrades.
+
+I will keep you updated on the progress.
+Thank you!
+
 FOR CLIENT]
 
 I need one clarification regarding the Courtesy Pass (Optional Across) logic.

@@ -4,6 +4,130 @@ This log records verified development tasks, bug fixes, refactorings, and archit
 
 ---
 
+## [2026-11-05] Discard Area: Disable Drag and Drop for Discarded Tiles
+
+- **Agent**: Antigravity
+- **Task**: Disable drag and drop event handling for discarded tiles so that discarded tiles cannot be moved or dragged by the player, preventing accidental tile movement while scrolling.
+- **Implementation**:
+  - `todo/phase-play-after-before-plan-disable-discard-tile-drag.md`: Created detailed Before/After plan document.
+  - `src/app/module/business/game/phaser/scenes/scene.ts`:
+    - `registerTileInput`: Guarded `onPointerDown`, `onPointerOver`, `onDragStart`, `onDrag`, `onDragEnd`, and `onPointerUp` with `if (runtime.zone === "discard") return;`.
+    - `snapTileToDiscard`: Added `runtime.image.disableInteractive()` and `this.input.setDraggable(runtime.image, false)`.
+    - `layoutDiscardTiles`: Explicitly called `runtime.image.disableInteractive()` and `this.input.setDraggable(runtime.image, false)`.
+    - `renderDiscardsSet` and `handleOpponentDiscard`: Explicitly called `image.disableInteractive()` on opponent discard tiles.
+- **Invariants Upheld**:
+  - Strict `OLDCODE` / `NEWCODE` pattern preserved with 0 code deletions.
+  - Did not access `todo/Frontend Development.txt`.
+  - TypeScript compilation check (`npx tsc --noEmit`) verified with 0 errors.
+
+---
+
+## [2026-11-05] Tile Drag & Drop: Fix Layering Above HTML Overlays & Eliminate High-DPI Duplicate Tile
+
+- **Agent**: Antigravity
+- **Task**:
+  1. Eliminate duplicate mini-tile appearing near the top-left corner on iPhone 16 Pro and Mac Retina displays when dragging any tile.
+  2. Ensure the dragged tile maintains correct layering (`z-index: 1000`) and stays strictly **on top** of HTML overlays (Instruction Panel, PASS buttons, player labels).
+- **Root Cause**:
+  1. `showDragProxy()` and `updateDragProxy()` previously divided coordinates (`dragX`, `dragY`) and tile dimensions by `dpr`. Because Phaser's coordinate system is already in 1:1 CSS screen pixels (`host.clientWidth`, `host.clientHeight`), dividing by DPR shrank the HTML proxy to 1/2 or 1/3 size and shifted it toward `(0, 0)`.
+  2. The Phaser canvas tile sprite (`runtime.image`) was kept at 100% opacity simultaneously with the HTML proxy, causing two tiles to be visible during drag.
+- **Implementation**:
+  - `todo/phase-play-after-before-plan-eliminate-duplicate-drag-tile.md`: Created detailed Before/After plan document.
+  - `src/app/module/business/game/phaser/scenes/scene.ts`:
+    - `onDrag`: Set `runtime.image.setAlpha(0)` when drag starts so only the topmost HTML proxy (`z-index: 1000`) is visible.
+    - `onDragEnd` & `onPointerUp`: Restore `runtime.image.setAlpha(1)` and hide the HTML proxy (`hideDragProxy()`).
+    - `showDragProxy` & `updateDragProxy`: Removed `/ dpr` division. Positions and sizes now use exact 1:1 CSS logical pixels (`dragX - width / 2`, `dragY - height / 2`).
+- **Invariants Upheld**:
+  - Strict `OLDCODE` / `NEWCODE` pattern preserved with 0 code deletions.
+  - Did not access `todo/Frontend Development.txt`.
+  - TypeScript compilation check (`npx tsc --noEmit`) verified with 0 errors.
+
+---
+
+## [2026-11-05] Discard Area: Smooth Scrolling with Momentum & Elastic Bounce-Back
+
+- **Agent**: Antigravity
+- **Task**:
+  1. Fix syntax error: `Property 'isDesktop' does not exist on type 'ResponsiveMetrics'`.
+  2. Implement smooth physics-based scrolling for discard tiles (RexRainbow scroller style):
+     - Smooth mouse wheel gliding via interpolation.
+     - Drag fling momentum with decelerating friction.
+     - Elastic overscroll resistance and rubber-band bounce-back.
+- **Root Cause & Fix for Syntax Error**:
+  - `this.layout.metrics` is of type `ResponsiveMetrics`, which has `isMobile` and `isTablet` but not `isDesktop`.
+  - Replaced `this.layout.metrics.isDesktop` with `!this.layout.metrics.isMobile && !this.layout.metrics.isTablet`.
+- **Implementation**:
+  - `todo/phase-play-after-before-plan-smooth-discard-area-scroll.md`: Plan document created with Before/After snippets and plain English explanations.
+  - `src/app/module/business/game/phaser/scenes/scene.ts`:
+    - Added physics state variables: `discardTargetScrollY`, `discardVelocityY`, `discardLastPointerY`, `discardLastPointerTime`.
+    - Mouse wheel listener: Glide smoothly by updating `discardTargetScrollY` with bounds clamping.
+    - Pointer drag/flick listener: Track velocity on move, apply elastic damping when pulled past boundaries, and convert pointer release into inertia momentum (`discardVelocityY`).
+    - Added `updateDiscardSmoothScroll()` in Phaser `update(time, delta)`:
+      - Applies gliding deceleration (`* 0.92`).
+      - Applies rubber-band bounce-back via `Phaser.Math.Linear(..., 0.15)` when out of bounds.
+      - Smoothly interpolates `discardScrollY` towards `discardTargetScrollY` (`0.18`).
+      - Updates discard tile positions smoothly whenever scrolling.
+    - Synchronized `scrollToBottomDiscard` to align target scroll position cleanly.
+- **Invariants Upheld**:
+  - Existing code commented out with `/* OLDCODE */` and replaced with `/* NEWCODE */`.
+  - Did not access `todo/Frontend Development.txt`.
+  - Verified 0 errors with `npx tsc --noEmit`.
+
+---
+
+## [2026-11-05] Discard Area: 30% Tile Size Reduction on Desktop
+
+- **Agent**: Antigravity
+- **Task**: Decrease discard area tile size by 30% specifically for Desktop devices while preserving existing sizes on tablet and mobile.
+- **Implementation**:
+  - `todo/phase-play-after-before-plan-desktop-discard-tile-size-reduction.md`: Created detailed Before & After plan document.
+  - `src/app/module/business/game/phaser/scenes/scene.ts`:
+    - Updated `discardGrid()`: Checked `isDesktop`, scaling tiles by `0.81 * 0.70 = 0.567` on desktop (~40 × 57 px).
+    - Preserved `scale = 0.81` on tablet and mobile devices.
+- **Invariants Upheld**:
+  - Existing code preserved with `/* OLDCODE */` and `/* NEWCODE */`.
+  - Did not access `todo/Frontend Development.txt`.
+  - Verified 0 errors with `npx tsc --noEmit`.
+
+---
+
+## [2026-11-05] Dead Hand Popup: Center Text Vertically & Horizontally
+
+- **Agent**: Antigravity
+- **Task**: Center the text in the Dead Hand popup dialogs.
+- **Root Cause**:
+  1. In `dead-hand-popup` (the Declare Dead Hand modal), the template had `[style.display]="'block'"`, overriding the stylesheet's `place-items: center` and pushing the section to the top of the screen.
+  2. Inside `wall-game-theme` (when a game ends due to Dead Hand), `.wall-game-popup__dead-note` had `text-align: left` and default flex alignment, keeping the note on the left side of the popup.
+- **Implementation**:
+  - `src/app/module/business/game/phaser/template.html`:
+    - Updated `.dead-hand-popup` container from `[style.display]="'block'"` to `[style.display]="'grid'"`.
+  - `src/app/module/business/game/phaser/style.scss`:
+    - Added `display: grid; place-items: center;` to `.dead-hand-popup`.
+    - Added `margin: auto; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center;` to `.dead-hand-popup section`.
+    - Centered `.wall-game-popup__dead-note` within `.wall-game-theme .result-card-header` (`text-align: center; justify-content: center; margin: 8px auto 0;`).
+- **Invariants Upheld**:
+  - Existing code commented out with `/* OLDCODE */` and replaced with `/* NEWCODE */`.
+  - Did not access `todo/Frontend Development.txt`.
+  - Verified 0 errors with `npx tsc --noEmit`.
+
+---
+
+## [2026-11-04] Wall Game Popup: Center Text Vertically & Horizontally
+
+- **Agent**: Antigravity
+- **Task**: Center the text (title, announcement message, and dead note) in the Wall Game popup dialog.
+- **Root Cause**: `.discard-area-result-card` had `justify-content: space-between` with only two elements (`<header>` and `<footer>`), pushing the header text all the way to the top border with a large empty gap in the middle.
+- **Implementation**:
+  - `src/app/module/business/game/phaser/style.scss`:
+    - Updated `.wall-game-theme .result-card-header` with `flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; width: 100%;`.
+    - Pinned `.result-card-actions` neatly at the bottom with `margin-top: 0; margin-bottom: 6px;`.
+- **Invariants Upheld**:
+  - Existing code commented out with `/* OLDCODE */` and replaced with `/* NEWCODE */`.
+  - Did not access `todo/Frontend Development.txt`.
+  - Verified 0 errors with `npx tsc --noEmit`.
+
+---
+
 ## [2026-11-04] Joker Exchange: Permanent Rack Overlap Elimination via Pure Slot Calculation & Numeric Slot Reconciliation
 
 - **Agent**: Antigravity

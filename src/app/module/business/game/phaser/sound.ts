@@ -15,6 +15,7 @@ export class PhaserSound {
   private currentTileVoice?: Phaser.Sound.BaseSound;
   private currentTileVoiceKey?: string;
   private lastTileVoiceAt = 0;
+  /* OLDCODE
   private readonly sfxConfig: Record<TableSfxId, TableSfxConfig> = {
     "tile-select": { key: "tile-select", urls: [], volume: 0.45, poolSize: 3, throttleMs: 35 },
     "tile-pass-waiting": { key: "tile-drop", urls: [], volume: 0.5, poolSize: 3, throttleMs: 35 },
@@ -24,6 +25,27 @@ export class PhaserSound {
     "pick-tile": { key: "pick-tile", urls: [], volume: 0.5, poolSize: 2, throttleMs: 45 },
     "call": { key: "call", urls: [], volume: 0.65, poolSize: 1, throttleMs: 2000 },
   };
+  OLDCODE */
+  /* NEWCODE */
+  private readonly sfxConfig: Record<TableSfxId, TableSfxConfig> = {
+    "tile-select": { key: "tile-select", urls: [], volume: 0.45, poolSize: 3, throttleMs: 35 },
+    "tile-pass-waiting": { key: "tile-drop", urls: [], volume: 0.5, poolSize: 3, throttleMs: 35 },
+    "tile-return": { key: "tile-drop", urls: [], volume: 0.45, poolSize: 2, throttleMs: 45 },
+    "tile-drop": { key: "tile-drop", urls: [], volume: 0.5, poolSize: 2, throttleMs: 45 },
+    pass: { key: "charleston_pass", urls: [], volume: 0.65, poolSize: 1, throttleMs: 150 },
+    "pick-tile": { key: "select_pick_tile", urls: [], volume: 0.5, poolSize: 2, throttleMs: 45 },
+    call: { key: "call", urls: [], volume: 0.65, poolSize: 1, throttleMs: 2000 },
+    "charleston-pass": { key: "charleston_pass", urls: [], volume: 0.65, poolSize: 1, throttleMs: 150 },
+    "dead-hand": { key: "dead_hand", urls: [], volume: 0.7, poolSize: 1, throttleMs: 200 },
+    skip: { key: "skip", urls: [], volume: 0.65, poolSize: 1, throttleMs: 150 },
+    "sort-rank": { key: "sort_rank", urls: [], volume: 0.65, poolSize: 1, throttleMs: 150 },
+    "sort-suit": { key: "sort_suit", urls: [], volume: 0.65, poolSize: 1, throttleMs: 150 },
+    "wall-game": { key: "wall-game", urls: [], volume: 0.8, poolSize: 1, throttleMs: 500 },
+    mahjong: { key: "mahjong", urls: [], volume: 0.85, poolSize: 1, throttleMs: 500 },
+    "joker-exchange": { key: "joker_exchange", urls: [], volume: 0.8, poolSize: 1, throttleMs: 150 },
+    hint: { key: "hint", urls: [], volume: 0.65, poolSize: 1, throttleMs: 200 },
+  };
+  /* NEWCODE */
   private readonly sfxPools = new Map<TableSfxId, Phaser.Sound.BaseSound[]>();
   private readonly sfxPoolCursor = new Map<TableSfxId, number>();
   private readonly lastSfxAt = new Map<TableSfxId, number>();
@@ -40,7 +62,9 @@ export class PhaserSound {
     if (!this.scene.cache.json.exists('effects')) {
       this.scene.load.audioSprite('effects', 'assets/sounds/effects.json', ['assets/sounds/effects.webm', 'assets/sounds/effects.mp3']);
     }
+    /* OLDCODE
     this.scene.load.audio('joker_exchange', 'assets/sounds/joker_exchange.mp3');
+    OLDCODE */
   }
   create(): void { 
     this.createSoundPools(); 
@@ -86,9 +110,18 @@ export class PhaserSound {
     this.currentTileVoiceKey = "stop-the-chaleston";
     this.effectsSprite.play("stop-the-chaleston", { volume: 1.0 });
   }
+  /* OLDCODE
   playJokerExchange(): void {
     this.scene.sound.play('joker_exchange', { volume: 0.8 });
   }
+  OLDCODE */
+  /* NEWCODE */
+  playJokerExchange(): void {
+    if (this.effectsSprite) {
+      this.effectsSprite.play('joker_exchange', { volume: 0.8 });
+    }
+  }
+  /* NEWCODE */
   playSfx(id: TableSfxId): void { 
     const config = this.sfxConfig[id]; 
     const pool = this.sfxPools.get(id); 

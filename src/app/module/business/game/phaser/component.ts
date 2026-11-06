@@ -1049,7 +1049,13 @@ export class PhaserComponent implements AfterViewInit {
               }
             }
           }
+          /* OLDCODE
           this.phaser?.events.emit("table:wall-game", opponentHands);
+          OLDCODE */
+          /* NEWCODE */
+          this.phaser?.events.emit("ui:wall-game-sound");
+          this.phaser?.events.emit("table:wall-game", opponentHands);
+          /* NEWCODE */
           /* NEWCODE */
         } else {
           // Dead Hand / No Active Racks Game Over
@@ -1824,10 +1830,19 @@ export class PhaserComponent implements AfterViewInit {
     this.deadHandClaimReason.set(reason);
   }
 
+  /* OLDCODE
   public onSubmitDeadHandClaim(targetSeat: Exclude<TableSeat, "bottom">, reason: DeadHandReason): void {
     this.zone.run(() => this.deadHandClaimed.emit({ targetSeat, reason }));
     this.setDeadHandPopup(null);
   }
+  OLDCODE */
+  /* NEWCODE */
+  public onSubmitDeadHandClaim(targetSeat: Exclude<TableSeat, "bottom">, reason: DeadHandReason): void {
+    this.phaser?.events.emit("ui:dead-hand-claimed");
+    this.zone.run(() => this.deadHandClaimed.emit({ targetSeat, reason }));
+    this.setDeadHandPopup(null);
+  }
+  /* NEWCODE */
 
   public onCancelDeadHandClaim(): void {
     this.setDeadHandPopup(null);
@@ -2032,9 +2047,17 @@ export class PhaserComponent implements AfterViewInit {
     if (action === "call") {
       void this.gameState.publishClaimAction(GamePlayActionEnumAddon.CALL, claimTile.tile_id as number);
       this.phaser?.events.emit("ui:claim-submitted", { tile_id: claimTile.tile_id, action });
+    /* OLDCODE
     } else if (action === "skip") {
       void this.gameState.publishClaimAction(GamePlayActionEnumAddon.PASS, claimTile.tile_id as number);
-    } else if (action === "mahjong") {
+    }
+    OLDCODE */
+    /* NEWCODE */
+    } else if (action === "skip") {
+      this.phaser?.events.emit("ui:skip-clicked");
+      void this.gameState.publishClaimAction(GamePlayActionEnumAddon.PASS, claimTile.tile_id as number);
+    }
+    /* NEWCODE */ else if (action === "mahjong") {
       void this.gameState.publishClaimAction(GamePlayActionEnumAddon.MAHJONG, claimTile.tile_id as number);
       this.phaser?.events.emit("ui:claim-submitted", { tile_id: claimTile.tile_id, action });
     }

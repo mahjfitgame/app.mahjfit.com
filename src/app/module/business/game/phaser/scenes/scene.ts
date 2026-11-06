@@ -134,6 +134,7 @@ export class PhaserScene extends Phaser.Scene {
   /* NEWCODE */
   // Tracks if the user has manually arranged tiles in their rack via drag-and-drop
   private hasUserManualRackOrder: boolean = false;
+  private lastAnySeatDead: boolean = false;
   /* NEWCODE */
   /* OLDCODE
   private pendingLocalJokerSwap?: { fromTileId: number; jokerTileId: number; rackIndex: number };
@@ -145,10 +146,23 @@ export class PhaserScene extends Phaser.Scene {
   private get dragPointerId(): number | undefined { return this.stateManager.dragPointerId; }
   private set dragPointerId(value: number | undefined) { this.stateManager.dragPointerId = value; }
 
+  /* OLDCODE
   private isScrollingDiscard: boolean = false;
   private discardScrollStartY: number = 0;
   private discardScrollStartOffsetY: number = 0;
   private discardScrollY: number = 0;
+  OLDCODE */
+  /* NEWCODE */
+  // Discard area scroll position and smooth movement variables
+  private discardScrollStartY: number = 0;
+  private discardScrollStartOffsetY: number = 0;
+  private discardScrollY: number = 0;
+  private discardTargetScrollY: number = 0;
+  private discardVelocityY: number = 0;
+  private discardLastPointerY: number = 0;
+  private discardLastPointerTime: number = 0;
+  private isScrollingDiscard: boolean = false;
+  /* NEWCODE */
 
   // NEWCODE
   private leftExposureScrollY: number = 0;
@@ -342,12 +356,26 @@ export class PhaserScene extends Phaser.Scene {
         this.callbacks.onSortRequested?.(mode);
       },
       OLDCODE */
+      /* OLDCODE
+      onSortRequested: (mode) => {
+        // Reset manual ordering so rack adopts the server sorted hand_order
+        this.hasUserManualRackOrder = false;
+        this.isExplicitSortRequested = true;
+        setTimeout(() => { this.isExplicitSortRequested = false; }, 5000);
+        this.callbacks.onSortRequested?.(mode);
+      },
+      OLDCODE */
       /* NEWCODE */
       onSortRequested: (mode) => {
         // Reset manual ordering so rack adopts the server sorted hand_order
         this.hasUserManualRackOrder = false;
         this.isExplicitSortRequested = true;
         setTimeout(() => { this.isExplicitSortRequested = false; }, 5000);
+        if (mode === "rank") {
+          this.playSfx("sort-rank");
+        } else if (mode === "suit") {
+          this.playSfx("sort-suit");
+        }
         this.callbacks.onSortRequested?.(mode);
       },
       /* NEWCODE */
@@ -450,10 +478,20 @@ export class PhaserScene extends Phaser.Scene {
 
     this.input.on('wheel', (pointer: Phaser.Input.Pointer, gameObjects: any[], deltaX: number, deltaY: number, deltaZ: number) => {
       if (this.tablePhase === GamePhaseEnum.LOBBY || this.tableOverlayBlockLevel !== "none") return;
+      /* OLDCODE
       if (isPointerInDiscardArea(pointer)) {
         this.discardScrollY = Phaser.Math.Clamp(this.discardScrollY + deltaY, 0, Math.max(0, this.discardMaxScroll));
         this.updateDiscardTilePositions();
       }
+      OLDCODE */
+      /* NEWCODE */
+      // Smooth mouse wheel: update target position and let update loop smoothly glide to it
+      if (isPointerInDiscardArea(pointer)) {
+        const maxScroll = Math.max(0, this.discardMaxScroll);
+        this.discardTargetScrollY = Phaser.Math.Clamp(this.discardTargetScrollY + deltaY * 0.8, 0, maxScroll);
+        this.discardVelocityY = 0;
+      }
+      /* NEWCODE */
       // NEWCODE
       else if (this.layout && this.tileInteractionManager.isPointInsideRect(this.layout.leftExposure, pointer.x, pointer.y)) {
         this.leftExposureScrollY = Phaser.Math.Clamp(this.leftExposureScrollY + deltaY, 0, this.maxLeftExposureScroll());
@@ -477,11 +515,24 @@ export class PhaserScene extends Phaser.Scene {
 
     this.input.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
       if (this.tablePhase === GamePhaseEnum.LOBBY || this.tableOverlayBlockLevel !== "none") return;
+      /* OLDCODE
       if (isPointerInDiscardArea(pointer)) {
         this.isScrollingDiscard = true;
         this.discardScrollStartY = pointer.y;
         this.discardScrollStartOffsetY = this.discardScrollY;
       }
+      OLDCODE */
+      /* NEWCODE */
+      // Start drag: stop existing velocity and record starting points
+      if (isPointerInDiscardArea(pointer)) {
+        this.isScrollingDiscard = true;
+        this.discardVelocityY = 0;
+        this.discardScrollStartY = pointer.y;
+        this.discardScrollStartOffsetY = this.discardScrollY;
+        this.discardLastPointerY = pointer.y;
+        this.discardLastPointerTime = this.time.now;
+      }
+      /* NEWCODE */
       // NEWCODE
       else if (this.layout && this.tileInteractionManager.isPointInsideRect(this.layout.leftExposure, pointer.x, pointer.y)) {
         this.isScrollingExposure = "left";
@@ -506,11 +557,39 @@ export class PhaserScene extends Phaser.Scene {
     });
 
     this.input.on('pointermove', (pointer: Phaser.Input.Pointer) => {
+      /* OLDCODE
       if (this.isScrollingDiscard && pointer.isDown) {
         const deltaY = this.discardScrollStartY - pointer.y;
         this.discardScrollY = Phaser.Math.Clamp(this.discardScrollStartOffsetY + deltaY, 0, Math.max(0, this.discardMaxScroll));
         this.updateDiscardTilePositions();
       }
+      OLDCODE */
+      /* NEWCODE */
+      // While dragging: track movement speed (velocity) for momentum release
+      if (this.isScrollingDiscard && pointer.isDown) {
+        const deltaY = this.discardScrollStartY - pointer.y;
+        const maxScroll = Math.max(0, this.discardMaxScroll);
+
+        // Apply slight resistance when pulling past edges (rubber-band feel)
+        let newScrollY = this.discardScrollStartOffsetY + deltaY;
+        if (newScrollY < 0) {
+          newScrollY = newScrollY * 0.35;
+        } else if (newScrollY > maxScroll) {
+          newScrollY = maxScroll + (newScrollY - maxScroll) * 0.35;
+        }
+        this.discardScrollY = newScrollY;
+        this.discardTargetScrollY = Phaser.Math.Clamp(newScrollY, 0, maxScroll);
+
+        // Calculate drag speed for fling effect
+        const timeDiff = Math.max(1, this.time.now - this.discardLastPointerTime);
+        const distanceDiff = this.discardLastPointerY - pointer.y;
+        this.discardVelocityY = (distanceDiff / timeDiff) * 16; // speed per frame
+
+        this.discardLastPointerY = pointer.y;
+        this.discardLastPointerTime = this.time.now;
+        this.updateDiscardTilePositions();
+      }
+      /* NEWCODE */
       // NEWCODE
       else if (this.isScrollingExposure !== "none" && pointer.isDown) {
         if (this.isScrollingExposure === "left") {
@@ -542,7 +621,16 @@ export class PhaserScene extends Phaser.Scene {
     OLDCODE */
     /* NEWCODE */
     this.input.on('pointerup', () => {
+      /* OLDCODE
       this.isScrollingDiscard = false;
+      OLDCODE */
+      /* NEWCODE */
+      // When released: cap max fling velocity so it glides smoothly
+      if (this.isScrollingDiscard) {
+        this.isScrollingDiscard = false;
+        this.discardVelocityY = Phaser.Math.Clamp(this.discardVelocityY, -25, 25);
+      }
+      /* NEWCODE */
       // NEWCODE
       this.isScrollingExposure = "none";
       this.hideDragProxy();
@@ -822,6 +910,19 @@ export class PhaserScene extends Phaser.Scene {
     /* NEWCODE */
     this.game.events.on("table:wall-game", this.revealAllSeatsHandsForWallGame, this);
     /* NEWCODE */
+    this.game.events.on("ui:skip-clicked", () => this.playSfx("skip"), this);
+    this.game.events.on("ui:dead-hand-claimed", () => this.playSfx("dead-hand"), this);
+    this.game.events.on("ui:wall-game-sound", () => this.playSfx("wall-game"), this);
+    this.game.events.on("ui:update-dead-states", (deadStates: Record<string, boolean>) => {
+      if (!deadStates) return;
+      const isAnyDead = Object.values(deadStates).some((v) => !!v);
+      if (isAnyDead && !this.lastAnySeatDead) {
+        this.playSfx("dead-hand");
+      }
+      this.lastAnySeatDead = isAnyDead;
+    }, this);
+    /* NEWCODE */
+    /* NEWCODE */
     this.game.events.on("claim:resolved", this.handleResolvedClaimPresentation, this);
     this.game.events.on("claim:presentation:reset", this.resetClaimPresentation, this);
     this.game.events.on("charleston:state", this.setCharlestonState, this);
@@ -1084,10 +1185,19 @@ export class PhaserScene extends Phaser.Scene {
       return;
     }
 
+    /* OLDCODE
     if (action === "hint") {
       // TODO: connect hint engine.
       return;
     }
+    OLDCODE */
+    /* NEWCODE */
+    if (action === "hint") {
+      this.playSfx("hint");
+      // TODO: connect hint engine.
+      return;
+    }
+    /* NEWCODE */
 
     if (action === "dead-hand") {
       this.showDeadHandSeatSelection();
@@ -2583,6 +2693,7 @@ export class PhaserScene extends Phaser.Scene {
 
     this.input.setDraggable(runtime.image);
 
+    /* OLDCODE
     this.tileInteractionManager.onPointerDown(runtime.image, (pointer: Phaser.Input.Pointer) => {
       if (runtime.zone === "pass") {
         pointer.event?.stopPropagation?.();
@@ -2619,6 +2730,54 @@ export class PhaserScene extends Phaser.Scene {
           this.dragThresholdPx,
         )
       ) return;
+    OLDCODE */
+    /* NEWCODE */
+    this.tileInteractionManager.onPointerDown(runtime.image, (pointer: Phaser.Input.Pointer) => {
+      // Discarded tiles cannot be clicked or dragged
+      if (runtime.zone === "discard") return;
+
+      if (runtime.zone === "pass") {
+        pointer.event?.stopPropagation?.();
+        this.playHaptic("tile-return");
+        this.returnPassTileToRack(runtime.vm.tile_id!);
+        return;
+      }
+
+      this.activeDragTile = runtime;
+      this.suppressTapByTileId.delete(runtime.vm.tile_id!);
+
+      this.tileInteractionManager.beginPointer(runtime.vm.tile_id!, pointer);
+
+      runtime.isDragging = false;
+      runtime.image.setDepth(100);
+
+      this.showJokerWarning(runtime);
+    });
+
+    this.tileInteractionManager.onPointerOver(runtime.image, () => {
+      if (runtime.zone === "discard") return;
+      this.showJokerWarning(runtime);
+    });
+
+    this.tileInteractionManager.onDragStart(runtime.image, () => {
+      // Discarded tiles cannot be dragged
+      if (runtime.zone === "discard") return;
+      runtime.image.setDepth(100);
+    });
+
+    this.tileInteractionManager.onDrag(runtime.image, (pointer: Phaser.Input.Pointer, dragX: number, dragY: number) => {
+      // Discarded tiles cannot be dragged
+      if (runtime.zone === "discard") return;
+
+      if (
+        !runtime.isDragging &&
+        !this.tileInteractionManager.hasReachedDragThreshold(
+          runtime.vm.tile_id!,
+          pointer,
+          this.dragThresholdPx,
+        )
+      ) return;
+    /* NEWCODE */
 
       /* OLDCODE
       if (!runtime.isDragging) {
@@ -2634,7 +2793,7 @@ export class PhaserScene extends Phaser.Scene {
       runtime.image.setPosition(Math.round(dragX), Math.round(dragY));
       this.updateDragProxy(runtime, dragX, dragY);
       OLDCODE */
-      /* NEWCODE */
+      /* OLDCODE
       if (!runtime.isDragging) {
         runtime.isDragging = true;
 
@@ -2648,6 +2807,27 @@ export class PhaserScene extends Phaser.Scene {
       }
 
       runtime.image.setPosition(Math.round(dragX), Math.round(dragY));
+      this.updateDragProxy(runtime, dragX, dragY);
+      this.updateJokerMagneticProximity(runtime, pointer.worldX, pointer.worldY);
+      OLDCODE */
+      /* NEWCODE */
+      if (!runtime.isDragging) {
+        runtime.isDragging = true;
+
+        runtime.selected = false;
+        this.selectedIds.delete(runtime.vm.tile_id!);
+        runtime.image.clearTint();
+
+        // Hide canvas sprite while dragging so only the topmost HTML proxy tile is visible
+        runtime.image.setAlpha(0);
+
+        this.callbacks.onSelectionChanged([...this.selectedIds]);
+        // Show 30% ghost at original rack slot so player sees where tile came from
+        this.showRackDragGhost(runtime);
+      }
+
+      runtime.image.setPosition(Math.round(dragX), Math.round(dragY));
+      // Update topmost HTML proxy tile position (z-index: 1000 above labels and buttons)
       this.updateDragProxy(runtime, dragX, dragY);
       this.updateJokerMagneticProximity(runtime, pointer.worldX, pointer.worldY);
       /* NEWCODE */
@@ -2753,13 +2933,33 @@ export class PhaserScene extends Phaser.Scene {
       this.hideDragProxy();
       this.tileInteractionManager.handleDrop(runtime, pointer, () => {
     OLDCODE */
-    /* NEWCODE */
+    /* OLDCODE
     this.tileInteractionManager.onDragEnd(runtime.image, (pointer: Phaser.Input.Pointer) => {
       this.hideDragProxy();
       this.hideRackDragGhost();
       this.clearJokerMagneticProximity();
       this.tileInteractionManager.handleDrop(runtime, pointer, () => {
-        /* NEWCODE */
+    OLDCODE */
+    /* OLDCODE
+    this.tileInteractionManager.onDragEnd(runtime.image, (pointer: Phaser.Input.Pointer) => {
+      this.hideDragProxy();
+      this.hideRackDragGhost();
+      this.clearJokerMagneticProximity();
+      // Restore canvas sprite visibility when drag ends
+      runtime.image.setAlpha(1);
+      this.tileInteractionManager.handleDrop(runtime, pointer, () => {
+    OLDCODE */
+    /* NEWCODE */
+    this.tileInteractionManager.onDragEnd(runtime.image, (pointer: Phaser.Input.Pointer) => {
+      // Discarded tiles cannot be dropped
+      if (runtime.zone === "discard") return;
+      this.hideDragProxy();
+      this.hideRackDragGhost();
+      this.clearJokerMagneticProximity();
+      // Restore canvas sprite visibility when drag ends
+      runtime.image.setAlpha(1);
+      this.tileInteractionManager.handleDrop(runtime, pointer, () => {
+    /* NEWCODE */
         const tileId = runtime.vm.tile_id ?? (runtime.vm as any).id;
         try {
           runtime.image.setDepth(30);
@@ -2825,11 +3025,31 @@ export class PhaserScene extends Phaser.Scene {
       this.hideDragProxy();
       this.activeDragTile = undefined;
     OLDCODE */
-    /* NEWCODE */
+    /* OLDCODE
     this.tileInteractionManager.onPointerUp(runtime.image, () => {
       this.hideDragProxy();
       this.hideRackDragGhost();
       this.clearJokerMagneticProximity();
+      this.activeDragTile = undefined;
+    OLDCODE */
+    /* OLDCODE
+    this.tileInteractionManager.onPointerUp(runtime.image, () => {
+      this.hideDragProxy();
+      this.hideRackDragGhost();
+      this.clearJokerMagneticProximity();
+      // Restore canvas sprite visibility if pointer released
+      runtime.image.setAlpha(1);
+      this.activeDragTile = undefined;
+    OLDCODE */
+    /* NEWCODE */
+    this.tileInteractionManager.onPointerUp(runtime.image, () => {
+      // Discarded tiles ignore pointer up
+      if (runtime.zone === "discard") return;
+      this.hideDragProxy();
+      this.hideRackDragGhost();
+      this.clearJokerMagneticProximity();
+      // Restore canvas sprite visibility if pointer released
+      runtime.image.setAlpha(1);
       this.activeDragTile = undefined;
       /* NEWCODE */
       const tileId = runtime.vm.tile_id ?? (runtime.vm as any).id;
@@ -2840,7 +3060,9 @@ export class PhaserScene extends Phaser.Scene {
 
       if (shouldSuppressTap) return;
       if (runtime.isDragging) return;
+      /* OLDCODE
       if (runtime.zone === "discard") return;
+      OLDCODE */
       if (runtime.zone !== "rack") return;
 
       const now = this.time.now;
@@ -4250,7 +4472,7 @@ export class PhaserScene extends Phaser.Scene {
     proxy.style.transform = `translate3d(${Math.round(dragX - width / 2)}px, ${Math.round(dragY - height / 2)}px, 0)`;
     proxy.style.display = "block";
     OLDCODE */
-    /* NEWCODE */
+    /* OLDCODE
     const dpr = this.renderDpr || (typeof window !== 'undefined' ? window.devicePixelRatio : 1) || 1;
     const width = Math.round(runtime.image.displayWidth / dpr);
     const height = Math.round(runtime.image.displayHeight / dpr);
@@ -4259,6 +4481,16 @@ export class PhaserScene extends Phaser.Scene {
     proxy.style.width = `${width}px`;
     proxy.style.height = `${height}px`;
     proxy.style.transform = `translate3d(${Math.round(screenX - width / 2)}px, ${Math.round(screenY - height / 2)}px, 0)`;
+    proxy.style.display = "block";
+    OLDCODE */
+    /* NEWCODE */
+    // dragX, dragY, and displaySize are already in 1:1 CSS screen pixels.
+    // Do not divide by DPR; use exact tile size and center it under the pointer.
+    const width = Math.round(runtime.image.displayWidth);
+    const height = Math.round(runtime.image.displayHeight);
+    proxy.style.width = `${width}px`;
+    proxy.style.height = `${height}px`;
+    proxy.style.transform = `translate3d(${Math.round(dragX - width / 2)}px, ${Math.round(dragY - height / 2)}px, 0)`;
     proxy.style.display = "block";
     /* NEWCODE */
   }
@@ -4274,13 +4506,21 @@ export class PhaserScene extends Phaser.Scene {
     const height = Math.round(runtime.image.displayHeight);
     proxy.style.transform = `translate3d(${Math.round(dragX - width / 2)}px, ${Math.round(dragY - height / 2)}px, 0)`;
     OLDCODE */
-    /* NEWCODE */
+    /* OLDCODE
     const dpr = this.renderDpr || (typeof window !== 'undefined' ? window.devicePixelRatio : 1) || 1;
     const width = Math.round(runtime.image.displayWidth / dpr);
     const height = Math.round(runtime.image.displayHeight / dpr);
     const screenX = Math.round(dragX / dpr);
     const screenY = Math.round(dragY / dpr);
     proxy.style.transform = `translate3d(${Math.round(screenX - width / 2)}px, ${Math.round(screenY - height / 2)}px, 0)`;
+    OLDCODE */
+    /* NEWCODE */
+    // Keep HTML proxy directly under pointer at exact tile size across all devices
+    const width = Math.round(runtime.image.displayWidth);
+    const height = Math.round(runtime.image.displayHeight);
+    proxy.style.width = `${width}px`;
+    proxy.style.height = `${height}px`;
+    proxy.style.transform = `translate3d(${Math.round(dragX - width / 2)}px, ${Math.round(dragY - height / 2)}px, 0)`;
     /* NEWCODE */
   }
 
@@ -4701,7 +4941,7 @@ export class PhaserScene extends Phaser.Scene {
       /* NEWCODE */
       let opponentMeldIndex = 0;
       for (const meld of melds) {
-      /* NEWCODE */
+        /* NEWCODE */
         if (!meld) continue;
         const tilesToProcess: any[] = [];
         if (meld.tiles) {
@@ -5165,6 +5405,7 @@ export class PhaserScene extends Phaser.Scene {
     /* NEWCODE */
     /* NEWCODE */
 
+    /* OLDCODE
     addButton(1, "SKIP", 0x475569, () => {
       this.callbacks.onTileCallDecision({
         discardId: offer.discard.tile_id!,
@@ -5174,6 +5415,19 @@ export class PhaserScene extends Phaser.Scene {
       this.pendingTileCallOffer = undefined;
       this.closeTileCallWindow();
     });
+    OLDCODE */
+    /* NEWCODE */
+    addButton(1, "SKIP", 0x475569, () => {
+      this.playSfx("skip");
+      this.callbacks.onTileCallDecision({
+        discardId: offer.discard.tile_id!,
+        discardedBy: offer.discardedBy,
+        action: "skip",
+      });
+      this.pendingTileCallOffer = undefined;
+      this.closeTileCallWindow();
+    });
+    /* NEWCODE */
 
     // OLDCODE
     //     this.tileCallWindow = this.add.container(x, y, children).setDepth(500);
@@ -6775,7 +7029,7 @@ export class PhaserScene extends Phaser.Scene {
       OLDCODE */
       /* NEWCODE */
       if (this.pendingLocalJokerSwap && Number(this.pendingLocalJokerSwap.jokerTileId) === numJokerId) {
-      /* NEWCODE */
+        /* NEWCODE */
         console.warn("[PhaserScene] Joker exchange timed out; returning tile to rack");
         this.pendingLocalJokerSwap = undefined;
         this.returnTileToSlot(replacement);
@@ -6874,6 +7128,7 @@ export class PhaserScene extends Phaser.Scene {
     this.renderMahjongWinCelebration(result);
   }
 
+  /* OLDCODE
   private renderMahjongWinCelebration(result: MahjongWinCelebration): void {
     if (!this.layout) return;
 
@@ -6881,6 +7136,17 @@ export class PhaserScene extends Phaser.Scene {
     this.closeJokerSwapWindow();
     this.revealOpponentHands(result);
   }
+  OLDCODE */
+  /* NEWCODE */
+  private renderMahjongWinCelebration(result: MahjongWinCelebration): void {
+    if (!this.layout) return;
+
+    this.playSfx("mahjong");
+    this.expireTileCallWindow();
+    this.closeJokerSwapWindow();
+    this.revealOpponentHands(result);
+  }
+  /* NEWCODE */
 
   /* OLDCODE
   private revealOpponentHands(result: MahjongWinCelebration): void {
@@ -7025,7 +7291,7 @@ export class PhaserScene extends Phaser.Scene {
       const seat = seatPos as "top" | "left" | "right";
       const tileIds = ids as number[];
       if (tileIds.length === 0) continue;
-  /* NEWCODE */
+      /* NEWCODE */
 
       const tileSize = this.calledOpponentExposureTileSize(seat);
       const existingTiles = this.calledOpponentExposureTiles[seat];
@@ -7084,16 +7350,25 @@ export class PhaserScene extends Phaser.Scene {
   OLDCODE */
   /* NEWCODE */
   // Reveal all players' hands in their exposure panels when game ends in a Wall Game
+  /* OLDCODE
   public revealAllSeatsHandsForWallGame(seatsData?: Record<string, number[]>): void {
     if (!this.layout || !seatsData) return;
     this.expireTileCallWindow();
     this.closeJokerSwapWindow();
+  OLDCODE */
+  /* NEWCODE */
+  public revealAllSeatsHandsForWallGame(seatsData?: Record<string, number[]>): void {
+    if (!this.layout || !seatsData) return;
+    this.playSfx("wall-game");
+    this.expireTileCallWindow();
+    this.closeJokerSwapWindow();
+  /* NEWCODE */
 
     const seatPositions: Array<"top" | "left" | "right"> = ["top", "left", "right"];
     for (const seat of seatPositions) {
       const tileIds = seatsData[seat] || [];
       if (tileIds.length === 0) continue;
-  /* NEWCODE */
+      /* NEWCODE */
 
       const tileSize = this.calledOpponentExposureTileSize(seat);
       const existingTiles = this.calledOpponentExposureTiles[seat];
@@ -7496,11 +7771,21 @@ export class PhaserScene extends Phaser.Scene {
     const slot = this.discardSlotFor(this.discardSlotIndex(tileId, this.opponentDiscardTiles.length), grid);
     const image = this.add.image(source.x, source.y, texture.atlasKey, texture.frameKey)
       .setDisplaySize(grid.tileWidth, grid.tileHeight);
+    /* OLDCODE
     this.applyTileTextureFilter(image);
     image.setData("discard-id", tileId);
     image.setData("synthetic-claim-discard", true);
     this.discardContainer.add(image);
     this.opponentDiscardTiles.push(image);
+    OLDCODE */
+    /* NEWCODE */
+    this.applyTileTextureFilter(image);
+    image.disableInteractive();
+    image.setData("discard-id", tileId);
+    image.setData("synthetic-claim-discard", true);
+    this.discardContainer.add(image);
+    this.opponentDiscardTiles.push(image);
+    /* NEWCODE */
 
     this.tweens.add({
       targets: image,
@@ -8500,11 +8785,21 @@ export class PhaserScene extends Phaser.Scene {
       .image(sourceX, sourceY, texture.atlasKey, texture.frameKey)
       .setDisplaySize(grid.tileWidth, grid.tileHeight);
 
+    /* OLDCODE
     this.applyTileTextureFilter(image);
     image.setData("discard-id", discardId);
     this.discardContainer.add(image);
     this.pendingTileCallImage = image;
     this.opponentDiscardTiles.push(image);
+    OLDCODE */
+    /* NEWCODE */
+    this.applyTileTextureFilter(image);
+    image.disableInteractive();
+    image.setData("discard-id", discardId);
+    this.discardContainer.add(image);
+    this.pendingTileCallImage = image;
+    this.opponentDiscardTiles.push(image);
+    /* NEWCODE */
     if (reverseVisual) this.pendingReverseCallVisual = undefined;
 
     /* OLDCODE
@@ -8591,10 +8886,19 @@ export class PhaserScene extends Phaser.Scene {
       //.setDepth(this.discardTileDepth() + 2);
 
 
+      /* OLDCODE
       this.applyTileTextureFilter(image);
       image.setData("discard-id", discardId);
       this.discardContainer.add(image);
       this.opponentDiscardTiles.push(image);
+      OLDCODE */
+      /* NEWCODE */
+      this.applyTileTextureFilter(image);
+      image.disableInteractive();
+      image.setData("discard-id", discardId);
+      this.discardContainer.add(image);
+      this.opponentDiscardTiles.push(image);
+      /* NEWCODE */
     }
 
     this.scrollToBottomDiscard(false);
@@ -8863,6 +9167,7 @@ export class PhaserScene extends Phaser.Scene {
   }
 
   // NEWCODE
+  /* OLDCODE
   private scrollToBottomDiscard(animate: boolean = true): void {
     const maxScroll = this.discardMaxScroll;
     if (animate && Math.abs(this.discardScrollY - maxScroll) > 1) {
@@ -8881,6 +9186,30 @@ export class PhaserScene extends Phaser.Scene {
       this.updateDiscardTilePositions();
     }
   }
+  OLDCODE */
+  /* NEWCODE */
+  private scrollToBottomDiscard(animate: boolean = true): void {
+    const maxScroll = this.discardMaxScroll;
+    this.discardTargetScrollY = maxScroll;
+    this.discardVelocityY = 0;
+    if (animate && Math.abs(this.discardScrollY - maxScroll) > 1) {
+      this.tweens.addCounter({
+        from: this.discardScrollY,
+        to: maxScroll,
+        duration: 200,
+        ease: "Cubic.Out",
+        onUpdate: (tween) => {
+          this.discardScrollY = tween.getValue() ?? maxScroll;
+          this.discardTargetScrollY = this.discardScrollY;
+          this.updateDiscardTilePositions();
+        },
+      });
+    } else {
+      this.discardScrollY = maxScroll;
+      this.updateDiscardTilePositions();
+    }
+  }
+  /* NEWCODE */
 
   // NEWCODE
   private updateDiscardTilePositions(): void {
@@ -9015,9 +9344,25 @@ export class PhaserScene extends Phaser.Scene {
     const tileWidth = Math.round(rackTile.width * scale);
     const tileHeight = Math.round(rackTile.height * scale);
     OLDCODE */
-    /* NEWCODE */
+    /* OLDCODE
     // 2. Reduce tile size by a further 10% from current size (0.90 * 0.90 = 0.81)
     const scale = 0.81;
+    const tileWidth = Math.round(rackTile.width * scale);
+    const tileHeight = Math.round(rackTile.height * scale);
+    OLDCODE */
+    /* NEWCODE */
+    /* OLDCODE
+    const isDesktop = this.layout.metrics.isDesktop || (!isPhonePortrait && !isPhoneLandscape && !isTablet);
+    OLDCODE */
+    /* NEWCODE */
+    const isDesktop = !this.layout.metrics.isMobile && !this.layout.metrics.isTablet;
+    /* NEWCODE */
+
+    // On desktop: reduce tile size by 30% from current size (0.81 * 0.70 = 0.567)
+    // On tablet and mobile: keep current size (0.81)
+    //const scale = isDesktop ? (0.81 * 0.70) : 0.81;
+    const scale = 0.81;
+
     const tileWidth = Math.round(rackTile.width * scale);
     const tileHeight = Math.round(rackTile.height * scale);
     /* NEWCODE */
@@ -9349,10 +9694,18 @@ export class PhaserScene extends Phaser.Scene {
     this.removeTileTextureFilter(runtime.image);
     runtime.image.disableInteractive();
     OLDCODE */
-    /* NEWCODE */
+    /* OLDCODE
     runtime.image.clearTint();
     this.removeTileTextureFilter(runtime.image);
     runtime.image.disableInteractive();
+    runtime.image.setData("discard-id", runtime.vm.tile_id!);
+    OLDCODE */
+    /* NEWCODE */
+    runtime.image.clearTint();
+    this.removeTileTextureFilter(runtime.image);
+    // Discarded tiles cannot be clicked or dragged
+    runtime.image.disableInteractive();
+    this.input.setDraggable(runtime.image, false);
     runtime.image.setData("discard-id", runtime.vm.tile_id!);
     /* NEWCODE */
     const grid = this.discardGrid();
@@ -9726,9 +10079,15 @@ export class PhaserScene extends Phaser.Scene {
       // runtime.image.setDepth(this.discardTileDepth());
 
       runtime.image.setDisplaySize(grid.tileWidth, grid.tileHeight);
-      /* NEWCODE */
+      /* OLDCODE
       // Ensure discarded tiles never retain shadow
       this.removeTileTextureFilter(runtime.image);
+      OLDCODE */
+      /* NEWCODE */
+      // Ensure discarded tiles never retain shadow and can never be dragged
+      this.removeTileTextureFilter(runtime.image);
+      runtime.image.disableInteractive();
+      this.input.setDraggable(runtime.image, false);
       /* NEWCODE */
 
       if (animate) {
@@ -11383,6 +11742,61 @@ export class PhaserScene extends Phaser.Scene {
     this.setRack([...this.rackTiles, tile], true);
   }
 
+  /* OLDCODE
   override update(time: number, delta: number): void {
   }
+  OLDCODE */
+  /* NEWCODE */
+  // Update loop: runs every frame to smoothly glide and bounce discard tiles
+  override update(time: number, delta: number): void {
+    this.updateDiscardSmoothScroll();
+  }
+
+  // Smooth scroll helper: handles gliding, momentum friction, and edge bounce-back
+  private updateDiscardSmoothScroll(): void {
+    const maxScroll = Math.max(0, this.discardMaxScroll);
+
+    // 1. If user is dragging with pointer, let pointermove control the position
+    if (this.isScrollingDiscard) {
+      return;
+    }
+
+    let needsTileUpdate = false;
+
+    // 2. Momentum / Fling gliding (after user swipes and releases)
+    if (Math.abs(this.discardVelocityY) > 0.1) {
+      this.discardScrollY += this.discardVelocityY;
+      this.discardVelocityY *= 0.92; // friction slows down the glide
+      this.discardTargetScrollY = Phaser.Math.Clamp(this.discardScrollY, 0, maxScroll);
+      needsTileUpdate = true;
+    } else {
+      this.discardVelocityY = 0;
+    }
+
+    // 3. Elastic Bounce-Back (if pulled past top 0 or bottom maxScroll)
+    if (this.discardScrollY < 0) {
+      this.discardScrollY = Phaser.Math.Linear(this.discardScrollY, 0, 0.15);
+      if (Math.abs(this.discardScrollY) < 0.5) {
+        this.discardScrollY = 0;
+      }
+      needsTileUpdate = true;
+    } else if (this.discardScrollY > maxScroll) {
+      this.discardScrollY = Phaser.Math.Linear(this.discardScrollY, maxScroll, 0.15);
+      if (Math.abs(this.discardScrollY - maxScroll) < 0.5) {
+        this.discardScrollY = maxScroll;
+      }
+      needsTileUpdate = true;
+    }
+    // 4. Smooth Mouse Wheel Gliding (moves smoothly towards target position)
+    else if (Math.abs(this.discardScrollY - this.discardTargetScrollY) > 0.5) {
+      this.discardScrollY = Phaser.Math.Linear(this.discardScrollY, this.discardTargetScrollY, 0.18);
+      needsTileUpdate = true;
+    }
+
+    // Refresh tile positions whenever scroll position changes
+    if (needsTileUpdate) {
+      this.updateDiscardTilePositions();
+    }
+  }
+  /* NEWCODE */
 }

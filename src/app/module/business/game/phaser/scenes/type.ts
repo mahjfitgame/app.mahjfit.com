@@ -168,6 +168,7 @@ export interface TableSceneCallbacks {
   readonly onMahjongButtonOverlay?: (state: MahjongButtonOverlayState) => void;
 }
 
+/* OLDCODE
 export type TableSfxId =
   | "tile-select"
   | "tile-pass-waiting"
@@ -176,6 +177,26 @@ export type TableSfxId =
   | "pass"
   | "pick-tile"
   | "call";
+OLDCODE */
+/* NEWCODE */
+export type TableSfxId =
+  | "tile-select"
+  | "tile-pass-waiting"
+  | "tile-return"
+  | "tile-drop"
+  | "pass"
+  | "pick-tile"
+  | "call"
+  | "charleston-pass"
+  | "dead-hand"
+  | "skip"
+  | "sort-rank"
+  | "sort-suit"
+  | "wall-game"
+  | "mahjong"
+  | "joker-exchange"
+  | "hint";
+/* NEWCODE */
 
 export type TableSfxConfig = {
   key: string;

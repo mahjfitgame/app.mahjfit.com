@@ -265,7 +265,12 @@
 }
 
 @if (deadHandClaimTarget(); as targetSeat) {
+<!-- OLDCODE
 <div class="dead-hand-popup" aria-hidden="false" [style.display]="'block'">
+OLDCODE -->
+<!-- NEWCODE -->
+<div class="dead-hand-popup" aria-hidden="false" [style.display]="'grid'">
+<!-- NEWCODE -->
   <section>
     <h2>DECLARE {{ getDeadHandTargetLabel(targetSeat) }} DEAD</h2>
     <small>An incorrect claim can make your hand dead.</small>
