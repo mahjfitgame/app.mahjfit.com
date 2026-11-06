@@ -971,6 +971,7 @@ OLDCODE */
     box-sizing: border-box;
 }
 
+/* OLDCODE
 .dead-hand-popup section {
     width: min(460px, calc(100% - 32px));
     margin: auto;
@@ -980,8 +981,25 @@ OLDCODE */
     justify-content: center;
     text-align: center;
 }
+OLDCODE */
+/* NEWCODE */
+// Dead hand dialog card: responsive bounds and padding to prevent overflow
+.dead-hand-popup section {
+    width: min(420px, calc(100% - 24px));
+    max-height: 92dvh;
+    overflow: hidden;
+    padding: clamp(12px, 2vh, 20px) clamp(14px, 2.5vw, 24px);
+    margin: auto;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+}
+/* NEWCODE */
 /* NEWCODE */
 
+/* OLDCODE
 .join-table-popup h2, .dead-hand-popup h2 {
     margin: 0 0 12px;
     font-size: 22px;
@@ -1014,6 +1032,57 @@ OLDCODE */
 .dead-hand-popup button {
     min-width: 190px;
 }
+OLDCODE */
+/* NEWCODE */
+/* OLDCODE
+// Responsive typography and buttons for Dead Hand dialog
+.join-table-popup h2, .dead-hand-popup h2 {
+    margin: 0 0 clamp(4px, 1vh, 8px);
+    font-size: clamp(15px, 2.8vw, 20px);
+}
+OLDCODE */
+/* NEWCODE */
+// Responsive typography and buttons for Dead Hand dialog (larger title on desktop)
+.join-table-popup h2, .dead-hand-popup h2 {
+    margin: 0 0 clamp(4px, 1vh, 8px);
+    font-size: clamp(15px, 2.8vw, 20px);
+
+    @media (min-width: 1024px) {
+        font-size: clamp(22px, 2.2vw, 28px);
+        margin-bottom: 10px;
+    }
+}
+/* NEWCODE */
+
+.join-table-popup p, .dead-hand-popup p {
+    margin: 0 0 clamp(4px, 0.8vh, 8px);
+}
+
+.join-table-popup small, .dead-hand-popup small {
+    display: block;
+    margin-bottom: clamp(6px, 1.2vh, 12px);
+    font-size: clamp(10px, 1.8vw, 12px);
+    color: #f6c542;
+}
+
+.join-table-popup button, .dead-hand-popup button {
+    display: block;
+    width: auto;
+    min-width: min(170px, 85%);
+    margin: clamp(4px, 0.8vh, 6px) auto 0;
+    padding: clamp(5px, 1vh, 8px) clamp(10px, 2vw, 16px);
+    border: 0;
+    border-radius: 7px;
+    background: #B92A90;
+    color: #fff;
+    font: 600 clamp(11px, 2vw, 13px) Outfit, Arial, sans-serif;
+    cursor: pointer;
+}
+
+.dead-hand-popup button {
+    min-width: min(180px, 85%);
+}
+/* NEWCODE */
 
 .popup-button-secondary {
     background: #475569 !important;
@@ -1171,6 +1240,7 @@ OLDCODE */
 }
 OLDCODE */
 /* NEWCODE */
+/* OLDCODE
 .discard-area-result-card {
   position: absolute;
   z-index: 1000;
@@ -1187,6 +1257,28 @@ OLDCODE */
   padding: 12px 14px 10px;
   overflow-y: auto;
   overflow-x: hidden;
+  text-align: center;
+  font-family: 'Outfit', sans-serif;
+  box-sizing: border-box;
+}
+OLDCODE */
+/* NEWCODE */
+// Discard area popup card: removed scroll and added responsive padding
+.discard-area-result-card {
+  position: absolute;
+  z-index: 1000;
+  background: linear-gradient(145deg, rgba(15, 34, 69, 0.88) 0%, rgba(7, 18, 41, 0.94) 100%);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: none;
+  border-radius: 12px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.55);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  padding: clamp(6px, 1.4vh, 12px) clamp(8px, 1.5vw, 14px);
+  overflow: hidden; // Remove vertical and horizontal scroll
   text-align: center;
   font-family: 'Outfit', sans-serif;
   box-sizing: border-box;
@@ -1217,7 +1309,7 @@ OLDCODE */
     }
   }
   OLDCODE */
-  /* NEWCODE */
+  /* OLDCODE
   &.wall-game-theme {
     border: none;
     justify-content: space-between;
@@ -1243,6 +1335,75 @@ OLDCODE */
       margin-bottom: 6px;
     }
   }
+  OLDCODE */
+  /* NEWCODE */
+  /* OLDCODE
+  // Responsive layout for Wall Game and Dead Hand Game Over
+  &.wall-game-theme {
+    border: none;
+    justify-content: space-between;
+
+    .result-card-header {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      width: 100%;
+
+      .wall-game-popup__dead-note {
+        text-align: center;
+        justify-content: center;
+        margin: clamp(4px, 1vh, 8px) auto 0;
+        padding: clamp(4px, 0.8vh, 8px) 10px;
+        font-size: clamp(10px, 1.8vw, 13px);
+      }
+    }
+
+    .result-card-actions {
+      margin-top: clamp(4px, 1vh, 8px);
+      margin-bottom: 2px;
+    }
+  }
+  OLDCODE */
+  /* NEWCODE */
+  // Wall Game & Dead Hand Game Over: larger title on desktop since there are no meld tiles below
+  &.wall-game-theme {
+    border: none;
+    justify-content: space-between;
+
+    .result-card-header {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      width: 100%;
+
+      .result-card-title {
+        @media (min-width: 1024px) {
+          font-size: clamp(46px, 5.2vw, 68px);
+          margin-bottom: 6px;
+        }
+      }
+
+      .wall-game-popup__dead-note {
+        text-align: center;
+        justify-content: center;
+        margin: clamp(4px, 1vh, 8px) auto 0;
+        padding: clamp(4px, 0.8vh, 8px) 10px;
+        font-size: clamp(10px, 1.8vw, 13px);
+      }
+    }
+
+    .result-card-actions {
+      margin-top: clamp(4px, 1vh, 8px);
+      margin-bottom: 2px;
+    }
+  }
+  /* NEWCODE */
   /* NEWCODE */
 }
 /* NEWCODE */
@@ -1317,7 +1478,7 @@ OLDCODE */
   margin: 0 0 2px 0;
 }
 OLDCODE */
-/* NEWCODE */
+/* OLDCODE
 .result-card-title {
   font-family: 'Poppins', 'Outfit', sans-serif;
   font-size: clamp(48px, 7.6vw, 84px);
@@ -1335,9 +1496,7 @@ OLDCODE */
     font-size: clamp(32px, 9vw, 48px);
   }
 }
-/* NEWCODE */
 
-/* NEWCODE */
 .result-card-rule-label {
   font-family: 'Outfit', sans-serif;
   font-size: clamp(12px, 1.8vw, 15px);
@@ -1347,7 +1506,6 @@ OLDCODE */
   margin-top: 2px;
   text-shadow: 0 2px 4px rgba(0, 0, 0, 0.4);
 }
-/* NEWCODE */
 
 .result-card-score {
   font-family: 'Outfit', sans-serif;
@@ -1364,8 +1522,87 @@ OLDCODE */
   color: #ffffff;
   margin-top: 2px;
 }
+OLDCODE */
+/* NEWCODE */
+/* OLDCODE
+// Responsive popup title: scales neatly so it never pushes other content out of view
+.result-card-title {
+  font-family: 'Poppins', 'Outfit', sans-serif;
+  font-size: clamp(20px, 3.2vw, 36px);
+  font-weight: 900;
+  line-height: 1.1;
+  letter-spacing: 0.5px;
+  color: #f6c542;
+  background: linear-gradient(180deg, #fff7d6 0%, #f6c542 50%, #d97706 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  filter: drop-shadow(0 3px 6px rgba(0, 0, 0, 0.5));
+  margin: 0 0 2px 0;
+
+  @media (max-width: 480px) {
+    font-size: clamp(18px, 5.5vw, 24px);
+  }
+}
+OLDCODE */
+/* NEWCODE */
+// Popup title: larger on desktop devices, scaling down responsively on tablet and mobile
+.result-card-title {
+  font-family: 'Poppins', 'Outfit', sans-serif;
+  font-size: clamp(24px, 3.5vw, 42px);
+  font-weight: 900;
+  line-height: 1.1;
+  letter-spacing: 0.5px;
+  color: #f6c542;
+  background: linear-gradient(180deg, #fff7d6 0%, #f6c542 50%, #d97706 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  filter: drop-shadow(0 3px 6px rgba(0, 0, 0, 0.5));
+  margin: 0 0 2px 0;
+
+  // Desktop devices: display a noticeably larger title
+  @media (min-width: 1024px) {
+    font-size: clamp(40px, 4.5vw, 62px);
+  }
+
+  // Mobile phones: compact size to prevent vertical scrollbars
+  @media (max-width: 480px) {
+    font-size: clamp(18px, 5.5vw, 24px);
+  }
+}
+/* NEWCODE */
+
+// Responsive subtitle, score, and announcement text
+.result-card-rule-label {
+  font-family: 'Outfit', sans-serif;
+  font-size: clamp(10px, 1.5vw, 13px);
+  font-weight: 700;
+  color: #f6c542;
+  letter-spacing: 0.5px;
+  margin-top: 1px;
+  line-height: 1.2;
+}
+
+.result-card-score {
+  font-family: 'Outfit', sans-serif;
+  font-size: clamp(9px, 1.3vw, 12px);
+  font-weight: 500;
+  color: #DAB6D6;
+  margin-top: 1px;
+  line-height: 1.2;
+}
+
+.result-card-announcement {
+  font-family: 'Outfit', sans-serif;
+  font-size: clamp(10px, 1.5vw, 13px);
+  font-weight: 600;
+  color: #ffffff;
+  margin-top: 1px;
+  line-height: 1.2;
+}
+/* NEWCODE */
 
 // Hand & Meld Groups
+/* OLDCODE
 .result-card-hand-section {
   width: 100%;
   margin: 4px 0;
@@ -1382,6 +1619,27 @@ OLDCODE */
   justify-content: center;
   align-items: flex-end;
 }
+OLDCODE */
+/* NEWCODE */
+// Responsive tile melds container: min-height 0 lets it shrink neatly without scrollbars
+.result-card-hand-section {
+  width: 100%;
+  margin: 2px 0;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.result-card-melds-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: clamp(4px, 1vw, 8px);
+  justify-content: center;
+  align-items: flex-end;
+}
+/* NEWCODE */
 
 .result-card-meld-group {
   display: flex;
@@ -1441,7 +1699,7 @@ OLDCODE */
   display: block;
 }
 OLDCODE */
-/* NEWCODE */
+/* OLDCODE
 .atlas-tile-img {
   width: clamp(38px, 4.8vw, 54px);
   aspect-ratio: 0.72;
@@ -1450,6 +1708,22 @@ OLDCODE */
   box-shadow: 0 3px 6px rgba(0, 0, 0, 0.45);
   display: block;
   object-fit: contain;
+}
+OLDCODE */
+/* NEWCODE */
+// Responsive tile image: fits cleanly across mobile, tablet, and desktop
+.atlas-tile-img {
+  width: clamp(20px, 3vw, 36px);
+  aspect-ratio: 0.72;
+  height: auto;
+  border-radius: 4px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.4);
+  display: block;
+  object-fit: contain;
+
+  @media (max-width: 480px) {
+    width: clamp(16px, 4.2vw, 24px);
+  }
 }
 /* NEWCODE */
 
@@ -1463,6 +1737,7 @@ OLDCODE */
 }
 
 // Action Buttons (Outfit, 8px radius, Mahjfit Theme)
+/* OLDCODE
 .result-card-actions {
   display: flex;
   gap: 12px;
@@ -1510,4 +1785,55 @@ OLDCODE */
     border-color: #DAB6D6;
   }
 }
+OLDCODE */
+/* NEWCODE */
+// Responsive action buttons: padding and font adapt to small and large displays
+.result-card-actions {
+  display: flex;
+  gap: clamp(6px, 1.5vw, 12px);
+  margin-top: clamp(2px, 0.8vh, 6px);
+  width: 100%;
+  justify-content: center;
+}
+
+.result-btn-primary {
+  font-family: 'Outfit', sans-serif;
+  font-size: clamp(10px, 1.5vw, 13px);
+  font-weight: 600;
+  background: #B92A90;
+  color: #ffffff;
+  border: none;
+  border-radius: 6px;
+  padding: clamp(4px, 0.8vh, 7px) clamp(10px, 1.8vw, 16px);
+  cursor: pointer;
+  letter-spacing: 0.5px;
+  transition: background 0.15s ease;
+
+  &:hover {
+    background: #C453A3;
+  }
+  &:active {
+    background: #921D70;
+  }
+}
+
+.result-btn-secondary {
+  font-family: 'Outfit', sans-serif;
+  font-size: clamp(10px, 1.5vw, 13px);
+  font-weight: 600;
+  background: transparent;
+  color: #ffffff;
+  border: 1.5px solid #264089;
+  border-radius: 6px;
+  padding: clamp(4px, 0.8vh, 7px) clamp(10px, 1.8vw, 16px);
+  cursor: pointer;
+  letter-spacing: 0.5px;
+  transition: all 0.15s ease;
+
+  &:hover {
+    background: rgba(38, 64, 137, 0.25);
+    border-color: #DAB6D6;
+  }
+}
+/* NEWCODE */
 /* NEWCODE */

@@ -195,7 +195,8 @@ export type TableSfxId =
   | "wall-game"
   | "mahjong"
   | "joker-exchange"
-  | "hint";
+  | "hint"
+  | "error_01";
 /* NEWCODE */
 
 export type TableSfxConfig = {

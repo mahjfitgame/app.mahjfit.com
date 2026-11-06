@@ -80,13 +80,66 @@ Remove the scroll from the all exposure and set 14 tiles in all exposures.
 This is also work in all devices, means in responsive mode.
 
 
+
+NEXT DESIGN POINTS]
+#]
+Authentication all screens
+
+#]
+Start game popup
+
+FIELDS:
+Select card years
+"grule_id": 5,
+Game Speed
+"botlvl_id": "FAST"
+Mode: 
+Siamese , Four Players 
+"mode": "FOUR_PLAYERS",
+Playing with other memebers
+"allow_join": "PUBLIC",
+Hand Suggestion
+
+
+GAME Board
+#]
+Set tiles in responsive mode and in other UI.
+#]
+Mahjong, Wall, Dead hand display and game settings popup UI.
+#]
+Dead hand UI when click on hand icon
+#]
+
+
+
 ========== PRMP ===========
+#]
+Remove the scroll from the exposure in all devices.
+#]
+Why still used sound file form the asset instead of audio spirite
+In handleMahjongFailure
+try {
+      const audio = new Audio("assets/sounds/error_01.wav");
+      void audio.play().catch((err) => {
+        console.warn("Could not play error_01.wav sound:", err);
+      });
+    } catch (e) {
+      console.warn("Error playing error_01.wav:", e);
+    }
+#]
 When turn is my and if I pick and discard the tile that time if anyexposure have PUNG, KONG etc... with the same tile whci I like to discard trough doble click or double tap then it replace the joker instead of discard. This is the current behaviour but need this as.
 
 If its my turn and state is need to discard then it must be discard the tile, if I wan to exchange the joker then I will double click on specific exposure tile to exchange the joker not like if on my discard turn if I found the same tile in the exposure then it direclty replace the joker. 
 
 Do not change in the code just do proper analyses how the current logic work aftere that will create the planing and the after before code snippet.
 ============ REPLY ============
+Today I tested the app and working on the below improvement points.
+When turn is my and if I pick and discard the tile that time if anyexposure have PUNG, KONG etc... with the same tile which I like to discard trough doble click or double tap then it replace the joker instead of discard. This is the current behaviour, that I changed as below.
+If its my turn and state is need to discard then it must be discard the tile, if I want to exchange the joker then I will double click on specific exposure tile to exchange the joker not like if on my discard turn if I found the same tile in the exposure then it direclty replace the joker. 
+Do not change in the code just do proper analyses how the current logic work aftere that will create the planing and the after before code snippet.
+
+
+
 FOR CLIENT]
 Today, I completed the following tasks:
 

@@ -3519,6 +3519,7 @@ export class PhaserComponent implements AfterViewInit {
     this.mahjongButtonProcessing.set(false);
     this.mahjongButtonShaking.set(true);
 
+    /* OLDCODE
     try {
       const audio = new Audio("assets/sounds/error_01.wav");
       void audio.play().catch((err) => {
@@ -3527,6 +3528,10 @@ export class PhaserComponent implements AfterViewInit {
     } catch (e) {
       console.warn("Error playing error_01.wav:", e);
     }
+    OLDCODE */
+    /* NEWCODE */
+    this.phaser?.events.emit("ui:error-sound");
+    /* NEWCODE */
 
     this.clearMahjongShakeTimer();
     this.mahjongShakeTimer = window.setTimeout(() => {

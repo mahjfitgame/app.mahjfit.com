@@ -4,6 +4,68 @@ This log records verified development tasks, bug fixes, refactorings, and archit
 
 ---
 
+## [2026-11-06] Charleston Pass & Sort: Eliminate Gaps Between Rack Tiles When Sorting During Charleston
+
+- **Agent**: Antigravity
+- **Task**: Prevent spaces and visual gaps from appearing between rack tiles when applying "Sort by Rank" or "Sort by Suit" while tiles are staged in the Charleston pass waiting area.
+- **Root Cause**:
+  - The server orders the player's full hand (all 13 tiles), unaware that 3 tiles are locally staged in the pass waiting area.
+  - When `rack:order` and `rack:set` arrived from the backend:
+    1. The 3 staged tiles were re-inserted into `rackOrder` at their sorted hand indices (e.g. indices 2, 6, 11).
+    2. `reconcileRackTiles()` forcefully reset `existingRuntime.zone = "rack"` and hid their close buttons.
+    3. `layoutRackTiles()` placed 13 tiles on the rack, then `layoutPassWaitingTiles()` pulled the 3 pass tiles up to the waiting area, leaving slots 2, 6, and 11 as empty holes/gaps on the rack.
+- **Implementation**:
+  - `src/app/module/business/game/phaser/scenes/scene.ts`:
+    - `this.game.events.on("rack:order")`: Filtered incoming server order using `!this.passWaitingTileIds.includes(numId) && !this.stateManager.optimisticPassTileIds.includes(numId)`. The remaining rack tiles are sorted cleanly without gaps.
+    - `reconcileRackTiles()`: Guarded `existingRuntime` with `isStagedForPass` check to prevent resetting zone to `"rack"` and prevent hiding close buttons for staged tiles.
+    - `reconcileRackTiles()` new tile push: Guarded with `!isStagedForPass`.
+    - `reconcileRackTiles()` `activeTileIdSet` sync: Excluded `passWaitingTileIds` and `optimisticPassTileIds` so pass waiting tiles are not re-pushed into `preservedOrder`.
+- **Invariants Upheld**:
+  - Strict `OLDCODE` / `NEWCODE` pattern preserved with 0 code deletions.
+  - Did not access `todo/Frontend Development.txt`.
+  - TypeScript compilation check (`npx tsc --noEmit`) verified with 0 errors.
+
+---
+
+## [2026-11-06] Popups UI: Increase Title Size on Desktop Devices for Mahjong, Wall Game, and Dead Hand
+
+- **Agent**: Antigravity
+- **Task**: Increase the font size of the popup titles (Mahjong Win, Wall Game, Dead Hand Game Over, and Declare Dead Hand Dialog) on desktop screens (`@media (min-width: 1024px)`) while maintaining responsive scaling on mobile and tablet screens to ensure no scrollbars appear.
+- **Implementation**:
+  - `todo/phase-play-after-before-plan-desktop-bigger-popup-titles.md`: Created detailed Before/After plan.
+  - `src/app/module/business/game/phaser/style.scss`:
+    - `.result-card-title`: Added desktop media query `@media (min-width: 1024px)` with `font-size: clamp(40px, 4.5vw, 62px)`.
+    - `.wall-game-theme .result-card-title`: Added desktop media query with `font-size: clamp(46px, 5.2vw, 68px)` and `margin-bottom: 6px`.
+    - `.dead-hand-popup h2`: Added desktop media query with `font-size: clamp(22px, 2.2vw, 28px)` and `margin-bottom: 10px`.
+- **Invariants Upheld**:
+  - Strict `OLDCODE` / `NEWCODE` pattern preserved with 0 code deletions.
+  - Did not access `todo/Frontend Development.txt`.
+  - TypeScript compilation check (`npx tsc --noEmit`) verified with 0 errors.
+
+---
+
+## [2026-11-06] Popups UI: Remove Scrollbars and Enable Responsive Scaling for Mahjong, Wall Game, and Dead Hand
+
+- **Agent**: Antigravity
+- **Task**: Remove vertical and horizontal scrollbars from all game-over and dialog popups (Mahjong Win, Wall Game, Dead Hand Game Over, and Declare Dead Hand Dialog), and scale typography, badges, tiles, and action buttons responsively so contents fit cleanly across all screen sizes.
+- **Implementation**:
+  - `todo/phase-play-after-before-plan-responsive-gameover-popups.md`: Created detailed Before/After plan.
+  - `src/app/module/business/game/phaser/style.scss`:
+    - `.discard-area-result-card`: Replaced `overflow-y: auto;` with `overflow: hidden;`, adjusted padding to `clamp(6px, 1.4vh, 12px) clamp(8px, 1.5vw, 14px)`.
+    - `.result-card-title`: Scaled font size from `clamp(48px, 7.6vw, 84px)` down to `clamp(20px, 3.2vw, 36px)` (with mobile fallback `clamp(18px, 5.5vw, 24px)`) and line-height `1.1`.
+    - `.result-card-rule-label`, `.result-card-score`, `.result-card-announcement`: Adjusted font sizes and margins to fit tight vertical areas without overflow.
+    - `.result-card-hand-section`: Added `min-height: 0` to allow the flex section to scale down without overflow.
+    - `.atlas-tile-img`: Scaled tile width responsively to `clamp(20px, 3vw, 36px)` (mobile `clamp(16px, 4.2vw, 24px)`).
+    - `.result-card-actions`: Reduced vertical margins and adjusted button padding to `clamp(4px, 0.8vh, 7px) clamp(10px, 1.8vw, 16px)`.
+    - `.wall-game-theme`: Adjusted dead note padding and margins.
+    - `.dead-hand-popup`: Added `max-height: 92dvh; overflow: hidden;` and responsive button/typography sizing.
+- **Invariants Upheld**:
+  - Strict `OLDCODE` / `NEWCODE` pattern preserved with 0 code deletions.
+  - Did not access `todo/Frontend Development.txt`.
+  - TypeScript compilation check (`npx tsc --noEmit`) verified with 0 errors.
+
+---
+
 ## [2026-11-05] Discard Area: Disable Drag and Drop for Discarded Tiles
 
 - **Agent**: Antigravity

@@ -755,6 +755,7 @@ export class PhaserScene extends Phaser.Scene {
         }
 
         if (order && order.length > 0) {
+          /* OLDCODE
           // Follow the exact rack tile order received from API response
           const newRackOrder: number[] = [];
           for (const id of order) {
@@ -771,6 +772,29 @@ export class PhaserScene extends Phaser.Scene {
           this.rackOrder = newRackOrder;
           this.reindexRackRuntimeSlots();
           this.layoutRackTiles(true);
+          OLDCODE */
+          /* NEWCODE */
+          // Follow the exact rack tile order received from API response, excluding tiles staged for Charleston pass
+          const newRackOrder: number[] = [];
+          for (const id of order) {
+            const numId = Number(id);
+            const isStagedForPass = this.passWaitingTileIds.includes(numId) || this.stateManager.optimisticPassTileIds.includes(numId);
+            if (!this.isTileInAnyExposure(numId) && !this.discardedTileIds.includes(numId) && !isStagedForPass) {
+              newRackOrder.push(numId);
+            }
+          }
+          // Append any remaining active rack tiles not listed in server order
+          for (const id of this.rackOrder) {
+            const numId = Number(id);
+            const isStagedForPass = this.passWaitingTileIds.includes(numId) || this.stateManager.optimisticPassTileIds.includes(numId);
+            if (!newRackOrder.includes(numId) && !this.isTileInAnyExposure(numId) && !this.discardedTileIds.includes(numId) && !isStagedForPass) {
+              newRackOrder.push(numId);
+            }
+          }
+          this.rackOrder = newRackOrder;
+          this.reindexRackRuntimeSlots();
+          this.layoutRackTiles(true);
+          /* NEWCODE */
         }
       }
     }, this);
@@ -913,6 +937,7 @@ export class PhaserScene extends Phaser.Scene {
     this.game.events.on("ui:skip-clicked", () => this.playSfx("skip"), this);
     this.game.events.on("ui:dead-hand-claimed", () => this.playSfx("dead-hand"), this);
     this.game.events.on("ui:wall-game-sound", () => this.playSfx("wall-game"), this);
+    this.game.events.on("ui:error-sound", () => this.playSfx("error_01"), this);
     this.game.events.on("ui:update-dead-states", (deadStates: Record<string, boolean>) => {
       if (!deadStates) return;
       const isAnyDead = Object.values(deadStates).some((v) => !!v);
@@ -2076,6 +2101,13 @@ export class PhaserScene extends Phaser.Scene {
       const existingRuntime = this.tileMap.get(tile.tile_id!) ?? this.tileMap.get(numTileId);
 
       if (existingRuntime) {
+        /* NEWCODE */
+        const isStagedForPass = this.passWaitingTileIds.includes(numTileId) || this.stateManager.optimisticPassTileIds.includes(numTileId);
+        if (isStagedForPass) {
+          // Tile is staged in Charleston pass waiting area; preserve its pass zone and active close button
+          continue;
+        }
+        /* NEWCODE */
         // Hide close button if tile was in pass waiting
         const closeBtn = this.passCloseButtons.get(tile.tile_id!);
         if (closeBtn) {
@@ -2191,12 +2223,29 @@ export class PhaserScene extends Phaser.Scene {
         }
       }
       OLDCODE */
-      /* NEWCODE */
+      /* OLDCODE
       const isExposedNow = this.isTileInAnyExposure(numTileId);
       if (
         !this.rackOrder.some(id => Number(id) === numTileId) &&
         !this.discardedTileIds.includes(numTileId) &&
         !isOptimisticPassing &&
+        !isExposedNow
+      ) {
+        if (this.pendingLocalJokerSwap && Number(this.pendingLocalJokerSwap.jokerTileId) === numTileId) {
+          const safeIdx = Phaser.Math.Clamp(this.pendingLocalJokerSwap.rackIndex, 0, this.rackOrder.length);
+          this.rackOrder.splice(safeIdx, 0, numTileId);
+        } else {
+          this.rackOrder.push(numTileId);
+        }
+      }
+      OLDCODE */
+      /* NEWCODE */
+      const isExposedNow = this.isTileInAnyExposure(numTileId);
+      const isStagedForPass = this.passWaitingTileIds.includes(numTileId) || isOptimisticPassing;
+      if (
+        !this.rackOrder.some(id => Number(id) === numTileId) &&
+        !this.discardedTileIds.includes(numTileId) &&
+        !isStagedForPass &&
         !isExposedNow
       ) {
         if (this.pendingLocalJokerSwap && Number(this.pendingLocalJokerSwap.jokerTileId) === numTileId) {
@@ -2424,12 +2473,44 @@ export class PhaserScene extends Phaser.Scene {
       }
     }
     OLDCODE */
-    /* NEWCODE */
+    /* OLDCODE
     // Sync rackOrder using numeric tile IDs to avoid string/number mismatch
     const activeTileIdSet = new Set(
       this.rackTiles
         .map((t) => Number(t.tile_id!))
         .filter((id) => !this.discardedTileIds.includes(id) && !this.isTileInAnyExposure(id))
+    );
+
+    // Keep existing tiles in current relative positions
+    const preservedOrder = this.rackOrder
+      .map((id) => Number(id))
+      .filter((id) => activeTileIdSet.has(id));
+
+    // Insert newly acquired tiles (restoring Joker to its original slot)
+    for (const tile of this.rackTiles) {
+      const id = Number(tile.tile_id!);
+      if (activeTileIdSet.has(id) && !preservedOrder.includes(id)) {
+        if (this.pendingLocalJokerSwap && Number(this.pendingLocalJokerSwap.jokerTileId) === id) {
+          const targetIdx = Phaser.Math.Clamp(this.pendingLocalJokerSwap.rackIndex, 0, preservedOrder.length);
+          preservedOrder.splice(targetIdx, 0, id);
+        } else {
+          preservedOrder.push(id);
+        }
+      }
+    }
+    this.rackOrder = preservedOrder;
+    OLDCODE */
+    /* NEWCODE */
+    // Sync rackOrder using numeric tile IDs to avoid string/number mismatch, excluding Charleston pass tiles
+    const activeTileIdSet = new Set(
+      this.rackTiles
+        .map((t) => Number(t.tile_id!))
+        .filter((id) =>
+          !this.discardedTileIds.includes(id) &&
+          !this.isTileInAnyExposure(id) &&
+          !this.passWaitingTileIds.includes(id) &&
+          !this.stateManager.optimisticPassTileIds.includes(id)
+        )
     );
 
     // Keep existing tiles in current relative positions
@@ -3085,7 +3166,7 @@ export class PhaserScene extends Phaser.Scene {
           return;
         }
         OLDCODE */
-        /* NEWCODE */
+        /* OLDCODE
         // Mode A (Double-Tap): Double-tapping matching natural tile in rack triggers automated flight
         if (this.activeSeat === "bottom" && this.turnStage === GameTurnStageEnum.NEED_DISCARD) {
           const matchingJoker = this.findMatchingExposedJokerForTile(runtime.vm);
@@ -3095,6 +3176,13 @@ export class PhaserScene extends Phaser.Scene {
           }
         }
 
+        if (this.canAddTileToBottomExposure(runtime.vm)) {
+          this.moveRackTileToBottomExposure(runtime);
+          return;
+        }
+        OLDCODE */
+        /* NEWCODE */
+        // During NEED_EXPOSURE (after Call), double-clicking a rack tile moves it to the bottom exposure meld
         if (this.canAddTileToBottomExposure(runtime.vm)) {
           this.moveRackTileToBottomExposure(runtime);
           return;

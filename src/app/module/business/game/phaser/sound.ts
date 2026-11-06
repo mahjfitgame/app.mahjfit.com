@@ -44,6 +44,7 @@ export class PhaserSound {
     mahjong: { key: "mahjong", urls: [], volume: 0.85, poolSize: 1, throttleMs: 500 },
     "joker-exchange": { key: "joker_exchange", urls: [], volume: 0.8, poolSize: 1, throttleMs: 150 },
     hint: { key: "hint", urls: [], volume: 0.65, poolSize: 1, throttleMs: 200 },
+    error_01: { key: "error_01", urls: [], volume: 0.7, poolSize: 1, throttleMs: 100 },
   };
   /* NEWCODE */
   private readonly sfxPools = new Map<TableSfxId, Phaser.Sound.BaseSound[]>();

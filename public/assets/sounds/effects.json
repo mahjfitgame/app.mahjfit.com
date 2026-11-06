@@ -144,6 +144,11 @@
       "end": 84.14938775510204,
       "loop": false
     },
+    "error_01": {
+      "start": 86,
+      "end": 86.63868480725624,
+      "loop": false
+    },
     "pass": {
       "start": 61,
       "end": 61.06820861678005,
@@ -162,6 +167,21 @@
     "jokerexchange": {
       "start": 56,
       "end": 59.08680272108843,
+      "loop": false
+    },
+    "error": {
+      "start": 86,
+      "end": 86.63868480725624,
+      "loop": false
+    },
+    "error-01": {
+      "start": 86,
+      "end": 86.63868480725624,
+      "loop": false
+    },
+    "error01": {
+      "start": 86,
+      "end": 86.63868480725624,
       "loop": false
     },
     "first_right": {
