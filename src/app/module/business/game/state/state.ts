@@ -1,7 +1,12 @@
 // file: src/app/module/business/game/state.ts
 
 import { computed, effect, inject, Service, signal } from "@angular/core";
+/* OLDCODE
 import { BotLevelModeEnum, Game, GameAllowJoinEnum, GameBoatProfileEntityGSDto, GameCharlestoneStageEnum, GameCharlestoneStageEnumAddon, GameCreateInputDto, GameCreateOutputDto, GameEngine, GameEngineWs, GameEngineWsToken, GameModeEnum, GamePersonalClaimOutputGSDto, GamePersonalPassOutputGSDto, GamePersonalSeatEntityGSDto, GamePhaseEnum, GamePhaseFirstRoundDirectionEnum, GamePhaseFirstRoundDirectionEnumAddon, GamePhaseSecondRoundDirectionEnum, GamePlayAction, GamePlayActionEnum, GamePlayActionEnumAddon, GamePlayClaimGSOutputDto, GameRackDeadInfoGSOutputDto, GameRackExposuresMeldEntityGSDto, GameRackIDEnum, GameRackIDEnumAddon, GameService, GameStateGameOutputDto, GameStateOutputDto, GameStatePersonalOutputDto, GameStatePlayOutputDto, GameStatePublicStartInputDto, GameTileEntityGSDto, GameTileOrderEnumAddon, GameTileOrderModeEnum, GameTurnStageEnum, TileEntity, TileEntityGSDto, TileStyleFindInputWhereDto, TileStyleFindOutputDto } from "@bfw/api-sdk/graphql/endpoints/business";
+OLDCODE */
+/* NEWCODE */
+import { BotLevelModeEnum, Game, GameAllowJoinEnum, GameBoatProfileEntityGSDto, GameCharlestoneStageEnum, GameCharlestoneStageEnumAddon, GameCreateInputDto, GameCreateOutputDto, GameDeadHandReasonEnum, GameEngine, GameEngineWs, GameEngineWsToken, GameModeEnum, GamePersonalClaimOutputGSDto, GamePersonalPassOutputGSDto, GamePersonalSeatEntityGSDto, GamePhaseEnum, GamePhaseFirstRoundDirectionEnum, GamePhaseFirstRoundDirectionEnumAddon, GamePhaseSecondRoundDirectionEnum, GamePlayAction, GamePlayActionEnum, GamePlayActionEnumAddon, GamePlayClaimGSOutputDto, GameRackDeadInfoGSOutputDto, GameRackExposuresMeldEntityGSDto, GameRackIDEnum, GameRackIDEnumAddon, GameService, GameStateGameOutputDto, GameStateOutputDto, GameStatePersonalOutputDto, GameStatePlayOutputDto, GameStatePublicStartInputDto, GameTileEntityGSDto, GameTileOrderEnumAddon, GameTileOrderModeEnum, GameTurnStageEnum, TileEntity, TileEntityGSDto, TileStyleFindInputWhereDto, TileStyleFindOutputDto } from "@bfw/api-sdk/graphql/endpoints/business";
+/* NEWCODE */
 import { ConfService } from "@libs/conf/service";
 import { LogService } from "@libs/log/service";
 import { SignalStateService } from "@libs/signal-state/service";
@@ -2094,6 +2099,7 @@ export class GameState extends SignalStateService implements FoundationModuleSta
     }
 
     // ████ WEB SOCKET CALL PUBLISH DEAD ████████████████████████████████████████████
+    /* OLDCODE
     public async publishDeclareDead(targetSeatId: number): Promise<void> {
         const game_keyid = this.game_keyid();
         if (!game_keyid) return;
@@ -2101,4 +2107,33 @@ export class GameState extends SignalStateService implements FoundationModuleSta
         // TODO: Wait for API SDK support for DECLAIRDEAD or use a generic action
         // await this.api.sdk.graphql.ws.gameEngine?.publishAction...
     }
+    OLDCODE */
+    /* NEWCODE */
+    // Sends dead hand action call to backend server via GraphQL WebSocket
+    public async publishDeclareDead(
+        targetSeatId: number,
+        reason: GameDeadHandReasonEnum = GameDeadHandReasonEnum.FALSE_MAHJONG
+    ): Promise<void> {
+        const game_keyid = this.game_keyid();
+        if (!game_keyid) return;
+
+        const targetSeat = this.ordered_seats().find(s => s.id === targetSeatId);
+        const targetRackId = targetSeat?.racks ? Number(Object.keys(targetSeat.racks)[0]) || GameRackIDEnumAddon.RACK_FIRST : GameRackIDEnumAddon.RACK_FIRST;
+
+        await this.api.sdk.graphql.ws.gameEngine?.publishActionCallDeadHand({
+            input: {
+                keyid: game_keyid,
+                gpaction_id: GamePlayActionEnumAddon.DEAD_HAND_CALL as unknown as GamePlayActionEnum,
+                game_id: this.game_id(),
+                u_id: this.personal_seat_u_id(),
+                id: this.personal_seat_id(),
+                from_gseat_id: this.personal_seat_id(),
+                to_gseat_id: targetSeatId,
+                to_rack_id: (targetRackId || GameRackIDEnumAddon.RACK_FIRST) as unknown as GameRackIDEnum,
+                reason: reason,
+            },
+            selections: this.commonSelectionFields,
+        });
+    }
+    /* NEWCODE */
 }

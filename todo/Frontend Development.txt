@@ -3,6 +3,356 @@ Current:
 [tech][Frontend][D1] Play game and do required upgradtion found while play for Pick, Discard, and Cliam tile
 [tech][Frontend][D1] Integreate discard and calim tile with bot auto turn - preparing exposure tiles and display
 [tech][Frontend development][D1] Game Play - UI update and backend work as required
+
+
+========== PRMP ===========
+#]
+I think this is not the proper solution, 
+How exactly it works
+1]
+If I click dead hand then it there is seat selection option which is already works fine.
+2]
+Now if user choose any seat, then first check if seat has any exposure if there is no exposure then just show the text "The hand is not dead" instead of the center text "SELECT THE HAND THAT YOU WOULD\nLIKE TO CALL DEAD" and play the error sound. No API call is required.
+But if there is exposure then make the api call do the action as per the API response. And I think after response how to behave is already working.
+
+
+========== REPLY ==========
+Calliing this tile should be Mahjong: 113579 1111(diff suit) 1111 (diff suit)
+PFA: Image 2026-11-11 at 11.29.12 AM
+REPLY]
+Regarding the call option for the last tile to complete the hand, I need some clearification.
+If we need PAIR and SINGLE and discarded tile is complete my winning then should we enable the call option?
+
+Refering to provided image, 
+If you see the attached image "Image 2026-11-11 at 11.29.12 AM", you can see, 1 CRAK is in call because we have one joker and 1 CRACK in our hand. Call button is enabale becuase there is PUNG of 1 CRACK using JOKER.
+So logically call button is enable but as per the rule we need only piar of 1 CRACK. 
+
+Now you said it should be mahjong, but question is we have joker which make KONG of 1 BAM, so actually joker is occupide. Now as it is not in exposure, it is still considering the joker with that 1 CRACK also. 
+And if you see in image the call button is enable because of that JOKER as per call button rule.
+
+Now my main question is, should we allow to call PAIR and SINGLE if only one tile is required to win the hand and mahjong? 
+Is this something correct? Because our current call button logic enable only when make PUNG, KONG etc... not for PAIR and SINGLE.
+I want this confirmation becuase this is the core logic. 
+
+
+
++++++++
+CLIENT REPLY 9th Nov 2026
+
+PFA: Image 2026-11-09 at 6.21.13 AM
+
+CLIENT NEW MSG 11th Nov 2026 
+Calliing this tile should be Mahjong: 113579 1111(diff suit) 1111 (diff suit)
+
+PFA: Image 2026-11-11 at 11.29.12 AM
+
+OUR REPLY 
+
+ok.
+
+CLIENT NEW MSG 12th Nov 2026 1:44 AM
+
+PFA: Image 2026-11-12 at 1.44.24 AM
+
+OUR REPLY 
+
+ok.
+
+CLIENT NEW MSG 12th Nov 1:44 AM 
+
+i submtted as bug. replaced the joker on the rack with a 3rd 2 crack. now the joker is stuck
+
+CLIENT NEW MSG 12th Nov 1:45 AM 
+
+I discarded a tile and then the joker went back into the hand
+
+
+CLEINT NEW MSG 12th Nov 3:03 AM
+
+PFA: Image 2026-11-12 at 3.03.19 AM
+
+there is a delay after I select “pick”, it then waits a second+ to provide me new tile and display ‘discard tile’
+
++++++++++
+OUR REPLY 
+
+Ok.
+
+MEETING at 4:48 AM
+
++++++++++
+CLIENT NEW MSG 4:54 AM
+
+PFA: Image 2026-11-12 at 4.54.26 AM
+
+Raj this doesn’t look like a hand but it slid asking me to skip or call. 
+I didn’t report this one as it was earlier and I took a screenshot only.
+REPLY]
+Well, as per the provided image "Image 2026-11-12 at 4.54.26 AM", this is the current logic of enable call option if have possibility to make PUNG, KONG, etc...
+And if player make call which didn't follow any winning hand then the sytem will make that hand dead, if player is human player.
+
+
++++++++
+SUB: Tile atlas questions
+
+Hi Raj,
+
+Can you please confirm, are 84×115 and 26×37 the dimensions of each individual tile, including or excluding the background/padding? The previous exports were 256×256, with the tiles centered within a square.
+REPLY]
+Yes we can exclude the padding. The given size is the exact tile size. No spacing is required between the tile. 
+
+Also, should I use the same atlas layout and tile order as the existing exports?
+REPLY]
+Yes, you can try using the same atlas. If the image looks clear and sharp, and the tile symbols and text are easily readable, there is no need to change it.
+
+Regarding the tile order, you can keep the same order, but please ensure it matches the generated JSON as well. In the previously shared atlas, the tile JPG and JSON had different sizes and point coordinates.
+
+Thank you! Carolyn
+
+=============== Progress meeting: 11 NOV 2026 5 PM PST ===============
+https://meet.google.com/qcn-mgiv-utz
+
+1]
+After our last meeting on 4 Nov we had a one and half working day and we fixed some issues and also changed the audio.
+As informed before our holiday will finish on 15 Nov Sunday and will start from Monday 16 Nov.
+In this meeting session we will discuss on game play feedback and your last message regarding upcoming schedule of work and when we can release the beta version.
+
+I have seen your messages in WhatsApp regarding game play feedback and will take care of all.
+When we will start the work after holiday, we will have 2 types of work.
+
+- Game Board 
+- Remain webpage development
+
+Game board has 2 types of work
+- Corrections and fix as per testing feedback
+- Pending feature
+
+
+[GAME BOARD - Corrections and fix as per testing feedback]
+2]
+This includes the require tune up and issue fix on backend API and frontend UI.
+There is no fix criteria for this task, it's as per test use case result and feedback, and this is continue process until we release the final version.
+This work involve 25 -30 minutes to an hour or a day of work while working on any fix.
+So, this is not a road block, its normal process we will continue as we will move forward, but we need to consider it as important part of our project as it make game play accurate.
+
+3]
+Game board design change
+This is not decided yet, but during last meeting we decided to try with possible easy to go option from developer side and update UI.
+Major is spacing related things, requires small size tile and after this can be done.
+There is no fix time, as it requires try of 3-4 hours of work and if all goes well then done and if not then again try with what is require.
+So, try-and-error case, not a major work.
+Depends on how we decide and how we want to have game board to look like. 
+We will take this part at the end of beta release or after beta release.
+
+
+[GAME BOARD - Pending feature]
+4]
+Dead hand integration
+It's working but we found its not working properly
+There are 2 types of dead hand process
+- System declare the dead hand when single human player
+- User declare the dead hand when multiple human player
+Estimated time: 2-3 days
+
+5]
+Hand suggestion when single human player with boat
+Develop Hint/Help feature
+Estimated time: 2-3 days
+
+6]
+User settings sync on game start
+Estimated time: 1-2 days
+If we require some work on API/backend side then 2-3 days
+
+
+7]
+Audio settings
+Estimated time: 1-2 days might be only few hours
+
+8]
+Tile setting
+Estimated time: 1-2 days
+We will skip this feature as for that we need multiple tile stype atlast (means different tile style design), which we don't have at this moment.
+
+9]
+Rule set photo upload feature (3 images feature)
+Required to add new module in API/backend
+Estimated time: 2-3 days
+
+10]
+Long time away player remove
+Estimated time: a day
+Need to discuss logic for this
+
+11] 
+Player join
+There are 2 types of join
+- Invitation 
+- Random user join request
+Estimated time: 5 days (not sure here)
+This requires website part development first, to list already started game and some invitation feature development.
+
+12]
+Mobile and tablet test
+We need to fix some issues in small and medium device
+Depends on test use case and issues we find.
+Estimated time: few minutes or few hours of work to adjust layout.
+80% of work is done here but need to work for perfection.
+We don't have to work too much here as its cross platform app.
+
+13]
+Point system
+This part can be developed once player join feature get done
+This requires some work in API and backend also.
+We can also go for this once we release the beta version.
+We need to finalise the point system and I can say how long it will take to get done.
+But at least consider 2-3 days
+Because we also have some other types of points also regular activity, event based etc.
+So, this is something first we need to clear the picture.
+
+14]
+DB entry for each game play action
+We will do it as require because this is not so important part
+This requires 2-3 hours of work when we decide to log the specific part of game.
+We have already done it for 50% of game play remain require to analyse the whole and decide.
+This is developer side job, and might Take 2-3 days when we will go for it.
+In future, if we update game with certain condition we might have to add logging it means this task is side by side.
+
+
+[REMAIN WEBPAGE DEVELOPMENT]
+15]
+Home page design and development 
+Estimated time: 3-4 days
+Later on few minutes to couple of hours as per require change
+
+15]
+Login
+Signin
+Forgot password
+Forgot password reset process (reset link in email redirect to website)
+Total 4 web pages
+Now we need to create the HTML design as per mockup and integrate along with functional part.
+Estimated time: 2-3 days for design
+Estimated time: 2-3 days for integration
+
+16]
+User login area
+Need to decide what to show in user login area and according design the page and integrate the functionality.
+
+17]
+Start Game
+Here when user will click on start game button they will be redirected to new page with a form or open form in popup.
+Where user set the parameters for game and start the game.
+This require to design web page of popup form and after integration,
+Estimated time: 2-3 days
+
+18]
+On going game list to join
+Design the web page and integrate the functionality
+Estimated time: 2-3 days
+
+Before christmast we will be able to relese the working game.
+
+
+NOTES]
+1. We need to show why (reason) its dead hand in dead hand popup.
+
+=============== Progress meeting: 4 NOV 2026 5 PM PST ===============
+https://meet.google.com/meet/sdq-amos-aen
+
+
+1]
+Frontend: For now, temporary purpose we removed the table borders to show bot tiles, so we can test properly and also check the decision made by bot. So, now displaying the rack tiles for all seat in debug mode.
+
+2]
+Frontend: We have adjusted animation speed as per game mode
+Easy
+Normal
+Fast
+At this moment we have fast profile as default in debug mode.
+For now we will continue with this profile.
+
+3]
+Frontend: When a bot exchanges a JOKER, displaying the tile-flip animation in the correct seat's exposure area and playing the corresponding sound.
+Before bot swap wasn't appear visually but now with animation, so players can see the actual process.
+
+4]
+Frontend: Designed the wall game UI and displayed all players' rack tiles openly.
+Wall game popup changes, some work still pending its shows like empty we need to show something here.
+
+5]
+Frontend: Removed the spacing between tiles in the discard area and made the tiles smaller.
+Moving towards removing the scroll.
+
+6]
+Frontend: Reduced the spacing between exposed tiles and added more space between groups such as PUNG, KONG, QUINT, etc.
+
+7] 
+Frontend: Designed the Mahjong winning popup layout and organized the winning hand into groups of tiles, such as PUNG, KONG, QUINT, etc.
+Now, you can see the winning hand very clearly. This was pending in previous meeting.
+
+8]
+Drag-and-drop functionality for manually reordering tiles and adjusting tile sizes when it is not the player's turn.
+This is in player rack.
+
+9] 
+Preventing tile discards when an exposure group is incomplete (fewer than 3 tiles).
+This was a bug, when we click on Mahjong button after came it allow use to discard multiple tiles in discard area, which was a real bug./
+Now, it's solved.
+
+10]
+Fixed the Charleston second-round prompt UX (double-popup sequence).
+Blink of unwanted popup now gone.
+
+11]
+Pick tile animation to ensure the PICK tile is placed correctly in the rack at the right of the rack.
+Before it was adding at random place and was difficult to get the clear idea about new tile.
+
+
+12]
+Updated the voting logic for the second round of Charleston.
+Bot votes are now ignored during the second round when playing with all bot seats.
+If any real player votes NO for the second round, the round will be skipped, and the game will move to the next phase.
+Now, not from bot will not be considered only human player.
+
+13]
+Bot decision for til pass during Charleston
+Logic for jocker exchange by bot
+Bot tile discard algorithm refined again
+Changed JSON rule set file.
+Winning game logic has been improved in bot as well as in system
+Added hand group feature in wining popup and also in exposure, this wasn't there.
+In mahjong and wall game situation we will have all tile exposed in exposure for all players.
+Improved logic based on game mode - slow, medium and fast.
+
+14]
+As we updated backend API we also update the API client wrapper.
+
+END RESULT: Game is performing more accurate then previous meeting.
+We are still working on: completed-points.txt
+File as various details available.
+
+DISCUSSION POINT]
+Design of signing, login page
+Home page
+Game play
+
+Tile size
+Small: 26 × 37 px
+Medium: 88 × 120 px
+Large: we already have this (we created 168  × 230 px as 2X) used every where
+For small size we need to adjust content of tile so it will visible properly to users,
+Resize is possible but symbols and numbers are not appearing properly. User experience get disturbed.
+
+
+PROVIED ORIGINALS:
+1x: 257x256 px
+2x: 512x512 px
+
+
+NOTES]
+Meeting time changed due to day light saving so now 4:30 PM PST insted of PDT
+
 ======================
 What's left
 Item	Needs from you
@@ -103,18 +453,21 @@ Hand Suggestion
 
 GAME Board
 #]
+Game board UI specing management with exposure and discard sections.
+#]
 Set tiles in responsive mode and in other UI.
 #]
 Mahjong, Wall, Dead hand display and game settings popup UI.
 #]
-Dead hand UI when click on hand icon
-#]
+Dead hand UI when click on hand icon.
 
 
 
 ========== PRMP ===========
 #]
-Remove the scroll from the exposure in all devices.
+Analysed the other seat discard animation and the bottom seat discard tile animation speed is different and if so then why explain me in simple english and too the point.
+#]
+Remove the scroll from the exposure panel in all devices and fit the all 14 tiles inside the exposure.
 #]
 Why still used sound file form the asset instead of audio spirite
 In handleMahjongFailure
@@ -133,10 +486,44 @@ If its my turn and state is need to discard then it must be discard the tile, if
 
 Do not change in the code just do proper analyses how the current logic work aftere that will create the planing and the after before code snippet.
 ============ REPLY ============
-Today I tested the app and working on the below improvement points.
-When turn is my and if I pick and discard the tile that time if anyexposure have PUNG, KONG etc... with the same tile which I like to discard trough doble click or double tap then it replace the joker instead of discard. This is the current behaviour, that I changed as below.
-If its my turn and state is need to discard then it must be discard the tile, if I want to exchange the joker then I will double click on specific exposure tile to exchange the joker not like if on my discard turn if I found the same tile in the exposure then it direclty replace the joker. 
-Do not change in the code just do proper analyses how the current logic work aftere that will create the planing and the after before code snippet.
+FOR CLIENT]
+Today, I tested the app and worked on the following improvements:
+
+Tile discard and Joker exchange:
+
+Previously, when it was my turn to discard a tile, if the same tile was already present in an exposure (PUNG, KONG, etc.), double-clicking or double-tapping the tile would replace the Joker instead of discarding the tile.
+
+I have updated this behavior as follows:
+
+When it is my turn and the game state is Need to Discard, selecting a tile should always discard it.
+If I want to exchange a Joker, I must double-click or double-tap the specific exposed tile (PUNG, KONG, etc.) to replace the Joker.
+The Joker should no longer be replaced automatically when I try to discard a matching tile.
+I have deployed the latest backend and frontend builds to the demo server and tested a few games.
+
+Please play the game as much as possible and share your feedback.
+I will keep you updated on the progress.
+Thank you!
+
+
+
+
+Today, I tested the app and worked on the following improvements:
+
+Tile discard and Joker exchange:
+
+Previously, when it was my turn to discard a tile, if the same tile was already present in an exposure (PUNG, KONG, etc.), double-clicking or double-tapping the tile would replace the Joker instead of discarding the tile.
+
+I have updated this behavior as follows:
+
+When it is my turn and the game state is Need to Discard, selecting a tile should always discard it.
+If I want to exchange a Joker, I must double-click or double-tap the specific exposed tile (PUNG, KONG, etc.) to replace the Joker.
+The Joker should no longer be replaced automatically when I try to discard a matching tile.
+I have deployed the latest backend and frontend builds to the demo server and tested a few games.
+
+Please play the game as much as possible and share your feedback.
+
+I will keep you updated on the progress.
+Thank you!
 
 
 

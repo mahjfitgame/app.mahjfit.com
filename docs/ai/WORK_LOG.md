@@ -4,6 +4,34 @@ This log records verified development tasks, bug fixes, refactorings, and archit
 
 ---
 
+## [2026-11-16] Dead Hand Flow: Direct Claim on Seat Selection & Backend WebSocket Call
+
+- **Agent**: Antigravity
+- **Task**:
+  1. Remove Step 3 (the Reason Selection Dialog: Invalid Mah Jongg, Hand Not Viable, Incorrect Tile Count) from the Dead Hand flow.
+  2. Directly submit the Dead Hand claim (Step 4) immediately when the user clicks an opponent's seat arrow (`top`, `left`, or `right`) in the seat selection overlay.
+  3. Execute the backend GraphQL WebSocket call (Step 5) via `publishDeclareDead(targetSeatId)` in `state.ts:2097`.
+- **Implementation**:
+  - `todo/phase-play-after-before-plan-direct-dead-hand-claim.md`: Documented Before/After code plan.
+  - `src/app/module/business/game/phaser/component.ts`:
+    - Updated `onDeadHandClaimPrompt: (targetSeat)` callback to directly call `this.onSubmitDeadHandClaim(targetSeat, GameDeadHandReasonEnum.FALSE_MAHJONG)`.
+    - Enhanced `onSubmitDeadHandClaim(targetSeat, reason)`:
+      - Emitted `"ui:dead-hand-claimed"` to Phaser to play the `dead-hand` SFX.
+      - Emitted `deadHandClaimed` Angular output.
+      - Resolved `targetSeatObj.id` from `gameState.seat_mapping()` and `gameState.ordered_seats()`.
+      - Triggered `this.gameState.publishDeclareDead(targetSeatObj.id, reason)`.
+  - `src/app/module/business/game/state/state.ts`:
+    - Imported `GameDeadHandReasonEnum` from `@bfw/api-sdk/graphql/endpoints/business`.
+    - Implemented `publishDeclareDead(targetSeatId: number, reason: GameDeadHandReasonEnum)`:
+      - Resolved `targetRackId` from target seat's racks (defaulting to `GameRackIDEnumAddon.RACK_FIRST`).
+      - Published `publishActionCallDeadHand` with action `GamePlayActionEnumAddon.DEAD_HAND_CALL`, caller `from_gseat_id`, opponent `to_gseat_id`, and `this.commonSelectionFields`.
+- **Invariants Upheld**:
+  - Strict `OLDCODE` / `NEWCODE` pattern preserved with 0 code deletions.
+  - Did not access `todo/Frontend Development.txt`.
+  - TypeScript compilation check (`npx tsc -p tsconfig.app.json --noEmit`) verified with 0 errors.
+
+---
+
 ## [2026-11-06] Charleston Pass & Sort: Eliminate Gaps Between Rack Tiles When Sorting During Charleston
 
 - **Agent**: Antigravity

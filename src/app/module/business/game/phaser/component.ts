@@ -979,7 +979,7 @@ export class PhaserComponent implements AfterViewInit {
 
                 // Skip bottom player and skip the winner seat
                 if (seatPos && seatPos !== 'bottom' && seatPos !== tableSeat) {
-            /* NEWCODE */
+                  /* NEWCODE */
                   const alreadyHasTiles = opponentHands[seatPos] && opponentHands[seatPos].length > 0;
                   if (!alreadyHasTiles && seatData && seatData.racks) {
                     const fallbackTileIds: number[] = [];
@@ -1037,7 +1037,7 @@ export class PhaserComponent implements AfterViewInit {
               const seatPos = getSeatPos(seat?.id);
               // Only reveal opponent seats (bottom is already visible on the player's rack)
               if (seatPos && seatPos !== 'bottom') {
-                const rack = seat?.racks?.[1] || seat?.racks?.["1"];
+                const rack = seat?.racks?.[GameRackIDEnumAddon.RACK_FIRST] || seat?.racks?.["1"];
                 const tileIds: number[] = rack?.hand_order && Array.isArray(rack.hand_order)
                   ? rack.hand_order
                   : rack?.hand && typeof rack.hand === 'object'
@@ -1224,7 +1224,14 @@ export class PhaserComponent implements AfterViewInit {
             this.zone.run(() => this.tileCallDecision.emit(decision)),
           onPlayerRemovalRequested: (request) =>
             this.zone.run(() => this.playerRemovalRequested.emit(request)),
+          /* OLDCODE
           onDeadHandClaimPrompt: (targetSeat) => this.setDeadHandPopup(targetSeat),
+          OLDCODE */
+          /* NEWCODE */
+          // Directly submit claim upon seat selection without reason dialog
+          onDeadHandClaimPrompt: (targetSeat) =>
+            this.onSubmitDeadHandClaim(targetSeat, GameDeadHandReasonEnum.FALSE_MAHJONG),
+          /* NEWCODE */
           onTemporaryDiscardCompleted: () =>
             this.zone.run(() => this.temporaryDiscardCompleted.emit()),
           onRestartGame: () => this.zone.run(() => this.onStartNewGame()),
@@ -1831,16 +1838,33 @@ export class PhaserComponent implements AfterViewInit {
   }
 
   /* OLDCODE
-  public onSubmitDeadHandClaim(targetSeat: Exclude<TableSeat, "bottom">, reason: DeadHandReason): void {
-    this.zone.run(() => this.deadHandClaimed.emit({ targetSeat, reason }));
-    this.setDeadHandPopup(null);
-  }
+  // public onSubmitDeadHandClaim(targetSeat: Exclude<TableSeat, "bottom">, reason: DeadHandReason): void {
+  //   this.zone.run(() => this.deadHandClaimed.emit({ targetSeat, reason }));
+  //   this.setDeadHandPopup(null);
+  // }
+  // public onSubmitDeadHandClaim(targetSeat: Exclude<TableSeat, "bottom">, reason: DeadHandReason): void {
+  //   this.phaser?.events.emit("ui:dead-hand-claimed");
+  //   this.zone.run(() => this.deadHandClaimed.emit({ targetSeat, reason }));
+  //   this.setDeadHandPopup(null);
+  // }
   OLDCODE */
   /* NEWCODE */
-  public onSubmitDeadHandClaim(targetSeat: Exclude<TableSeat, "bottom">, reason: DeadHandReason): void {
+  // Submits dead hand claim, plays SFX, emits UI event, and sends WebSocket mutation to backend
+  public onSubmitDeadHandClaim(
+    targetSeat: Exclude<TableSeat, "bottom">,
+    reason: DeadHandReason = GameDeadHandReasonEnum.FALSE_MAHJONG
+  ): void {
     this.phaser?.events.emit("ui:dead-hand-claimed");
     this.zone.run(() => this.deadHandClaimed.emit({ targetSeat, reason }));
     this.setDeadHandPopup(null);
+
+    const mapping = this.gameState.seat_mapping();
+    const seats = this.gameState.ordered_seats();
+    const targetSeatIndex = mapping[targetSeat];
+    const targetSeatObj = seats[targetSeatIndex];
+    if (targetSeatObj?.id) {
+      void this.gameState.publishDeclareDead(targetSeatObj.id, reason);
+    }
   }
   /* NEWCODE */
 
@@ -2047,12 +2071,12 @@ export class PhaserComponent implements AfterViewInit {
     if (action === "call") {
       void this.gameState.publishClaimAction(GamePlayActionEnumAddon.CALL, claimTile.tile_id as number);
       this.phaser?.events.emit("ui:claim-submitted", { tile_id: claimTile.tile_id, action });
-    /* OLDCODE
-    } else if (action === "skip") {
-      void this.gameState.publishClaimAction(GamePlayActionEnumAddon.PASS, claimTile.tile_id as number);
-    }
-    OLDCODE */
-    /* NEWCODE */
+      /* OLDCODE
+      } else if (action === "skip") {
+        void this.gameState.publishClaimAction(GamePlayActionEnumAddon.PASS, claimTile.tile_id as number);
+      }
+      OLDCODE */
+      /* NEWCODE */
     } else if (action === "skip") {
       this.phaser?.events.emit("ui:skip-clicked");
       void this.gameState.publishClaimAction(GamePlayActionEnumAddon.PASS, claimTile.tile_id as number);
@@ -3146,8 +3170,8 @@ export class PhaserComponent implements AfterViewInit {
 
       // Pattern 4B: 246 Even Run (single 2, single 4, single 6)
       const has246 = (rankCounts.get(2)?.length === 1) &&
-                     (rankCounts.get(4)?.length === 1) &&
-                     (rankCounts.get(6)?.length === 1);
+        (rankCounts.get(4)?.length === 1) &&
+        (rankCounts.get(6)?.length === 1);
       if (has246) {
         const runTiles: WinningTileData[] = [
           rankCounts.get(2)!.splice(0, 1)[0],
@@ -3167,8 +3191,8 @@ export class PhaserComponent implements AfterViewInit {
 
       // Pattern 4C: 135 Odd Run (single 1, single 3, single 5)
       const has135 = (rankCounts.get(1)?.length === 1) &&
-                     (rankCounts.get(3)?.length === 1) &&
-                     (rankCounts.get(5)?.length === 1);
+        (rankCounts.get(3)?.length === 1) &&
+        (rankCounts.get(5)?.length === 1);
       if (has135) {
         const runTiles: WinningTileData[] = [
           rankCounts.get(1)!.splice(0, 1)[0],
