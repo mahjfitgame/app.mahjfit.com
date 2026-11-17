@@ -637,6 +637,7 @@ export class GameState extends SignalStateService implements FoundationModuleSta
     });
 
     // ████ all_seat_exposures SIGNAL ███████████████████████████████████████████
+    /* OLDCODE
     public readonly all_seat_exposures = computed(() => {
         const seats = this.ordered_seats();
         const mapping = this.seat_mapping();
@@ -654,6 +655,39 @@ export class GameState extends SignalStateService implements FoundationModuleSta
 
         return result;
     });
+    OLDCODE */
+    /* NEWCODE */
+    public readonly all_seat_exposures = computed(() => {
+        const seats = this.ordered_seats();
+        const mapping = this.seat_mapping();
+        const isWallGame = this.play_finished_reason() === "WALL_EMPTY";
+
+        const result = { bottom: [], right: [], top: [], left: [] } as any;
+
+        const getExposures = (seat: any, isOpponent: boolean) => {
+            const melds = [...(seat?.racks?.[GameRackIDEnumAddon.RACK_FIRST]?.exposures_meld || [])];
+            if (isWallGame && isOpponent && seat?.racks) {
+                const rack = seat.racks[GameRackIDEnumAddon.RACK_FIRST] || seat.racks[1];
+                if (rack?.hand) {
+                    const tileIds = rack.hand_order?.length
+                        ? rack.hand_order
+                        : Object.keys(rack.hand).map(Number);
+                    if (tileIds.length > 0) {
+                        melds.push({ tiles: tileIds.map((id: number) => ({ tile_id: id })) });
+                    }
+                }
+            }
+            return melds;
+        };
+
+        if (seats[mapping.bottom]) result.bottom = getExposures(seats[mapping.bottom], false);
+        if (seats[mapping.right]) result.right = getExposures(seats[mapping.right], true);
+        if (seats[mapping.top]) result.top = getExposures(seats[mapping.top], true);
+        if (seats[mapping.left]) result.left = getExposures(seats[mapping.left], true);
+
+        return result;
+    });
+    /* NEWCODE */
 
     /* NEWCODE */
     // ████ all_seat_rack_hands SIGNAL (DEBUG ONLY) ██████████████████████████████████

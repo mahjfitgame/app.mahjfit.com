@@ -1,4 +1,5 @@
 TODAY POINTS
+I will start below points from Wednesday, before that I will list out the points and cross check the completed features and functionlity. 
 4]
 Dead hand integration
 It's working but we found its not working properly
@@ -21,10 +22,14 @@ We have already done it for 50% of game play remain require to analyse the whole
 This is developer side job, and might Take 2-3 days when we will go for it.
 In future, if we update game with certain condition we might have to add logging it means this task is side by side.
 
-Once I received the small mobile device tiles I will start the mobile related upgradtaion.
+
+Once, I received the small mobile device tiles I will start the mobile related upgradtaion.
 
 
+Raj also said that for few days there might be one developer and one designer will work side by side to speed up.
+Raj will provide more details.
 
+Thank you!
 
 
 
@@ -245,7 +250,7 @@ If I call for an exposure, I can change my mind as long as I don’t add any of 
 IF I change my mind, once I return that tile back to the board, my turn is over and it moves to the next player’s turn. 
 DONE
 
-7.1]
+DONE - 7.1]
 Instructions for when I call:
 “Complete the exposure, then discard a tile”
  (The computer should know when the exposure is complete based on:
@@ -340,7 +345,7 @@ Need confiration, if need to change any thing.
 Charleston	Resize the direction box so tiles do not cover the PASS button
 
 9]
-Mahjong Banner	Design should be consistent. Where can we find alternative Celebration graphics?
+Mahjong Banner Design should be consistent. Where can we find alternative Celebration graphics?
 Note:
 We change the design but still need to do assesment as per the reference site realmahjong. Show opponents seat all tiles to the exposure.
 
@@ -385,7 +390,7 @@ Need to discuss and change as per the new layout design, design remain.
 After Pick	Include instructions to "Discard a Tile"
 DONE
 
-20]
+DONE - 20]
 we like the rack flipped as you have shown here
 
 let's move forward with this style as well as moving the instructions down onto the rack instead of the pop-up box on the game board. 
@@ -418,14 +423,14 @@ DONE
 - There is a bug that if i call the tile then it should be in exposure - it still show in discard area.
 DONE
 
-3]
+DONE - 3]
 - If mahjong button clicked and nothign then we need to show shake/wiggle the button to express that process is done and mahjong button again enabled.
 DONE 
-4]
+DONE - 4]
 - if only 1 player + 3 bot and if humal player get dead han then end the game. With correct message like end dure to dead hand - check whats app screen shot by jen.
-5]
+DONE - 5]
 - There are some screen shot of issues of exposure we fixed during last week but seems like still an issue. 
-6]
+DONE - 6]
 - Pulse effect of message when action arrive - like discards.
 DONE
 7]
@@ -438,16 +443,15 @@ NOT FOR NOW: - in easy mode we need to allow computer based checking in terms of
 
 9] 
 As tile quantity increse it adjust the size accordingly.
-10] 
+DONE - 10] 
 It seems like exposure get full and game is still going on.
 11]
 There is a video for a bug we in Nirav mobile - check and fix.
-12]
+DONE - 12]
 Need to create an image of rack position change upside down and send image for confirmation.
-13] 
+DONE - 13] 
 We might have to change clame window call button color - need to check design guide
-DONE
-14] 
+DONE -14] 
 If we can make the clame and other small popup transparent. 
 
 
@@ -587,7 +591,7 @@ I checked the link but it required the access so can you please share the access
 1]
 Need to cross check the Joker exchange by bot how it show in the frontend side UI animation and voice.
 
-2]
+DONE - 2]
 Add sound for Mahjong, Wall Game
 
 3]
@@ -599,14 +603,14 @@ Because we checked the multiple joker exchange it send the same joker id with bo
 
 Also need to check the joker exchange by the bot seat, while playing the game. Is it working or not.
 
-4.1]
+DONE - 4.1]
 Joker tile must be movable after joker swap with the current rack, we can not move that tile to rack. Also need to add shadow. 
 
-5]
+DONE - 5]
 Charlestone round, After select tiles for pass and  before click to pass if we re-arange the tile in rack, sort the tile in rack, it make blank space in rack.
 It should be properly managed and do not show any blank space.
 
-6]
+DONE - 6]
 Need to check the bot will follow the rule and winning hand and how bot take decision, we have some screenshots of game play need to cross check that screenshot with the actual game hand is it all exposure belong to the 
 
 7]
@@ -614,7 +618,7 @@ From mobile remove the bottom seat rack arrow and show the full tiles in one rac
 DONE
 Note: But need to check the tile images.
 
-8]
+DONE - 8]
 Mahjong need to add in UI.
 Opponent Hands Reveal
 
@@ -622,7 +626,7 @@ Opponent Hands Reveal
 Upgrade the Joker Exchange animation same like the reference websire realmahjongg.com
 Tile flip animation not works while Joker exchange. Need the flip animation when joker exchange.
 
-10]
+DONE - 10]
 When pass tile, need to add some animation as when tile goes to the rack disappear tile with some animation like flad or somthing. 
 
 
@@ -641,7 +645,7 @@ Animation call tile from the bottom rack (real player rack) to the exposure it s
 So whenever the tile is discarad, it must be move to discard area first and then if some one call then the tile will be animating from the discard area to specific called tile seat exposure. This must maintain the flow.
 
 Joker exchange:
-13]
+DONE - 13]
 When Joker exchange sometime if I drag and drop the joker to the specific exposure to exchange the Joker but the tile comes back to the rack instead exchange the joker and I again tried to exachange the joker it done.
 I think the issue is with area of placing the actual tile. 
 

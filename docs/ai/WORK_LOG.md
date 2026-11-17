@@ -4,6 +4,26 @@ This log records verified development tasks, bug fixes, refactorings, and archit
 
 ---
 
+## [2026-11-16] Wall Game Exposure: Reveal Opponent Hands in Standard Exposure Trays
+
+- **Agent**: Antigravity
+- **Task**:
+  - Automatically reveal remaining opponent hand tiles in their standard exposure trays (`top`, `left`, `right`) when a game finishes with reason `WALL_EMPTY` (Wall Game).
+  - Eliminate ad-hoc manual extraction events (`table:wall-game`) that conflicted with Phaser's reactive exposure rendering pipeline (`exposures:update`).
+- **Implementation**:
+  - `src/app/module/business/game/state/state.ts`:
+    - Updated `all_seat_exposures` computed signal to append opponent rack hand tiles (`rack.hand_order` / `rack.hand`) as melds when `play_finished_reason() === 'WALL_EMPTY'`.
+  - `src/app/module/business/game/phaser/component.ts`:
+    - Cleaned up redundant manual loop and ad-hoc `table:wall-game` emit, keeping the `ui:wall-game-sound` event.
+  - `src/app/module/business/game/phaser/scenes/scene.ts`:
+    - In `renderDebugOpponentHands()`, automatically destroyed and suppressed floating debug tiles when `this.tablePhase === GamePhaseEnum.FINISHED` to avoid visual overlap.
+- **Invariants Upheld**:
+  - Adhered strictly to `OLDCODE` / `NEWCODE` invariants without removing previous lines.
+  - Did not access `todo/Frontend Development.txt`.
+  - TypeScript compilation check (`npx tsc -p tsconfig.app.json --noEmit`) verified with 0 errors.
+
+---
+
 ## [2026-11-16] Dead Hand Flow: Direct Claim on Seat Selection & Backend WebSocket Call
 
 - **Agent**: Antigravity

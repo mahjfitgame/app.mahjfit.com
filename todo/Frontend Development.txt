@@ -5,6 +5,112 @@ Current:
 [tech][Frontend development][D1] Game Play - UI update and backend work as required
 
 
+
+
+
+========== PENDING POINTS ===========
+1] 
+For consistency, all the exposed tiles on the racks should be the same size.
+2]
+All racks should be able to show 14 tiles.
+3]
+Player3 tiles are upside-down on their rack.
+4]
+The in-play note - currently white text on black bubble - needs to follow design guide colors/fonts
+
+9]
+Dead Hand
+A hand can be dead if the tiles in the rack do not match any hands on the card. 
+A hand can also be called dead, if the tiles needed to complete the hand have already been discarded, making 
+Hand the player is working on, impossible to win.
+ 
+10]
+If you call a dead hand on another player, there should be follow up messaging:
+    * Either:
+        * This hand is a dead hand
+        * OR
+        * This hand is not dead, your hand is now dead.
+            * Would you like to end this game? Yes/No
+            * If yes, the screen goes to “End Game” screen, which reveals the
+               hands of all of the players.
+
+2]
+Direction Box: Please follow box shape and font from design guide. The box can be smaller
+
+8]
+Charleston	Resize the direction box so tiles do not cover the PASS button
+
+9]
+Mahjong Banner Design should be consistent. Where can we find alternative Celebration graphics?
+Note:
+We change the design but still need to do assesment as per the reference site realmahjong. Show opponents seat all tiles to the exposure.
+
+10]
+Join Request: Design should be consistent. Where can we find alternative Celebration graphics?
+
+
+12]
+Audio: When playing against bots, the user should hear the name of the tile they picked- now, there is no audio for this move.
+
+
+16]
+Discarded Tile	Any time a tile is discarded, whether you can call it or not, include an enlarged visial of it for the user
+Need to add the discarded tile at the center of the buttons only for the visual 
+
+18]
+Move icons on top right, scoot other icons over	Make the controls more user friendly
+
+Note:
+Need to discuss and change as per the new layout design, design remain.
+
+
+
+1] 
+Remain design parts
+- Siamese game play
+- Game board icons – We currently have the action icons, but I noticed that two icons are still missing: the tile count icon and the points icon.
+- 1x tile atlas
+- Favicon
+- Final app icons, including the foreground and background assets (mobile app icon)
+
+- chcck ilovemahj for 2 player
+- As per the level of game hardness we will adjust tile animation as harder animation will be faster.
+- 13" macbook-air has design layout issue.  So, we need to test the app with more resolution, its required.
+
+9] 
+As tile quantity increse it adjust the size accordingly.
+
+1]
+Need to cross check the Joker exchange by bot how it show in the frontend side UI animation and voice.
+
+3]
+Need one more implementation on claim, if claim window appear and user skip the request then and if the next turn is current seat pick then there also need option to claim the tile or pick the tile. 
+
+9]
+Upgrade the Joker Exchange animation same like the reference websire realmahjongg.com
+Tile flip animation not works while Joker exchange. Need the flip animation when joker exchange.
+
+
+11]
+For mobile device,
+Check the required size for tile to load all 14 tiles in rack.
+Then ake the same size of tile atlas and load 100% image in phaser.
+Remove shadow from tiles only in the mobile device. 
+
+
+12]
+Call tile by bot, some time if real player discad tile and if bot claim that tile then how it behave currently.
+Discard tile goes to discard area
+Call sound play
+Animation call tile from the bottom rack (real player rack) to the exposure it should be move from the discard area to exposure.
+
+So whenever the tile is discarad, it must be move to discard area first and then if some one call then the tile will be animating from the discard area to specific called tile seat exposure. This must maintain the flow.
+
+
+
+ASK TO CLIENT]
+- during Charleston, the tiles I am getting passed should come into my rack at the same time the other tiles are moving to other players. Now they are coming in after the other tiles pass.
+
 ========== PRMP ===========
 #]
 I think this is not the proper solution, 

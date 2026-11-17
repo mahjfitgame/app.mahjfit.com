@@ -1021,41 +1021,29 @@ export class PhaserComponent implements AfterViewInit {
             reason: 'WALL_EMPTY'
           });
           this.wallGameOver.set(true);
-          /* OLDCODE
-          // Reveal all seats' hands to exposures on wall game
-          const seats = this.gameState.play_seats();
-          this.phaser?.events.emit("table:wall-game", seats);
-          OLDCODE */
-          /* NEWCODE */
-          // Map play.seats key-by-value directly to table positions (top, left, right)
-          const seats = this.gameState.play_seats();
-          const getSeatPos = this.gameState.seat_position_by_gseat_id();
-          const opponentHands: Record<string, number[]> = {};
-
-          if (seats && typeof seats === 'object') {
-            for (const seat of Object.values(seats) as any[]) {
-              const seatPos = getSeatPos(seat?.id);
-              // Only reveal opponent seats (bottom is already visible on the player's rack)
-              if (seatPos && seatPos !== 'bottom') {
-                const rack = seat?.racks?.[GameRackIDEnumAddon.RACK_FIRST] || seat?.racks?.["1"];
-                const tileIds: number[] = rack?.hand_order && Array.isArray(rack.hand_order)
-                  ? rack.hand_order
-                  : rack?.hand && typeof rack.hand === 'object'
-                    ? Object.keys(rack.hand).map(Number)
-                    : [];
-                if (tileIds.length > 0) {
-                  opponentHands[seatPos] = tileIds;
-                }
-              }
-            }
-          }
-          /* OLDCODE
-          this.phaser?.events.emit("table:wall-game", opponentHands);
-          OLDCODE */
+          // OLDCODE: previous wall-game manual extraction and table:wall-game emit
+          // const seats = this.gameState.play_seats();
+          // const getSeatPos = this.gameState.seat_position_by_gseat_id();
+          // const opponentHands: Record<string, number[]> = {};
+          // if (seats && typeof seats === 'object') {
+          //   for (const seat of Object.values(seats) as any[]) {
+          //     const seatPos = getSeatPos(seat?.id);
+          //     if (seatPos && seatPos !== 'bottom') {
+          //       const rack = seat?.racks?.[GameRackIDEnumAddon.RACK_FIRST] || seat?.racks?.["1"];
+          //       const tileIds: number[] = rack?.hand_order && Array.isArray(rack.hand_order)
+          //         ? rack.hand_order
+          //         : rack?.hand && typeof rack.hand === 'object'
+          //           ? Object.keys(rack.hand).map(Number)
+          //           : [];
+          //       if (tileIds.length > 0) {
+          //         opponentHands[seatPos] = tileIds;
+          //       }
+          //     }
+          //   }
+          // }
+          // this.phaser?.events.emit("table:wall-game", opponentHands);
           /* NEWCODE */
           this.phaser?.events.emit("ui:wall-game-sound");
-          this.phaser?.events.emit("table:wall-game", opponentHands);
-          /* NEWCODE */
           /* NEWCODE */
         } else {
           // Dead Hand / No Active Racks Game Over

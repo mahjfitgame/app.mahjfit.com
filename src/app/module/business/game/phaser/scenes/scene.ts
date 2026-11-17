@@ -5137,8 +5137,23 @@ export class PhaserScene extends Phaser.Scene {
   }
 
   // Render debug rack hand tiles for top, left, and right seats
+  /* OLDCODE
   private renderDebugOpponentHands(hands: { bottom: any[], right: any[], top: any[], left: any[] }): void {
     if (!this.layout || Object.keys(this.allTiles).length === 0) return;
+  OLDCODE */
+  /* NEWCODE */
+  private renderDebugOpponentHands(hands: { bottom: any[], right: any[], top: any[], left: any[] }): void {
+    if (!this.layout || Object.keys(this.allTiles).length === 0) return;
+
+    // Suppress floating debug tiles once game is finished to avoid overlapping standard exposures
+    if (this.tablePhase === GamePhaseEnum.FINISHED) {
+      for (const seat of ["top", "left", "right"] as const) {
+        this.debugOpponentHandTiles[seat].forEach((img) => img.destroy());
+        this.debugOpponentHandTiles[seat] = [];
+      }
+      return;
+    }
+  /* NEWCODE */
 
     for (const seat of ["top", "left", "right"] as const) {
       const tileList = hands[seat] || [];
